@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { createDevSession, getAdminSession } from "../../../src/shared/auth/session";
+import { loginAdminEmployee } from "../../../src/modules/auth/admin-session-actions";
 
 type LoginPageProps = {
   searchParams?: Promise<{
+    authError?: string;
     next?: string;
   }>;
 };
@@ -35,24 +37,24 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           crear un backend paralelo en Next.js.
         </p>
 
-        <form className="adminForm">
+        <form action={loginAdminEmployee} className="adminForm">
+          <input type="hidden" name="next" value={nextPath} />
           <label className="adminField">
             <span>Email</span>
-            <input type="email" name="email" autoComplete="email" disabled />
+            <input type="email" name="email" autoComplete="email" required />
           </label>
           <label className="adminField">
             <span>Password</span>
-            <input type="password" name="password" autoComplete="current-password" disabled />
+            <input type="password" name="password" autoComplete="current-password" required />
           </label>
-          <button className="adminButton adminButtonPrimary" type="button" disabled>
+          <button className="adminButton adminButtonPrimary" type="submit">
             Entrar con BFF Sessions
           </button>
         </form>
 
-        <div className="adminBanner">
-          Falta confirmar el endpoint BFF de login/introspection para employees.
-          Hasta entonces no se guarda ningun token en el navegador.
-        </div>
+        {params?.authError ? (
+          <div className="adminBanner adminBannerError">{params.authError}</div>
+        ) : null}
 
         {devSessionEnabled ? (
           <form action={startDevSession}>

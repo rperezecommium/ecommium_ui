@@ -105,6 +105,9 @@ Estos endpoints son orientativos para construir UI. Si alguno no responde, regis
 
 ### Admin: Organizations/Shops y contexto multistore
 
+- `POST /api/v1/admin/sessions/login`
+- `GET /api/v1/admin/sessions/me`
+- `POST /api/v1/admin/sessions/logout`
 - `GET /api/v1/admin/organizations-shops/organizations?limit=:limit&offset=:offset`
 - `POST /api/v1/admin/organizations-shops/organizations`
 - `GET /api/v1/admin/organizations-shops/organizations/:organizationId`
@@ -132,6 +135,11 @@ Flujo UI obligatorio:
 `shopAlias` es humano y unico por Organization; no reemplaza a `shopId` en mutaciones, eventos ni contratos posteriores. Si el usuario informa `organizationId + shopAlias`, la UI debe resolverlo con `GET /api/v1/admin/organizations-shops/shops/context/resolve?organizationId=:org&shopAlias=:alias` y guardar el `shopId` canonico devuelto.
 
 `Activa` en UI significa contexto seleccionado por el usuario Admin en cookie/sesion. No es un atributo global de `Shop`. Si se muestra junto a `status=ACTIVE`, diferenciarlo como `Contexto activo` frente a `Estado operativo`.
+
+La sesion visual de desarrollo no autentica contra el BFF. Las llamadas Admin
+reales requieren `Authorization`, obtenido desde BFF Sessions y persistido en
+cookie httpOnly por la UI, o desde `ECOMMIUM_ADMIN_BFF_TOKEN` como fallback
+server-side de desarrollo.
 
 Estados UI obligatorios para multistore:
 

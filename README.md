@@ -47,6 +47,9 @@ Environment variables:
 
 Admin configuration expects these BFF contracts for multistore context:
 
+- `POST /api/v1/admin/sessions/login`
+- `GET /api/v1/admin/sessions/me`
+- `POST /api/v1/admin/sessions/logout`
 - `GET /api/v1/admin/organizations-shops/organizations?limit=:limit&offset=:offset`
 - `GET /api/v1/admin/organizations-shops/shops?organizationId=:org&shopGroupId=:optional&status=:optional&limit=:limit&offset=:offset`
 - `GET /api/v1/admin/organizations-shops/shop-groups?organizationId=:org&limit=:limit&offset=:offset`

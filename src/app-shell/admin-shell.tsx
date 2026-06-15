@@ -3,6 +3,7 @@ import type { AdminSession } from "../shared/auth/session";
 import type { AdminContext } from "../shared/config/admin-context";
 import type { OrganizationShopDirectory } from "../modules/configuracion/organization-shop";
 import { updateAdminContext } from "../modules/configuracion/context-actions";
+import { logoutAdminEmployee } from "../modules/auth/admin-session-actions";
 import { filterAllowedNavigation } from "../shared/permissions/permissions";
 import { AdminContextSelector } from "./admin-context-selector";
 
@@ -70,6 +71,11 @@ export function AdminShell({ children, context, directory, session }: AdminShell
               <strong>{session.name}</strong>
               <div className="adminContextHint">{session.email}</div>
             </div>
+            <form action={logoutAdminEmployee}>
+              <button className="adminButton" type="submit">
+                Salir
+              </button>
+            </form>
           </div>
         </header>
 

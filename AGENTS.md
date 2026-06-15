@@ -202,6 +202,10 @@ Variables esperadas:
 - `NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL`: URL publica de la UI si se necesita para metadata.
 - Nunca exponer URLs internas de `services/*` al navegador.
 
+La sesion local de desarrollo solo desbloquea la UI. Para llamadas reales Admin,
+el token debe venir de BFF Sessions (`/admin/sessions/login`) y guardarse en una
+cookie httpOnly de UI, o temporalmente de `ECOMMIUM_ADMIN_BFF_TOKEN`.
+
 ## Modulos Admin y endpoints BFF
 Los endpoints listados son la primera referencia operativa. Antes de implementar, validar en `.docs/06-interfaces/00-frontend-bff-contracts.md` porque el contrato puede haber evolucionado.
 
@@ -210,6 +214,9 @@ Incluye Organization, Shop, ShopContext, defaults regionales, fiscal profile, un
 
 Endpoints base:
 
+- `POST /api/v1/admin/sessions/login`
+- `GET /api/v1/admin/sessions/me`
+- `POST /api/v1/admin/sessions/logout`
 - `GET /api/v1/admin/organizations-shops/organizations?limit=:limit&offset=:offset`
 - `GET /api/v1/admin/organizations-shops/shop-groups?organizationId=:org&limit=:limit&offset=:offset`
 - `GET /api/v1/admin/organizations-shops/shops?organizationId=:org&shopGroupId=:optional&status=:optional&limit=:limit&offset=:offset`
