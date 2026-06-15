@@ -30,7 +30,10 @@ a {
 .shell {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
+  width: min(100%, 1480px);
   min-height: 100vh;
+  margin: 0 auto;
+  background: var(--background);
 }
 
 .sidebar {
@@ -109,7 +112,13 @@ a {
 }
 
 .workspace {
-  padding: 32px;
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
+.content {
+  width: min(100%, 1120px);
 }
 
 .topbar,

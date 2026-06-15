@@ -47,87 +47,89 @@ export default function Home() {
       </aside>
 
       <section className="workspace">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">Operacion ecommerce</p>
-            <h1>Ecommium UI</h1>
-          </div>
-          <div className="actions">
-            <button type="button" className="iconButton" aria-label="Buscar">
-              <span aria-hidden="true">⌕</span>
-            </button>
-            <button type="button" className="primaryButton">Nuevo pedido</button>
-          </div>
-        </header>
-
-        <section className="metricGrid" aria-label="Metricas principales">
-          {metrics.map((metric) => (
-            <article className="metricCard" key={metric.label}>
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
-              <small>{metric.delta}</small>
-            </article>
-          ))}
-        </section>
-
-        <section className="mainGrid">
-          <div className="panel revenuePanel">
-            <div className="panelHeader">
-              <div>
-                <p className="eyebrow">Rendimiento</p>
-                <h2>Ingresos por hora</h2>
-              </div>
-              <button type="button" className="ghostButton">Hoy</button>
+        <div className="content">
+          <header className="topbar">
+            <div>
+              <p className="eyebrow">Operacion ecommerce</p>
+              <h1>Ecommium UI</h1>
             </div>
-            <div className="chart" aria-label="Grafica de ingresos por hora">
-              {[42, 58, 44, 67, 73, 61, 86, 78, 92, 84, 96, 89].map((height, index) => (
-                <span
-                  key={index}
-                  style={{ height: `${height}%` }}
-                  aria-hidden="true"
-                />
-              ))}
+            <div className="actions">
+              <button type="button" className="iconButton" aria-label="Buscar">
+                <span aria-hidden="true">⌕</span>
+              </button>
+              <button type="button" className="primaryButton">Nuevo pedido</button>
             </div>
-          </div>
+          </header>
 
-          <div className="panel">
-            <div className="panelHeader">
-              <div>
-                <p className="eyebrow">Canales</p>
-                <h2>Distribucion</h2>
-              </div>
-            </div>
-            <div className="channelList">
-              {channels.map((channel) => (
-                <div className="channel" key={channel.name}>
-                  <span className="dot" style={{ background: channel.color }} />
-                  <strong>{channel.name}</strong>
-                  <span>{channel.value}</span>
+          <section className="metricGrid" aria-label="Metricas principales">
+            {metrics.map((metric) => (
+              <article className="metricCard" key={metric.label}>
+                <span>{metric.label}</span>
+                <strong>{metric.value}</strong>
+                <small>{metric.delta}</small>
+              </article>
+            ))}
+          </section>
+
+          <section className="mainGrid">
+            <div className="panel revenuePanel">
+              <div className="panelHeader">
+                <div>
+                  <p className="eyebrow">Rendimiento</p>
+                  <h2>Ingresos por hora</h2>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="panel orderPanel">
-            <div className="panelHeader">
-              <div>
-                <p className="eyebrow">Fulfillment</p>
-                <h2>Pedidos recientes</h2>
+                <button type="button" className="ghostButton">Hoy</button>
               </div>
-              <button type="button" className="ghostButton">Ver todos</button>
+              <div className="chart" aria-label="Grafica de ingresos por hora">
+                {[42, 58, 44, 67, 73, 61, 86, 78, 92, 84, 96, 89].map((height, index) => (
+                  <span
+                    key={index}
+                    style={{ height: `${height}%` }}
+                    aria-hidden="true"
+                  />
+                ))}
+              </div>
             </div>
-            <div className="orders">
-              {orders.map((order) => (
-                <div className="orderRow" key={order.id}>
-                  <span>{order.id}</span>
-                  <strong>{order.client}</strong>
-                  <em>{order.status}</em>
-                  <span>{order.total}</span>
+
+            <div className="panel">
+              <div className="panelHeader">
+                <div>
+                  <p className="eyebrow">Canales</p>
+                  <h2>Distribucion</h2>
                 </div>
-              ))}
+              </div>
+              <div className="channelList">
+                {channels.map((channel) => (
+                  <div className="channel" key={channel.name}>
+                    <span className="dot" style={{ background: channel.color }} />
+                    <strong>{channel.name}</strong>
+                    <span>{channel.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+
+            <div className="panel orderPanel">
+              <div className="panelHeader">
+                <div>
+                  <p className="eyebrow">Fulfillment</p>
+                  <h2>Pedidos recientes</h2>
+                </div>
+                <button type="button" className="ghostButton">Ver todos</button>
+              </div>
+              <div className="orders">
+                {orders.map((order) => (
+                  <div className="orderRow" key={order.id}>
+                    <span>{order.id}</span>
+                    <strong>{order.client}</strong>
+                    <em>{order.status}</em>
+                    <span>{order.total}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
       </section>
     </main>
   );
