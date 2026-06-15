@@ -93,6 +93,31 @@ Estos endpoints son orientativos para construir UI. Si alguno no responde, regis
 - `GET /api/v1/storefront/me/invoices/:invoiceId/document`
 - `POST /api/v1/storefront/me/after-sales/cases?organizationId=:org&shopId=:shop`
 
+### Admin: Organizations/Shops y contexto multistore
+- `GET /api/v1/admin/organizations-shops/organizations?limit=:limit&offset=:offset`
+- `POST /api/v1/admin/organizations-shops/organizations`
+- `GET /api/v1/admin/organizations-shops/organizations/:organizationId`
+- `PATCH /api/v1/admin/organizations-shops/organizations/:organizationId`
+- `GET /api/v1/admin/organizations-shops/shop-groups?organizationId=:org&limit=:limit&offset=:offset`
+- `POST /api/v1/admin/organizations-shops/shop-groups?organizationId=:org`
+- `GET /api/v1/admin/organizations-shops/shops?organizationId=:org&shopGroupId=:optional&status=:optional&limit=:limit&offset=:offset`
+- `POST /api/v1/admin/organizations-shops/shops?organizationId=:org`
+- `GET /api/v1/admin/organizations-shops/shops/:shopId?organizationId=:org`
+- `PATCH /api/v1/admin/organizations-shops/shops/:shopId?organizationId=:org`
+- `GET /api/v1/admin/organizations-shops/shops/context/resolve?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/organizations-shops/shops/context/resolve?organizationId=:org&shopAlias=:alias`
+
+Flujo UI obligatorio:
+
+1. Listar Organizations.
+2. Listar Shops por `organizationId`.
+3. Mostrar `shopAlias` junto a nombre y `shopId`.
+4. Permitir escribir `shopAlias` si el usuario no conoce el `shopId`.
+5. Resolver contexto por `shops/context/resolve`.
+6. Persistir el `shopId` devuelto como identidad canonica del Admin.
+
+`shopAlias` es humano y unico por Organization; no reemplaza a `shopId` en mutaciones, eventos ni contratos posteriores.
+
 ### Admin: CMS y Routing/SEO
 - `GET /api/v1/admin/cms/pages?organizationId=:org&shopId=:shop&locale=:locale&status=:status&pageType=:pageType&limit=:limit&offset=:offset`
 - `POST /api/v1/admin/cms/pages?organizationId=:org&shopId=:shop&locale=:locale`
@@ -194,7 +219,7 @@ Estos endpoints son orientativos para construir UI. Si alguno no responde, regis
 - Productos: `Basico`, `Combinaciones`, `Precio`, `SEO`, `Medios`, `Transporte`, `Opciones`, `Auditoria`.
 - Precios: precio basico visible rapido; reglas, vigencia, prioridades y tablas en avanzado.
 - Shipping: carriers, zones, ranges por peso/precio, impuestos, manipulacion y comportamiento fuera de rango.
-- Multistore: mostrar si cada campo esta heredado, customizado o restaurable.
+- Multistore: listar Organizations, listar Shops por Organization, mostrar `shopAlias`, permitir resolver por alias y mostrar si cada campo esta heredado, customizado o restaurable.
 - Permissions: perfiles en tabs y matriz de permisos por capacidad.
 
 Tokens visuales Admin obligatorios:

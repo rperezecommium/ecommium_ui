@@ -35,6 +35,8 @@ Environment variables:
 - `ECOMMIUM_BFF_BASE_URL`, defaults to `http://localhost:3010/api/v1`.
 - `ECOMMIUM_DEFAULT_ORGANIZATION_ID`, optional initial organization context.
 - `ECOMMIUM_DEFAULT_SHOP_ID`, optional initial shop context.
+- `ECOMMIUM_DEFAULT_SHOP_ALIAS`, optional human shop alias. It helps resolve a
+  shop when `shopId` is not known yet; `shopId` remains the canonical identity.
 - `ECOMMIUM_DEFAULT_LOCALE`, defaults to `es-ES`.
 - `ECOMMIUM_DEFAULT_CURRENCY`, defaults to `EUR`.
 - `ECOMMIUM_DEFAULT_COUNTRY`, defaults to `ES`.
@@ -43,5 +45,12 @@ Environment variables:
 
 Admin configuration expects these BFF contracts for multistore context:
 
-- `GET /api/v1/admin/organizations-shops/context`
-- `GET /api/v1/admin/organizations-shops/settings?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/organizations-shops/organizations?limit=:limit&offset=:offset`
+- `GET /api/v1/admin/organizations-shops/shops?organizationId=:org&shopGroupId=:optional&status=:optional&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/organizations-shops/shop-groups?organizationId=:org&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/organizations-shops/shops/context/resolve?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/organizations-shops/shops/context/resolve?organizationId=:org&shopAlias=:alias`
+
+The Admin selector must list existing organizations first, then list shops for
+the selected organization, display `shopAlias` as a human identifier, and persist
+the resolved `shopId` as the canonical context for the rest of the Admin.

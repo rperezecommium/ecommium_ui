@@ -62,14 +62,15 @@ export function ContextSettingsPage({
       {directory.source === "unavailable" ? (
         <div className="adminBanner adminBannerError">
           Endpoint pendiente o BFF no disponible: GET
-          /api/v1/admin/organizations-shops/context. {directory.message}
+          /api/v1/admin/organizations-shops/organizations. {directory.message}
         </div>
       ) : null}
 
       {inheritance.source === "fallback" ? (
         <div className="adminBanner">
           Settings heredables en modo fallback. Contrato esperado: GET
-          /api/v1/admin/organizations-shops/settings?organizationId=:org&amp;shopId=:shop.
+          /api/v1/admin/organizations-shops/shops/context/resolve?organizationId=:org&amp;shopId=:shop
+          o &amp;shopAlias=:alias.
           {inheritance.message ? ` ${inheritance.message}` : ""}
         </div>
       ) : null}
@@ -110,12 +111,26 @@ export function ContextSettingsPage({
                   {shops.map((shop) => (
                     <option value={shop.id} key={`${shop.organizationId}:${shop.id}`}>
                       {shop.organizationName} / {shop.name}
+                      {shop.shopAlias ? ` (${shop.shopAlias})` : ""}
                     </option>
                   ))}
                 </select>
               ) : (
                 <input name="shopId" defaultValue={context.shopId} placeholder="shop-id" />
               )}
+            </label>
+
+            <label className="adminField">
+              <span>Shop alias</span>
+              <input
+                name="shopAlias"
+                defaultValue={context.shopAlias}
+                placeholder="tienda-barcelona"
+              />
+              <small>
+                Puedes resolver contexto por alias si aun no conoces el shopId.
+                El sistema usara shopId como identidad canonica cuando exista.
+              </small>
             </label>
 
             <div className="adminFormGrid">
@@ -166,6 +181,10 @@ export function ContextSettingsPage({
               <tr>
                 <th scope="row">Shop</th>
                 <td>{context.shopId || "Pendiente"}</td>
+              </tr>
+              <tr>
+                <th scope="row">Shop alias</th>
+                <td>{context.shopAlias || "Pendiente"}</td>
               </tr>
               <tr>
                 <th scope="row">Locale</th>

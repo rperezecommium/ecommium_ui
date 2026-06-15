@@ -38,9 +38,16 @@ export function AdminContextSelector({ context, directory }: AdminContextSelecto
             {shops.map((shop) => (
               <option value={shop.id} key={`${shop.organizationId}:${shop.id}`}>
                 {shop.organizationName} / {shop.name}
+                {shop.shopAlias ? ` (${shop.shopAlias})` : ""}
               </option>
             ))}
           </select>
+          <input
+            aria-label="Shop alias"
+            name="shopAlias"
+            placeholder="shopAlias"
+            defaultValue={context.shopAlias}
+          />
         </>
       ) : (
         <>
@@ -55,6 +62,12 @@ export function AdminContextSelector({ context, directory }: AdminContextSelecto
             name="shopId"
             placeholder="shopId"
             defaultValue={context.shopId}
+          />
+          <input
+            aria-label="Shop alias"
+            name="shopAlias"
+            placeholder="shopAlias"
+            defaultValue={context.shopAlias}
           />
         </>
       )}

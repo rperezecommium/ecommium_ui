@@ -18,7 +18,10 @@ export type ShopOption = {
   id: string;
   name: string;
   organizationId: string;
+  shopAlias?: string;
   shopGroupId?: string;
+  primaryDomain?: string;
+  status?: string;
   locale?: string;
   currency?: string;
   country?: string;
@@ -73,10 +76,15 @@ type RawShop = {
   id?: unknown;
   shopId?: unknown;
   organizationId?: unknown;
+  shopAlias?: unknown;
   shopGroupId?: unknown;
   groupId?: unknown;
   name?: unknown;
   displayName?: unknown;
+  primaryDomain?: unknown;
+  status?: unknown;
+  effectiveSettings?: unknown;
+  settingsOverride?: unknown;
   locale?: unknown;
   defaultLocale?: unknown;
   currency?: unknown;
@@ -112,9 +120,16 @@ function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
+function parseListItems(value: unknown): unknown[] {
+  const record = asRecord(value);
+  return asArray(record.items ?? value);
+}
+
 function normalizeShop(raw: unknown, organizationId: string): ShopOption | null {
   const shop = raw as RawShop;
   const id = asString(shop.id) ?? asString(shop.shopId);
+  const effectiveSettings = asRecord(shop.effectiveSettings);
+  const settingsOverride = asRecord(shop.settingsOverride);
 
   if (!id) {
     return null;
@@ -124,11 +139,29 @@ function normalizeShop(raw: unknown, organizationId: string): ShopOption | null 
     id,
     name: asString(shop.name) ?? asString(shop.displayName) ?? id,
     organizationId: asString(shop.organizationId) ?? organizationId,
+    shopAlias: asString(shop.shopAlias),
     shopGroupId: asString(shop.shopGroupId) ?? asString(shop.groupId),
-    locale: asString(shop.locale) ?? asString(shop.defaultLocale),
-    currency: asString(shop.currency) ?? asString(shop.defaultCurrency),
-    country: asString(shop.country) ?? asString(shop.defaultCountry),
-    timezone: asString(shop.timezone),
+    primaryDomain: asString(shop.primaryDomain),
+    status: asString(shop.status),
+    locale:
+      asString(shop.locale) ??
+      asString(shop.defaultLocale) ??
+      asString(effectiveSettings.defaultLocale) ??
+      asString(settingsOverride.defaultLocale),
+    currency:
+      asString(shop.currency) ??
+      asString(shop.defaultCurrency) ??
+      asString(effectiveSettings.defaultCurrency) ??
+      asString(settingsOverride.defaultCurrency),
+    country:
+      asString(shop.country) ??
+      asString(shop.defaultCountry) ??
+      asString(effectiveSettings.defaultCountry) ??
+      asString(settingsOverride.defaultCountry),
+    timezone:
+      asString(shop.timezone) ??
+      asString(effectiveSettings.timezone) ??
+      asString(settingsOverride.timezone),
   };
 }
 
@@ -171,17 +204,22 @@ function normalizeOrganization(raw: unknown): OrganizationOption | null {
   };
 }
 
-function parseDirectory(value: unknown): OrganizationShopDirectory {
-  const record = asRecord(value);
-  const organizationsSource = record.organizations ?? record.items ?? value;
-  const organizations = asArray(organizationsSource)
+function parseOrganizationList(value: unknown): OrganizationOption[] {
+  return parseListItems(value)
     .map(normalizeOrganization)
     .filter((organization): organization is OrganizationOption => Boolean(organization));
+}
 
-  return {
-    organizations,
-    source: "bff",
-  };
+function parseShopGroupList(value: unknown, organizationId: string): ShopGroupOption[] {
+  return parseListItems(value)
+    .map((group) => normalizeShopGroup(group, organizationId))
+    .filter((group): group is ShopGroupOption => Boolean(group));
+}
+
+function parseShopList(value: unknown, organizationId: string): ShopOption[] {
+  return parseListItems(value)
+    .map((shop) => normalizeShop(shop, organizationId))
+    .filter((shop): shop is ShopOption => Boolean(shop));
 }
 
 function readPath(record: Record<string, unknown>, path: string): unknown {
@@ -213,6 +251,15 @@ function parseSetting(key: string, label: string, value: unknown): InheritableSe
   const override = record.overrideValue ?? record.override;
   const owner = asString(record.owner) ?? asString(record.source) ?? "Unknown";
   const status = asString(record.status) ?? asString(record.mode);
+  const customized = typeof record.customized === "boolean" ? record.customized : undefined;
+  const normalizedOwner =
+    owner === "ORGANIZATION"
+      ? "Organization"
+      : owner === "SHOP_GROUP"
+        ? "ShopGroup"
+        : owner === "SHOP"
+          ? "Shop"
+          : owner;
 
   return {
     key,
@@ -220,14 +267,26 @@ function parseSetting(key: string, label: string, value: unknown): InheritableSe
     effectiveValue: formatValue(effective),
     inheritedValue: inherited === undefined ? undefined : formatValue(inherited),
     overrideValue: override === undefined ? undefined : formatValue(override),
-    status: status === "customized" ? "customized" : status === "inherited" ? "inherited" : "not_configured",
-    owner: owner === "Organization" || owner === "ShopGroup" || owner === "Shop" ? owner : "Unknown",
+    status:
+      customized === true
+        ? "customized"
+        : status === "customized"
+          ? "customized"
+          : status === "inherited" || normalizedOwner === "Organization" || normalizedOwner === "ShopGroup"
+            ? "inherited"
+            : "not_configured",
+    owner:
+      normalizedOwner === "Organization" ||
+      normalizedOwner === "ShopGroup" ||
+      normalizedOwner === "Shop"
+        ? normalizedOwner
+        : "Unknown",
   };
 }
 
 function parseSettingsInheritance(value: unknown): ShopSettingsInheritance {
   const record = asRecord(value);
-  const settingsRecord = asRecord(record.settings ?? record.inheritance ?? value);
+  const settingsRecord = asRecord(record.settings ?? record.settingsInheritance ?? record.inheritance ?? value);
   const settings = settingsLabels.map((setting) => {
     const raw = readPath(settingsRecord, setting.key);
     return parseSetting(setting.key, setting.label, raw);
@@ -278,38 +337,67 @@ function fallbackSettings(context: AdminContext, message?: string, correlationId
 }
 
 export async function getOrganizationShopDirectory(): Promise<OrganizationShopDirectory> {
-  const result = await requestBff("/admin/organizations-shops/context", {
-    parse: parseDirectory,
+  const organizationsResult = await requestBff("/admin/organizations-shops/organizations?limit=100&offset=0", {
+    parse: parseOrganizationList,
   });
 
-  if (!result.ok) {
+  if (!organizationsResult.ok) {
     return {
       organizations: [],
       source: "unavailable",
-      message: result.error,
-      correlationId: result.correlationId,
+      message: organizationsResult.error,
+      correlationId: organizationsResult.correlationId,
     };
   }
 
+  const organizations = await Promise.all(
+    organizationsResult.data.map(async (organization) => {
+      const params = new URLSearchParams({
+        organizationId: organization.id,
+        limit: "100",
+        offset: "0",
+      });
+      const [shopGroupsResult, shopsResult] = await Promise.all([
+        requestBff(`/admin/organizations-shops/shop-groups?${params.toString()}`, {
+          parse: (value) => parseShopGroupList(value, organization.id),
+        }),
+        requestBff(`/admin/organizations-shops/shops?${params.toString()}`, {
+          parse: (value) => parseShopList(value, organization.id),
+        }),
+      ]);
+
+      return {
+        ...organization,
+        shopGroups: shopGroupsResult.ok ? shopGroupsResult.data : [],
+        shops: shopsResult.ok ? shopsResult.data : [],
+      };
+    }),
+  );
+
   return {
-    ...result.data,
-    correlationId: result.correlationId,
+    organizations,
+    source: "bff",
+    correlationId: organizationsResult.correlationId,
   };
 }
 
 export async function getShopSettingsInheritance(
   context: AdminContext,
 ): Promise<ShopSettingsInheritance> {
-  if (!context.organizationId || !context.shopId) {
-    return fallbackSettings(context, "Define organizationId y shopId para consultar herencia.");
+  if (!context.organizationId || (!context.shopId && !context.shopAlias)) {
+    return fallbackSettings(context, "Define organizationId y shopId o shopAlias para consultar herencia.");
   }
 
   const params = new URLSearchParams({
     organizationId: context.organizationId,
-    shopId: context.shopId,
   });
+  if (context.shopId) {
+    params.set("shopId", context.shopId);
+  } else {
+    params.set("shopAlias", context.shopAlias);
+  }
 
-  const result = await requestBff(`/admin/organizations-shops/settings?${params.toString()}`, {
+  const result = await requestBff(`/admin/organizations-shops/shops/context/resolve?${params.toString()}`, {
     context,
     parse: parseSettingsInheritance,
   });

@@ -209,7 +209,14 @@ Incluye Organization, Shop, ShopContext, defaults regionales, fiscal profile, un
 
 Endpoints base:
 
-- `GET /api/v1/admin/organizations-shops/*` cuando exista en BFF.
+- `GET /api/v1/admin/organizations-shops/organizations?limit=:limit&offset=:offset`
+- `GET /api/v1/admin/organizations-shops/shop-groups?organizationId=:org&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/organizations-shops/shops?organizationId=:org&shopGroupId=:optional&status=:optional&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/organizations-shops/shops/context/resolve?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/organizations-shops/shops/context/resolve?organizationId=:org&shopAlias=:alias`
+- `POST /api/v1/admin/organizations-shops/organizations`
+- `POST /api/v1/admin/organizations-shops/shops?organizationId=:org`
+- `PATCH /api/v1/admin/organizations-shops/shops/:shopId?organizationId=:org`
 - `GET /api/v1/admin/employees/*` cuando exista en BFF.
 - `GET /api/v1/admin/analytics/health`
 - `GET /api/v1/admin/automation/health`
@@ -243,7 +250,9 @@ Mandatos UX:
 
 - Mostrar metadata de herencia por campo: heredado, customizado, restaurar herencia.
 - No mezclar defaults generales con reglas owned por Pricing, Shipping, Payments, Catalog o CMS.
-- El primer flujo Admin debe permitir elegir Organization/Shop y ver health operativo.
+- El primer flujo Admin debe permitir listar Organizations existentes, listar Shops por Organization, mostrar `shopAlias`, resolver una tienda por `shopId` o por `shopAlias`, persistir `shopId` como identidad canonica y ver health operativo.
+- `shopAlias` es una clave humana resoluble y unica por Organization; no reemplaza `shopId` en URLs internas, mutaciones, eventos ni contexto canonico posterior.
+- Si el usuario escribe solo `shopAlias`, la UI debe llamar a `shops/context/resolve` y, si resuelve, guardar el `shopId` devuelto antes de continuar con modulos Admin.
 
 ### Catalogo
 Paquete Admin compuesto por `products`, `variants`, `pricing`, `category`, `brand`, `specifications`, `variant-options`, `media` y `search indexing`.
