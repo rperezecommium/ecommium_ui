@@ -20,6 +20,9 @@ pnpm-debug.log*
 # vercel
 .vercel
 
+# local browser automation artifacts
+.playwright-mcp
+
 # typescript
 *.tsbuildinfo
 
