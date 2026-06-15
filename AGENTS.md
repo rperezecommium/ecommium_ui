@@ -198,6 +198,7 @@ Headers obligatorios cuando apliquen:
 Variables esperadas:
 
 - `ECOMMIUM_BFF_BASE_URL`: URL server-side del BFF, por ejemplo `http://localhost:3010/api/v1`.
+- `ECOMMIUM_ADMIN_BFF_TOKEN`: token admin server-side opcional para desarrollo/integracion, enviado como `Authorization: Bearer <token>` por el cliente BFF compartido. Nunca exponerlo como `NEXT_PUBLIC_*`.
 - `NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL`: URL publica de la UI si se necesita para metadata.
 - Nunca exponer URLs internas de `services/*` al navegador.
 
@@ -250,9 +251,13 @@ Mandatos UX:
 
 - Mostrar metadata de herencia por campo: heredado, customizado, restaurar herencia.
 - No mezclar defaults generales con reglas owned por Pricing, Shipping, Payments, Catalog o CMS.
-- El primer flujo Admin debe permitir listar Organizations existentes, listar Shops por Organization, mostrar `shopAlias`, resolver una tienda por `shopId` o por `shopAlias`, persistir `shopId` como identidad canonica y ver health operativo.
+- El primer flujo Admin debe permitir listar Organizations existentes, listar Shops por Organization, mostrar nombre de tienda, `shopAlias`, dominio y estado operativo, resolver una tienda por `shopAlias`, persistir `shopId` como identidad canonica interna y ver health operativo.
+- `shopId` es tecnico, lo genera el backend y no se pide al crear tienda. La UI puede usarlo como `value` interno o en PATCH, pero no como texto principal ni como campo que el usuario deba escribir.
 - `shopAlias` es una clave humana resoluble y unica por Organization; no reemplaza `shopId` en URLs internas, mutaciones, eventos ni contexto canonico posterior.
 - Si el usuario escribe solo `shopAlias`, la UI debe llamar a `shops/context/resolve` y, si resuelve, guardar el `shopId` devuelto antes de continuar con modulos Admin.
+- `Activa` en la UI significa contexto seleccionado por el employee en su sesion/cookie Admin. No es atributo global de `Shop` y no debe confundirse con `status=ACTIVE`, que debe etiquetarse como `Estado operativo`.
+- Crear tienda usa `POST /api/v1/admin/organizations-shops/shops?organizationId=:org` con datos humanos/configurables (`name`, `shopAlias`, `primaryDomain`, `shopGroupId`, `status`, `settingsOverride`). El backend genera `shopId`.
+- La UI debe distinguir estados de carga multistore: BFF no disponible (banner claro, endpoint fallido y comando orientativo como texto), BFF disponible sin Organizations (estado vacio y CTA), Organization sin Shops (selector de Organization y CTA para crear tienda) y contexto activo existente (resumen con badge `Activa`).
 
 ### Catalogo
 Paquete Admin compuesto por `products`, `variants`, `pricing`, `category`, `brand`, `specifications`, `variant-options`, `media` y `search indexing`.

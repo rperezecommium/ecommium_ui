@@ -423,6 +423,17 @@ p {
   color: var(--admin-text-muted);
 }
 
+.adminEmptyState h2,
+.adminEmptyState p,
+.adminBanner p {
+  margin-bottom: 8px;
+}
+
+.adminPlainList {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
 .loginPage {
   display: grid;
   place-items: center;
@@ -457,10 +468,22 @@ p {
   gap: 6px;
 }
 
+.adminField small {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
 .adminField input,
 .adminField select {
   width: 100%;
   padding: 0 10px;
+}
+
+.adminCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
 }
 
 .adminBanner {

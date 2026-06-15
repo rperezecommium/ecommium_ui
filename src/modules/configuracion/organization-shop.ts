@@ -28,9 +28,15 @@ export type ShopOption = {
   timezone?: string;
 };
 
+export type CurrentShopOption = ShopOption & {
+  isCurrent: boolean;
+};
+
 export type OrganizationShopDirectory = {
   organizations: OrganizationOption[];
   source: "bff" | "unavailable";
+  failedEndpoint?: string;
+  loadWarnings?: string[];
   message?: string;
   correlationId?: string;
 };
@@ -162,6 +168,38 @@ function normalizeShop(raw: unknown, organizationId: string): ShopOption | null 
       asString(shop.timezone) ??
       asString(effectiveSettings.timezone) ??
       asString(settingsOverride.timezone),
+  };
+}
+
+export function isCurrentShop(shop: ShopOption, context: AdminContext) {
+  return (
+    shop.id === context.shopId ||
+    (!context.shopId && Boolean(shop.shopAlias) && shop.shopAlias === context.shopAlias)
+  );
+}
+
+export function withCurrentShopState(shops: ShopOption[], context: AdminContext): CurrentShopOption[] {
+  return shops.map((shop) => ({
+    ...shop,
+    isCurrent: isCurrentShop(shop, context),
+  }));
+}
+
+export function shopToContext(
+  shop: ShopOption,
+  context: AdminContext,
+): AdminContext {
+  return {
+    organizationId: shop.organizationId || context.organizationId,
+    shopId: shop.id,
+    shopAlias: shop.shopAlias ?? context.shopAlias,
+    shopName: shop.name,
+    primaryDomain: shop.primaryDomain ?? "",
+    shopStatus: shop.status ?? "",
+    locale: shop.locale ?? context.locale,
+    currency: shop.currency ?? context.currency,
+    country: shop.country ?? context.country,
+    channel: context.channel,
   };
 }
 
@@ -337,19 +375,22 @@ function fallbackSettings(context: AdminContext, message?: string, correlationId
 }
 
 export async function getOrganizationShopDirectory(): Promise<OrganizationShopDirectory> {
-  const organizationsResult = await requestBff("/admin/organizations-shops/organizations?limit=100&offset=0", {
+  const organizationsEndpoint = "/admin/organizations-shops/organizations?limit=100&offset=0";
+  const organizationsResult = await requestBff(organizationsEndpoint, {
     parse: parseOrganizationList,
   });
 
   if (!organizationsResult.ok) {
     return {
       organizations: [],
+      failedEndpoint: organizationsEndpoint,
       source: "unavailable",
       message: organizationsResult.error,
       correlationId: organizationsResult.correlationId,
     };
   }
 
+  const loadWarnings: string[] = [];
   const organizations = await Promise.all(
     organizationsResult.data.map(async (organization) => {
       const params = new URLSearchParams({
@@ -357,14 +398,24 @@ export async function getOrganizationShopDirectory(): Promise<OrganizationShopDi
         limit: "100",
         offset: "0",
       });
+      const shopGroupsEndpoint = `/admin/organizations-shops/shop-groups?${params.toString()}`;
+      const shopsEndpoint = `/admin/organizations-shops/shops?${params.toString()}`;
       const [shopGroupsResult, shopsResult] = await Promise.all([
-        requestBff(`/admin/organizations-shops/shop-groups?${params.toString()}`, {
+        requestBff(shopGroupsEndpoint, {
           parse: (value) => parseShopGroupList(value, organization.id),
         }),
-        requestBff(`/admin/organizations-shops/shops?${params.toString()}`, {
+        requestBff(shopsEndpoint, {
           parse: (value) => parseShopList(value, organization.id),
         }),
       ]);
+
+      if (!shopGroupsResult.ok) {
+        loadWarnings.push(`${shopGroupsEndpoint}: ${shopGroupsResult.error}`);
+      }
+
+      if (!shopsResult.ok) {
+        loadWarnings.push(`${shopsEndpoint}: ${shopsResult.error}`);
+      }
 
       return {
         ...organization,
@@ -376,8 +427,79 @@ export async function getOrganizationShopDirectory(): Promise<OrganizationShopDi
 
   return {
     organizations,
+    loadWarnings,
     source: "bff",
     correlationId: organizationsResult.correlationId,
+  };
+}
+
+export async function resolveShopContext(
+  organizationId: string,
+  shopAlias: string,
+): Promise<{ ok: true; shop: ShopOption; correlationId: string } | { ok: false; error: string; correlationId?: string }> {
+  const params = new URLSearchParams({
+    organizationId,
+    shopAlias,
+  });
+  const result = await requestBff(`/admin/organizations-shops/shops/context/resolve?${params.toString()}`, {
+    parse: (value) => normalizeShop(value, organizationId),
+  });
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.error,
+      correlationId: result.correlationId,
+    };
+  }
+
+  if (!result.data) {
+    return {
+      ok: false,
+      error: "Tienda no encontrada para esa Organization.",
+      correlationId: result.correlationId,
+    };
+  }
+
+  return {
+    ok: true,
+    shop: result.data,
+    correlationId: result.correlationId,
+  };
+}
+
+export async function resolveShopContextById(
+  organizationId: string,
+  shopId: string,
+): Promise<{ ok: true; shop: ShopOption; correlationId: string } | { ok: false; error: string; correlationId?: string }> {
+  const params = new URLSearchParams({
+    organizationId,
+    shopId,
+  });
+  const result = await requestBff(`/admin/organizations-shops/shops/context/resolve?${params.toString()}`, {
+    parse: (value) => normalizeShop(value, organizationId),
+  });
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.error,
+      correlationId: result.correlationId,
+    };
+  }
+
+  if (!result.data) {
+    return {
+      ok: false,
+      error: "Tienda no encontrada para esa Organization.",
+      correlationId: result.correlationId,
+    };
+  }
+
+  return {
+    ok: true,
+    shop: result.data,
+    correlationId: result.correlationId,
   };
 }
 

@@ -1,11 +1,13 @@
 # Referencia local del composable Ecommium para UI
 
 ## Objetivo
+
 Este documento es el snapshot local que debe leer la IA cuando trabaje en `ecommium_ui`. Evita depender de rutas absolutas hacia el repo backend y conserva las reglas necesarias para construir la UI sin consultar `/Users/ricardoperez/Documents/ecommium/composable_ecommerce`.
 
 Si este snapshot queda desactualizado frente al BFF real, la IA debe documentar el gap en el cambio de UI y pedir sincronizacion explicita. No debe navegar ni modificar el repo backend por iniciativa propia.
 
 ## Vision del backend
+
 - Ecommium es una plataforma ecommerce composable y headless.
 - El backend es multi-tenant por `Organization` y multiples `Shop`.
 - El modelo considera internacionalizacion desde el inicio: idioma, moneda, pais, zona horaria y unidades.
@@ -13,9 +15,11 @@ Si este snapshot queda desactualizado frente al BFF real, la IA debe documentar 
 - El BFF es el unico borde publico para Storefront, Admin, mobile o cualquier cliente externo.
 
 ## Regla backend-only
+
 El repo composable no contiene UIs. La UI web vive en `ecommium_ui` y debe consumir exclusivamente `apps/bff`.
 
 Reglas derivadas:
+
 - No llamar directo a `services/*`.
 - No leer bases de datos del backend.
 - No crear microservicios ni workers dentro de la UI.
@@ -23,6 +27,7 @@ Reglas derivadas:
 - Si falta un endpoint, registrar el gap y proponer contrato; no saltarse `apps/bff`.
 
 ## Bounded contexts relevantes para UI
+
 - `Organizations & Shops`: Organization, Shop, shopAlias, defaults heredables, ShopContext, fiscalProfile y contexto multitienda.
 - `Employees`: empleados internos, perfiles, permisos y preferencias de backoffice.
 - `Sessions`: autenticacion, tokens, sesiones e introspeccion. La UI no autentica por su cuenta.
@@ -46,6 +51,7 @@ Reglas derivadas:
 - `Log`: logs de negocio estructurados.
 
 ## ADRs resumidos para UI
+
 - ADR-0001: clientes externos consumen un BFF REST agregado.
 - ADR-0008: BFF modular por feature, sin logica de negocio ecommerce.
 - ADR-0013/0014: estrategia multilenguaje y traducciones desde el inicio.
@@ -65,7 +71,9 @@ Reglas derivadas:
 - ADR-0119: After Sales es owner de postventa y orquestacion de devoluciones/cambios.
 
 ## Principios de integracion UI-BFF
+
 - Base esperada local: `ECOMMIUM_BFF_BASE_URL=http://localhost:3010/api/v1`.
+- Si el BFF Admin exige auth en desarrollo, la UI puede usar `ECOMMIUM_ADMIN_BFF_TOKEN` solo server-side para enviar `Authorization: Bearer <token>`. No debe exponerse como `NEXT_PUBLIC_*`.
 - Admin usa rutas `/api/v1/admin/*`.
 - Storefront usa rutas `/api/v1/storefront/*`.
 - Enviar `Authorization` cuando exista sesion.
@@ -76,9 +84,11 @@ Reglas derivadas:
 - Toda lectura publica cacheable debe respetar headers y reglas de BFF.
 
 ## Endpoints BFF de referencia
+
 Estos endpoints son orientativos para construir UI. Si alguno no responde, registrar el gap.
 
 ### Storefront
+
 - `GET /api/v1/storefront/resolve-path?organizationId=:org&shopId=:shop&locale=:locale&path=:path`
 - `GET /api/v1/storefront/page?organizationId=:org&shopId=:shop&locale=:locale&path=:path&limit=:limit&offset=:offset`
 - `GET /api/v1/storefront/navigation/categories/tree/:levels`
@@ -94,6 +104,7 @@ Estos endpoints son orientativos para construir UI. Si alguno no responde, regis
 - `POST /api/v1/storefront/me/after-sales/cases?organizationId=:org&shopId=:shop`
 
 ### Admin: Organizations/Shops y contexto multistore
+
 - `GET /api/v1/admin/organizations-shops/organizations?limit=:limit&offset=:offset`
 - `POST /api/v1/admin/organizations-shops/organizations`
 - `GET /api/v1/admin/organizations-shops/organizations/:organizationId`
@@ -111,14 +122,26 @@ Flujo UI obligatorio:
 
 1. Listar Organizations.
 2. Listar Shops por `organizationId`.
-3. Mostrar `shopAlias` junto a nombre y `shopId`.
-4. Permitir escribir `shopAlias` si el usuario no conoce el `shopId`.
+3. Mostrar nombre de tienda, `shopAlias`, dominio y estado operativo; evitar usar UUID como texto principal.
+4. Permitir escribir `shopAlias` si el usuario no encuentra la tienda en el selector.
 5. Resolver contexto por `shops/context/resolve`.
 6. Persistir el `shopId` devuelto como identidad canonica del Admin.
 
-`shopAlias` es humano y unico por Organization; no reemplaza a `shopId` en mutaciones, eventos ni contratos posteriores.
+`shopId` es tecnico y lo genera backend. La UI no lo pide al crear tienda ni lo presenta como dato principal para operar. Crear tienda usa datos humanos/configurables: `name`, `shopAlias`, `primaryDomain`, `shopGroupId`, `status` y `settingsOverride`.
+
+`shopAlias` es humano y unico por Organization; no reemplaza a `shopId` en mutaciones, eventos ni contratos posteriores. Si el usuario informa `organizationId + shopAlias`, la UI debe resolverlo con `GET /api/v1/admin/organizations-shops/shops/context/resolve?organizationId=:org&shopAlias=:alias` y guardar el `shopId` canonico devuelto.
+
+`Activa` en UI significa contexto seleccionado por el usuario Admin en cookie/sesion. No es un atributo global de `Shop`. Si se muestra junto a `status=ACTIVE`, diferenciarlo como `Contexto activo` frente a `Estado operativo`.
+
+Estados UI obligatorios para multistore:
+
+- BFF no disponible: mostrar banner con "No se pudo conectar con el BFF de Ecommium", endpoint fallido y el comando orientativo `./scripts/postman-services.sh up` solo como texto. Mantener modo manual limitado con `organizationId + shopAlias`, nunca pedir `shopId` para crear tienda.
+- BFF disponible sin Organizations: mostrar estado vacio "No hay Organizations creadas" con CTA para crear Organization y explicar que se debe seleccionar o crear Organization antes de crear tienda.
+- Organization sin Shops: mostrar select de Organizations, estado vacio "Esta Organization no tiene tiendas" y CTA para crear tienda con datos humanos (`name`, `shopAlias`, `primaryDomain`, `status`, settings opcionales).
+- Contexto activo existente: mostrar siempre Organization activa, Shop activa, `shopAlias`, locale, currency, country y separar `Contexto activo` de `Estado operativo`.
 
 ### Admin: CMS y Routing/SEO
+
 - `GET /api/v1/admin/cms/pages?organizationId=:org&shopId=:shop&locale=:locale&status=:status&pageType=:pageType&limit=:limit&offset=:offset`
 - `POST /api/v1/admin/cms/pages?organizationId=:org&shopId=:shop&locale=:locale`
 - `GET /api/v1/admin/cms/pages/:pageId?organizationId=:org&shopId=:shop&locale=:locale`
@@ -133,6 +156,7 @@ Flujo UI obligatorio:
 - `GET /api/v1/admin/routing-seo/sitemap?organizationId=:org&shopId=:shop&locale=:locale`
 
 ### Admin: Search y Analytics
+
 - `GET /api/v1/admin/search/health?organizationId=:org&shopId=:shop&locale=:locale`
 - `POST /api/v1/admin/search/query-preview?organizationId=:org&shopId=:shop&locale=:locale`
 - `GET /api/v1/admin/search/controls?organizationId=:org&shopId=:shop&locale=:locale`
@@ -144,6 +168,7 @@ Flujo UI obligatorio:
 - `GET /api/v1/admin/analytics/reports/summary?organizationId=:org&shopId=:shop&from=:iso&to=:iso`
 
 ### Admin: Automation y Communications
+
 - `GET /api/v1/admin/automation/health`
 - `GET /api/v1/admin/automation/rules?organizationId=:org&shopId=:shop&status=:status&eventType=:eventType&limit=:limit&offset=:offset`
 - `POST /api/v1/admin/automation/rules?organizationId=:org&shopId=:shop`
@@ -161,6 +186,7 @@ Flujo UI obligatorio:
 - `POST /api/v1/admin/communications/deliveries/:deliveryId/retry?organizationId=:org&shopId=:shop`
 
 ### Admin: Customers
+
 - `GET /api/v1/admin/customers?organizationId=:org&shopId=:shop&limit=:limit&offset=:offset&q=:q&email=:email`
 - `POST /api/v1/admin/customers?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/customers/:customerId?organizationId=:org&shopId=:shop`
@@ -170,6 +196,7 @@ Flujo UI obligatorio:
 - `GET /api/v1/admin/customers/:customerId/purchases?organizationId=:org&shopId=:shop&limit=:limit&offset=:offset`
 
 ### Admin: Payments
+
 - `GET /api/v1/admin/payments/affiliations?organizationId=:org&shopId=:shop&includeInactive=false`
 - `POST /api/v1/admin/payments/affiliations?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/payments/affiliations/:affiliationId?organizationId=:org&shopId=:shop`
@@ -182,6 +209,7 @@ Flujo UI obligatorio:
 - `POST /api/v1/admin/payments/card-lookup?organizationId=:org&shopId=:shop`
 
 ### Admin: Media, Shipping, Invoice y After Sales
+
 - `POST /api/v1/admin/media/collections`
 - `POST /api/v1/admin/media/collections/:mediaCollectionId/items`
 - `GET /api/v1/admin/media/collections`
@@ -210,6 +238,7 @@ Flujo UI obligatorio:
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/resolve?organizationId=:org&shopId=:shop`
 
 ## UX PrestaShop-like aplicable
+
 - Admin primero.
 - Sidebar persistente.
 - Topbar con buscador, selector de contexto, notificaciones, ver tienda y perfil.
@@ -219,7 +248,7 @@ Flujo UI obligatorio:
 - Productos: `Basico`, `Combinaciones`, `Precio`, `SEO`, `Medios`, `Transporte`, `Opciones`, `Auditoria`.
 - Precios: precio basico visible rapido; reglas, vigencia, prioridades y tablas en avanzado.
 - Shipping: carriers, zones, ranges por peso/precio, impuestos, manipulacion y comportamiento fuera de rango.
-- Multistore: listar Organizations, listar Shops por Organization, mostrar `shopAlias`, permitir resolver por alias y mostrar si cada campo esta heredado, customizado o restaurable.
+- Multistore: listar Organizations, listar Shops por Organization con etiquetas humanas, mostrar `shopAlias`, permitir resolver por alias, no pedir UUID al crear tienda y mostrar si cada campo esta heredado, customizado o restaurable.
 - Permissions: perfiles en tabs y matriz de permisos por capacidad.
 
 Tokens visuales Admin obligatorios:
@@ -249,8 +278,8 @@ Tokens visuales Admin obligatorios:
 
 `#000f44` queda reservado para foco, bordes activos y jerarquia fuerte. Los bordes normales usan `#d9e1e7` y los divisores suaves `#e9edf2`. No introducir nuevos hex sin crear token y justificarlo.
 
-
 ## QA y performance esperada
+
 - `npm run lint`
 - `npm run build`
 - Tests unitarios de schemas/mappers.
@@ -266,6 +295,7 @@ Tokens visuales Admin obligatorios:
 - Graficas, editores, media manager y tablas pesadas con lazy loading.
 
 ## Comando backend para pruebas manuales
+
 Cuando el usuario levante el backend por separado, el stack canonico se arranca desde el repo composable con:
 
 ```sh

@@ -1,6 +1,8 @@
 export const bffBaseUrl =
   process.env.ECOMMIUM_BFF_BASE_URL ?? "http://localhost:3010/api/v1";
 
+export const adminBffToken = process.env.ECOMMIUM_ADMIN_BFF_TOKEN ?? "";
+
 export const defaultAdminContext = {
   organizationId: process.env.ECOMMIUM_DEFAULT_ORGANIZATION_ID ?? "",
   shopId: process.env.ECOMMIUM_DEFAULT_SHOP_ID ?? "",

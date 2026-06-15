@@ -33,6 +33,8 @@ from the Ecommium BFF.
 Environment variables:
 
 - `ECOMMIUM_BFF_BASE_URL`, defaults to `http://localhost:3010/api/v1`.
+- `ECOMMIUM_ADMIN_BFF_TOKEN`, optional server-side admin token sent to the BFF
+  as `Authorization: Bearer <token>`. Do not expose it with `NEXT_PUBLIC_*`.
 - `ECOMMIUM_DEFAULT_ORGANIZATION_ID`, optional initial organization context.
 - `ECOMMIUM_DEFAULT_SHOP_ID`, optional initial shop context.
 - `ECOMMIUM_DEFAULT_SHOP_ALIAS`, optional human shop alias. It helps resolve a

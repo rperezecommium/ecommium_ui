@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { AdminSession } from "../shared/auth/session";
 import type { AdminContext } from "../shared/config/admin-context";
 import type { OrganizationShopDirectory } from "../modules/configuracion/organization-shop";
+import { updateAdminContext } from "../modules/configuracion/context-actions";
 import { filterAllowedNavigation } from "../shared/permissions/permissions";
 import { AdminContextSelector } from "./admin-context-selector";
 
@@ -56,7 +57,11 @@ export function AdminShell({ children, context, directory, session }: AdminShell
       <section className="adminMain">
         <header className="adminTopbar">
           <input className="adminSearch" type="search" placeholder="Buscar en el backoffice" />
-          <AdminContextSelector context={context} directory={directory} />
+          <AdminContextSelector
+            context={context}
+            directory={directory}
+            updateAction={updateAdminContext}
+          />
           <div className="adminUserMenu">
             <span className="adminAvatar" aria-hidden="true">
               {session.name.slice(0, 1)}

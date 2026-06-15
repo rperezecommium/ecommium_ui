@@ -1,4 +1,5 @@
-import { bffBaseUrl } from "../config/env";
+import { adminBffToken, bffBaseUrl } from "../config/env";
+import { createBffHeaders } from "./headers";
 import type { BffRequestContext, BffResult } from "./types";
 
 type RequestOptions<T> = {
@@ -22,14 +23,12 @@ export async function requestBff<T>(
   options: RequestOptions<T> = {},
 ): Promise<BffResult<T>> {
   const correlationId = options.context?.correlationId ?? makeCorrelationId();
-  const headers = new Headers(options.init?.headers);
-
-  headers.set("accept", "application/json");
-  headers.set("x-correlation-id", correlationId);
-
-  if (options.context?.locale) {
-    headers.set("x-locale", options.context.locale);
-  }
+  const headers = createBffHeaders({
+    adminToken: adminBffToken,
+    correlationId,
+    initHeaders: options.init?.headers,
+    locale: options.context?.locale,
+  });
 
   const url = makeUrl(path);
 
@@ -41,9 +40,14 @@ export async function requestBff<T>(
     });
 
     if (!response.ok) {
+      const authMessage =
+        response.status === 401
+          ? "BFF responded with 401. Admin BFF authorization is required; configure ECOMMIUM_ADMIN_BFF_TOKEN server-side."
+          : `BFF responded with ${response.status}`;
+
       return {
         ok: false,
-        error: `BFF responded with ${response.status}`,
+        error: authMessage,
         status: response.status,
         correlationId,
       };
