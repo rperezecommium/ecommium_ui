@@ -8,6 +8,7 @@ import type {
 import { isCurrentShop, withCurrentShopState } from "./organization-shop";
 
 type ContextSettingsPageProps = {
+  activeTab?: string;
   context: AdminContext;
   createShopAction: (formData: FormData) => Promise<void>;
   directory: OrganizationShopDirectory;
@@ -17,6 +18,23 @@ type ContextSettingsPageProps = {
   updateAction: (formData: FormData) => Promise<void>;
   updateShopAction: (formData: FormData) => Promise<void>;
 };
+
+type ContextSettingsTab = "context" | "create-shop" | "edit-shop" | "inheritance";
+
+const pendingAdminContextShopId = "__admin_context_pending__";
+
+const tabs: Array<{ id: ContextSettingsTab; label: string }> = [
+  { id: "context", label: "Contexto" },
+  { id: "create-shop", label: "Crear tienda" },
+  { id: "edit-shop", label: "Editar tienda" },
+  { id: "inheritance", label: "Herencia" },
+];
+
+function contextTabHref(tab: ContextSettingsTab) {
+  return tab === "context"
+    ? "/admin/configuracion/contexto"
+    : `/admin/configuracion/contexto?tab=${tab}`;
+}
 
 const statusLabels: Record<InheritanceStatus, string> = {
   inherited: "Heredado",
@@ -64,7 +82,16 @@ function shopOptionLabel(shop: ShopOption & { organizationName: string; isCurren
   ].join("");
 }
 
+function hasRequiredContext(context: AdminContext) {
+  return Boolean(context.organizationId && context.shopId && context.shopId !== pendingAdminContextShopId);
+}
+
+function normalizeTab(value: string | undefined): ContextSettingsTab {
+  return tabs.some((item) => item.id === value) ? value as ContextSettingsTab : "context";
+}
+
 export function ContextSettingsPage({
+  activeTab,
   context,
   createShopAction,
   directory,
@@ -74,13 +101,14 @@ export function ContextSettingsPage({
   updateAction,
   updateShopAction,
 }: ContextSettingsPageProps) {
+  const tab = normalizeTab(activeTab);
   const shops = allShops(directory, context);
   const currentShop = findCurrentShop(directory, context);
   const hasDirectory = directory.source === "bff" && directory.organizations.length > 0;
   const isBffUnavailable = directory.source === "unavailable";
   const isUnauthorized = directory.message?.includes("401") ?? false;
   const hasNoOrganizations = directory.source === "bff" && directory.organizations.length === 0;
-  const hasActiveContext = Boolean(context.organizationId && (context.shopId || context.shopAlias));
+  const hasActiveContext = hasRequiredContext(context) || Boolean(context.organizationId && context.shopAlias);
   const selectedOrganization =
     directory.organizations.find((organization) => organization.id === context.organizationId) ??
     directory.organizations[0];
@@ -111,12 +139,24 @@ export function ContextSettingsPage({
           </p>
         </div>
         <div className="adminButtonRow">
-          <button className="adminButton" type="button">
+          <a className="adminButton" href={contextTabHref("inheritance")}>
             Restaurar herencia
-          </button>
-          <button className="adminButton adminButtonPrimary" form="context-settings-form" type="submit">
-            Guardar contexto
-          </button>
+          </a>
+          {tab === "context" ? (
+            <button className="adminButton adminButtonPrimary" form="context-settings-form" type="submit">
+              Guardar contexto
+            </button>
+          ) : null}
+          {tab === "create-shop" ? (
+            <button className="adminButton adminButtonPrimary" form="create-shop-form" type="submit">
+              Crear tienda
+            </button>
+          ) : null}
+          {tab === "edit-shop" && editShop ? (
+            <button className="adminButton adminButtonPrimary" form="edit-shop-form" type="submit">
+              Guardar tienda
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -175,7 +215,7 @@ export function ContextSettingsPage({
             <button className="adminButton adminButtonPrimary" type="button">
               Crear Organization
             </button>
-            <a className="adminButton" href="#create-shop-form">
+            <a className="adminButton" href={contextTabHref("create-shop")}>
               Crear tienda despues de seleccionar o crear una Organization
             </a>
           </div>
@@ -212,7 +252,23 @@ export function ContextSettingsPage({
         </article>
       </section>
 
-      <section className="adminGrid">
+      <section className="adminCard adminSection">
+        <div className="adminTabs" role="tablist" aria-label="Configuracion de contexto">
+          {tabs.map((item) => (
+            <a
+              aria-selected={tab === item.id}
+              className={tab === item.id ? "adminTab adminTabActive" : "adminTab"}
+              href={contextTabHref(item.id)}
+              key={item.id}
+              role="tab"
+            >
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section className="adminGrid" hidden={tab !== "context"}>
         <article className="adminCard">
           <div className="adminCardHeader">
             <div>
@@ -260,7 +316,10 @@ export function ContextSettingsPage({
               <div className="adminEmptyState">
                 <strong>Esta Organization no tiene tiendas.</strong>
                 <p>Crea una tienda con nombre y shopAlias. El backend generara el shopId.</p>
-                <a className="adminButton adminButtonPrimary" href="#create-shop-form">
+                <a
+                  className="adminButton adminButtonPrimary"
+                  href={contextTabHref("create-shop")}
+                >
                   Crear tienda
                 </a>
               </div>
@@ -371,8 +430,8 @@ export function ContextSettingsPage({
         </aside>
       </section>
 
-      <section className="adminGrid adminSection">
-        <article className="adminCard">
+      <section className="adminGrid adminSection" hidden={tab !== "create-shop" && tab !== "edit-shop"}>
+        <article className="adminCard" hidden={tab !== "create-shop"}>
           <div className="adminCardHeader">
             <div>
               <h2>Crear tienda</h2>
@@ -466,7 +525,7 @@ export function ContextSettingsPage({
           </form>
         </article>
 
-        <article className="adminCard">
+        <article className="adminCard" hidden={tab !== "edit-shop"}>
           <div className="adminCardHeader">
             <div>
               <h2>Editar tienda</h2>
@@ -474,7 +533,7 @@ export function ContextSettingsPage({
             </div>
           </div>
           {editShop ? (
-            <form action={updateShopAction} className="adminForm">
+            <form action={updateShopAction} className="adminForm" id="edit-shop-form">
               <input type="hidden" name="organizationId" value={editShop.organizationId} />
               <input type="hidden" name="shopId" value={editShop.id} />
               <div className="adminFormGrid">
@@ -537,7 +596,7 @@ export function ContextSettingsPage({
         </article>
       </section>
 
-      {inheritance.source === "fallback" ? (
+      {tab === "inheritance" && inheritance.source === "fallback" ? (
         <div className="adminBanner adminSection">
           Settings heredables en modo fallback. Contrato esperado: GET
           /api/v1/admin/organizations-shops/shops/context/resolve?organizationId=:org&amp;shopId=:shop
@@ -546,7 +605,7 @@ export function ContextSettingsPage({
         </div>
       ) : null}
 
-      <section className="adminCard adminSection">
+      <section className="adminCard adminSection" hidden={tab !== "inheritance"}>
         <div className="adminCardHeader">
           <div>
             <h2>Settings heredables</h2>

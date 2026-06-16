@@ -4,13 +4,14 @@ import { redirect } from "next/navigation";
 import { requestBff } from "../../shared/bff/client";
 import { adminBffToken } from "../../shared/config/env";
 import { hasUsableAdminBearer } from "../../shared/auth/admin-bearer";
-import { getAdminContext } from "../../shared/config/admin-context";
 import {
   clearAdminSession,
   getAdminSession,
   saveAdminSession,
   type AdminSession,
 } from "../../shared/auth/session";
+import { resolveAdminContextAfterLogin } from "../configuracion/admin-context-resolution";
+import { buildAdminLoginPayload } from "./admin-login-payload";
 import { mergeAuthSessions, parseAuthSessionPayload } from "./auth-session-payload";
 
 function asString(value: FormDataEntryValue | null) {
@@ -28,8 +29,6 @@ function loginRedirect(nextPath: string, authError: string): never {
 type LoginCredentials = {
   email: string;
   password: string;
-  organizationId?: string;
-  shopId?: string;
   nextPath: string;
 };
 
@@ -74,8 +73,6 @@ async function refreshAccessToken(refreshToken: string) {
 async function loginAdminWithCredentials({
   email,
   password,
-  organizationId,
-  shopId,
   nextPath,
 }: LoginCredentials) {
   if (!email || !password) {
@@ -89,12 +86,7 @@ async function loginAdminWithCredentials({
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        email,
-        password,
-        scope: "admin",
-        ...(organizationId && shopId ? { organizationId, shopId } : {}),
-      }),
+      body: JSON.stringify(buildAdminLoginPayload(email, password)),
     },
     parse: parseLoginResult,
   });
@@ -109,17 +101,17 @@ async function loginAdminWithCredentials({
     loginRedirect(nextPath, `Login aceptado, pero /auth/me no pudo validar la sesion. ${meResult.error}`);
   }
 
-  await saveAdminSession(mergeAuthSessions(loginResult.data, meResult.data));
-  redirect(nextPath);
+  const session = mergeAuthSessions(loginResult.data, meResult.data);
+  await saveAdminSession(session);
+
+  const decision = await resolveAdminContextAfterLogin(session.accessToken ?? loginResult.data.accessToken);
+  redirect(decision.redirectTo || nextPath);
 }
 
 export async function loginAdminEmployee(formData: FormData) {
-  const context = await getAdminContext();
   await loginAdminWithCredentials({
     email: asString(formData.get("email")),
     password: asString(formData.get("password")),
-    organizationId: context.organizationId || undefined,
-    shopId: context.shopId || undefined,
     nextPath: safeNextPath(formData.get("next")),
   });
 }

@@ -23,10 +23,11 @@ type EmployeesAdminPageProps = {
   updateProfilePermissionsAction: (formData: FormData) => Promise<void>;
 };
 
-type EmployeesTab = "employees" | "profiles" | "permissions";
+type EmployeesTab = "employees" | "create-employee" | "profiles" | "permissions";
 
 const tabs: Array<{ id: EmployeesTab; label: string }> = [
   { id: "employees", label: "Empleados" },
+  { id: "create-employee", label: "Crear empleado" },
   { id: "profiles", label: "Perfiles" },
   { id: "permissions", label: "Permisos" },
 ];
@@ -265,51 +266,6 @@ export function EmployeesAdminPage({
               </article>
 
               <aside className="adminPanelStack">
-                <form action={createEmployeeAction} className="adminForm">
-                  <h3>Crear empleado</h3>
-                  <label className="adminField">
-                    <span>Email</span>
-                    <input name="email" required type="email" />
-                  </label>
-                  <div className="adminFormGrid adminFormGridTwo">
-                    <label className="adminField">
-                      <span>Nombre</span>
-                      <input name="firstName" />
-                    </label>
-                    <label className="adminField">
-                      <span>Apellido</span>
-                      <input name="lastName" />
-                    </label>
-                  </div>
-                  <label className="adminField">
-                    <span>Password inicial</span>
-                    <input minLength={8} name="temporaryPassword" required type="password" />
-                  </label>
-                  <label className="adminCheckbox">
-                    <input defaultChecked name="active" type="checkbox" />
-                    Activo
-                  </label>
-                  <fieldset className="adminFieldset">
-                    <legend>Perfiles</legend>
-                    {data.profiles.length === 0 ? (
-                      <p className="adminMuted">Crea un perfil antes de asignarlo.</p>
-                    ) : (
-                      data.profiles.map((profile) => {
-                        const profileId = profileIdOf(profile);
-                        return (
-                          <label className="adminCheckbox" key={profileId}>
-                            <input name="profileIds" type="checkbox" value={profileId} />
-                            {profile.name || profileId}
-                          </label>
-                        );
-                      })
-                    )}
-                  </fieldset>
-                  <button className="adminButton adminButtonPrimary" disabled={!canUseTenant} type="submit">
-                    Crear empleado
-                  </button>
-                </form>
-
                 <form action={updateEmployeeAction} className="adminForm" key={selectedEmployeeId || "empty"}>
                   <h3>Editar empleado</h3>
                   {selectedEmployee ? (
@@ -357,6 +313,78 @@ export function EmployeesAdminPage({
                     <div className="adminEmptyState">Selecciona un empleado de la tabla.</div>
                   )}
                 </form>
+              </aside>
+            </section>
+          </div>
+        ) : null}
+
+        {tab === "create-employee" ? (
+          <div className="adminTabPanel">
+            <section className="adminSplit adminSplitFormFirst">
+              <article>
+                <div className="adminCardHeader">
+                  <div>
+                    <h2>Crear empleado</h2>
+                    <p>Alta de cuenta operativa de backoffice con perfiles iniciales.</p>
+                  </div>
+                  <span className="adminBadge">POST /admin/employees</span>
+                </div>
+                <form action={createEmployeeAction} className="adminForm adminFormWide">
+                  <label className="adminField">
+                    <span>Email</span>
+                    <input name="email" required type="email" />
+                  </label>
+                  <div className="adminFormGrid adminFormGridTwo">
+                    <label className="adminField">
+                      <span>Nombre</span>
+                      <input name="firstName" />
+                    </label>
+                    <label className="adminField">
+                      <span>Apellido</span>
+                      <input name="lastName" />
+                    </label>
+                  </div>
+                  <label className="adminField">
+                    <span>Password inicial</span>
+                    <input minLength={8} name="temporaryPassword" required type="password" />
+                    <small>Debe tener minimo 8 caracteres. No se muestra despues de guardar.</small>
+                  </label>
+                  <label className="adminCheckbox">
+                    <input defaultChecked name="active" type="checkbox" />
+                    Activo
+                  </label>
+                  <fieldset className="adminFieldset">
+                    <legend>Perfiles iniciales</legend>
+                    {data.profiles.length === 0 ? (
+                      <p className="adminMuted">Crea un perfil antes de asignarlo.</p>
+                    ) : (
+                      data.profiles.map((profile) => {
+                        const profileId = profileIdOf(profile);
+                        return (
+                          <label className="adminCheckbox" key={profileId}>
+                            <input name="profileIds" type="checkbox" value={profileId} />
+                            {profile.name || profileId}
+                          </label>
+                        );
+                      })
+                    )}
+                  </fieldset>
+                  <div className="adminButtonRow">
+                    <button className="adminButton adminButtonPrimary" disabled={!canUseTenant} type="submit">
+                      Crear empleado
+                    </button>
+                    <button className="adminButton" onClick={() => setTab("employees")} type="button">
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </article>
+
+              <aside className="adminEmptyState">
+                <h2>Contexto</h2>
+                <p>El empleado se crea para el contexto activo del Admin.</p>
+                <p>{context.organizationId || "Organization pendiente"}</p>
+                <p>{context.shopId || "Shop pendiente"}</p>
               </aside>
             </section>
           </div>

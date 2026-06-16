@@ -139,11 +139,50 @@ p {
   text-decoration: none;
 }
 
+.adminNav a strong,
+.adminNav a small {
+  display: block;
+}
+
 .adminNav a[aria-current="page"],
 .adminNav a:hover {
   background: color-mix(in srgb, var(--admin-sidebar-active) 18%, transparent);
   border-left-color: var(--admin-sidebar-active);
   color: var(--admin-surface);
+}
+
+.adminNavGroup {
+  display: grid;
+  gap: 3px;
+}
+
+.adminNavParent {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.adminNavChevron {
+  color: color-mix(in srgb, var(--admin-surface) 58%, transparent);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.adminNavSubmenu {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 4px 18px;
+  padding-left: 8px;
+  border-left: 2px solid var(--admin-sidebar-active);
+}
+
+.adminNavSubmenu a {
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--admin-surface) 5%, transparent);
+  border-left-width: 2px;
+}
+
+.adminNavSubmenu a strong {
+  font-size: 13px;
 }
 
 .adminSidebarMeta {
@@ -350,9 +389,9 @@ p {
 }
 
 .adminKpi strong {
-  display: block;
   margin: 12px 0 6px;
-  font-size: 24px;
+  font-size: 16px;
+  display: block;
 }
 
 .adminStatusList {
@@ -518,6 +557,8 @@ p {
 }
 
 .adminTab {
+  display: inline-flex;
+  align-items: center;
   min-height: 40px;
   padding: 0 14px;
   border: 0;
@@ -525,6 +566,7 @@ p {
   background: transparent;
   color: var(--admin-text-muted);
   font-weight: 700;
+  text-decoration: none;
 }
 
 .adminTab:hover,
@@ -545,9 +587,17 @@ p {
   align-items: start;
 }
 
+.adminSplitFormFirst {
+  grid-template-columns: minmax(0, 720px) minmax(260px, 1fr);
+}
+
 .adminPanelStack {
   display: grid;
   gap: 16px;
+}
+
+.adminFormWide {
+  max-width: 720px;
 }
 
 .adminFieldset {
@@ -626,6 +676,10 @@ p {
 
   .adminNav a {
     flex: 0 0 160px;
+  }
+
+  .adminNavGroup {
+    flex: 0 0 220px;
   }
 
   .adminSidebarMeta {

@@ -14,6 +14,7 @@ type ContextoPageProps = {
   searchParams?: Promise<{
     contextError?: string;
     contextNotice?: string;
+    tab?: string;
   }>;
 };
 
@@ -25,6 +26,7 @@ export default async function ContextoPage({ searchParams }: ContextoPageProps) 
 
   return (
     <ContextSettingsPage
+      activeTab={params?.tab}
       context={context}
       createShopAction={createShopAction}
       directory={directory}

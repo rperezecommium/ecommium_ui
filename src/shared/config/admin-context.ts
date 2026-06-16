@@ -15,6 +15,11 @@ export type AdminContext = {
 };
 
 export const contextCookieName = "ecommium_admin_context";
+export const pendingAdminContextShopId = "__admin_context_pending__";
+
+function isRealShopId(value: string | undefined) {
+  return Boolean(value && value !== pendingAdminContextShopId);
+}
 
 function parseCookieContext(value: string | undefined): Partial<AdminContext> {
   if (!value) {
@@ -59,7 +64,7 @@ export async function getAdminContext(): Promise<AdminContext> {
 }
 
 export function hasRequiredAdminContext(context: AdminContext) {
-  return Boolean(context.organizationId && context.shopId);
+  return Boolean(context.organizationId && isRealShopId(context.shopId));
 }
 
 export async function saveAdminContext(context: AdminContext) {
@@ -70,4 +75,9 @@ export async function saveAdminContext(context: AdminContext) {
     secure: process.env.NODE_ENV === "production",
     path: "/",
   });
+}
+
+export async function clearAdminContext() {
+  const cookieStore = await cookies();
+  cookieStore.delete(contextCookieName);
 }

@@ -19,7 +19,7 @@ type EquipoPageProps = {
 };
 
 function normalizeTab(value: string | undefined) {
-  if (value === "profiles" || value === "permissions") {
+  if (value === "create-employee" || value === "profiles" || value === "permissions") {
     return value;
   }
 

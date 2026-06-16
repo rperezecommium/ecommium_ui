@@ -66,7 +66,7 @@ function buildEmployeePayload(formData: FormData) {
 }
 
 export async function createEmployeeAction(formData: FormData) {
-  const tab = "employees";
+  const tab = "create-employee";
   const context = await getTenant(tab);
   const payload = buildEmployeePayload(formData);
 
@@ -91,7 +91,7 @@ export async function createEmployeeAction(formData: FormData) {
     fail(tab, `No se pudo crear empleado. ${result.error}`);
   }
 
-  finish(tab, "Empleado creado.");
+  finish("employees", "Empleado creado.");
 }
 
 export async function updateEmployeeAction(formData: FormData) {
