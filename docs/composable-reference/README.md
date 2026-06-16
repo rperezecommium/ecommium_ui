@@ -124,12 +124,13 @@ Estos endpoints son orientativos para construir UI. Si alguno no responde, regis
 
 Flujo UI obligatorio:
 
-1. Listar Organizations.
-2. Listar Shops por `organizationId`.
-3. Mostrar nombre de tienda, `shopAlias`, dominio y estado operativo; evitar usar UUID como texto principal.
-4. Permitir escribir `shopAlias` si el usuario no encuentra la tienda en el selector.
-5. Resolver contexto por `shops/context/resolve`.
-6. Persistir el `shopId` devuelto como identidad canonica del Admin.
+1. Autenticar Admin con `email`, `password` y `scope=admin`, sin pedir `organizationId` ni `shopId` en el formulario.
+2. Listar Organizations disponibles para el empleado autenticado.
+3. Listar Shops por `organizationId`.
+4. Mostrar nombre de tienda, `shopAlias`, dominio y estado operativo; evitar usar UUID como texto principal.
+5. Permitir escribir `shopAlias` si el usuario no encuentra la tienda en el selector.
+6. Resolver contexto por `shops/context/resolve`.
+7. Persistir el `shopId` devuelto como identidad canonica del Admin.
 
 `shopId` es tecnico y lo genera backend. La UI no lo pide al crear tienda ni lo presenta como dato principal para operar. Crear tienda usa datos humanos/configurables: `name`, `shopAlias`, `primaryDomain`, `shopGroupId`, `status` y `settingsOverride`.
 
@@ -146,9 +147,10 @@ Gap confirmado el 2026-06-16 contra el BFF local: los endpoints
 `/api/v1/admin/sessions/login`, `/api/v1/admin/sessions/me` y
 `/api/v1/admin/sessions/logout` devolvieron `404`. El contrato operativo
 observable para login Admin es `/api/v1/auth/login`, `/api/v1/auth/me`,
-`/api/v1/auth/refresh` y `/api/v1/auth/logout`, enviando `scope=admin`,
-`organizationId` y `shopId`. La UI debe usar ese contrato hasta sincronizar
-esta referencia con el backend.
+`/api/v1/auth/refresh` y `/api/v1/auth/logout`, enviando `scope=admin`.
+`organizationId` y `shopId` solo se envian si ya existe contexto activo; la UI
+debe llevar al selector de contexto cuando el login devuelva una sesion Admin
+sin tienda activa canonica.
 
 Estados UI obligatorios para multistore:
 

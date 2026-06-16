@@ -110,3 +110,21 @@ test("rejects admin principals without admin scope", () => {
     /scope invalido/,
   );
 });
+
+test("does not treat pending admin context marker as an active shop", () => {
+  const session = parseAuthSessionPayload(
+    {
+      profile: { principalId: "employee-1", principalType: "EMPLOYEE", email: "employee@example.com" },
+      session: {
+        organizationId: "org-1",
+        shopId: "__admin_context_pending__",
+        scope: "admin",
+      },
+      tokens: { accessToken: "token" },
+    },
+    { requireAccessToken: true },
+  );
+
+  assert.equal(session.organizationId, "org-1");
+  assert.equal(session.shopId, undefined);
+});

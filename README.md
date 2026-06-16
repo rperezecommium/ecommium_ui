@@ -47,8 +47,9 @@ Environment variables:
 
 Admin authentication uses the BFF Auth/Sessions contract observed locally:
 
-- `POST /api/v1/auth/login`, with `email`, `password`, `scope=admin`,
-  `organizationId`, and `shopId`.
+- `POST /api/v1/auth/login`, with `email`, `password`, and `scope=admin`.
+  `organizationId` and `shopId` are optional when an Admin context is already
+  active, but the login form must not require operators to know those IDs.
 - `GET /api/v1/auth/me`
 - `POST /api/v1/auth/refresh`
 - `POST /api/v1/auth/logout`
@@ -68,4 +69,6 @@ Admin configuration expects these BFF contracts for multistore context:
 
 The Admin selector must list existing organizations first, then list shops for
 the selected organization, display `shopAlias` as a human identifier, and persist
-the resolved `shopId` as the canonical context for the rest of the Admin.
+the resolved `shopId` as the canonical context for the rest of the Admin. These
+discovery reads are available after Admin authentication so the operator can
+select only shops allowed by their employee scopes.

@@ -1,6 +1,7 @@
 import type { AdminSession } from "../../shared/auth/session";
 
 type RawAuthPayload = Record<string, unknown>;
+const pendingAdminContextShopId = "__admin_context_pending__";
 
 export type ParsedAuthSessionOptions = {
   requireAccessToken: boolean;
@@ -198,12 +199,14 @@ export function parseAuthSessionPayload(
       asString(root.organizationId) ||
       asString(tokenClaims.organizationId) ||
       undefined,
-    shopId:
-      asString(session.shopId) ||
-      asString(principal.shopId) ||
-      asString(root.shopId) ||
-      asString(tokenClaims.shopId) ||
-      undefined,
+    shopId: (() => {
+      const shopId =
+        asString(session.shopId) ||
+        asString(principal.shopId) ||
+        asString(root.shopId) ||
+        asString(tokenClaims.shopId);
+      return shopId && shopId !== pendingAdminContextShopId ? shopId : undefined;
+    })(),
   };
 }
 

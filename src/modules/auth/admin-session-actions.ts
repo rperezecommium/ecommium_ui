@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requestBff } from "../../shared/bff/client";
-import { adminBffToken, defaultAdminContext } from "../../shared/config/env";
+import { adminBffToken } from "../../shared/config/env";
 import { hasUsableAdminBearer } from "../../shared/auth/admin-bearer";
 import { getAdminContext } from "../../shared/config/admin-context";
 import {
@@ -28,8 +28,8 @@ function loginRedirect(nextPath: string, authError: string): never {
 type LoginCredentials = {
   email: string;
   password: string;
-  organizationId: string;
-  shopId: string;
+  organizationId?: string;
+  shopId?: string;
   nextPath: string;
 };
 
@@ -82,10 +82,6 @@ async function loginAdminWithCredentials({
     loginRedirect(nextPath, "Email y password son obligatorios.");
   }
 
-  if (!organizationId || !shopId) {
-    loginRedirect(nextPath, "Organization ID y Shop ID son obligatorios para login Admin.");
-  }
-
   const loginResult = await requestBff("/auth/login", {
     withAuth: false,
     init: {
@@ -97,8 +93,7 @@ async function loginAdminWithCredentials({
         email,
         password,
         scope: "admin",
-        organizationId,
-        shopId,
+        ...(organizationId && shopId ? { organizationId, shopId } : {}),
       }),
     },
     parse: parseLoginResult,
@@ -123,8 +118,8 @@ export async function loginAdminEmployee(formData: FormData) {
   await loginAdminWithCredentials({
     email: asString(formData.get("email")),
     password: asString(formData.get("password")),
-    organizationId: context.organizationId || defaultAdminContext.organizationId,
-    shopId: context.shopId || defaultAdminContext.shopId,
+    organizationId: context.organizationId || undefined,
+    shopId: context.shopId || undefined,
     nextPath: safeNextPath(formData.get("next")),
   });
 }
