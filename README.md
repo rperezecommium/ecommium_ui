@@ -45,11 +45,21 @@ Environment variables:
 - `ECOMMIUM_ADMIN_DEV_SESSION=1`, enables a local httpOnly development session
   button on `/auth/login`.
 
+Admin authentication uses the BFF Auth/Sessions contract observed locally:
+
+- `POST /api/v1/auth/login`, with `email`, `password`, `scope=admin`,
+  `organizationId`, and `shopId`.
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+
+The legacy `/api/v1/admin/sessions/*` endpoints documented in the first UI
+snapshot returned `404` against the local BFF on 2026-06-16, while `/auth/*`
+responded with validation/auth errors as expected. Tokens are stored only in the
+server-side httpOnly UI cookie.
+
 Admin configuration expects these BFF contracts for multistore context:
 
-- `POST /api/v1/admin/sessions/login`
-- `GET /api/v1/admin/sessions/me`
-- `POST /api/v1/admin/sessions/logout`
 - `GET /api/v1/admin/organizations-shops/organizations?limit=:limit&offset=:offset`
 - `GET /api/v1/admin/organizations-shops/shops?organizationId=:org&shopGroupId=:optional&status=:optional&limit=:limit&offset=:offset`
 - `GET /api/v1/admin/organizations-shops/shop-groups?organizationId=:org&limit=:limit&offset=:offset`

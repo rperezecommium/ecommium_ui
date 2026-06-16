@@ -105,9 +105,10 @@ Estos endpoints son orientativos para construir UI. Si alguno no responde, regis
 
 ### Admin: Organizations/Shops y contexto multistore
 
-- `POST /api/v1/admin/sessions/login`
-- `GET /api/v1/admin/sessions/me`
-- `POST /api/v1/admin/sessions/logout`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
 - `GET /api/v1/admin/organizations-shops/organizations?limit=:limit&offset=:offset`
 - `POST /api/v1/admin/organizations-shops/organizations`
 - `GET /api/v1/admin/organizations-shops/organizations/:organizationId`
@@ -140,6 +141,14 @@ La sesion visual de desarrollo no autentica contra el BFF. Las llamadas Admin
 reales requieren `Authorization`, obtenido desde BFF Sessions y persistido en
 cookie httpOnly por la UI, o desde `ECOMMIUM_ADMIN_BFF_TOKEN` como fallback
 server-side de desarrollo.
+
+Gap confirmado el 2026-06-16 contra el BFF local: los endpoints
+`/api/v1/admin/sessions/login`, `/api/v1/admin/sessions/me` y
+`/api/v1/admin/sessions/logout` devolvieron `404`. El contrato operativo
+observable para login Admin es `/api/v1/auth/login`, `/api/v1/auth/me`,
+`/api/v1/auth/refresh` y `/api/v1/auth/logout`, enviando `scope=admin`,
+`organizationId` y `shopId`. La UI debe usar ese contrato hasta sincronizar
+esta referencia con el backend.
 
 Estados UI obligatorios para multistore:
 

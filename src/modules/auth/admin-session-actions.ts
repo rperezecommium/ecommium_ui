@@ -2,133 +2,138 @@
 
 import { redirect } from "next/navigation";
 import { requestBff } from "../../shared/bff/client";
+import { adminBffToken, defaultAdminContext } from "../../shared/config/env";
+import { hasUsableAdminBearer } from "../../shared/auth/admin-bearer";
+import { getAdminContext } from "../../shared/config/admin-context";
 import {
   clearAdminSession,
   getAdminSession,
   saveAdminSession,
   type AdminSession,
 } from "../../shared/auth/session";
+import { mergeAuthSessions, parseAuthSessionPayload } from "./auth-session-payload";
 
-type LoginResult = {
-  accessToken: string;
-  employee: {
-    employeeId: string;
-    name: string;
-    email: string;
-    profile: AdminSession["profile"];
-    permissions: string[];
-  };
-};
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
-}
-
-function asString(value: unknown) {
-  return typeof value === "string" ? value : "";
-}
-
-function asStringArray(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
-
-function normalizeProfile(value: unknown): AdminSession["profile"] {
-  const profile = asString(value);
-
-  if (profile === "SuperAdmin" || profile === "Admin" || profile === "Operator" || profile === "Viewer") {
-    return profile;
-  }
-
-  if (profile.toUpperCase() === "SUPER_ADMIN") {
-    return "SuperAdmin";
-  }
-
-  return "Operator";
-}
-
-function parseLoginResult(value: unknown): LoginResult {
-  const record = asRecord(value);
-  const session = asRecord(record.session);
-  const employee = asRecord(record.employee ?? record.user ?? record.employeeSession);
-  const accessToken =
-    asString(record.accessToken) ||
-    asString(record.token) ||
-    asString(session.accessToken) ||
-    asString(session.token);
-
-  return {
-    accessToken,
-    employee: {
-      employeeId: asString(employee.employeeId) || asString(employee.id) || "employee",
-      name: asString(employee.name) || asString(employee.displayName) || asString(employee.email) || "Employee",
-      email: asString(employee.email),
-      profile: normalizeProfile(employee.profile ?? employee.role),
-      permissions: asStringArray(employee.permissions).length
-        ? asStringArray(employee.permissions)
-        : ["admin:view"],
-    },
-  };
-}
-
-function parseMeResult(value: unknown): AdminSession {
-  const record = asRecord(value);
-  const employee = asRecord(record.employee ?? record.user ?? record);
-  const session = asRecord(record.session);
-
-  return {
-    accessToken: asString(record.accessToken) || asString(session.accessToken) || undefined,
-    employeeId: asString(employee.employeeId) || asString(employee.id) || "employee",
-    name: asString(employee.name) || asString(employee.displayName) || asString(employee.email) || "Employee",
-    email: asString(employee.email),
-    profile: normalizeProfile(employee.profile ?? employee.role),
-    permissions: asStringArray(employee.permissions).length
-      ? asStringArray(employee.permissions)
-      : ["admin:view"],
-  };
+function asString(value: FormDataEntryValue | null) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function safeNextPath(value: FormDataEntryValue | null) {
-  const nextPath = typeof value === "string" && value.startsWith("/admin") ? value : "/admin";
-  return nextPath;
+  return typeof value === "string" && value.startsWith("/admin") ? value : "/admin";
 }
 
-export async function loginAdminEmployee(formData: FormData) {
-  const email = asString(formData.get("email")).trim();
-  const password = asString(formData.get("password"));
-  const nextPath = safeNextPath(formData.get("next"));
+function loginRedirect(nextPath: string, authError: string): never {
+  redirect(`/auth/login?next=${encodeURIComponent(nextPath)}&authError=${encodeURIComponent(authError)}`);
+}
 
-  if (!email || !password) {
-    redirect(`/auth/login?next=${encodeURIComponent(nextPath)}&authError=${encodeURIComponent("Email y password son obligatorios.")}`);
-  }
+type LoginCredentials = {
+  email: string;
+  password: string;
+  organizationId: string;
+  shopId: string;
+  nextPath: string;
+};
 
-  const result = await requestBff("/admin/sessions/login", {
+function parseLoginResult(value: unknown): AdminSession {
+  return parseAuthSessionPayload(value, { requireAccessToken: true });
+}
+
+function parseMeResult(value: unknown): AdminSession {
+  return parseAuthSessionPayload(value, { requireAccessToken: false });
+}
+
+function makeAuthHeader(accessToken: string) {
+  return {
+    authorization: `Bearer ${accessToken}`,
+  };
+}
+
+async function fetchCurrentSessionWithToken(accessToken: string) {
+  return await requestBff("/auth/me", {
+    withAuth: false,
+    init: {
+      headers: makeAuthHeader(accessToken),
+    },
+    parse: parseMeResult,
+  });
+}
+
+async function refreshAccessToken(refreshToken: string) {
+  return await requestBff("/auth/refresh", {
+    withAuth: false,
     init: {
       method: "POST",
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ refreshToken }),
+    },
+    parse: parseLoginResult,
+  });
+}
+
+async function loginAdminWithCredentials({
+  email,
+  password,
+  organizationId,
+  shopId,
+  nextPath,
+}: LoginCredentials) {
+  if (!email || !password) {
+    loginRedirect(nextPath, "Email y password son obligatorios.");
+  }
+
+  if (!organizationId || !shopId) {
+    loginRedirect(nextPath, "Organization ID y Shop ID son obligatorios para login Admin.");
+  }
+
+  const loginResult = await requestBff("/auth/login", {
+    withAuth: false,
+    init: {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        scope: "admin",
+        organizationId,
+        shopId,
+      }),
     },
     parse: parseLoginResult,
   });
 
-  if (!result.ok || !result.data.accessToken) {
-    redirect(`/auth/login?next=${encodeURIComponent(nextPath)}&authError=${encodeURIComponent(result.ok ? "El BFF no devolvio accessToken." : result.error)}`);
+  if (!loginResult.ok || !loginResult.data.accessToken) {
+    loginRedirect(nextPath, loginResult.ok ? "El BFF no devolvio accessToken." : loginResult.error);
   }
 
-  await saveAdminSession({
-    accessToken: result.data.accessToken,
-    ...result.data.employee,
-  });
+  const meResult = await fetchCurrentSessionWithToken(loginResult.data.accessToken);
 
+  if (!meResult.ok) {
+    loginRedirect(nextPath, `Login aceptado, pero /auth/me no pudo validar la sesion. ${meResult.error}`);
+  }
+
+  await saveAdminSession(mergeAuthSessions(loginResult.data, meResult.data));
   redirect(nextPath);
+}
+
+export async function loginAdminEmployee(formData: FormData) {
+  const context = await getAdminContext();
+  await loginAdminWithCredentials({
+    email: asString(formData.get("email")),
+    password: asString(formData.get("password")),
+    organizationId: context.organizationId || defaultAdminContext.organizationId,
+    shopId: context.shopId || defaultAdminContext.shopId,
+    nextPath: safeNextPath(formData.get("next")),
+  });
 }
 
 export async function logoutAdminEmployee() {
   const session = await getAdminSession();
 
   if (session?.accessToken) {
-    await requestBff("/admin/sessions/logout", {
+    await requestBff("/auth/logout", {
       init: {
         method: "POST",
       },
@@ -142,23 +147,51 @@ export async function logoutAdminEmployee() {
 export async function refreshAdminEmployeeSession() {
   const current = await getAdminSession();
 
-  if (!current?.accessToken) {
+  if (!current) {
+    return null;
+  }
+
+  if (!hasUsableAdminBearer(current)) {
+    return null;
+  }
+
+  if (!current.accessToken) {
     return current;
   }
 
-  const result = await requestBff("/admin/sessions/me", {
+  const meResult = await requestBff("/auth/me", {
     parse: parseMeResult,
   });
 
-  if (!result.ok) {
-    return current;
+  if (meResult.ok) {
+    const nextSession = mergeAuthSessions(current, meResult.data);
+    return nextSession;
   }
 
-  const nextSession = {
-    ...result.data,
-    accessToken: result.data.accessToken ?? current.accessToken,
-  };
+  if (!current.refreshToken) {
+    if (adminBffToken) {
+      return {
+        ...current,
+        accessToken: undefined,
+      };
+    }
 
-  await saveAdminSession(nextSession);
+    return null;
+  }
+
+  const refreshResult = await refreshAccessToken(current.refreshToken);
+
+  if (!refreshResult.ok || !refreshResult.data.accessToken) {
+    return null;
+  }
+
+  const refreshed = mergeAuthSessions(current, refreshResult.data);
+  const refreshedMeResult = await fetchCurrentSessionWithToken(refreshed.accessToken ?? "");
+
+  if (!refreshedMeResult.ok) {
+    return null;
+  }
+
+  const nextSession = mergeAuthSessions(refreshed, refreshedMeResult.data);
   return nextSession;
 }

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { canUseDevAdminSession, hasUsableAdminBearer } from "../../../src/shared/auth/admin-bearer";
 import { createDevSession, getAdminSession } from "../../../src/shared/auth/session";
 import { loginAdminEmployee } from "../../../src/modules/auth/admin-session-actions";
 
@@ -12,7 +13,12 @@ type LoginPageProps = {
 async function startDevSession() {
   "use server";
 
-  await createDevSession();
+  const created = await createDevSession();
+
+  if (!created) {
+    redirect(`/auth/login?authError=${encodeURIComponent("La sesion local de desarrollo requiere ECOMMIUM_ADMIN_BFF_TOKEN server-side para llamar al BFF protegido.")}`);
+  }
+
   redirect("/admin");
 }
 
@@ -20,9 +26,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const session = await getAdminSession();
   const nextPath = params?.next ?? "/admin";
-  const devSessionEnabled = process.env.ECOMMIUM_ADMIN_DEV_SESSION === "1";
+  const devSessionRequested = process.env.ECOMMIUM_ADMIN_DEV_SESSION === "1";
+  const devSessionEnabled = canUseDevAdminSession();
 
-  if (session) {
+  if (session && hasUsableAdminBearer(session)) {
     redirect(nextPath);
   }
 
@@ -32,9 +39,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <p className="adminBreadcrumb">Admin / Acceso</p>
         <h1 id="login-title">Acceso de empleado</h1>
         <p className="adminHelpText">
-          La autenticacion real debe resolverla el BFF de Sessions y emitir una
-          cookie httpOnly. Esta pantalla deja preparado el punto de entrada sin
-          crear un backend paralelo en Next.js.
+          La autenticacion real se valida contra el BFF en /auth/login y
+          /auth/me. La UI guarda la sesion en cookie httpOnly y envia
+          Authorization solo desde el servidor.
         </p>
 
         <form action={loginAdminEmployee} className="adminForm">
@@ -48,12 +55,23 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <input type="password" name="password" autoComplete="current-password" required />
           </label>
           <button className="adminButton adminButtonPrimary" type="submit">
-            Entrar con BFF Sessions
+            Entrar con BFF Auth
           </button>
         </form>
 
         {params?.authError ? (
           <div className="adminBanner adminBannerError">{params.authError}</div>
+        ) : null}
+
+        {devSessionRequested && !devSessionEnabled ? (
+          <div className="adminBanner">
+            <strong>Sesion local deshabilitada.</strong>
+            <p>
+              <code>ECOMMIUM_ADMIN_DEV_SESSION=1</code> esta activo, pero falta
+              <code> ECOMMIUM_ADMIN_BFF_TOKEN</code>. Sin bearer server-side la
+              sesion local solo desbloquearia la UI y el BFF responderia 401.
+            </p>
+          </div>
         ) : null}
 
         {devSessionEnabled ? (

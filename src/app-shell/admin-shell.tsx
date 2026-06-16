@@ -10,6 +10,7 @@ import { AdminContextSelector } from "./admin-context-selector";
 const navItems = [
   { href: "/admin", label: "Inicio", description: "Health y contexto", permission: "admin:view" as const },
   { href: "/admin/configuracion", label: "Configuracion", description: "Tenant, tiendas y equipo", permission: "admin:configuration:view" as const },
+  { href: "/admin/configuracion/equipo", label: "Equipo", description: "Empleados, perfiles y permisos", permission: "admin:employees:view" as const },
   { href: "/admin/catalogo", label: "Catalogo", description: "Productos y contenido comercial", permission: "admin:catalog:view" as const },
   { href: "/admin/pedidos", label: "Pedidos", description: "Operacion y fulfillment", permission: "admin:orders:view" as const },
   { href: "/admin/clientes", label: "Clientes", description: "Customer 360", permission: "admin:customers:view" as const },

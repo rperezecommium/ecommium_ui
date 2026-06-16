@@ -15,15 +15,18 @@ export default function ConfiguracionPage() {
       </div>
 
       <section className="adminCard">
-        <h2>Proceso 1 completado</h2>
+        <h2>Configuracion operativa</h2>
         <p>
           El shell Admin, login, selector de contexto, permisos base y health
-          general ya estan preparados. El siguiente proceso conectara
-          Organizations/Shops y herencia de settings.
+          general ya estan preparados. Desde aqui puedes operar contexto
+          multistore y equipo de backoffice.
         </p>
         <div className="adminButtonRow">
           <Link className="adminButton adminButtonPrimary" href="/admin/configuracion/contexto">
             Abrir contexto multistore
+          </Link>
+          <Link className="adminButton" href="/admin/configuracion/equipo">
+            Abrir equipo y permisos
           </Link>
         </div>
       </section>

@@ -39,6 +39,7 @@ body {
 button,
 input,
 select,
+textarea,
 a {
   font: inherit;
 }
@@ -54,6 +55,7 @@ button {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+textarea:focus-visible,
 a:focus-visible {
   outline: 2px solid var(--admin-focus-ring);
   outline-offset: 2px;
@@ -507,6 +509,106 @@ p {
   overflow-x: auto;
 }
 
+.adminTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.adminTab {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--admin-text-muted);
+  font-weight: 700;
+}
+
+.adminTab:hover,
+.adminTabActive {
+  border-bottom-color: var(--admin-border-strong);
+  color: var(--admin-text);
+}
+
+.adminTabPanel {
+  display: grid;
+  gap: 16px;
+}
+
+.adminSplit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 16px;
+  align-items: start;
+}
+
+.adminPanelStack {
+  display: grid;
+  gap: 16px;
+}
+
+.adminFieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+}
+
+.adminFieldset legend {
+  padding: 0 6px;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.adminTextarea {
+  width: 100%;
+  min-height: 160px;
+  padding: 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  resize: vertical;
+}
+
+.adminFormGridTwo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.adminPermissionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.adminPermissionItem {
+  display: grid;
+  gap: 4px;
+  min-height: 72px;
+  padding: 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  text-align: left;
+}
+
+.adminPermissionItem:hover {
+  border-color: var(--admin-border-strong);
+  background: var(--admin-bg);
+}
+
+.adminPermissionItem span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
 @media (max-width: 1100px) {
   .adminShell {
     grid-template-columns: 1fr;
@@ -540,6 +642,7 @@ p {
 
   .adminGrid,
   .adminKpiGrid,
+  .adminSplit,
   .adminFormGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -558,6 +661,8 @@ p {
 
   .adminGrid,
   .adminKpiGrid,
+  .adminSplit,
+  .adminPermissionGrid,
   .adminFormGrid {
     grid-template-columns: 1fr;
   }
