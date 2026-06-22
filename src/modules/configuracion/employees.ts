@@ -1,5 +1,6 @@
 import { requestBff } from "../../shared/bff/client";
 import type { AdminContext } from "../../shared/config/admin-context";
+import { getAvailableAdminContexts, type ShopOption } from "./organization-shop";
 
 export type EmployeesCollectionResponse<T> = {
   items?: T[];
@@ -27,7 +28,13 @@ export type EmployeeRecord = {
   profiles?: EmployeeProfileRecord[];
   roles?: string[];
   permissions?: string[];
+  shopScopes?: EmployeeShopScope[];
   [key: string]: unknown;
+};
+
+export type EmployeeShopScope = {
+  organizationId: string;
+  shopId: string;
 };
 
 export type EmployeeProfileRecord = {
@@ -61,6 +68,7 @@ export type EmployeesModuleData = {
   employees: EmployeeRecord[];
   profiles: EmployeeProfileRecord[];
   permissions: EmployeePermissionRecord[];
+  availableShops: ShopOption[];
   errors: string[];
 };
 
@@ -76,6 +84,18 @@ function asString(value: unknown) {
 
 function asStringArray(value: unknown) {
   return Array.isArray(value) ? value.map(asString).filter(Boolean) : [];
+}
+
+function normalizeShopScope(value: unknown): EmployeeShopScope | null {
+  const record = asRecord(value);
+  const organizationId = asString(record.organizationId);
+  const shopId = asString(record.shopId);
+
+  if (!organizationId || !shopId) {
+    return null;
+  }
+
+  return { organizationId, shopId };
 }
 
 function asArray(value: unknown) {
@@ -125,6 +145,9 @@ function normalizeEmployee(value: unknown): EmployeeRecord {
     profiles: asArray(record.profiles).map(normalizeProfile),
     roles: asStringArray(record.roles),
     permissions: asStringArray(record.permissions),
+    shopScopes: asArray(record.shopScopes)
+      .map(normalizeShopScope)
+      .filter((scope): scope is EmployeeShopScope => Boolean(scope)),
   };
 }
 
@@ -237,10 +260,11 @@ export async function getEmployeesModuleData(context: AdminContext): Promise<Emp
     parse: (value) => asRecord(value),
   });
 
-  const [employeesResult, profilesResult, permissionsResult] = await Promise.all([
+  const [employeesResult, profilesResult, permissionsResult, availableContextsResult] = await Promise.all([
     requestBff(employeesPath("/admin/employees", context), { context, parse: parseEmployees }),
     requestBff(employeesPath("/admin/employees/profiles", context), { context, parse: parseProfiles }),
     requestBff(employeesPath("/admin/employees/permissions/catalog", context), { context, parse: parsePermissions }),
+    getAvailableAdminContexts(),
   ]);
 
   if (!employeesResult.ok) {
@@ -253,6 +277,10 @@ export async function getEmployeesModuleData(context: AdminContext): Promise<Emp
 
   if (!permissionsResult.ok) {
     errors.push(`/admin/employees/permissions/catalog: ${permissionsResult.error}`);
+  }
+
+  if (!availableContextsResult.ok) {
+    errors.push(`/admin/context/available: ${availableContextsResult.error}`);
   }
 
   return {
@@ -272,6 +300,9 @@ export async function getEmployeesModuleData(context: AdminContext): Promise<Emp
     employees: employeesResult.ok ? employeesResult.data : [],
     profiles: profilesResult.ok ? profilesResult.data : [],
     permissions: permissionsResult.ok ? permissionsResult.data : [],
+    availableShops: availableContextsResult.ok
+      ? availableContextsResult.directory.organizations.flatMap((organization) => organization.shops)
+      : [],
     errors,
   };
 }

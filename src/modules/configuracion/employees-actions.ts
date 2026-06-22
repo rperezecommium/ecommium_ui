@@ -21,6 +21,17 @@ function lines(value: string) {
     .filter(Boolean);
 }
 
+function shopScopeValues(formData: FormData) {
+  return formData.getAll("shopScopes")
+    .map((item) => asString(item))
+    .filter(Boolean)
+    .map((value) => {
+      const [organizationId, shopId] = value.split("|").map((part) => part.trim());
+      return organizationId && shopId ? { organizationId, shopId } : null;
+    })
+    .filter((scope): scope is { organizationId: string; shopId: string } => Boolean(scope));
+}
+
 function safeRedirect(params: Record<string, string>): never {
   const query = new URLSearchParams(params);
   redirect(`/admin/configuracion/equipo?${query.toString()}`);
@@ -45,10 +56,9 @@ async function getTenant(tab: string) {
   return context;
 }
 
-function buildEmployeePayload(formData: FormData) {
+function buildEmployeePayload(formData: FormData, options: { includeShopScopes?: boolean } = {}) {
   const firstName = asString(formData.get("firstName"));
   const lastName = asString(formData.get("lastName"));
-  const name = asString(formData.get("name")) || [firstName, lastName].filter(Boolean).join(" ");
   const temporaryPassword = asString(formData.get("temporaryPassword"));
   const status = asString(formData.get("status"));
   const profileIds = formData.getAll("profileIds").map((item) => asString(item)).filter(Boolean);
@@ -57,18 +67,18 @@ function buildEmployeePayload(formData: FormData) {
     email: asString(formData.get("email")),
     ...(firstName ? { firstName } : {}),
     ...(lastName ? { lastName } : {}),
-    ...(name ? { name } : {}),
     ...(temporaryPassword ? { temporaryPassword } : {}),
     active: status ? status === "ACTIVE" : asBoolean(formData.get("active")),
     status: status || (asBoolean(formData.get("active")) ? "ACTIVE" : "INACTIVE"),
     profileIds,
+    ...(options.includeShopScopes ? { shopScopes: shopScopeValues(formData) } : {}),
   };
 }
 
 export async function createEmployeeAction(formData: FormData) {
   const tab = "create-employee";
   const context = await getTenant(tab);
-  const payload = buildEmployeePayload(formData);
+  const payload = buildEmployeePayload(formData, { includeShopScopes: true });
 
   if (!payload.email || !payload.temporaryPassword) {
     fail(tab, "Email y password inicial son obligatorios.");
@@ -150,6 +160,35 @@ export async function updateEmployeeStatusAction(formData: FormData) {
   }
 
   finish(tab, active ? "Empleado activado." : "Empleado desactivado.");
+}
+
+export async function updateEmployeeShopScopesAction(formData: FormData) {
+  const tab = "employees";
+  const context = await getTenant(tab);
+  const employeeId = asString(formData.get("employeeId"));
+  const shopScopes = shopScopeValues(formData);
+
+  if (!employeeId) {
+    fail(tab, "Selecciona un empleado para asignar tiendas.");
+  }
+
+  const result = await requestBff(
+    buildEmployeesMutationPath(`/admin/employees/${encodeURIComponent(employeeId)}/shop-scopes`, context.organizationId, context.shopId),
+    {
+      context,
+      init: {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ shopScopes }),
+      },
+    },
+  );
+
+  if (!result.ok) {
+    fail(tab, `No se pudieron actualizar tiendas. ${result.error}`);
+  }
+
+  finish(tab, "Acceso a tiendas actualizado.");
 }
 
 export async function createProfileAction(formData: FormData) {

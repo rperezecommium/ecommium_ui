@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { AdminContext } from "../shared/config/admin-context";
 import type { OrganizationShopDirectory } from "../modules/configuracion/organization-shop";
@@ -15,7 +16,13 @@ export function AdminContextSelector({
   directory,
   updateAction,
 }: AdminContextSelectorProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const hasDirectory = directory.source === "bff" && directory.organizations.length > 0;
+  const redirectTo = useMemo(() => {
+    const query = searchParams.toString();
+    return `${pathname}${query ? `?${query}` : ""}`;
+  }, [pathname, searchParams]);
   const currentOrganizationId =
     context.organizationId ||
     directory.organizations.find((organization) =>
@@ -43,7 +50,7 @@ export function AdminContextSelector({
       className="adminContextForm"
       aria-label="Selector de contexto Admin"
     >
-      <input type="hidden" name="redirectTo" value="/admin" />
+      <input type="hidden" name="redirectTo" value={redirectTo} />
       {hasDirectory ? (
         <>
           <select

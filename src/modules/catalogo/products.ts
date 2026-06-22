@@ -881,7 +881,7 @@ async function getProductListAvailabilityBatch(context: AdminContext, variantIds
   }
 
   const params = makeScopedParams(context);
-  const result = await requestBff(`/inventory/availability/resolve-batch?${params.toString()}`, {
+  const result = await requestBff(`/admin/inventory/availability/resolve-batch?${params.toString()}`, {
     context,
     init: {
       method: "POST",
@@ -889,6 +889,8 @@ async function getProductListAvailabilityBatch(context: AdminContext, variantIds
         "content-type": "application/json",
       },
       body: JSON.stringify({
+        organizationId: context.organizationId,
+        shopId: context.shopId,
         items: variantIds.map((variantId) => ({
           variantId,
           warehouseId: "main-warehouse",
@@ -1105,6 +1107,11 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
     priority: 10,
     source: price.source || "BASE",
   });
+  const scopedJsonBody = <T extends object>(payload: T) => ({
+    ...payload,
+    organizationId: context.organizationId,
+    shopId: context.shopId,
+  });
 
   return {
     createProduct(payload: ProductCatalogCreatePayload) {
@@ -1115,7 +1122,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
           headers: {
             "content-type": "application/json",
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(scopedJsonBody(payload)),
         },
         parse: parseProduct,
       });
@@ -1128,7 +1135,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
           headers: {
             "content-type": "application/json",
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(scopedJsonBody(payload)),
         },
         parse: parseProduct,
       });
@@ -1156,7 +1163,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
           headers: {
             "content-type": "application/json",
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(scopedJsonBody(payload)),
         },
         parse: parseVariant,
       });
@@ -1169,7 +1176,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
           headers: {
             "content-type": "application/json",
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(scopedJsonBody(payload)),
         },
         parse: parseVariant,
       });
@@ -1191,7 +1198,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
           headers: {
             "content-type": "application/json",
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(scopedJsonBody(payload)),
         },
         parse: parseVariantOption,
       });
@@ -1204,7 +1211,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
           headers: {
             "content-type": "application/json",
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(scopedJsonBody(payload)),
         },
         parse: parseVariantOption,
       });
@@ -1223,6 +1230,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       for (const file of input.files) {
         formData.append("files", file);
       }
+      formData.set("organizationId", context.organizationId);
       formData.set("shopId", input.shopId);
       formData.set("productId", input.productId);
       formData.set("title", input.title);
@@ -1243,6 +1251,8 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       for (const file of input.files) {
         formData.append("files", file);
       }
+      formData.set("organizationId", context.organizationId);
+      formData.set("shopId", context.shopId);
       formData.set("defaultLocale", input.defaultLocale);
       formData.set("metadata", JSON.stringify(input.metadata.map(({ isMain, alt, title }) => ({ isMain, alt, title }))));
 
@@ -1263,11 +1273,11 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
           headers: {
             "content-type": "application/json",
           },
-          body: JSON.stringify({
+          body: JSON.stringify(scopedJsonBody({
             mediaAssetIds: input.mediaAssetIds,
             mainMediaAssetId: input.mainMediaAssetId,
             status: "active",
-          }),
+          })),
         },
         parse: () => ({ assigned: true }),
       });
@@ -1289,10 +1299,10 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
           headers: {
             "content-type": "application/json",
           },
-          body: JSON.stringify({
+          body: JSON.stringify(scopedJsonBody({
             mediaAssetId: input.mediaAssetId,
             status: "active",
-          }),
+          })),
         },
         parse: () => ({ assigned: true }),
       });
@@ -1453,6 +1463,8 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
             "content-type": "application/json",
           },
           body: JSON.stringify({
+            organizationId: context.organizationId,
+            shopId: context.shopId,
             variantId: input.variantId,
             warehouseId: input.stock.warehouseId,
             onHandQuantity: input.stock.onHandQuantity,

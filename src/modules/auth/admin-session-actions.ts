@@ -4,13 +4,14 @@ import { redirect } from "next/navigation";
 import { requestBff } from "../../shared/bff/client";
 import { adminBffToken } from "../../shared/config/env";
 import { hasUsableAdminBearer } from "../../shared/auth/admin-bearer";
+import { clearAdminContext, getAdminContext, saveAdminContext } from "../../shared/config/admin-context";
 import {
   clearAdminSession,
   getAdminSession,
   saveAdminSession,
   type AdminSession,
 } from "../../shared/auth/session";
-import { resolveAdminContextAfterLogin } from "../configuracion/admin-context-resolution";
+import { getAvailableAdminContexts, shopToContext } from "../configuracion/organization-shop";
 import { buildAdminLoginPayload } from "./admin-login-payload";
 import { mergeAuthSessions, parseAuthSessionPayload } from "./auth-session-payload";
 
@@ -24,6 +25,30 @@ function safeNextPath(value: FormDataEntryValue | null) {
 
 function loginRedirect(nextPath: string, authError: string): never {
   redirect(`/auth/login?next=${encodeURIComponent(nextPath)}&authError=${encodeURIComponent(authError)}`);
+}
+
+function genericAuthError(status?: number) {
+  if (status === 429) {
+    return "Demasiados intentos. Espera unos minutos e intentalo de nuevo.";
+  }
+
+  if (status === 401 || status === 403) {
+    return "No se pudo iniciar sesion. Revisa tus credenciales o permisos e intentalo de nuevo.";
+  }
+
+  return "No se pudo iniciar sesion. Intentalo de nuevo.";
+}
+
+function genericOperationalAccessError(status?: number) {
+  if (status === 429) {
+    return "Demasiados intentos. Espera unos minutos e intentalo de nuevo.";
+  }
+
+  if (status === 401 || status === 403) {
+    return "No se pudo validar el acceso operativo al Admin.";
+  }
+
+  return "No se pudo cargar el contexto operativo del Admin.";
 }
 
 type LoginCredentials = {
@@ -92,20 +117,46 @@ async function loginAdminWithCredentials({
   });
 
   if (!loginResult.ok || !loginResult.data.accessToken) {
-    loginRedirect(nextPath, loginResult.ok ? "El BFF no devolvio accessToken." : loginResult.error);
+    loginRedirect(nextPath, loginResult.ok ? "No se pudo iniciar sesion. Intentalo de nuevo." : genericAuthError(loginResult.status));
   }
 
   const meResult = await fetchCurrentSessionWithToken(loginResult.data.accessToken);
 
   if (!meResult.ok) {
-    loginRedirect(nextPath, `Login aceptado, pero /auth/me no pudo validar la sesion. ${meResult.error}`);
+    loginRedirect(nextPath, genericAuthError(meResult.status));
   }
 
   const session = mergeAuthSessions(loginResult.data, meResult.data);
+  const availableContexts = await getAvailableAdminContexts({
+    accessToken: loginResult.data.accessToken,
+  });
+
+  if (!availableContexts.ok) {
+    loginRedirect(nextPath, genericOperationalAccessError(availableContexts.status));
+  }
+
+  const shops = availableContexts.directory.organizations.flatMap((organization) => organization.shops);
+
+  if (shops.length === 0) {
+    await clearAdminContext();
+    await clearAdminSession();
+    loginRedirect(nextPath, "Acceso denegado operativo: tu usuario no tiene tiendas disponibles para operar el Admin.");
+  }
+
+  const selectedShop = shops.length === 1 ? shops[0] : null;
+  const currentContext = await getAdminContext();
+
   await saveAdminSession(session);
 
-  const decision = await resolveAdminContextAfterLogin(session.accessToken ?? loginResult.data.accessToken);
-  redirect(decision.redirectTo || nextPath);
+  if (selectedShop) {
+    await saveAdminContext(shopToContext(selectedShop, currentContext));
+    redirect(nextPath);
+  }
+
+  await clearAdminContext();
+  redirect(
+    `/admin/configuracion/contexto?contextNotice=${encodeURIComponent("Selecciona una tienda para continuar.")}`,
+  );
 }
 
 export async function loginAdminEmployee(formData: FormData) {
@@ -127,6 +178,7 @@ export async function logoutAdminEmployee() {
     });
   }
 
+  await clearAdminContext();
   await clearAdminSession();
   redirect("/auth/login");
 }

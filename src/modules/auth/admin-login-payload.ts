@@ -1,4 +1,7 @@
-export function buildAdminLoginPayload(email: string, password: string) {
+export function buildAdminLoginPayload(
+  email: string,
+  password: string,
+) {
   return {
     email,
     password,

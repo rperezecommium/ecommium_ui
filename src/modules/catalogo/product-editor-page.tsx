@@ -10,6 +10,17 @@ type ProductEditorPageProps = {
   productId?: string;
 };
 
+function productEditorContextIdentity(context: AdminContext) {
+  return [
+    context.organizationId,
+    context.shopId,
+    context.locale,
+    context.currency,
+    context.country,
+    context.channel,
+  ].join(":");
+}
+
 export async function ProductEditorPage({ context, productId }: ProductEditorPageProps) {
   if (!hasRequiredAdminContext(context)) {
     return (
@@ -30,6 +41,7 @@ export async function ProductEditorPage({ context, productId }: ProductEditorPag
 
     return (
       <ProductEditorClient
+        contextIdentity={productEditorContextIdentity(context)}
         initialDraft={createEmptyProductDraft(context.locale, context.currency)}
         locale={context.locale}
         currency={context.currency}
@@ -67,6 +79,7 @@ export async function ProductEditorPage({ context, productId }: ProductEditorPag
         </div>
       ) : null}
       <ProductEditorClient
+        contextIdentity={productEditorContextIdentity(context)}
         initialDraft={draftFromEditorData(result.data, context.locale, context.currency)}
         locale={context.locale}
         currency={context.currency}

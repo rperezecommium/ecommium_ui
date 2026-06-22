@@ -5,6 +5,7 @@ import {
   createEmployeeAction,
   createProfileAction,
   updateEmployeeAction,
+  updateEmployeeShopScopesAction,
   updateEmployeeStatusAction,
   updateProfileAction,
   updateProfilePermissionsAction,
@@ -41,6 +42,7 @@ export default async function EquipoPage({ searchParams }: EquipoPageProps) {
       initialTab={normalizeTab(params?.tab)}
       notice={params?.notice}
       updateEmployeeAction={updateEmployeeAction}
+      updateEmployeeShopScopesAction={updateEmployeeShopScopesAction}
       updateEmployeeStatusAction={updateEmployeeStatusAction}
       updateProfileAction={updateProfileAction}
       updateProfilePermissionsAction={updateProfilePermissionsAction}

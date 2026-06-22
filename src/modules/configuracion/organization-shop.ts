@@ -1,5 +1,6 @@
 import type { AdminContext } from "../../shared/config/admin-context";
 import { requestBff } from "../../shared/bff/client";
+import { adminBffToken } from "../../shared/config/env";
 
 export type OrganizationOption = {
   id: string;
@@ -60,6 +61,14 @@ export type ShopSettingsInheritance = {
   correlationId?: string;
 };
 
+export type AvailableAdminContextDirectory = {
+  directory: OrganizationShopDirectory;
+  defaultContext: { organizationId: string; shopId: string } | null;
+  selectionRequired: boolean;
+  tenantAccess?: unknown;
+  correlationId?: string;
+};
+
 type RawOrganization = {
   id?: unknown;
   organizationId?: unknown;
@@ -82,10 +91,12 @@ type RawShop = {
   id?: unknown;
   shopId?: unknown;
   organizationId?: unknown;
+  organizationName?: unknown;
   shopAlias?: unknown;
   shopGroupId?: unknown;
   groupId?: unknown;
   name?: unknown;
+  shopName?: unknown;
   displayName?: unknown;
   primaryDomain?: unknown;
   status?: unknown;
@@ -143,7 +154,7 @@ function normalizeShop(raw: unknown, organizationId: string): ShopOption | null 
 
   return {
     id,
-    name: asString(shop.name) ?? asString(shop.displayName) ?? id,
+    name: asString(shop.shopName) ?? asString(shop.name) ?? asString(shop.displayName) ?? id,
     organizationId: asString(shop.organizationId) ?? organizationId,
     shopAlias: asString(shop.shopAlias),
     shopGroupId: asString(shop.shopGroupId) ?? asString(shop.groupId),
@@ -246,6 +257,59 @@ function parseOrganizationList(value: unknown): OrganizationOption[] {
   return parseListItems(value)
     .map(normalizeOrganization)
     .filter((organization): organization is OrganizationOption => Boolean(organization));
+}
+
+function parseAvailableAdminContext(value: unknown): Omit<AvailableAdminContextDirectory, "correlationId"> {
+  const record = asRecord(value);
+  const organizations = parseListItems(record.organizations)
+    .map(normalizeOrganization)
+    .filter((organization): organization is OrganizationOption => Boolean(organization));
+  const organizationNames = new Map(organizations.map((organization) => [organization.id, organization.name]));
+  const shops = parseListItems(record.shops)
+    .map((shop) => {
+      const raw = asRecord(shop);
+      return normalizeShop(shop, asString(raw.organizationId) ?? "");
+    })
+    .filter((shop): shop is ShopOption => Boolean(shop));
+  const byOrganization = new Map<string, OrganizationOption>();
+
+  for (const organization of organizations) {
+    byOrganization.set(organization.id, {
+      ...organization,
+      shops: [],
+    });
+  }
+
+  for (const shop of shops) {
+    const existing = byOrganization.get(shop.organizationId);
+    if (existing) {
+      existing.shops.push(shop);
+      continue;
+    }
+
+    byOrganization.set(shop.organizationId, {
+      id: shop.organizationId,
+      name: organizationNames.get(shop.organizationId) ?? shop.organizationId,
+      shopGroups: [],
+      shops: [shop],
+    });
+  }
+
+  const defaultRecord = asRecord(record.defaultContext);
+  const defaultOrganizationId = asString(defaultRecord.organizationId);
+  const defaultShopId = asString(defaultRecord.shopId);
+
+  return {
+    directory: {
+      organizations: [...byOrganization.values()],
+      source: "bff",
+    },
+    defaultContext: defaultOrganizationId && defaultShopId
+      ? { organizationId: defaultOrganizationId, shopId: defaultShopId }
+      : null,
+    selectionRequired: record.selectionRequired === true,
+    tenantAccess: record.tenantAccess,
+  };
 }
 
 function parseShopGroupList(value: unknown, organizationId: string): ShopGroupOption[] {
@@ -374,9 +438,85 @@ function fallbackSettings(context: AdminContext, message?: string, correlationId
   };
 }
 
-export async function getOrganizationShopDirectory(): Promise<OrganizationShopDirectory> {
+type DirectoryRequestOptions = {
+  withSessionAuth?: boolean;
+};
+
+function directoryRequestOptions(options: DirectoryRequestOptions = {}) {
+  if (options.withSessionAuth !== false) {
+    return {};
+  }
+
+  return {
+    withAuth: false,
+    init: adminBffToken
+      ? {
+          headers: {
+            authorization: `Bearer ${adminBffToken}`,
+          },
+        }
+      : undefined,
+  };
+}
+
+function availableContextRequestOptions(options: DirectoryRequestOptions & { accessToken?: string } = {}) {
+  if (options.accessToken) {
+    return {
+      withAuth: false,
+      init: {
+        headers: {
+          authorization: `Bearer ${options.accessToken}`,
+        },
+      },
+    };
+  }
+
+  return directoryRequestOptions(options);
+}
+
+export async function getAvailableAdminContexts(
+  options: DirectoryRequestOptions & { accessToken?: string } = {},
+): Promise<
+  | ({ ok: true } & AvailableAdminContextDirectory)
+  | { ok: false; error: string; status?: number; correlationId?: string }
+> {
+  const endpoint = "/admin/context/available";
+  const result = await requestBff(endpoint, {
+    ...availableContextRequestOptions(options),
+    parse: parseAvailableAdminContext,
+  });
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.error,
+      status: result.status,
+      correlationId: result.correlationId,
+    };
+  }
+
+  return {
+    ok: true,
+    ...result.data,
+    directory: {
+      ...result.data.directory,
+      correlationId: result.correlationId,
+    },
+    correlationId: result.correlationId,
+  };
+}
+
+export async function getOrganizationShopDirectory(
+  options: DirectoryRequestOptions = {},
+): Promise<OrganizationShopDirectory> {
+  const availableContexts = await getAvailableAdminContexts(options);
+  if (availableContexts.ok) {
+    return availableContexts.directory;
+  }
+
   const organizationsEndpoint = "/admin/organizations-shops/organizations?limit=100&offset=0";
   const organizationsResult = await requestBff(organizationsEndpoint, {
+    ...directoryRequestOptions(options),
     parse: parseOrganizationList,
   });
 
@@ -402,9 +542,11 @@ export async function getOrganizationShopDirectory(): Promise<OrganizationShopDi
       const shopsEndpoint = `/admin/organizations-shops/shops?${params.toString()}`;
       const [shopGroupsResult, shopsResult] = await Promise.all([
         requestBff(shopGroupsEndpoint, {
+          ...directoryRequestOptions(options),
           parse: (value) => parseShopGroupList(value, organization.id),
         }),
         requestBff(shopsEndpoint, {
+          ...directoryRequestOptions(options),
           parse: (value) => parseShopList(value, organization.id),
         }),
       ]);
@@ -436,12 +578,14 @@ export async function getOrganizationShopDirectory(): Promise<OrganizationShopDi
 export async function resolveShopContext(
   organizationId: string,
   shopAlias: string,
+  options: DirectoryRequestOptions = {},
 ): Promise<{ ok: true; shop: ShopOption; correlationId: string } | { ok: false; error: string; correlationId?: string }> {
   const params = new URLSearchParams({
     organizationId,
     shopAlias,
   });
   const result = await requestBff(`/admin/organizations-shops/shops/context/resolve?${params.toString()}`, {
+    ...directoryRequestOptions(options),
     parse: (value) => normalizeShop(value, organizationId),
   });
 

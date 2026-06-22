@@ -18,6 +18,7 @@ type EmployeesAdminPageProps = {
   initialTab?: EmployeesTab;
   notice?: string;
   updateEmployeeAction: (formData: FormData) => Promise<void>;
+  updateEmployeeShopScopesAction: (formData: FormData) => Promise<void>;
   updateEmployeeStatusAction: (formData: FormData) => Promise<void>;
   updateProfileAction: (formData: FormData) => Promise<void>;
   updateProfilePermissionsAction: (formData: FormData) => Promise<void>;
@@ -68,6 +69,10 @@ function employeeProfileIdsOf(employee: EmployeeRecord) {
   return [];
 }
 
+function shopScopeKey(scope: { organizationId: string; shopId: string }) {
+  return `${scope.organizationId}|${scope.shopId}`;
+}
+
 function permissionValueOf(permission: EmployeePermissionRecord) {
   return permission.permission || permission.value || permission.key || permission.name || "";
 }
@@ -96,6 +101,7 @@ export function EmployeesAdminPage({
   initialTab = "employees",
   notice,
   updateEmployeeAction,
+  updateEmployeeShopScopesAction,
   updateEmployeeStatusAction,
   updateProfileAction,
   updateProfilePermissionsAction,
@@ -107,6 +113,7 @@ export function EmployeesAdminPage({
   const canUseTenant = Boolean(context.organizationId && context.shopId);
   const selectedEmployee = data.employees.find((employee) => employeeIdOf(employee) === selectedEmployeeId);
   const selectedProfile = data.profiles.find((profile) => profileIdOf(profile) === selectedProfileId);
+  const selectedEmployeeShopScopes = new Set((selectedEmployee?.shopScopes ?? []).map(shopScopeKey));
   const profileLabelById = useMemo(() => {
     return new Map(data.profiles.map((profile) => [profileIdOf(profile), profile.name || profileIdOf(profile)]));
   }, [data.profiles]);
@@ -275,10 +282,16 @@ export function EmployeesAdminPage({
                         <span>Email</span>
                         <input defaultValue={selectedEmployee.email} name="email" type="email" />
                       </label>
-                      <label className="adminField">
-                        <span>Nombre visible</span>
-                        <input defaultValue={employeeDisplayName(selectedEmployee)} name="name" />
-                      </label>
+                      <div className="adminFormGrid adminFormGridTwo">
+                        <label className="adminField">
+                          <span>Nombre</span>
+                          <input defaultValue={selectedEmployee.firstName ?? ""} name="firstName" />
+                        </label>
+                        <label className="adminField">
+                          <span>Apellido</span>
+                          <input defaultValue={selectedEmployee.lastName ?? ""} name="lastName" />
+                        </label>
+                      </div>
                       <label className="adminField">
                         <span>Estado</span>
                         <select defaultValue={statusLabel(selectedEmployee)} name="status">
@@ -307,6 +320,40 @@ export function EmployeesAdminPage({
                       </fieldset>
                       <button className="adminButton adminButtonPrimary" disabled={!canUseTenant} type="submit">
                         Guardar empleado
+                      </button>
+                    </>
+                  ) : (
+                    <div className="adminEmptyState">Selecciona un empleado de la tabla.</div>
+                  )}
+                </form>
+                <form action={updateEmployeeShopScopesAction} className="adminForm" key={`${selectedEmployeeId || "empty"}-shop-scopes`}>
+                  <h3>Acceso a tiendas</h3>
+                  {selectedEmployee ? (
+                    <>
+                      <input name="employeeId" type="hidden" value={selectedEmployeeId} />
+                      <fieldset className="adminFieldset">
+                        <legend>Tiendas permitidas</legend>
+                        {data.availableShops.length === 0 ? (
+                          <div className="adminEmptyState">No hay tiendas disponibles para asignar.</div>
+                        ) : (
+                          data.availableShops.map((shop) => {
+                            const value = shopScopeKey({ organizationId: shop.organizationId, shopId: shop.id });
+                            return (
+                              <label className="adminCheckbox" key={value}>
+                                <input
+                                  defaultChecked={selectedEmployeeShopScopes.has(value)}
+                                  name="shopScopes"
+                                  type="checkbox"
+                                  value={value}
+                                />
+                                {shop.name}{shop.shopAlias ? ` (${shop.shopAlias})` : ""}
+                              </label>
+                            );
+                          })
+                        )}
+                      </fieldset>
+                      <button className="adminButton adminButtonPrimary" disabled={!canUseTenant} type="submit">
+                        Guardar tiendas
                       </button>
                     </>
                   ) : (
@@ -364,6 +411,28 @@ export function EmployeesAdminPage({
                           <label className="adminCheckbox" key={profileId}>
                             <input name="profileIds" type="checkbox" value={profileId} />
                             {profile.name || profileId}
+                          </label>
+                        );
+                      })
+                    )}
+                  </fieldset>
+                  <fieldset className="adminFieldset">
+                    <legend>Tiendas permitidas</legend>
+                    {data.availableShops.length === 0 ? (
+                      <p className="adminMuted">No hay tiendas disponibles para asignar.</p>
+                    ) : (
+                      data.availableShops.map((shop) => {
+                        const value = shopScopeKey({ organizationId: shop.organizationId, shopId: shop.id });
+                        const isActiveContext = shop.organizationId === context.organizationId && shop.id === context.shopId;
+                        return (
+                          <label className="adminCheckbox" key={value}>
+                            <input
+                              defaultChecked={isActiveContext}
+                              name="shopScopes"
+                              type="checkbox"
+                              value={value}
+                            />
+                            {shop.name}{shop.shopAlias ? ` (${shop.shopAlias})` : ""}
                           </label>
                         );
                       })

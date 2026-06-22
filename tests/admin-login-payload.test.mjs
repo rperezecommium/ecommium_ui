@@ -22,7 +22,7 @@ vm.runInNewContext(outputText, moduleContext);
 
 const { buildAdminLoginPayload } = moduleContext.module.exports;
 
-test("admin login payload does not include organizationId or shopId", () => {
+test("admin login payload can stay unscoped before shop resolution", () => {
   const payload = buildAdminLoginPayload("admin@example.com", "secret123");
 
   assert.equal(JSON.stringify(payload), JSON.stringify({
@@ -32,4 +32,21 @@ test("admin login payload does not include organizationId or shopId", () => {
   }));
   assert.equal("organizationId" in payload, false);
   assert.equal("shopId" in payload, false);
+});
+
+test("admin login payload ignores tenant context arguments", () => {
+  const payload = buildAdminLoginPayload("admin@example.com", "secret123", {
+    organizationId: "11111111-1111-4111-8111-111111111111",
+    shopId: "22222222-2222-4222-8222-222222222222",
+    shopAlias: "tienda-barcelona",
+  });
+
+  assert.equal(JSON.stringify(payload), JSON.stringify({
+    email: "admin@example.com",
+    password: "secret123",
+    scope: "admin",
+  }));
+  assert.equal("organizationId" in payload, false);
+  assert.equal("shopId" in payload, false);
+  assert.equal("shopAlias" in payload, false);
 });

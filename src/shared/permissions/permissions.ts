@@ -17,10 +17,11 @@ const permissionAliases: Record<AdminPermission, string[]> = {
     "admin:configuration:view",
     "employees.read",
     "employees.manage",
+    "employees.security",
     "sessions.admin.accounts.write",
   ],
   "admin:health:view": ["admin:health:view"],
-  "admin:employees:view": ["admin:employees:view", "employees.read", "employees.manage"],
+  "admin:employees:view": ["admin:employees:view", "employees.read", "employees.manage", "employees.security"],
   "admin:catalog:view": [
     "admin:catalog:view",
     "catalog.products.write",
@@ -42,6 +43,7 @@ export function can(session: AdminSession, permission: AdminPermission) {
   return (
     (permission === "admin:view" && session.scope === "admin") ||
     current.has("*") ||
+    current.has("system.admin") ||
     current.has("admin:*") ||
     aliases.some((alias) => current.has(alias.toLowerCase()))
   );

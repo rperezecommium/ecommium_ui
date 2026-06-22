@@ -31,10 +31,15 @@ import type {
 import { getProductPublicationChecklist, validateProductDraft } from "./product-editor-validation";
 
 type ProductEditorClientProps = {
+  contextIdentity: string;
   initialDraft: ProductDraft;
   locale: string;
   currency: string;
   lookups?: ProductEditorLookups;
+};
+
+type ProductEditorClientInnerProps = Omit<ProductEditorClientProps, "contextIdentity"> & {
+  storageKey: string;
 };
 
 type TabId =
@@ -114,9 +119,14 @@ function availableQuantity(stock: StockDraft | undefined) {
   return stock.availableQuantity ?? Math.max(0, stock.onHandQuantity - stock.reservedQuantity - stock.safetyStockQuantity);
 }
 
-function localStorageKey(draft: ProductDraft, locale: string, currency: string) {
+export function localStorageKey(
+  draft: ProductDraft,
+  locale: string,
+  currency: string,
+  contextIdentity: string,
+) {
   const mode = draft.productId ? "edit" : "new";
-  return `ecommium-product-draft:v3:${mode}:${draft.productId ?? "new"}:${locale}:${currency}`;
+  return `ecommium-product-draft:v4:${contextIdentity}:${mode}:${draft.productId ?? "new"}:${locale}:${currency}`;
 }
 
 function statusLabel(status: SaveBlockStatus) {
@@ -292,9 +302,18 @@ function RichTextEditor({ label, minHeight = 180, value, onChange }: RichTextEdi
           dangerouslySetInnerHTML={{ __html: value }}
           onBlur={emitChange}
           onInput={emitChange}
+          onKeyUp={emitChange}
+          onPaste={() => window.setTimeout(emitChange, 0)}
           role="textbox"
           style={{ minHeight }}
           suppressContentEditableWarning
+        />
+        <textarea
+          aria-label={`${label} HTML`}
+          className="richTextSource"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          rows={3}
         />
       </div>
     </div>
@@ -391,12 +410,37 @@ function ProductEntitySelector({
 }
 
 export function ProductEditorClient({
+  contextIdentity,
   initialDraft,
   locale,
   currency,
   lookups = { categories: [], brands: [], taxes: [], priceTables: [], warnings: [] },
 }: ProductEditorClientProps) {
-  const storageKey = useMemo(() => localStorageKey(initialDraft, locale, currency), [currency, initialDraft, locale]);
+  const storageKey = useMemo(
+    () => localStorageKey(initialDraft, locale, currency, contextIdentity),
+    [contextIdentity, currency, initialDraft, locale],
+  );
+  const editorInstanceKey = `${contextIdentity}:${initialDraft.productId ?? "new"}:${locale}:${currency}`;
+
+  return (
+    <ProductEditorClientInner
+      key={editorInstanceKey}
+      initialDraft={initialDraft}
+      locale={locale}
+      currency={currency}
+      lookups={lookups}
+      storageKey={storageKey}
+    />
+  );
+}
+
+function ProductEditorClientInner({
+  initialDraft,
+  locale,
+  currency,
+  lookups = { categories: [], brands: [], taxes: [], priceTables: [], warnings: [] },
+  storageKey,
+}: ProductEditorClientInnerProps) {
   const [draft, setDraft] = useState<ProductDraft>(initialDraft);
   const [storedDraft, setStoredDraft] = useState<ProductDraft | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("basic");
@@ -464,6 +508,7 @@ export function ProductEditorClient({
 
     return [{ id: draft.basic.brandId, label: draft.basic.brandName }, ...lookups.brands];
   }, [draft.basic.brandId, draft.basic.brandName, lookups.brands]);
+
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       setStoredDraft(readStoredDraft(storageKey, initialDraft));

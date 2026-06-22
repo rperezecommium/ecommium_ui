@@ -902,6 +902,25 @@ p {
   background: var(--admin-bg);
 }
 
+.richTextSource {
+  width: 100%;
+  min-height: 76px;
+  padding: 10px 12px;
+  border: 0;
+  border-top: 1px solid var(--admin-border-subtle);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.richTextSource:focus {
+  outline: 0;
+  box-shadow: inset 0 0 0 2px var(--admin-focus-ring);
+}
+
 .adminFormGridTwo {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
