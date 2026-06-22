@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { canUseDevAdminSession, hasUsableAdminBearer } from "../../../src/shared/auth/admin-bearer";
-import { createDevSession, getAdminSession } from "../../../src/shared/auth/session";
+import { canUseDevAdminSession } from "../../../src/shared/auth/admin-bearer";
+import { createDevSession } from "../../../src/shared/auth/session";
 import { loginAdminEmployee } from "../../../src/modules/auth/admin-session-actions";
 
 type LoginPageProps = {
@@ -24,14 +24,9 @@ async function startDevSession() {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
-  const session = await getAdminSession();
   const nextPath = params?.next ?? "/admin";
   const devSessionRequested = process.env.ECOMMIUM_ADMIN_DEV_SESSION === "1";
   const devSessionEnabled = canUseDevAdminSession();
-
-  if (session && hasUsableAdminBearer(session)) {
-    redirect(nextPath);
-  }
 
   return (
     <main className="loginPage">

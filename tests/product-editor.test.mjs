@@ -1,0 +1,1546 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import test from "node:test";
+import vm from "node:vm";
+import ts from "typescript";
+
+const root = path.resolve(new URL("..", import.meta.url).pathname);
+const cache = new Map();
+
+function loadTsModule(relativePath) {
+  const absolutePath = path.resolve(root, relativePath);
+  if (cache.has(absolutePath)) {
+    return cache.get(absolutePath);
+  }
+
+  const source = readFileSync(absolutePath, "utf8");
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+      esModuleInterop: true,
+    },
+  });
+  const commonJsExports = {};
+  const dirname = path.dirname(absolutePath);
+  const moduleContext = {
+    console,
+    exports: commonJsExports,
+    module: { exports: commonJsExports },
+    require(specifier) {
+      if (specifier.startsWith(".")) {
+        const target = path.resolve(dirname, specifier);
+        const tsPath = target.endsWith(".ts") ? target : `${target}.ts`;
+        return loadTsModule(path.relative(root, tsPath));
+      }
+
+      return awaitImportNotSupported(specifier);
+    },
+  };
+
+  cache.set(absolutePath, moduleContext.module.exports);
+  vm.runInNewContext(outputText, moduleContext);
+  cache.set(absolutePath, moduleContext.module.exports);
+  return moduleContext.module.exports;
+}
+
+function awaitImportNotSupported(specifier) {
+  throw new Error(`Unexpected test require: ${specifier}`);
+}
+
+const draftModule = loadTsModule("src/modules/catalogo/product-editor-draft.ts");
+const productStatusModule = loadTsModule("src/modules/catalogo/product-status.ts");
+const validationModule = loadTsModule("src/modules/catalogo/product-editor-validation.ts");
+const orchestratorModule = loadTsModule("src/modules/catalogo/product-save-orchestrator.ts");
+
+test("normalizes product names into slugs and default references", () => {
+  assert.equal(draftModule.slugifyProductValue("Lego Halcon Milenario! 2026"), "lego-halcon-milenario-2026");
+  assert.equal(draftModule.makeRefIdFromName("Lego Halcon Milenario"), "LEGO_HALCON_MILENARIO");
+});
+
+test("maps product operational status from BFF active fields", () => {
+  assert.equal(productStatusModule.productStatusIsActive({ status: "ACTIVE" }), true);
+  assert.equal(productStatusModule.productStatusIsActive({ active: true }), true);
+  assert.equal(productStatusModule.productStatusIsActive({ publicationStatus: "ONLINE" }), true);
+  assert.equal(productStatusModule.productStatusIsActive({ status: "DRAFT" }, true), false);
+  assert.equal(productStatusModule.productStatusIsActive({ isActive: false, status: "ACTIVE" }), false);
+});
+
+test("builds a safe create payload with inactive product publication", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Lego Halcon Milenario";
+  draft.basic.slug = "";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "";
+  draft.basic.isActive = true;
+
+  const payload = validationModule.toCreateProductPayload(draft, "es-ES");
+
+  assert.equal(payload.name, "Lego Halcon Milenario");
+  assert.equal(payload.slug, "lego-halcon-milenario");
+  assert.equal(payload.defaultVariant.refId, "LEGO_HALCON_MILENARIO");
+  assert.equal(payload.categoryId, "category-1");
+  assert.equal(payload.isActive, false);
+});
+
+test("requires a principal category before saving a product", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Producto sin categoria";
+  draft.basic.slug = "producto-sin-categoria";
+  draft.defaultVariant.refId = "PRODUCTO-SIN-CATEGORIA";
+
+  const validation = validationModule.validateProductDraft(draft);
+
+  assert.equal(validation.ok, false);
+  assert.equal(validation.fieldErrors.categoryId, "La categoria principal es obligatoria antes de guardar.");
+});
+
+test("allows persisted legacy variants without options while still requiring options for new variants", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Producto legacy";
+  draft.basic.slug = "producto-legacy";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "PRODUCTO-LEGACY";
+  draft.mode = "variants";
+  draft.variants = [{
+    localId: "variant-legacy",
+    variantId: "variant-legacy",
+    name: "Legacy sin atributos",
+    refId: "LEGACY-SIN-ATRIBUTOS",
+    ean: null,
+    options: [],
+    isActive: true,
+    isVisible: true,
+  }];
+
+  const persistedValidation = validationModule.validateProductDraft(draft);
+
+  assert.equal(persistedValidation.ok, true);
+
+  draft.variants.push({
+    localId: "variant-new",
+    name: "Nueva sin atributos",
+    refId: "NUEVA-SIN-ATRIBUTOS",
+    ean: null,
+    options: [],
+    isActive: true,
+    isVisible: true,
+  });
+
+  const newValidation = validationModule.validateProductDraft(draft);
+
+  assert.equal(newValidation.ok, false);
+  assert.equal(
+    newValidation.fieldErrors["variant:variant-new:options"],
+    "La variante necesita al menos una opcion comercial.",
+  );
+});
+
+test("rejects incomplete options on new product variants before sending them to BFF", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Producto con opcion incompleta";
+  draft.basic.slug = "producto-con-opcion-incompleta";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "PRODUCTO-OPCION-INCOMPLETA";
+  draft.mode = "variants";
+  draft.variants = [{
+    localId: "variant-new",
+    name: "Variante nueva",
+    refId: "VARIANTE-NUEVA",
+    ean: null,
+    options: [{ attributeCode: "color", valueCode: "" }],
+    isActive: true,
+    isVisible: true,
+  }];
+
+  const validation = validationModule.validateProductDraft(draft);
+
+  assert.equal(validation.ok, false);
+  assert.equal(
+    validation.fieldErrors["variant:variant-new:options"],
+    "Completa atributo y valor en cada opcion de la variante.",
+  );
+});
+
+test("publication checklist requires persisted cover, base price and available stock", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Urban Runner";
+  draft.basic.slug = "urban-runner";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "URBAN-RUNNER";
+
+  const initialChecklist = validationModule.getProductPublicationChecklist(draft);
+
+  assert.equal(JSON.stringify(initialChecklist.map((item) => [item.id, item.ok])), JSON.stringify([
+    ["media", false],
+    ["price", false],
+    ["stock", false],
+  ]));
+
+  draft.media.items = [{
+    localId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    mediaAssetId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    fileName: "shoe.jpg",
+    fileSize: 100,
+    mimeType: "image/jpeg",
+    isMain: true,
+    active: true,
+    alt: { "es-ES": "Shoe" },
+    title: { "es-ES": "Shoe" },
+    persisted: true,
+  }];
+  draft.pricing.productPrice.basePriceMinor = 1099;
+  draft.inventory.stockByVariant.default.onHandQuantity = 5;
+
+  const ready = validationModule.validateProductPublicationReadiness(draft);
+
+  assert.equal(ready.ok, true);
+});
+
+test("restores persisted variant media preview from fresh editor state after reload", () => {
+  const mediaAssetId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const initialDraft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  initialDraft.productId = "product-1";
+  initialDraft.media.items = [{
+    localId: mediaAssetId,
+    mediaAssetId,
+    fileName: "variant-blue.jpg",
+    fileSize: 100,
+    mimeType: "image/jpeg",
+    previewUrl: "https://cdn.example.test/variant-blue-medium.jpg",
+    isMain: false,
+    active: true,
+    alt: { "es-ES": "Variante azul" },
+    title: { "es-ES": "Variante azul" },
+    persisted: true,
+  }];
+  initialDraft.media.assignments["variant-blue"] = [mediaAssetId];
+  initialDraft.media.mainByVariant["variant-blue"] = mediaAssetId;
+
+  const storedDraft = draftModule.sanitizeDraftForStorage({
+    ...initialDraft,
+    media: {
+      ...initialDraft.media,
+      items: [{
+        ...initialDraft.media.items[0],
+        previewUrl: undefined,
+      }],
+    },
+  });
+
+  const restored = draftModule.mergeStoredProductDraft(initialDraft, storedDraft);
+
+  assert.equal(restored.media.assignments["variant-blue"][0], mediaAssetId);
+  assert.equal(restored.media.mainByVariant["variant-blue"], mediaAssetId);
+  assert.equal(
+    restored.media.items.find((item) => item.mediaAssetId === mediaAssetId)?.previewUrl,
+    "https://cdn.example.test/variant-blue-medium.jpg",
+  );
+});
+
+test("keeps rich HTML in product summary and description payloads", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Producto rich text";
+  draft.basic.slug = "producto-rich-text";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "PRODUCTO-RICH";
+  draft.basic.shortDescription = "<p><strong>Resumen</strong> corto</p>";
+  draft.basic.description = "<section><h2>Detalle</h2><p>Contenido <em>enriquecido</em></p></section>";
+
+  const payload = validationModule.toCreateProductPayload(draft, "es-ES");
+
+  assert.equal(payload.shortDescription, "<p><strong>Resumen</strong> corto</p>");
+  assert.equal(payload.description, "<section><h2>Detalle</h2><p>Contenido <em>enriquecido</em></p></section>");
+});
+
+test("save orchestrator creates catalog first and keeps later blocks independent", async () => {
+  const calls = [];
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Urban Runner";
+  draft.basic.slug = "urban-runner";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "URBAN-RUNNER";
+  draft.pricing.productPrice.basePriceMinor = 1099;
+  draft.inventory.stockByVariant.default.onHandQuantity = 5;
+
+  const ok = (data, correlationId) => ({ ok: true, data, status: 200, correlationId });
+  const gateway = {
+    async createProduct(payload) {
+      calls.push(["createProduct", payload.name]);
+      return ok({
+        productId: "product-1",
+        name: payload.name,
+        slug: payload.slug,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        mediaCollectionId: null,
+      }, "corr-create");
+    },
+    async updateProduct() {
+      throw new Error("updateProduct should not run");
+    },
+    async getProduct() {
+      throw new Error("getProduct should not run");
+    },
+    async listVariants(productId) {
+      calls.push(["listVariants", productId]);
+      return ok([{
+        variantId: "variant-1",
+        name: "Urban Runner",
+        refId: "URBAN-RUNNER",
+        ean: null,
+        isActive: true,
+        isVisible: true,
+        isDefault: true,
+      }], "corr-variants");
+    },
+    async createVariant() {
+      throw new Error("createVariant should not run for simple products");
+    },
+    async createVariantOption() {
+      throw new Error("createVariantOption should not run for simple products");
+    },
+    async createMediaCollection() {
+      throw new Error("createMediaCollection should not run without files");
+    },
+    async appendMediaItems() {
+      throw new Error("appendMediaItems should not run without files");
+    },
+    async assignVariantMedia() {
+      throw new Error("assignVariantMedia should not run without media");
+    },
+    async clearVariantMedia() {
+      throw new Error("clearVariantMedia should not run without media assignments");
+    },
+    async setVariantMainMedia() {
+      throw new Error("setVariantMainMedia should not run without media assignments");
+    },
+    async createProductPrice(input) {
+      calls.push(["createProductPrice", input.productId, input.price.basePriceMinor]);
+      return ok({ pricingId: "price-1" }, "corr-price");
+    },
+    async updatePrice() {
+      throw new Error("updatePrice should not run for new product price");
+    },
+    async deletePrice() {
+      throw new Error("deletePrice should not run");
+    },
+    async createVariantPrice() {
+      throw new Error("createVariantPrice should not run for simple products");
+    },
+    async putStockLevel(input) {
+      calls.push(["putStockLevel", input.variantId, input.stock.onHandQuantity]);
+      return ok({ updatedAt: "2026-06-17T00:00:00.000Z" }, "corr-stock");
+    },
+  };
+
+  const report = await orchestratorModule.saveProductDraft({
+    draft,
+    context: {
+      organizationId: "org-1",
+      shopId: "shop-1",
+      shopAlias: "main",
+      shopName: "Main",
+      primaryDomain: "",
+      shopStatus: "ACTIVE",
+      locale: "es-ES",
+      currency: "EUR",
+      country: "ES",
+      channel: "web",
+    },
+    gateway,
+  });
+
+  assert.equal(report.ok, true);
+  assert.equal(report.productId, "product-1");
+  assert.equal(report.defaultVariantId, "variant-1");
+  assert.equal(report.blocks.catalog, "success");
+  assert.equal(report.blocks.pricing, "success");
+  assert.equal(report.blocks.inventory, "success");
+  assert.deepEqual(calls, [
+    ["createProduct", "Urban Runner"],
+    ["listVariants", "product-1"],
+    ["createProductPrice", "product-1", 1099],
+    ["putStockLevel", "variant-1", 5],
+  ]);
+});
+
+test("save orchestrator persists combination media, variant price overrides and stock independently", async () => {
+  const calls = [];
+  const mediaAssetId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Urban Runner";
+  draft.basic.slug = "urban-runner";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "URBAN-RUNNER";
+  draft.mode = "variants";
+  draft.media.items = [{
+    localId: mediaAssetId,
+    mediaAssetId,
+    fileName: "shoe-blue.jpg",
+    fileSize: 100,
+    mimeType: "image/jpeg",
+    isMain: true,
+    active: true,
+    alt: { "es-ES": "Shoe blue" },
+    title: { "es-ES": "Shoe blue" },
+    persisted: true,
+  }];
+  draft.variants = [{
+    localId: "variant-local-blue-42",
+    name: "Urban Runner / Azul / 42",
+    refId: "URBAN-RUNNER-BLUE-42",
+    ean: null,
+    options: [
+      { attributeCode: "color", valueCode: "blue" },
+      { attributeCode: "size", valueCode: "42" },
+    ],
+    isActive: true,
+    isVisible: true,
+  }];
+  draft.media.assignments["variant-local-blue-42"] = [mediaAssetId];
+  draft.media.mainByVariant["variant-local-blue-42"] = mediaAssetId;
+  draft.pricing.variantPrices["variant-local-blue-42"] = {
+    basePriceMinor: 1299,
+    listPriceMinor: null,
+    costPriceMinor: null,
+    currency: "EUR",
+    taxIncluded: true,
+  };
+  draft.inventory.stockByVariant["variant-local-blue-42"] = {
+    warehouseId: "main-warehouse",
+    onHandQuantity: 7,
+    reservedQuantity: 0,
+    safetyStockQuantity: 1,
+  };
+
+  const ok = (data, correlationId) => ({ ok: true, data, status: 200, correlationId });
+  let variantCreated = false;
+  const gateway = {
+    async createProduct(payload) {
+      calls.push(["createProduct", payload.name]);
+      return ok({
+        productId: "product-1",
+        name: payload.name,
+        slug: payload.slug,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        mediaCollectionId: "collection-1",
+        defaultVariantId: "variant-default",
+      }, "corr-create");
+    },
+    async updateProduct() {
+      throw new Error("updateProduct should not run");
+    },
+    async getProduct() {
+      throw new Error("getProduct should not run");
+    },
+    async listVariants(productId) {
+      calls.push(["listVariants", productId, variantCreated]);
+      return ok([
+        {
+          variantId: "variant-default",
+          name: "Urban Runner",
+          refId: "URBAN-RUNNER",
+          ean: null,
+          isActive: true,
+          isVisible: true,
+          isDefault: true,
+        },
+        ...(variantCreated ? [{
+          variantId: "variant-blue-42",
+          name: "Urban Runner / Azul / 42",
+          refId: "URBAN-RUNNER-BLUE-42",
+          ean: null,
+          isActive: true,
+          isVisible: true,
+          isDefault: false,
+        }] : []),
+      ], "corr-variants");
+    },
+    async createVariant(productId, payload) {
+      calls.push(["createVariant", productId, payload.refId]);
+      variantCreated = true;
+      return ok({
+        variantId: "variant-blue-42",
+        name: payload.name,
+        refId: payload.refId,
+        ean: null,
+        isActive: true,
+        isVisible: true,
+        isDefault: false,
+      }, "corr-create-variant");
+    },
+    async createVariantOption(variantId, payload) {
+      calls.push(["createVariantOption", variantId, payload.attributeCode, payload.valueCode]);
+      return ok({ id: `${payload.attributeCode}-${payload.valueCode}` }, "corr-option");
+    },
+    async createMediaCollection() {
+      throw new Error("createMediaCollection should not run for persisted media");
+    },
+    async appendMediaItems() {
+      throw new Error("appendMediaItems should not run for persisted media");
+    },
+    async assignVariantMedia(input) {
+      calls.push(["assignVariantMedia", input.variantId, input.mediaAssetIds, input.mainMediaAssetId]);
+      return ok({ assigned: true }, "corr-variant-media");
+    },
+    async clearVariantMedia() {
+      throw new Error("clearVariantMedia should not run when media is assigned");
+    },
+    async setVariantMainMedia() {
+      throw new Error("setVariantMainMedia should not run directly");
+    },
+    async createProductPrice() {
+      throw new Error("createProductPrice should not run without base product price");
+    },
+    async updatePrice() {
+      throw new Error("updatePrice should not run for new variant override");
+    },
+    async deletePrice() {
+      throw new Error("deletePrice should not run");
+    },
+    async createVariantPrice(input) {
+      calls.push(["createVariantPrice", input.variantId, input.price.basePriceMinor]);
+      return ok({ pricingId: "price-variant-1" }, "corr-variant-price");
+    },
+    async putStockLevel(input) {
+      calls.push(["putStockLevel", input.variantId, input.stock.onHandQuantity]);
+      return ok({ updatedAt: "2026-06-17T00:00:00.000Z" }, "corr-stock");
+    },
+  };
+
+  const report = await orchestratorModule.saveProductDraft({
+    draft,
+    context: {
+      organizationId: "org-1",
+      shopId: "shop-1",
+      shopAlias: "main",
+      shopName: "Main",
+      primaryDomain: "",
+      shopStatus: "ACTIVE",
+      locale: "es-ES",
+      currency: "EUR",
+      country: "ES",
+      channel: "web",
+    },
+    gateway,
+  });
+
+  assert.equal(report.ok, true);
+  assert.equal(report.blocks.variants, "success");
+  assert.equal(report.blocks.variantMedia, "success");
+  assert.equal(report.blocks.pricing, "success");
+  assert.equal(report.blocks.inventory, "success");
+  assert.equal(report.draftPatch.variants[0].variantId, "variant-blue-42");
+  assert.deepEqual(calls, [
+    ["createProduct", "Urban Runner"],
+    ["listVariants", "product-1", false],
+    ["createVariant", "product-1", "URBAN-RUNNER-BLUE-42"],
+    ["createVariantOption", "variant-blue-42", "color", "blue"],
+    ["createVariantOption", "variant-blue-42", "size", "42"],
+    ["listVariants", "product-1", true],
+    ["assignVariantMedia", "variant-blue-42", [mediaAssetId], mediaAssetId],
+    ["createVariantPrice", "variant-blue-42", 1299],
+    ["putStockLevel", "variant-blue-42", 7],
+  ]);
+});
+
+test("save orchestrator reports variant media errors before sending local image ids to Catalog", async () => {
+  const calls = [];
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.productId = "product-1";
+  draft.defaultVariantId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  draft.basic.name = "Urban Runner";
+  draft.basic.slug = "urban-runner";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "URBAN-RUNNER";
+  draft.mode = "variants";
+  draft.media.items = [{
+    localId: "media-local-1",
+    fileName: "shoe-blue.jpg",
+    fileSize: 100,
+    mimeType: "image/jpeg",
+    isMain: true,
+    active: true,
+    alt: { "es-ES": "Shoe blue" },
+    title: { "es-ES": "Shoe blue" },
+    persisted: false,
+  }];
+  draft.variants = [{
+    localId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    variantId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    name: "Urban Runner / Azul / 42",
+    refId: "URBAN-RUNNER-BLUE-42",
+    ean: null,
+    options: [{ attributeCode: "color", valueCode: "blue" }],
+    isActive: true,
+    isVisible: true,
+  }];
+  draft.media.assignments["cccccccc-cccc-4ccc-8ccc-cccccccccccc"] = ["media-local-1"];
+  draft.media.mainByVariant["cccccccc-cccc-4ccc-8ccc-cccccccccccc"] = "media-local-1";
+
+  const ok = (data, correlationId) => ({ ok: true, data, status: 200, correlationId });
+  const gateway = {
+    async createProduct() {
+      throw new Error("createProduct should not run for existing products");
+    },
+    async updateProduct(productId, payload) {
+      calls.push(["updateProduct", productId, payload.name]);
+      return ok({
+        productId,
+        name: payload.name,
+        slug: payload.slug,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        defaultVariantId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      }, "corr-product");
+    },
+    async getProduct() {
+      throw new Error("getProduct should not run");
+    },
+    async listVariants(productId) {
+      calls.push(["listVariants", productId]);
+      return ok([
+        {
+          variantId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          name: "Urban Runner",
+          refId: "URBAN-RUNNER",
+          ean: null,
+          isActive: true,
+          isVisible: true,
+          isDefault: true,
+        },
+        {
+          variantId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          name: "Urban Runner / Azul / 42",
+          refId: "URBAN-RUNNER-BLUE-42",
+          ean: null,
+          isActive: true,
+          isVisible: true,
+          isDefault: false,
+        },
+      ], "corr-variants");
+    },
+    async createVariant() {
+      throw new Error("createVariant should not run");
+    },
+    async updateVariant() {
+      return ok({}, "corr-update-variant");
+    },
+    async deleteVariant() {
+      throw new Error("deleteVariant should not run");
+    },
+    async createVariantOption() {
+      throw new Error("createVariantOption should not run");
+    },
+    async createMediaCollection() {
+      throw new Error("createMediaCollection should not run without files");
+    },
+    async appendMediaItems() {
+      throw new Error("appendMediaItems should not run without files");
+    },
+    async assignVariantMedia() {
+      throw new Error("assignVariantMedia should not receive local media ids");
+    },
+    async clearVariantMedia() {
+      throw new Error("clearVariantMedia should not run for unresolved media");
+    },
+    async setVariantMainMedia() {
+      throw new Error("setVariantMainMedia should not run");
+    },
+    async createProductPrice() {
+      throw new Error("createProductPrice should not run");
+    },
+    async updatePrice() {
+      throw new Error("updatePrice should not run");
+    },
+    async deletePrice() {
+      throw new Error("deletePrice should not run");
+    },
+    async createVariantPrice() {
+      throw new Error("createVariantPrice should not run");
+    },
+    async createOffering() {
+      throw new Error("createOffering should not run");
+    },
+    async attachOfferingToVariant() {
+      throw new Error("attachOfferingToVariant should not run");
+    },
+    async detachOfferingFromVariant() {
+      throw new Error("detachOfferingFromVariant should not run");
+    },
+    async setOfferingVariantActivation() {
+      throw new Error("setOfferingVariantActivation should not run");
+    },
+    async listOfferingsByVariant() {
+      throw new Error("listOfferingsByVariant should not run");
+    },
+    async resolveOfferingsBatchByVariants() {
+      throw new Error("resolveOfferingsBatchByVariants should not run");
+    },
+    async putStockLevel() {
+      return ok({ updatedAt: "2026-06-17T00:00:00.000Z" }, "corr-stock");
+    },
+  };
+
+  const report = await orchestratorModule.saveProductDraft({
+    draft,
+    context: {
+      organizationId: "org-1",
+      shopId: "shop-1",
+      shopAlias: "main",
+      shopName: "Main",
+      primaryDomain: "",
+      shopStatus: "ACTIVE",
+      locale: "es-ES",
+      currency: "EUR",
+      country: "ES",
+      channel: "web",
+    },
+    gateway,
+  });
+
+  assert.equal(report.ok, false);
+  assert.equal(report.blocks.variantMedia, "failed");
+  assert.match(
+    report.fieldErrors["media:cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
+    /mediaAssetId valido/,
+  );
+  assert.deepEqual(calls, [
+    ["updateProduct", "product-1", "Urban Runner"],
+    ["listVariants", "product-1"],
+    ["listVariants", "product-1"],
+  ]);
+});
+
+test("save orchestrator updates persisted default and product variants", async () => {
+  const calls = [];
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.productId = "product-1";
+  draft.defaultVariantId = "variant-default";
+  draft.basic.name = "Urban Runner Updated";
+  draft.basic.slug = "urban-runner-updated";
+  draft.basic.categoryId = "category-1";
+  draft.basic.isActive = false;
+  draft.defaultVariant.refId = "URBAN-RUNNER";
+  draft.defaultVariant.ean = "8430000000001";
+  draft.mode = "variants";
+  draft.variants = [{
+    localId: "variant-red-42",
+    variantId: "variant-red-42",
+    name: "Urban Runner / Rojo / 42",
+    refId: "URBAN-RUNNER-RED-42",
+    ean: "8430000000042",
+    options: [
+      { attributeCode: "color", valueCode: "red" },
+      { attributeCode: "size", valueCode: "42" },
+    ],
+    isActive: false,
+    isVisible: true,
+  }];
+  draft.inventory.stockByVariant["variant-red-42"] = {
+    warehouseId: "main-warehouse",
+    onHandQuantity: 3,
+    reservedQuantity: 0,
+    safetyStockQuantity: 0,
+  };
+
+  const ok = (data, correlationId) => ({ ok: true, data, status: 200, correlationId });
+  const gateway = {
+    async createProduct() {
+      throw new Error("createProduct should not run for existing products");
+    },
+    async updateProduct(productId, payload) {
+      calls.push(["updateProduct", productId, payload.name, payload.isActive]);
+      return ok({
+        productId,
+        name: payload.name,
+        slug: payload.slug,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        defaultVariantId: "variant-default",
+      }, "corr-update-product");
+    },
+    async getProduct() {
+      throw new Error("getProduct should not run");
+    },
+    async listVariants(productId) {
+      calls.push(["listVariants", productId]);
+      return ok([
+        {
+          variantId: "variant-default",
+          name: "Urban Runner Updated",
+          refId: "URBAN-RUNNER",
+          ean: "8430000000001",
+          isActive: true,
+          isVisible: true,
+          isDefault: true,
+        },
+        {
+          variantId: "variant-red-42",
+          name: "Urban Runner / Rojo / 42",
+          refId: "URBAN-RUNNER-RED-42",
+          ean: "8430000000042",
+          isActive: false,
+          isVisible: true,
+          isDefault: false,
+        },
+      ], "corr-list-variants");
+    },
+    async createVariant() {
+      throw new Error("createVariant should not run for persisted variants");
+    },
+    async updateVariant(variantId, payload) {
+      calls.push(["updateVariant", variantId, payload.refId, payload.ean, payload.isActive]);
+      return ok({
+        variantId,
+        name: payload.name,
+        refId: payload.refId,
+        ean: payload.ean,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        isDefault: variantId === "variant-default",
+      }, `corr-update-${variantId}`);
+    },
+    async deleteVariant() {
+      throw new Error("deleteVariant should not run during save");
+    },
+    async createVariantOption() {
+      throw new Error("createVariantOption should not run for persisted variants");
+    },
+    async createMediaCollection() {
+      throw new Error("createMediaCollection should not run without files");
+    },
+    async appendMediaItems() {
+      throw new Error("appendMediaItems should not run without files");
+    },
+    async assignVariantMedia() {
+      throw new Error("assignVariantMedia should not run without assignments");
+    },
+    async clearVariantMedia() {
+      throw new Error("clearVariantMedia should not run without assignments");
+    },
+    async setVariantMainMedia() {
+      throw new Error("setVariantMainMedia should not run without assignments");
+    },
+    async createProductPrice() {
+      throw new Error("createProductPrice should not run without positive product price");
+    },
+    async updatePrice() {
+      throw new Error("updatePrice should not run without price IDs");
+    },
+    async deletePrice() {
+      throw new Error("deletePrice should not run");
+    },
+    async createVariantPrice() {
+      throw new Error("createVariantPrice should not run without variant price");
+    },
+    async createOffering() {
+      throw new Error("createOffering should not run during save");
+    },
+    async attachOfferingToVariant() {
+      throw new Error("attachOfferingToVariant should not run during save");
+    },
+    async detachOfferingFromVariant() {
+      throw new Error("detachOfferingFromVariant should not run during save");
+    },
+    async setOfferingVariantActivation() {
+      throw new Error("setOfferingVariantActivation should not run during save");
+    },
+    async listOfferingsByVariant() {
+      throw new Error("listOfferingsByVariant should not run during save");
+    },
+    async resolveOfferingsBatchByVariants() {
+      throw new Error("resolveOfferingsBatchByVariants should not run during save");
+    },
+    async putStockLevel(input) {
+      calls.push(["putStockLevel", input.variantId, input.stock.onHandQuantity]);
+      return ok({ updatedAt: "2026-06-17T00:00:00.000Z" }, "corr-stock");
+    },
+  };
+
+  const report = await orchestratorModule.saveProductDraft({
+    draft,
+    context: {
+      organizationId: "org-1",
+      shopId: "shop-1",
+      shopAlias: "main",
+      shopName: "Main",
+      primaryDomain: "",
+      shopStatus: "ACTIVE",
+      locale: "es-ES",
+      currency: "EUR",
+      country: "ES",
+      channel: "web",
+    },
+    gateway,
+  });
+
+  assert.equal(report.ok, true);
+  assert.equal(report.blocks.variants, "success");
+  assert.deepEqual(calls, [
+    ["updateProduct", "product-1", "Urban Runner Updated", false],
+    ["listVariants", "product-1"],
+    ["updateVariant", "variant-default", "URBAN-RUNNER", "8430000000001", false],
+    ["updateVariant", "variant-red-42", "URBAN-RUNNER-RED-42", "8430000000042", false],
+    ["listVariants", "product-1"],
+    ["putStockLevel", "variant-red-42", 3],
+  ]);
+});
+
+test("save orchestrator syncs persisted product variant options", async () => {
+  const calls = [];
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.productId = "product-1";
+  draft.defaultVariantId = "variant-default";
+  draft.basic.name = "Cable de freno";
+  draft.basic.slug = "cable-de-freno";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "CABLE-FRENO";
+  draft.mode = "variants";
+  draft.variants = [{
+    localId: "variant-double",
+    variantId: "variant-double",
+    name: "Cable de freno Accion Doble",
+    refId: "CABLE-FRENO-DOBLE",
+    ean: "8430000001111",
+    options: [
+      { variantOptionId: "option-color", attributeCode: "color", valueCode: "negro", isActive: true },
+      { variantOptionId: "option-length", attributeCode: "longitud", valueCode: "1-metro", isActive: false, markedForDeletion: true },
+      { attributeCode: "material", valueCode: "acero", isActive: true, createdInDraft: true },
+    ],
+    isActive: true,
+    isVisible: true,
+  }];
+
+  const ok = (data, correlationId) => ({ ok: true, data, status: 200, correlationId });
+  const gateway = {
+    async createProduct() {
+      throw new Error("createProduct should not run");
+    },
+    async updateProduct(productId, payload) {
+      calls.push(["updateProduct", productId, payload.name]);
+      return ok({
+        productId,
+        name: payload.name,
+        slug: payload.slug,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        defaultVariantId: "variant-default",
+      }, "corr-product");
+    },
+    async getProduct() {
+      throw new Error("getProduct should not run");
+    },
+    async listVariants(productId) {
+      calls.push(["listVariants", productId]);
+      return ok([
+        {
+          variantId: "variant-default",
+          name: "Cable de freno",
+          refId: "CABLE-FRENO",
+          ean: null,
+          isActive: false,
+          isVisible: true,
+          isDefault: true,
+        },
+        {
+          variantId: "variant-double",
+          name: "Cable de freno Accion Doble",
+          refId: "CABLE-FRENO-DOBLE",
+          ean: "8430000001111",
+          isActive: true,
+          isVisible: true,
+          isDefault: false,
+        },
+      ], "corr-list");
+    },
+    async createVariant() {
+      throw new Error("createVariant should not run");
+    },
+    async updateVariant(variantId, payload) {
+      calls.push(["updateVariant", variantId, payload.refId]);
+      return ok({
+        variantId,
+        name: payload.name,
+        refId: payload.refId,
+        ean: payload.ean,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        isDefault: variantId === "variant-default",
+      }, `corr-update-${variantId}`);
+    },
+    async deleteVariant() {
+      throw new Error("deleteVariant should not run");
+    },
+    async createVariantOption(variantId, payload) {
+      calls.push(["createVariantOption", variantId, payload.attributeCode, payload.valueCode, payload.isActive]);
+      return ok({ variantOptionId: "option-material", variantId, ...payload }, "corr-create-option");
+    },
+    async updateVariantOption(variantId, variantOptionId, payload) {
+      calls.push(["updateVariantOption", variantId, variantOptionId, payload.attributeCode, payload.valueCode, payload.isActive]);
+      return ok({ variantOptionId, variantId, ...payload }, "corr-update-option");
+    },
+    async deleteVariantOption(variantId, variantOptionId) {
+      calls.push(["deleteVariantOption", variantId, variantOptionId]);
+      return ok({ variantOptionId, deleted: true }, "corr-delete-option");
+    },
+    async createMediaCollection() {
+      throw new Error("createMediaCollection should not run");
+    },
+    async appendMediaItems() {
+      throw new Error("appendMediaItems should not run");
+    },
+    async assignVariantMedia() {
+      throw new Error("assignVariantMedia should not run");
+    },
+    async clearVariantMedia() {
+      throw new Error("clearVariantMedia should not run");
+    },
+    async setVariantMainMedia() {
+      throw new Error("setVariantMainMedia should not run");
+    },
+    async createProductPrice() {
+      throw new Error("createProductPrice should not run");
+    },
+    async updatePrice() {
+      throw new Error("updatePrice should not run");
+    },
+    async deletePrice() {
+      throw new Error("deletePrice should not run");
+    },
+    async createVariantPrice() {
+      throw new Error("createVariantPrice should not run");
+    },
+    async createOffering() {
+      throw new Error("createOffering should not run");
+    },
+    async attachOfferingToVariant() {
+      throw new Error("attachOfferingToVariant should not run");
+    },
+    async detachOfferingFromVariant() {
+      throw new Error("detachOfferingFromVariant should not run");
+    },
+    async setOfferingVariantActivation() {
+      throw new Error("setOfferingVariantActivation should not run");
+    },
+    async listOfferingsByVariant() {
+      throw new Error("listOfferingsByVariant should not run");
+    },
+    async resolveOfferingsBatchByVariants() {
+      throw new Error("resolveOfferingsBatchByVariants should not run");
+    },
+    async putStockLevel() {
+      throw new Error("putStockLevel should not run without stock changes");
+    },
+  };
+
+  const report = await orchestratorModule.saveProductDraft({
+    draft,
+    context: {
+      organizationId: "org-1",
+      shopId: "shop-1",
+      shopAlias: "main",
+      shopName: "Main",
+      primaryDomain: "",
+      shopStatus: "ACTIVE",
+      locale: "es-ES",
+      currency: "EUR",
+      country: "ES",
+      channel: "web",
+    },
+    gateway,
+  });
+
+  assert.equal(report.ok, true);
+  assert.equal(report.blocks.variants, "success");
+  assert.deepEqual(calls, [
+    ["updateProduct", "product-1", "Cable de freno"],
+    ["listVariants", "product-1"],
+    ["updateVariant", "variant-default", "CABLE-FRENO"],
+    ["updateVariant", "variant-double", "CABLE-FRENO-DOBLE"],
+    ["updateVariantOption", "variant-double", "option-color", "color", "negro", true],
+    ["deleteVariantOption", "variant-double", "option-length"],
+    ["createVariantOption", "variant-double", "material", "acero", true],
+    ["listVariants", "product-1"],
+  ]);
+});
+
+test("save orchestrator keeps activation requests offline when commercial minimums are missing", async () => {
+  const calls = [];
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.productId = "product-1";
+  draft.defaultVariantId = "variant-default";
+  draft.basic.name = "Urban Runner";
+  draft.basic.slug = "urban-runner";
+  draft.basic.categoryId = "category-1";
+  draft.basic.isActive = true;
+  draft.defaultVariant.refId = "URBAN-RUNNER";
+
+  const ok = (data, correlationId) => ({ ok: true, data, status: 200, correlationId });
+  const gateway = {
+    async createProduct() {
+      throw new Error("createProduct should not run for existing products");
+    },
+    async updateProduct(productId, payload) {
+      calls.push(["updateProduct", productId, payload.isActive]);
+      return ok({
+        productId,
+        name: payload.name,
+        slug: payload.slug,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        defaultVariantId: "variant-default",
+      }, `corr-product-${payload.isActive}`);
+    },
+    async getProduct() {
+      throw new Error("getProduct should not run");
+    },
+    async listVariants(productId) {
+      calls.push(["listVariants", productId]);
+      return ok([{
+        variantId: "variant-default",
+        name: "Urban Runner",
+        refId: "URBAN-RUNNER",
+        ean: null,
+        isActive: false,
+        isVisible: true,
+        isDefault: true,
+      }], "corr-list");
+    },
+    async createVariant() {
+      throw new Error("createVariant should not run");
+    },
+    async updateVariant(variantId, payload) {
+      calls.push(["updateVariant", variantId, payload.isActive]);
+      return ok({
+        variantId,
+        name: payload.name,
+        refId: payload.refId,
+        ean: payload.ean,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        isDefault: true,
+      }, "corr-variant");
+    },
+    async deleteVariant() {
+      throw new Error("deleteVariant should not run");
+    },
+    async createVariantOption() {
+      throw new Error("createVariantOption should not run");
+    },
+    async createMediaCollection() {
+      throw new Error("createMediaCollection should not run without files");
+    },
+    async appendMediaItems() {
+      throw new Error("appendMediaItems should not run without files");
+    },
+    async assignVariantMedia() {
+      throw new Error("assignVariantMedia should not run without media");
+    },
+    async clearVariantMedia() {
+      throw new Error("clearVariantMedia should not run");
+    },
+    async setVariantMainMedia() {
+      throw new Error("setVariantMainMedia should not run");
+    },
+    async createProductPrice() {
+      throw new Error("createProductPrice should not run without positive product price");
+    },
+    async updatePrice() {
+      throw new Error("updatePrice should not run");
+    },
+    async deletePrice() {
+      throw new Error("deletePrice should not run");
+    },
+    async createVariantPrice() {
+      throw new Error("createVariantPrice should not run");
+    },
+    async createOffering() {
+      throw new Error("createOffering should not run");
+    },
+    async attachOfferingToVariant() {
+      throw new Error("attachOfferingToVariant should not run");
+    },
+    async detachOfferingFromVariant() {
+      throw new Error("detachOfferingFromVariant should not run");
+    },
+    async setOfferingVariantActivation() {
+      throw new Error("setOfferingVariantActivation should not run");
+    },
+    async listOfferingsByVariant() {
+      throw new Error("listOfferingsByVariant should not run");
+    },
+    async resolveOfferingsBatchByVariants() {
+      throw new Error("resolveOfferingsBatchByVariants should not run");
+    },
+    async putStockLevel() {
+      throw new Error("putStockLevel should not run without configured stock");
+    },
+  };
+
+  const report = await orchestratorModule.saveProductDraft({
+    draft,
+    context: {
+      organizationId: "org-1",
+      shopId: "shop-1",
+      shopAlias: "main",
+      shopName: "Main",
+      primaryDomain: "",
+      shopStatus: "ACTIVE",
+      locale: "es-ES",
+      currency: "EUR",
+      country: "ES",
+      channel: "web",
+    },
+    gateway,
+  });
+
+  assert.equal(report.ok, false);
+  assert.equal(report.blocks.catalog, "success");
+  assert.equal(report.fieldErrors.publication, "No se puede activar todavia.");
+  assert.equal(report.draftPatch.basic.isActive, false);
+  assert.deepEqual(calls, [
+    ["updateProduct", "product-1", false],
+    ["listVariants", "product-1"],
+    ["updateVariant", "variant-default", false],
+    ["listVariants", "product-1"],
+  ]);
+});
+
+test("save orchestrator activates a new product only after media price and stock are persisted", async () => {
+  const calls = [];
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Urban Runner";
+  draft.basic.slug = "urban-runner";
+  draft.basic.categoryId = "category-1";
+  draft.basic.isActive = true;
+  draft.defaultVariant.refId = "URBAN-RUNNER";
+  draft.media.items = [{
+    localId: "media-local-1",
+    fileName: "shoe.jpg",
+    fileSize: 100,
+    mimeType: "image/jpeg",
+    isMain: true,
+    active: true,
+    alt: { "es-ES": "Shoe" },
+    title: { "es-ES": "Shoe" },
+    persisted: false,
+  }];
+  draft.pricing.productPrice.basePriceMinor = 1099;
+  draft.inventory.stockByVariant.default.onHandQuantity = 5;
+
+  const ok = (data, correlationId) => ({ ok: true, data, status: 200, correlationId });
+  const gateway = {
+    async createProduct(payload) {
+      calls.push(["createProduct", payload.isActive]);
+      return ok({
+        productId: "product-1",
+        name: payload.name,
+        slug: payload.slug,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        defaultVariantId: "variant-default",
+      }, "corr-create");
+    },
+    async updateProduct(productId, payload) {
+      calls.push(["updateProduct", productId, payload.isActive]);
+      return ok({
+        productId,
+        name: payload.name,
+        slug: payload.slug,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        defaultVariantId: "variant-default",
+      }, "corr-activate-product");
+    },
+    async getProduct() {
+      throw new Error("getProduct should not run");
+    },
+    async listVariants(productId) {
+      calls.push(["listVariants", productId]);
+      return ok([{
+        variantId: "variant-default",
+        name: "Urban Runner",
+        refId: "URBAN-RUNNER",
+        ean: null,
+        isActive: false,
+        isVisible: true,
+        isDefault: true,
+      }], "corr-list");
+    },
+    async createVariant() {
+      throw new Error("createVariant should not run for simple products");
+    },
+    async updateVariant(variantId, payload) {
+      calls.push(["updateVariant", variantId, payload.isActive]);
+      return ok({
+        variantId,
+        name: payload.name,
+        refId: payload.refId,
+        ean: payload.ean,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        isDefault: true,
+      }, "corr-activate-variant");
+    },
+    async deleteVariant() {
+      throw new Error("deleteVariant should not run");
+    },
+    async createVariantOption() {
+      throw new Error("createVariantOption should not run");
+    },
+    async createMediaCollection(input) {
+      calls.push(["createMediaCollection", input.productId, input.files.length]);
+      return ok({
+        mediaCollectionId: "collection-1",
+        mediaAssetIds: ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
+      }, "corr-media");
+    },
+    async appendMediaItems() {
+      throw new Error("appendMediaItems should not run for new collection");
+    },
+    async assignVariantMedia(input) {
+      calls.push(["assignVariantMedia", input.variantId, input.mediaAssetIds, input.mainMediaAssetId]);
+      return ok({ assigned: true }, "corr-variant-media");
+    },
+    async clearVariantMedia() {
+      throw new Error("clearVariantMedia should not run");
+    },
+    async setVariantMainMedia() {
+      throw new Error("setVariantMainMedia should not run");
+    },
+    async createProductPrice(input) {
+      calls.push(["createProductPrice", input.productId, input.price.basePriceMinor]);
+      return ok({ pricingId: "price-1" }, "corr-price");
+    },
+    async updatePrice() {
+      throw new Error("updatePrice should not run");
+    },
+    async deletePrice() {
+      throw new Error("deletePrice should not run");
+    },
+    async createVariantPrice() {
+      throw new Error("createVariantPrice should not run for simple products");
+    },
+    async createOffering() {
+      throw new Error("createOffering should not run");
+    },
+    async attachOfferingToVariant() {
+      throw new Error("attachOfferingToVariant should not run");
+    },
+    async detachOfferingFromVariant() {
+      throw new Error("detachOfferingFromVariant should not run");
+    },
+    async setOfferingVariantActivation() {
+      throw new Error("setOfferingVariantActivation should not run");
+    },
+    async listOfferingsByVariant() {
+      throw new Error("listOfferingsByVariant should not run");
+    },
+    async resolveOfferingsBatchByVariants() {
+      throw new Error("resolveOfferingsBatchByVariants should not run");
+    },
+    async putStockLevel(input) {
+      calls.push(["putStockLevel", input.variantId, input.stock.onHandQuantity]);
+      return ok({
+        warehouseId: input.stock.warehouseId,
+        onHandQuantity: input.stock.onHandQuantity,
+        reservedQuantity: 0,
+        safetyStockQuantity: 0,
+        availableQuantity: 5,
+        available: true,
+      }, "corr-stock");
+    },
+  };
+
+  const report = await orchestratorModule.saveProductDraft({
+    draft,
+    context: {
+      organizationId: "org-1",
+      shopId: "shop-1",
+      shopAlias: "main",
+      shopName: "Main",
+      primaryDomain: "",
+      shopStatus: "ACTIVE",
+      locale: "es-ES",
+      currency: "EUR",
+      country: "ES",
+      channel: "web",
+    },
+    gateway,
+    files: [{ name: "shoe.jpg" }],
+  });
+
+  assert.equal(report.ok, true);
+  assert.equal(report.draftPatch.basic.isActive, true);
+  assert.deepEqual(calls, [
+    ["createProduct", false],
+    ["listVariants", "product-1"],
+    ["createMediaCollection", "product-1", 1],
+    ["assignVariantMedia", "variant-default", ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"], "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
+    ["createProductPrice", "product-1", 1099],
+    ["putStockLevel", "variant-default", 5],
+    ["updateVariant", "variant-default", true],
+    ["updateProduct", "product-1", true],
+  ]);
+});
+
+test("save orchestrator reports row errors when a persisted variant update fails", async () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.productId = "product-1";
+  draft.defaultVariantId = "variant-default";
+  draft.basic.name = "Urban Runner";
+  draft.basic.slug = "urban-runner";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "URBAN-RUNNER";
+  draft.mode = "variants";
+  draft.variants = [{
+    localId: "variant-red-42",
+    variantId: "variant-red-42",
+    name: "Urban Runner / Rojo / 42",
+    refId: "URBAN-RUNNER-RED-42",
+    ean: null,
+    options: [{ attributeCode: "color", valueCode: "red" }],
+    isActive: true,
+    isVisible: true,
+  }];
+
+  const ok = (data, correlationId) => ({ ok: true, data, status: 200, correlationId });
+  const gateway = {
+    async createProduct() {
+      throw new Error("createProduct should not run");
+    },
+    async updateProduct(productId, payload) {
+      return ok({
+        productId,
+        name: payload.name,
+        slug: payload.slug,
+        isActive: payload.isActive,
+        isVisible: payload.isVisible,
+        defaultVariantId: "variant-default",
+      }, "corr-update-product");
+    },
+    async getProduct() {
+      throw new Error("getProduct should not run");
+    },
+    async listVariants() {
+      return ok([
+        {
+          variantId: "variant-default",
+          name: "Urban Runner",
+          refId: "URBAN-RUNNER",
+          ean: null,
+          isActive: true,
+          isVisible: true,
+          isDefault: true,
+        },
+        {
+          variantId: "variant-red-42",
+          name: "Urban Runner / Rojo / 42",
+          refId: "URBAN-RUNNER-RED-42",
+          ean: null,
+          isActive: true,
+          isVisible: true,
+          isDefault: false,
+        },
+      ], "corr-list");
+    },
+    async createVariant() {
+      throw new Error("createVariant should not run");
+    },
+    async updateVariant(variantId) {
+      if (variantId === "variant-red-42") {
+        return { ok: false, error: "refId already exists", status: 409, correlationId: "corr-variant-fail" };
+      }
+
+      return ok({
+        variantId,
+        name: "Urban Runner",
+        refId: "URBAN-RUNNER",
+        ean: null,
+        isActive: true,
+        isVisible: true,
+        isDefault: true,
+      }, "corr-default");
+    },
+    async deleteVariant() {
+      throw new Error("deleteVariant should not run during save");
+    },
+    async createVariantOption() {
+      throw new Error("createVariantOption should not run");
+    },
+    async createMediaCollection() {
+      throw new Error("createMediaCollection should not run");
+    },
+    async appendMediaItems() {
+      throw new Error("appendMediaItems should not run");
+    },
+    async assignVariantMedia() {
+      throw new Error("assignVariantMedia should not run");
+    },
+    async clearVariantMedia() {
+      throw new Error("clearVariantMedia should not run");
+    },
+    async setVariantMainMedia() {
+      throw new Error("setVariantMainMedia should not run");
+    },
+    async createProductPrice() {
+      throw new Error("createProductPrice should not run");
+    },
+    async updatePrice() {
+      throw new Error("updatePrice should not run");
+    },
+    async deletePrice() {
+      throw new Error("deletePrice should not run");
+    },
+    async createVariantPrice() {
+      throw new Error("createVariantPrice should not run");
+    },
+    async createOffering() {
+      throw new Error("createOffering should not run");
+    },
+    async attachOfferingToVariant() {
+      throw new Error("attachOfferingToVariant should not run");
+    },
+    async detachOfferingFromVariant() {
+      throw new Error("detachOfferingFromVariant should not run");
+    },
+    async setOfferingVariantActivation() {
+      throw new Error("setOfferingVariantActivation should not run");
+    },
+    async listOfferingsByVariant() {
+      throw new Error("listOfferingsByVariant should not run");
+    },
+    async resolveOfferingsBatchByVariants() {
+      throw new Error("resolveOfferingsBatchByVariants should not run");
+    },
+    async putStockLevel() {
+      return ok({ updatedAt: "2026-06-17T00:00:00.000Z" }, "corr-stock");
+    },
+  };
+
+  const report = await orchestratorModule.saveProductDraft({
+    draft,
+    context: {
+      organizationId: "org-1",
+      shopId: "shop-1",
+      shopAlias: "main",
+      shopName: "Main",
+      primaryDomain: "",
+      shopStatus: "ACTIVE",
+      locale: "es-ES",
+      currency: "EUR",
+      country: "ES",
+      channel: "web",
+    },
+    gateway,
+  });
+
+  assert.equal(report.ok, false);
+  assert.equal(report.blocks.variants, "failed");
+  assert.equal(report.fieldErrors["variant:variant-red-42"], "refId already exists");
+  assert.ok(report.messages.includes("Producto guardado, pero fallo la variante URBAN-RUNNER-RED-42."));
+});

@@ -125,15 +125,26 @@ p {
 
 .adminNav {
   display: grid;
-  gap: 3px;
+  gap: 4px;
   padding: 16px 10px;
+}
+
+.adminNavSectionLabel {
+  padding: 10px 12px 6px;
+  color: color-mix(in srgb, var(--admin-surface) 44%, transparent);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .adminNav a {
   display: grid;
-  gap: 2px;
-  padding: 10px 12px;
-  border-left: 3px solid transparent;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  gap: 0;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 0;
   border-radius: 4px;
   color: color-mix(in srgb, var(--admin-surface) 88%, transparent);
   text-decoration: none;
@@ -146,19 +157,23 @@ p {
 
 .adminNav a[aria-current="page"],
 .adminNav a:hover {
-  background: color-mix(in srgb, var(--admin-sidebar-active) 18%, transparent);
-  border-left-color: var(--admin-sidebar-active);
+  background: color-mix(in srgb, var(--admin-surface) 10%, transparent);
   color: var(--admin-surface);
 }
 
 .adminNavGroup {
   display: grid;
-  gap: 3px;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 4px;
+  background: color-mix(in srgb, black 22%, var(--admin-sidebar-bg));
 }
 
 .adminNavParent {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
   align-items: center;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--admin-surface) 8%, transparent);
 }
 
 .adminNavChevron {
@@ -167,22 +182,35 @@ p {
   font-weight: 800;
 }
 
+.adminNavIcon {
+  color: var(--admin-sidebar-active);
+}
+
 .adminNavSubmenu {
   display: grid;
-  gap: 2px;
-  margin: 0 0 4px 18px;
-  padding-left: 8px;
-  border-left: 2px solid var(--admin-sidebar-active);
+  gap: 0;
+  margin: 0;
+  padding: 6px 0 8px 38px;
+  border: 0;
+  background: color-mix(in srgb, black 30%, var(--admin-sidebar-bg));
 }
 
 .adminNavSubmenu a {
-  padding: 8px 10px;
-  background: color-mix(in srgb, var(--admin-surface) 5%, transparent);
-  border-left-width: 2px;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 34px;
+  padding: 0 12px 0 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--admin-surface) 72%, transparent);
 }
 
 .adminNavSubmenu a strong {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.adminNavSubmenu a:hover {
+  background: transparent;
+  color: var(--admin-surface);
 }
 
 .adminSidebarMeta {
@@ -196,25 +224,49 @@ p {
 
 .adminMain {
   min-width: 0;
+  overflow-x: hidden;
 }
 
 .adminTopbar {
   position: sticky;
   top: 0;
   z-index: 10;
-  display: grid;
-  grid-template-columns: minmax(200px, 1fr) auto auto;
+  display: flex;
   align-items: center;
   gap: 16px;
   min-height: 68px;
   padding: 12px 24px;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-bottom: 1px solid var(--admin-border);
   background: var(--admin-surface);
+  scrollbar-gutter: stable both-edges;
+  scrollbar-color: var(--admin-primary) var(--admin-surface-muted);
+  scrollbar-width: thin;
+}
+
+.adminTopbar::-webkit-scrollbar {
+  height: 10px;
+}
+
+.adminTopbar::-webkit-scrollbar-track {
+  background: var(--admin-surface-muted);
+}
+
+.adminTopbar::-webkit-scrollbar-thumb {
+  border: 2px solid var(--admin-surface-muted);
+  border-radius: 4px;
+  background: var(--admin-primary);
+}
+
+.adminTopbar::-webkit-scrollbar-thumb:hover {
+  background: var(--admin-primary-hover);
 }
 
 .adminSearch {
+  flex: 0 0 200px;
   min-height: 40px;
-  width: min(100%, 420px);
+  width: 200px;
   padding: 0 12px;
   border: 1px solid var(--admin-border);
   border-radius: 4px;
@@ -222,15 +274,18 @@ p {
 }
 
 .adminContextForm {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: max-content;
 }
 
 .adminContextForm input,
 .adminContextForm select,
 .adminField input,
-.adminField select {
+.adminField select,
+.adminTable input {
   min-height: 40px;
   border: 1px solid var(--admin-border);
   border-radius: 4px;
@@ -239,19 +294,22 @@ p {
 }
 
 .adminContextForm input {
+  flex: 0 0 132px;
   width: 132px;
   padding: 0 10px;
 }
 
 .adminContextForm select {
+  flex: 0 0 auto;
+  max-width: 520px;
   padding: 0 28px 0 10px;
 }
 
 .adminUserMenu {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 10px;
-  justify-self: end;
 }
 
 .adminAvatar {
@@ -305,6 +363,7 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   min-height: 40px;
   padding: 0 14px;
   border: 1px solid var(--admin-border);
@@ -312,6 +371,48 @@ p {
   background: var(--admin-surface);
   color: var(--admin-text);
   text-decoration: none;
+}
+
+.adminButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.adminIconButton {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  text-decoration: none;
+}
+
+.adminIconButton:hover {
+  border-color: var(--admin-primary);
+  color: var(--admin-primary-pressed);
+}
+
+.adminIconButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.adminIconButtonDanger {
+  color: var(--admin-danger);
+}
+
+.adminVisuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .adminButtonPrimary {
@@ -329,6 +430,12 @@ p {
 .adminButtonPrimary:active {
   border-color: var(--admin-primary-pressed);
   background: var(--admin-primary-pressed);
+}
+
+.adminButtonDanger {
+  border-color: var(--admin-danger);
+  background: var(--admin-danger);
+  color: var(--admin-surface);
 }
 
 .adminGrid {
@@ -475,6 +582,36 @@ p {
   padding-left: 18px;
 }
 
+.adminCatalogAreaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.adminCatalogArea {
+  display: grid;
+  gap: 6px;
+  min-height: 104px;
+  padding: 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
+  text-decoration: none;
+}
+
+.adminCatalogArea:hover {
+  border-color: var(--admin-border-strong);
+  background: var(--admin-bg);
+}
+
+.adminCatalogArea strong {
+  font-size: 16px;
+}
+
+.adminCatalogArea span {
+  color: var(--admin-text-muted);
+}
+
 .loginPage {
   display: grid;
   place-items: center;
@@ -515,7 +652,8 @@ p {
 }
 
 .adminField input,
-.adminField select {
+.adminField select,
+.adminTable input {
   width: 100%;
   padding: 0 10px;
 }
@@ -546,6 +684,46 @@ p {
 
 .adminTableScroller {
   overflow-x: auto;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--admin-border) var(--admin-surface-muted);
+}
+
+.adminTableScroller::-webkit-scrollbar {
+  height: 10px;
+}
+
+.adminTableScroller::-webkit-scrollbar-track {
+  background: var(--admin-surface-muted);
+}
+
+.adminTableScroller::-webkit-scrollbar-thumb {
+  border: 2px solid var(--admin-surface-muted);
+  border-radius: 4px;
+  background: var(--admin-border);
+}
+
+.adminFilterInput {
+  min-width: 220px;
+}
+
+.adminInlineCreateForm {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-bg);
+}
+
+.adminTableEditForm {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 420px;
 }
 
 .adminTabs {
@@ -627,6 +805,103 @@ p {
   resize: vertical;
 }
 
+.richTextField {
+  gap: 8px;
+}
+
+.richTextEditor {
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.richTextToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  padding: 6px;
+  border-bottom: 1px solid var(--admin-border-subtle);
+  background: var(--admin-surface-muted);
+}
+
+.richTextToolbar select {
+  width: auto;
+  min-width: 132px;
+  height: 32px;
+  padding: 0 28px 0 8px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background-color: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.richTextToolbarButton {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.richTextToolbarButton:hover {
+  border-color: var(--admin-primary);
+  color: var(--admin-primary-pressed);
+}
+
+.richTextEditable {
+  width: 100%;
+  padding: 12px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 14px;
+  line-height: 1.55;
+  outline: 0;
+}
+
+.richTextEditable:focus {
+  box-shadow: inset 0 0 0 2px var(--admin-focus-ring);
+}
+
+.richTextEditable p,
+.richTextEditable ul,
+.richTextEditable ol,
+.richTextEditable blockquote {
+  margin: 0 0 10px;
+}
+
+.richTextEditable h2,
+.richTextEditable h3 {
+  margin: 0 0 10px;
+  color: var(--admin-text);
+  letter-spacing: 0;
+}
+
+.richTextEditable h2 {
+  font-size: 18px;
+}
+
+.richTextEditable h3 {
+  font-size: 16px;
+}
+
+.richTextEditable ul,
+.richTextEditable ol {
+  padding-left: 22px;
+}
+
+.richTextEditable blockquote {
+  padding: 8px 10px;
+  border-left: 3px solid var(--admin-border-strong);
+  background: var(--admin-bg);
+}
+
 .adminFormGridTwo {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -659,6 +934,856 @@ p {
   font-size: 12px;
 }
 
+.productEditorPage {
+  padding-bottom: 96px;
+}
+
+.productListFilterPanel {
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.productListFilterPanel h2 {
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.productListFilterForm {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.1fr) minmax(180px, 1fr) 96px auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.productListLimitField input {
+  text-align: center;
+}
+
+.productListActiveFilter {
+  align-self: end;
+  min-height: 40px;
+  padding-bottom: 4px;
+}
+
+.productListGrid {
+  padding: 0;
+  overflow: hidden;
+}
+
+.productListGridHeader {
+  align-items: center;
+  margin-bottom: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.productListGridHeader h2 {
+  font-size: 18px;
+}
+
+.productListGridHeader p {
+  font-size: 12px;
+}
+
+.productListTableScroller {
+  border-top: 0;
+}
+
+.productListTable {
+  min-width: 1260px;
+  font-size: 13px;
+}
+
+.productListTable th,
+.productListTable td {
+  height: 58px;
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.productListTable thead tr:first-child th {
+  border-bottom: 2px solid var(--admin-primary);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.productListTable tbody tr:hover {
+  background: var(--admin-bg);
+}
+
+.productListFilterRow th {
+  height: 46px;
+  border-bottom: 1px solid var(--admin-border);
+  background: var(--admin-bg);
+}
+
+.productListFilterRow input,
+.productListFilterRow select {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 12px;
+}
+
+.productListFilterRow input:focus,
+.productListFilterRow select:focus {
+  outline: 2px solid var(--admin-focus-ring);
+  outline-offset: 0;
+  border-color: var(--admin-focus-ring);
+}
+
+.productListFilterCheckbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.productListFilterCheckbox input,
+.productListSelectCell input {
+  width: auto;
+  min-height: auto;
+}
+
+.productListSearchButton {
+  width: 100%;
+  min-height: 34px;
+  padding: 0;
+}
+
+.productListSelectCell {
+  width: 38px;
+  text-align: center;
+}
+
+.productListIdCell,
+.productListNumericCell {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.productListNameCell {
+  min-width: 220px;
+}
+
+.productListNameCell a {
+  color: var(--admin-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.productListNameCell a:hover {
+  color: var(--admin-primary-pressed);
+  text-decoration: underline;
+}
+
+.productListActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.productListPagination {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+}
+
+.productListPagination p {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.productListPaginationControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.productListPageCluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.productListPageLink {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--admin-primary);
+  border-radius: 2px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.productListPageLink:hover,
+.productListPageLinkActive {
+  background: var(--admin-primary);
+  color: var(--admin-surface);
+}
+
+.productListPageLinkDisabled {
+  border-color: var(--admin-border);
+  color: var(--admin-text-muted);
+  opacity: 0.55;
+}
+
+.productListPageLinkDisabled:hover {
+  background: var(--admin-surface);
+  color: var(--admin-text-muted);
+}
+
+.productListPageGap {
+  color: var(--admin-text-muted);
+  font-weight: 700;
+}
+
+.productEditorHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.productEditorTitleGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.productEditorTitleInput {
+  width: min(100%, 720px);
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.productEditorMeta,
+.productEditorMode,
+.productSaveBlocks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.productEditorMeta {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.productEditorTabs {
+  display: flex;
+  align-items: end;
+  gap: 0;
+  margin-bottom: 0;
+  overflow-x: auto;
+  border: 1px solid var(--admin-border);
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  background: var(--admin-surface);
+}
+
+.productEditorTab {
+  flex: 0 0 auto;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-right: 1px solid var(--admin-border-subtle);
+  border-bottom: 3px solid transparent;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text-muted);
+  font-weight: 700;
+}
+
+.productEditorTab:hover,
+.productEditorTabActive {
+  border-bottom-color: var(--admin-border-strong);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+}
+
+.productEditorLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  align-items: start;
+  border-top: 3px solid var(--admin-primary);
+}
+
+.productEditorContent {
+  min-width: 0;
+}
+
+.productEditorPanel {
+  padding: 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 0 0 6px 6px;
+  background: var(--admin-surface);
+}
+
+.productEditorSidePanel {
+  display: grid;
+  gap: 16px;
+  position: sticky;
+  top: 84px;
+}
+
+.productEditorSidePanel .productEditorPanel,
+.adminSplit .productEditorPanel {
+  border-radius: 6px;
+}
+
+.productEditorSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.productEditorSectionHeader h2,
+.productEditorPanel h2 {
+  margin-bottom: 4px;
+  font-size: 18px;
+}
+
+.productEditorSectionHeader p,
+.productEditorPanel p {
+  color: var(--admin-text-muted);
+}
+
+.productCombinationGenerator {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.42fr) minmax(320px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-bg);
+}
+
+.productCombinationGenerator p {
+  margin: 4px 0 0;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.productEntitySelector {
+  align-self: start;
+  padding: 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-bg);
+}
+
+.productEntitySelectorRow {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.05fr) minmax(140px, 0.95fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.productCombinationTable th,
+.productCombinationTable td {
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.productCombinationTable input[type="text"],
+.productCombinationTable input[type="number"],
+.productCombinationTable input:not([type]) {
+  min-width: 128px;
+}
+
+.productRowSelected {
+  background: var(--admin-surface-muted);
+  box-shadow: inset 3px 0 0 var(--admin-border-strong);
+}
+
+.productTinyThumb,
+.productListThumb,
+.productCoverPreview {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-bg);
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.productTinyThumb {
+  width: 54px;
+  height: 54px;
+}
+
+.productTinyThumbInherited {
+  opacity: 0.72;
+}
+
+.productCombinationImageCell {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.productMediaStateBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 6px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.productMediaStateDirect {
+  border-color: var(--admin-success);
+  color: var(--admin-text);
+}
+
+.productMediaStateInherited {
+  border-color: var(--admin-border-subtle);
+  background: var(--admin-bg);
+}
+
+.productListThumb {
+  width: 58px;
+  height: 58px;
+}
+
+.productCoverPreview {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin-bottom: 12px;
+}
+
+.productTinyThumb img,
+.productListThumb img,
+.productCoverPreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.productMetaList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.productMetaList div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.productMetaList dt {
+  color: var(--admin-text-muted);
+}
+
+.productMetaList dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.productVariantMediaPicker {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.productVariantMediaItem {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+}
+
+.productVariantMediaItemSelected {
+  border-color: var(--admin-border-strong);
+  background: var(--admin-surface-muted);
+}
+
+.productVariantMediaItem button {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-bg);
+  color: var(--admin-text-muted);
+}
+
+.productVariantMediaItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.productPriceSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--admin-info);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--admin-info) 14%, var(--admin-surface));
+}
+
+.productPriceSummary strong,
+.productPriceSummary span {
+  display: block;
+}
+
+.productPriceSummary span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.productPriceSummaryWide {
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+}
+
+.productPriceSummaryWide p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.pricingEditorContext {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-bg);
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.pricingEditorContext span {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.pricingEditorContext strong {
+  color: var(--admin-text);
+}
+
+.pricingAdminPage {
+  display: grid;
+  gap: 14px;
+}
+
+.pricingTabs {
+  margin-bottom: 0;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-gutter: stable;
+}
+
+.pricingTabs .productEditorTab {
+  flex: 0 0 auto;
+}
+
+.pricingFilterBar {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(180px, 260px) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.pricingGridTwo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pricingPanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
+}
+
+.pricingPanelHeader {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--admin-border-subtle);
+  padding-bottom: 10px;
+}
+
+.pricingPanelHeader h2,
+.pricingPanelHeader p {
+  margin: 0;
+}
+
+.pricingPanelHeader h2 {
+  font-size: 16px;
+}
+
+.pricingPanelHeader p {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.pricingDefinitionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-border-subtle);
+}
+
+.pricingDefinitionGrid div {
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--admin-surface);
+}
+
+.pricingDefinitionGrid dt {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.pricingDefinitionGrid dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.pricingTable {
+  min-width: 940px;
+}
+
+.pricingTable th,
+.pricingTable td {
+  white-space: nowrap;
+}
+
+.pricingInlineForm,
+.pricingActionStack,
+.pricingDenseForm {
+  display: grid;
+  gap: 8px;
+}
+
+.pricingInlineForm {
+  grid-template-columns: repeat(7, minmax(96px, 1fr)) auto;
+  min-width: 900px;
+  align-items: center;
+}
+
+.pricingActionStack {
+  min-width: 920px;
+}
+
+.pricingActionStack .pricingInlineForm:last-child {
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.pricingDenseForm {
+  grid-template-columns: repeat(6, minmax(120px, 1fr)) auto;
+  align-items: end;
+}
+
+.pricingDangerForm {
+  padding-top: 10px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.productVariantStateStack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.productInlinePriceCell {
+  display: grid;
+  grid-template-columns: minmax(112px, 1fr) auto;
+  gap: 6px;
+  min-width: 230px;
+}
+
+.productInlinePriceCell .adminBadge {
+  grid-column: 1 / -1;
+  width: fit-content;
+}
+
+.productVariantDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+  gap: 12px;
+}
+
+.productVariantDetailPanel {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-bg);
+}
+
+.productVariantDetailPanel h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.productEditorSectionHeaderCompact {
+  gap: 10px;
+}
+
+.productEditorSectionHeaderCompact p {
+  margin: 4px 0 0;
+}
+
+.productOptionTable input {
+  min-width: 140px;
+}
+
+.productMediaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 10px;
+}
+
+.productMediaTile,
+.productMediaAdd {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 132px;
+  overflow: hidden;
+  border: 1px dashed var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-bg);
+  color: var(--admin-text-muted);
+  text-align: center;
+}
+
+.productMediaTile {
+  padding: 0;
+  border-style: solid;
+}
+
+.productMediaTileActive {
+  border-color: var(--admin-border-strong);
+}
+
+.productMediaTile img {
+  width: 100%;
+  height: 132px;
+  object-fit: cover;
+}
+
+.productMediaTile strong,
+.productMediaTile em {
+  position: absolute;
+  left: 6px;
+  min-height: 22px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.productMediaTile strong {
+  top: 6px;
+  border: 1px solid var(--admin-success);
+}
+
+.productMediaTile em {
+  bottom: 6px;
+  border: 1px solid var(--admin-warning);
+}
+
+.productFileInput {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.productEditorFooter {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 248px;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 24px;
+  border-top: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-popover);
+}
+
 @media (max-width: 1100px) {
   .adminShell {
     grid-template-columns: 1fr;
@@ -669,36 +1794,55 @@ p {
   }
 
   .adminNav {
-    display: flex;
+    display: grid;
     max-width: 100vw;
-    overflow-x: auto;
+    overflow-x: visible;
   }
 
   .adminNav a {
-    flex: 0 0 160px;
+    flex: initial;
   }
 
   .adminNavGroup {
-    flex: 0 0 220px;
+    flex: initial;
   }
 
   .adminSidebarMeta {
     display: none;
   }
 
-  .adminTopbar {
-    grid-template-columns: 1fr;
-  }
-
-  .adminUserMenu {
-    justify-self: start;
-  }
-
   .adminGrid,
+  .adminCatalogAreaGrid,
   .adminKpiGrid,
   .adminSplit,
-  .adminFormGrid {
+  .productEditorLayout,
+  .adminFormGrid,
+  .productCombinationGenerator,
+  .productVariantDetailGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .productCombinationGenerator {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .productEditorLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .productListFilterForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .productEditorSidePanel {
+    position: static;
+  }
+
+  .productEditorFooter {
+    position: static;
+    left: auto;
+    margin-top: 16px;
+    box-shadow: none;
   }
 }
 
@@ -714,24 +1858,58 @@ p {
   }
 
   .adminGrid,
+  .adminCatalogAreaGrid,
   .adminKpiGrid,
   .adminSplit,
   .adminPermissionGrid,
-  .adminFormGrid {
+  .adminFormGrid,
+  .pricingGridTwo,
+  .pricingDefinitionGrid {
     grid-template-columns: 1fr;
   }
 
-  .adminContextForm {
-    align-items: stretch;
-    flex-direction: column;
+  .pricingFilterBar {
+    grid-template-columns: 1fr;
   }
 
   .adminContextForm input,
   .adminContextForm select {
-    width: 100%;
+    width: auto;
   }
 
   .adminStatusRow {
+    grid-template-columns: 1fr;
+  }
+
+  .productEditorHeader,
+  .productEditorLayout,
+  .productCombinationGenerator,
+  .productVariantDetailGrid,
+  .productEntitySelectorRow,
+  .productListFilterForm,
+  .productEditorFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .productEditorTabs {
+    border-bottom: 1px solid var(--admin-border);
+  }
+
+  .productEditorFooter {
+    left: 0;
+  }
+
+  .productPriceSummary,
+  .productPriceSummaryWide,
+  .productMetaList div {
+    grid-template-columns: 1fr;
+  }
+
+  .pricingPanel {
+    padding: 12px;
+  }
+
+  .pricingDenseForm {
     grid-template-columns: 1fr;
   }
 }
