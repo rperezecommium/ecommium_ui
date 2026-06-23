@@ -148,7 +148,7 @@ test("product gateway sends organizationId and shopId on related Admin BFF paths
     calls.push({ path: pathValue, method: options.init?.method ?? "GET", body: options.init?.body });
 
     if (pathValue.includes("/media/collections")) {
-      return ok({ collection: { mediaCollectionId: "collection-1", items: [{ mediaAssetId: "media-1" }] } }, options);
+      return ok({ mediaCollectionId: "collection-1", mediaAssetIds: ["media-1"] }, options);
     }
     if (pathValue.includes("/variants") && !pathValue.includes("/media")) {
       return ok({ variantId: "variant-1", refId: "SKU-1", isActive: true, isVisible: true }, options);
@@ -188,6 +188,18 @@ test("product gateway sends organizationId and shopId on related Admin BFF paths
     basePriceMinor: 1299,
     currency: "EUR",
     taxIncluded: true,
+    taxCode: "BIKE_STANDARD",
+    tax: {
+      taxCode: "BIKE_STANDARD",
+      name: "Bike VAT Included",
+      calculationType: "PERCENTAGE",
+      rate: 0.21,
+      amountMinor: null,
+      isCompound: false,
+      isActive: true,
+      validFrom: "2025-01-01T00:00:00.000Z",
+      validUntil: null,
+    },
   };
 
   await gateway.createProduct(productPayload);
@@ -196,15 +208,20 @@ test("product gateway sends organizationId and shopId on related Admin BFF paths
   await gateway.listVariants("product-1");
   await gateway.createVariant("product-1", variantPayload);
   await gateway.updateVariant("variant-1", variantPayload);
-  await gateway.createMediaCollection({ productId: "product-1", shopId: context.shopId, title: "Producto", defaultLocale: "es-ES", files: [], metadata: [] });
-  await gateway.appendMediaItems({ mediaCollectionId: "collection-1", defaultLocale: "es-ES", files: [], metadata: [] });
+  const createdCollection = await gateway.createMediaCollection({ productId: "product-1", shopId: context.shopId, title: "Producto", defaultLocale: "es-ES", files: [], metadata: [] });
+  const appendedCollection = await gateway.appendMediaItems({ mediaCollectionId: "collection-1", defaultLocale: "es-ES", files: [], metadata: [] });
+  await gateway.deleteMediaItem({ mediaCollectionId: "collection-1", mediaAssetId: "media-1" });
   await gateway.assignVariantMedia({ variantId: "variant-1", mediaAssetIds: ["media-1"], mainMediaAssetId: "media-1" });
   await gateway.createProductPrice({ productId: "product-1", price });
+  await gateway.updatePrice({ pricingId: "price-1", price });
   await gateway.createVariantPrice({ productId: "product-1", variantId: "variant-1", price });
   await gateway.putStockLevel({
     variantId: "variant-1",
     stock: { warehouseId: "main-warehouse", onHandQuantity: 3, reservedQuantity: 0, safetyStockQuantity: 0 },
   });
+
+  assert.equal(JSON.stringify(createdCollection.data.mediaAssetIds), JSON.stringify(["media-1"]));
+  assert.equal(JSON.stringify(appendedCollection.data.mediaAssetIds), JSON.stringify(["media-1"]));
 
   calls.forEach((call) => assertScopedPath(call.path));
 
@@ -212,6 +229,13 @@ test("product gateway sends organizationId and shopId on related Admin BFF paths
     const payload = JSON.parse(call.body);
     assert.equal(payload.organizationId, context.organizationId, call.path);
     assert.equal(payload.shopId, context.shopId, call.path);
+  }
+
+  for (const call of calls.filter((item) => typeof item.body === "string" && item.path.includes("/prices"))) {
+    const payload = JSON.parse(call.body);
+    assert.equal(payload.tax.taxCode, "BIKE_STANDARD", call.path);
+    assert.equal(payload.tax.calculationType, "PERCENTAGE", call.path);
+    assert.equal(payload.tax.rate, 0.21, call.path);
   }
 
   for (const call of calls.filter((item) => item.body && typeof item.body.get === "function")) {
@@ -226,4 +250,23 @@ test("product editor local drafts are keyed by active Admin context", () => {
   assert.match(source, /ecommium-product-draft:v4:\$\{contextIdentity\}/);
   assert.match(source, /const editorInstanceKey = `\$\{contextIdentity\}:/);
   assert.match(source, /<ProductEditorClientInner\s+key=\{editorInstanceKey\}/);
+  assert.match(source, /result\.blocks\.variants === "success"[\s\S]*setVariantMessage\(null\)/);
+  assert.match(source, /Precio del producto \/ defaultVariant/);
+  assert.match(source, /Variante adicional a editar/);
+  assert.match(source, /productVariantDefault se gestiona con el precio superior/);
+  assert.match(source, /Editar precio de/);
+  assert.match(source, /productSavingOverlay/);
+  assert.match(source, /productSavingRing/);
+  assert.match(source, /Guardando producto/);
+  assert.match(source, /Anadir imagenes/);
+  assert.match(source, /productMediaDeleteButton/);
+  assert.match(source, /Trash2/);
+  assert.match(source, /onClick=\{\(\) => removeMedia\(item\.localId\)\}/);
+  assert.match(source, /assigned\.length[\s\S]*draft\.media\.items\.filter\(\(item\) => item\.isMain\)\.slice\(0, 1\)/);
+  assert.match(source, /Usar stock propio/);
+  assert.match(source, /Heredar default/);
+  assert.match(source, /Stock propio guardado/);
+  assert.match(source, /Inventory no expone borrado de stock persistido todavia/);
+  assert.match(source, /Variantes heredando/);
+  assert.match(source, /disabled=\{!hasOwnStock\}/);
 });

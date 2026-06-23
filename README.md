@@ -16,11 +16,11 @@ Run the development server:
 npm run dev
 ```
 
-Open http://localhost:3000 to view the app.
+Open http://localhost:5173 to view the app.
 
 ## Scripts
 
-- `npm run dev` starts the local development server.
+- `npm run dev` starts the local development server on port `5173`.
 - `npm run build` creates a production build.
 - `npm run start` runs the production server after building.
 - `npm run lint` runs the Next.js ESLint configuration.

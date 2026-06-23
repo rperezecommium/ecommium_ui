@@ -1,7 +1,7 @@
 import { requestBff } from "../../shared/bff/client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
-import type { ProductLookupOption } from "./product-editor-types";
+import type { ProductLookupOption, ProductTaxLookupOption } from "./product-editor-types";
 
 export type PricingAdminTab =
   | "summary"
@@ -85,6 +85,54 @@ function normalizeRecord(value: unknown): PricingRecord {
 
 function normalizeList(value: unknown): PricingRecord[] {
   return listItems(value).map(normalizeRecord);
+}
+
+function optionalString(value: PricingRecord[string]) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function optionalNumber(value: PricingRecord[string]) {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function optionalBoolean(value: PricingRecord[string]) {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function normalizeCalculationType(value: PricingRecord[string]) {
+  const calculationType = optionalString(value)?.toUpperCase();
+  return calculationType === "PERCENTAGE" || calculationType === "FIXED" ? calculationType : undefined;
+}
+
+function inferCalculationType(record: PricingRecord) {
+  return (
+    normalizeCalculationType(record.calculationType) ??
+    (typeof optionalNumber(record.rate) === "number" ? "PERCENTAGE" : undefined) ??
+    (typeof optionalNumber(record.amountMinor) === "number" ? "FIXED" : undefined)
+  );
+}
+
+function taxSignature(tax: ProductTaxLookupOption) {
+  return [
+    tax.taxCode,
+    tax.calculationType,
+    tax.rate ?? "",
+    tax.amountMinor ?? "",
+    tax.isCompound ?? false,
+  ].join(":");
+}
+
+function uniqueTaxes(taxes: ProductTaxLookupOption[]) {
+  const bySignature = new Map<string, ProductTaxLookupOption>();
+
+  for (const tax of taxes) {
+    const signature = taxSignature(tax);
+    if (!bySignature.has(signature)) {
+      bySignature.set(signature, tax);
+    }
+  }
+
+  return Array.from(bySignature.values());
 }
 
 function makeScopedParams(context: AdminContext, extra?: Record<string, string | undefined>) {
@@ -187,9 +235,43 @@ export async function getPricingEditorLookups(context: AdminContext) {
   }
 
   return {
-    taxes: taxes.data.map(toLookupOption).filter((option): option is ProductLookupOption => Boolean(option)),
+    taxes: uniqueTaxes(taxes.data.map(toTaxLookupOption).filter((option): option is ProductTaxLookupOption => Boolean(option))),
     priceTables: priceTables.data.map(toLookupOption).filter((option): option is ProductLookupOption => Boolean(option)),
     warnings,
+  };
+}
+
+function toTaxLookupOption(record: PricingRecord): ProductTaxLookupOption | null {
+  const taxCode = optionalString(record.taxCode ?? record.code);
+  const calculationType = inferCalculationType(record);
+  if (!taxCode || !calculationType) {
+    return null;
+  }
+
+  const taxId = optionalString(record.taxId ?? record.id);
+  const rate = optionalNumber(record.rate);
+  const amountMinor = optionalNumber(record.amountMinor);
+  const rateLabel = calculationType === "PERCENTAGE" && typeof rate === "number"
+    ? ` (${Math.round(rate * 10000) / 100}%)`
+    : "";
+  const amountLabel = calculationType === "FIXED" && typeof amountMinor === "number"
+    ? ` (${amountMinor})`
+    : "";
+  const label = `${optionalString(record.name ?? record.label ?? record.title) ?? taxCode}${rateLabel}${amountLabel}`;
+
+  return {
+    id: taxId ?? [taxCode, calculationType, rate ?? "", amountMinor ?? ""].join(":"),
+    taxId,
+    taxCode,
+    name: optionalString(record.name) ?? null,
+    label,
+    calculationType,
+    rate: rate ?? null,
+    amountMinor: amountMinor ?? null,
+    isCompound: optionalBoolean(record.isCompound) ?? false,
+    isActive: optionalBoolean(record.isActive) ?? true,
+    validFrom: optionalString(record.validFrom) ?? null,
+    validUntil: optionalString(record.validUntil) ?? null,
   };
 }
 

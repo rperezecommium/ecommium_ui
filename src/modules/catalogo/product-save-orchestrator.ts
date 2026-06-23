@@ -1,6 +1,7 @@
 import type { AdminContext } from "../../shared/config/admin-context";
 import type {
   ProductDraft,
+  ProductDraftMediaFile,
   ProductDraftMediaItem,
   ProductGateway,
   ProductSaveBlocks,
@@ -22,6 +23,7 @@ type ProductSaveInput = {
   context: AdminContext;
   gateway: ProductGateway;
   files?: File[];
+  mediaFiles?: ProductDraftMediaFile[];
 };
 
 function initialBlocks(): ProductSaveBlocks {
@@ -88,12 +90,23 @@ function unpersistedMediaItems(draft: ProductDraft) {
   return draft.media.items.filter((item) => !item.persisted && !item.mediaAssetId);
 }
 
-function filesForMediaItems(files: File[] | undefined, items: ProductDraftMediaItem[]) {
-  if (!files?.length || !items.length) {
+function filesForMediaItems(
+  files: File[] | undefined,
+  mediaFiles: ProductDraftMediaFile[] | undefined,
+  items: ProductDraftMediaItem[],
+) {
+  if (!items.length) {
     return [];
   }
 
-  return files.slice(0, items.length);
+  if (mediaFiles?.length) {
+    const fileByLocalId = new Map(mediaFiles.map((item) => [item.localId, item.file]));
+    return items
+      .map((item) => fileByLocalId.get(item.localId))
+      .filter((file): file is File => Boolean(file));
+  }
+
+  return files?.slice(0, items.length) ?? [];
 }
 
 function mediaAssetIdForItem(item: ProductDraftMediaItem, uploadedByLocalId: Map<string, string>) {
@@ -112,6 +125,13 @@ function stockForVariant(draft: ProductDraft, localId: string, variantId?: strin
     draft.inventory.stockByVariant[variantId ?? ""] ??
     draft.inventory.stockByVariant[localId] ??
     draft.inventory.stockByVariant.default
+  );
+}
+
+function directStockForVariant(draft: ProductDraft, localId: string, variantId?: string) {
+  return (
+    draft.inventory.stockByVariant[variantId ?? ""] ??
+    draft.inventory.stockByVariant[localId]
   );
 }
 
@@ -192,6 +212,7 @@ export async function saveProductDraft({
   context,
   gateway,
   files,
+  mediaFiles,
 }: ProductSaveInput): Promise<ProductSaveReport> {
   if (!context.organizationId || !context.shopId) {
     return failedReport(
@@ -376,12 +397,13 @@ export async function saveProductDraft({
   });
 
   const pendingMediaItems = unpersistedMediaItems(normalizedDraft);
-  const mediaFiles = filesForMediaItems(files, pendingMediaItems);
+  const mediaUploadFiles = filesForMediaItems(files, mediaFiles, pendingMediaItems);
 
   if (pendingMediaItems.length > 0) {
-    if (mediaFiles.length === 0) {
+    if (mediaUploadFiles.length !== pendingMediaItems.length) {
       blocks.media = "skipped";
       blocks.variantMedia = "skipped";
+      fieldErrors.media = "Hay imagenes nuevas sin archivo local asociado. Vuelve a seleccionarlas y guarda de nuevo.";
       messages.push("Imagenes pendientes en el borrador; selecciona los archivos de nuevo para subirlas.");
     } else {
       blocks.media = "running";
@@ -389,7 +411,7 @@ export async function saveProductDraft({
         ? await gateway.appendMediaItems({
             mediaCollectionId,
             defaultLocale: context.locale,
-            files: mediaFiles,
+            files: mediaUploadFiles,
             metadata: pendingMediaItems,
           })
         : await gateway.createMediaCollection({
@@ -397,7 +419,7 @@ export async function saveProductDraft({
             shopId: context.shopId,
             title: normalizedDraft.basic.name,
             defaultLocale: context.locale,
-            files: mediaFiles,
+            files: mediaUploadFiles,
             metadata: pendingMediaItems,
           });
       pushCorrelation(correlationIds, mediaResult.correlationId);
@@ -406,6 +428,11 @@ export async function saveProductDraft({
         blocks.media = "failed";
         blocks.variantMedia = "skipped";
         messages.push(`Producto guardado, pero no se pudieron subir imagenes. ${mediaResult.error}`);
+      } else if (mediaResult.data.mediaAssetIds.length < pendingMediaItems.length) {
+        blocks.media = "failed";
+        blocks.variantMedia = "skipped";
+        fieldErrors.media = "Media guardo la coleccion, pero no devolvio todos los mediaAssetId requeridos.";
+        messages.push("Producto guardado, pero Media no devolvio los identificadores de todas las imagenes.");
       } else {
         blocks.media = "success";
         mediaCollectionId = mediaResult.data.mediaCollectionId;
@@ -505,6 +532,42 @@ export async function saveProductDraft({
     }
   }
 
+  const removedMediaItems = (normalizedDraft.media.removedItems ?? []).filter((item) => item.mediaAssetId);
+  if (removedMediaItems.length > 0) {
+    if (!mediaCollectionId) {
+      blocks.media = "failed";
+      fieldErrors.media = "No se pudieron eliminar imagenes: falta mediaCollectionId.";
+      messages.push("No se pudieron eliminar imagenes de la coleccion porque falta mediaCollectionId.");
+    } else if (blocks.media !== "failed") {
+      blocks.media = "running";
+
+      for (const item of removedMediaItems) {
+        const mediaAssetId = item.mediaAssetId;
+        if (!mediaAssetId) {
+          continue;
+        }
+
+        const deleteResult = await gateway.deleteMediaItem({
+          mediaCollectionId,
+          mediaAssetId,
+        });
+        pushCorrelation(correlationIds, deleteResult.correlationId);
+
+        if (!deleteResult.ok) {
+          blocks.media = "failed";
+          fieldErrors.media = `No se pudo eliminar ${item.fileName}.`;
+          messages.push(`No se pudo eliminar imagen ${item.fileName}. ${deleteResult.error}`);
+          break;
+        }
+      }
+
+      if (blocks.media !== "failed") {
+        blocks.media = "success";
+        messages.push("Imagenes eliminadas.");
+      }
+    }
+  }
+
   if (hasPositivePrice(normalizedDraft)) {
     blocks.pricing = "running";
     const productPrice = normalizedDraft.pricing.productPrice!;
@@ -586,7 +649,7 @@ export async function saveProductDraft({
         ...(defaultVariantId
           ? [["default", stockForVariant(normalizedDraft, "default", defaultVariantId), defaultVariantId] as const]
           : []),
-        ...nextDraftVariants.map((variant) => [variant.localId, stockForVariant(normalizedDraft, variant.localId, variant.variantId), variant.variantId] as const),
+        ...nextDraftVariants.map((variant) => [variant.localId, directStockForVariant(normalizedDraft, variant.localId, variant.variantId), variant.variantId] as const),
       ]
     : defaultVariantId
       ? [["default", stockForVariant(normalizedDraft, "default", defaultVariantId), defaultVariantId] as const]
@@ -717,6 +780,7 @@ export async function saveProductDraft({
       variants: nextDraftVariants,
       media: {
         ...normalizedDraft.media,
+        removedItems: blocks.media === "failed" ? normalizedDraft.media.removedItems ?? [] : [],
         items: normalizedDraft.media.items.map((item) => ({
           ...item,
           mediaAssetId: mediaAssetIdForItem(item, uploadedMediaByLocalId),

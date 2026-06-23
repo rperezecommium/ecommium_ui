@@ -12,6 +12,7 @@ export type PriceDraft = {
   currency: string;
   taxIncluded: boolean;
   taxCode?: string;
+  tax?: ProductTaxLookupOption | null;
   priceTableId?: string | null;
   tradePolicy?: string;
   channel?: string;
@@ -43,6 +44,11 @@ export type ProductDraftMediaItem = {
   title: Record<string, string>;
   mediaAssetId?: string;
   persisted?: boolean;
+};
+
+export type ProductDraftMediaFile = {
+  localId: string;
+  file: File;
 };
 
 export type ProductDraftVariant = {
@@ -108,6 +114,7 @@ export type ProductDraft = {
   };
   media: {
     items: ProductDraftMediaItem[];
+    removedItems: ProductDraftMediaItem[];
     assignments: Record<string, string[]>;
     mainByVariant: Record<string, string>;
   };
@@ -207,10 +214,23 @@ export type ProductLookupOption = {
   slug?: string;
 };
 
+export type ProductTaxLookupOption = ProductLookupOption & {
+  taxId?: string;
+  taxCode: string;
+  name?: string | null;
+  calculationType: "PERCENTAGE" | "FIXED";
+  rate?: number | null;
+  amountMinor?: number | null;
+  isCompound?: boolean;
+  isActive?: boolean;
+  validFrom?: string | null;
+  validUntil?: string | null;
+};
+
 export type ProductEditorLookups = {
   categories: ProductLookupOption[];
   brands: ProductLookupOption[];
-  taxes: ProductLookupOption[];
+  taxes: ProductTaxLookupOption[];
   priceTables: ProductLookupOption[];
   warnings: string[];
 };
@@ -327,6 +347,10 @@ export type ProductGateway = {
     files: File[];
     metadata: ProductDraftMediaItem[];
   }): Promise<BffResult<{ mediaCollectionId: string | null; mediaAssetIds: string[] }>>;
+  deleteMediaItem(input: {
+    mediaCollectionId: string;
+    mediaAssetId: string;
+  }): Promise<BffResult<{ deleted?: boolean }>>;
   assignVariantMedia(input: {
     variantId: string;
     mediaAssetIds: string[];

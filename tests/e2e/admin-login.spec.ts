@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { createServer, type Server } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { once } from "node:events";
 import net from "node:net";
 
@@ -33,10 +33,10 @@ async function freePort() {
   return port;
 }
 
-function readJsonBody(request: Parameters<Parameters<typeof createServer>[0]>[0]) {
+function readJsonBody(request: IncomingMessage) {
   return new Promise<Record<string, unknown>>((resolve) => {
     let body = "";
-    request.on("data", (chunk) => {
+    request.on("data", (chunk: Buffer) => {
       body += String(chunk);
     });
     request.on("end", () => {
@@ -49,7 +49,7 @@ function readJsonBody(request: Parameters<Parameters<typeof createServer>[0]>[0]
   });
 }
 
-function sendJson(response: Parameters<Parameters<typeof createServer>[0]>[1], status: number, payload: unknown) {
+function sendJson(response: ServerResponse, status: number, payload: unknown) {
   response.writeHead(status, {
     "content-type": "application/json",
   });

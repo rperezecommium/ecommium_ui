@@ -4,7 +4,7 @@ import { getAdminContext } from "../../shared/config/admin-context";
 import { createCatalogEntity, listCatalogEntities, toLookupOptions, type CatalogEntityKind } from "./catalog-taxonomy";
 import { makeProductGateway } from "./products";
 import { saveProductDraft } from "./product-save-orchestrator";
-import type { ProductDraft, ProductLookupOption, ProductOfferingRecord, ProductSaveReport } from "./product-editor-types";
+import type { ProductDraft, ProductDraftMediaFile, ProductLookupOption, ProductOfferingRecord, ProductSaveReport } from "./product-editor-types";
 
 function parseDraft(value: FormDataEntryValue | null): ProductDraft | null {
   if (typeof value !== "string") {
@@ -22,6 +22,21 @@ function formDataFiles(formData: FormData) {
   return formData
     .getAll("files")
     .filter((value): value is File => value instanceof File && value.size > 0);
+}
+
+function formDataMediaFiles(formData: FormData): ProductDraftMediaFile[] {
+  const files = formDataFiles(formData);
+  const localIds = formData
+    .getAll("fileLocalIds")
+    .map((value) => typeof value === "string" ? value.trim() : "")
+    .filter(Boolean);
+
+  return files
+    .map((file, index) => ({
+      file,
+      localId: localIds[index] ?? "",
+    }))
+    .filter((item): item is ProductDraftMediaFile => Boolean(item.localId));
 }
 
 export async function saveProductDraftAction(formData: FormData): Promise<ProductSaveReport> {
@@ -52,6 +67,7 @@ export async function saveProductDraftAction(formData: FormData): Promise<Produc
     context,
     gateway: makeProductGateway(context),
     files: formDataFiles(formData),
+    mediaFiles: formDataMediaFiles(formData),
   });
 }
 

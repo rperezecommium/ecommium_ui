@@ -38,6 +38,38 @@ function hasPublishableBasePrice(draft: ProductDraft) {
   );
 }
 
+function priceHasPositiveAmount(price: ProductDraft["pricing"]["productPrice"]) {
+  return Boolean(price && price.basePriceMinor > 0 && !price.markedForDeletion);
+}
+
+function priceHasCompleteTax(price: ProductDraft["pricing"]["productPrice"]) {
+  if (!price?.tax?.taxCode || !price.tax.calculationType) {
+    return false;
+  }
+
+  if (price.tax.calculationType === "PERCENTAGE") {
+    return typeof price.tax.rate === "number" && price.tax.rate >= 0 && price.tax.rate <= 1;
+  }
+
+  return Number.isInteger(price.tax.amountMinor);
+}
+
+function taxValidationMessage(price: ProductDraft["pricing"]["productPrice"]) {
+  if (!price?.tax?.taxCode) {
+    return "Selecciona una regla fiscal antes de guardar el precio.";
+  }
+
+  if (!price.tax.calculationType) {
+    return "La regla fiscal necesita calculationType.";
+  }
+
+  if (price.tax.calculationType === "PERCENTAGE") {
+    return "La regla fiscal porcentual necesita rate entre 0 y 1.";
+  }
+
+  return "La regla fiscal fija necesita amountMinor entero.";
+}
+
 function stockAvailableQuantity(stock: ProductDraft["inventory"]["stockByVariant"][string] | undefined) {
   if (!stock) {
     return 0;
@@ -109,6 +141,25 @@ export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
   const name = plainProductText(draft.basic.name);
   const slug = draft.basic.slug.trim() || slugifyProductValue(name);
   const refId = draft.defaultVariant.refId.trim() || makeRefIdFromName(name);
+  const baseTaxCode = draft.basic.taxCode.trim() || "standard";
+  const productPrice = draft.pricing.productPrice;
+  const variantPrices = Object.fromEntries(
+    Object.entries(draft.pricing.variantPrices).map(([variantKey, price]) => [
+      variantKey,
+      {
+        ...price,
+        currency: price.currency || productPrice?.currency || "EUR",
+        taxIncluded: price.taxIncluded ?? productPrice?.taxIncluded ?? true,
+        taxCode: price.tax?.taxCode ?? price.taxCode ?? productPrice?.tax?.taxCode ?? productPrice?.taxCode ?? baseTaxCode,
+        tax: price.tax ?? productPrice?.tax ?? null,
+        priceTableId: price.priceTableId ?? productPrice?.priceTableId ?? null,
+        tradePolicy: price.tradePolicy ?? productPrice?.tradePolicy,
+        channel: price.channel ?? productPrice?.channel,
+        customerGroup: price.customerGroup ?? productPrice?.customerGroup ?? null,
+        country: price.country ?? productPrice?.country,
+      },
+    ]),
+  );
 
   return {
     ...draft,
@@ -125,7 +176,7 @@ export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
       keywords: draft.basic.keywords.trim(),
       metaTitle: draft.basic.metaTitle.trim(),
       metaDescription: draft.basic.metaDescription.trim(),
-      taxCode: draft.basic.taxCode.trim() || "standard",
+      taxCode: baseTaxCode,
     },
     defaultVariant: {
       ...draft.defaultVariant,
@@ -147,6 +198,10 @@ export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
         markedForDeletion: option.markedForDeletion,
       })),
     })),
+    pricing: {
+      ...draft.pricing,
+      variantPrices,
+    },
   };
 }
 
@@ -194,6 +249,16 @@ export function validateProductDraft(draft: ProductDraft): ProductDraftValidatio
       fieldErrors[`variant:${variant.localId}:options`] = "Completa atributo y valor en cada opcion de la variante.";
     } else if (normalized.mode === "variants" && !optionKey && !variant.variantId) {
       fieldErrors[`variant:${variant.localId}:options`] = "La variante necesita al menos una opcion comercial.";
+    }
+  }
+
+  if (priceHasPositiveAmount(normalized.pricing.productPrice) && !priceHasCompleteTax(normalized.pricing.productPrice)) {
+    fieldErrors["pricing.productPrice.tax"] = taxValidationMessage(normalized.pricing.productPrice);
+  }
+
+  for (const [variantKey, price] of Object.entries(normalized.pricing.variantPrices)) {
+    if (priceHasPositiveAmount(price) && !priceHasCompleteTax(price)) {
+      fieldErrors[`pricing.variantPrices:${variantKey}:tax`] = taxValidationMessage(price);
     }
   }
 

@@ -88,3 +88,95 @@ test("pricing governance uses scoped BFF endpoints and maps read 403 permissions
   assert.ok(calls.some((call) => call.path === "/admin/pricing/prices/computed/default/resolve-batch?organizationId=org-1&shopId=shop-1" && call.method === "POST"));
   assert.ok(calls.some((call) => call.path === "/admin/pricing/prices/computed-auto/resolve-batch?organizationId=org-1&shopId=shop-1" && call.method === "POST"));
 });
+
+test("pricing editor lookups preserve complete tax rules and collapse duplicates", async () => {
+  const requestBff = async (pathValue, options = {}) => {
+    const raw = pathValue.startsWith("/admin/pricing/taxes?")
+      ? {
+          items: [
+            {
+              taxId: "tax-1",
+              taxCode: "BIKE_STANDARD",
+              name: "Bike VAT Included",
+              calculationType: "PERCENTAGE",
+              rate: 0.21,
+              amountMinor: null,
+              isCompound: false,
+              isActive: true,
+              validFrom: "2025-01-01T00:00:00.000Z",
+              validUntil: null,
+            },
+            {
+              taxId: "tax-2",
+              taxCode: "BIKE_STANDARD",
+              name: "Bike VAT Included",
+              calculationType: "PERCENTAGE",
+              rate: 0.21,
+              amountMinor: null,
+              isCompound: false,
+              isActive: true,
+              validFrom: "2025-02-01T00:00:00.000Z",
+              validUntil: null,
+            },
+            {
+              taxId: "tax-3",
+              taxCode: "BIKE_REDUCED",
+              name: "Bike Reduced",
+              calculationType: "PERCENTAGE",
+              rate: 0.1,
+              amountMinor: null,
+              isCompound: false,
+              isActive: true,
+              validFrom: null,
+              validUntil: null,
+            },
+          ],
+        }
+      : { items: [{ priceTableId: "default", name: "Default" }] };
+
+    return {
+      ok: true,
+      data: options.parse ? options.parse(raw) : raw,
+    };
+  };
+  const { getPricingEditorLookups } = loadPricingAdminModule(requestBff);
+
+  const lookups = await getPricingEditorLookups(context);
+
+  assert.equal(lookups.taxes.length, 2);
+  assert.equal(JSON.stringify(lookups.taxes.map((tax) => [tax.taxCode, tax.calculationType, tax.rate])), JSON.stringify([
+    ["BIKE_STANDARD", "PERCENTAGE", 0.21],
+    ["BIKE_REDUCED", "PERCENTAGE", 0.1],
+  ]));
+  assert.equal(lookups.taxes[0].id, "tax-1");
+  assert.match(lookups.taxes[0].label, /21/);
+});
+
+test("pricing editor lookups infer percentage taxes from partial BFF records", async () => {
+  const requestBff = async (pathValue, options = {}) => {
+    const raw = pathValue.startsWith("/admin/pricing/taxes?")
+      ? {
+          items: [
+            {
+              taxCode: "standard",
+              name: "Standard",
+              rate: 0.21,
+            },
+          ],
+        }
+      : { items: [{ priceTableId: "default", name: "Default" }] };
+
+    return {
+      ok: true,
+      data: options.parse ? options.parse(raw) : raw,
+    };
+  };
+  const { getPricingEditorLookups } = loadPricingAdminModule(requestBff);
+
+  const lookups = await getPricingEditorLookups(context);
+
+  assert.equal(lookups.taxes.length, 1);
+  assert.equal(lookups.taxes[0].taxCode, "standard");
+  assert.equal(lookups.taxes[0].calculationType, "PERCENTAGE");
+  assert.equal(lookups.taxes[0].rate, 0.21);
+});

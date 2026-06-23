@@ -432,6 +432,29 @@ p {
   background: var(--admin-primary-pressed);
 }
 
+.adminSpinner {
+  display: inline-block;
+  inline-size: 18px;
+  block-size: 18px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: adminSpin 0.8s linear infinite;
+}
+
+.adminSpinnerInline {
+  inline-size: 14px;
+  block-size: 14px;
+  margin-right: 8px;
+  vertical-align: -2px;
+}
+
+@keyframes adminSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .adminButtonDanger {
   border-color: var(--admin-danger);
   background: var(--admin-danger);
@@ -1440,6 +1463,23 @@ p {
   background: var(--admin-bg);
 }
 
+.productInventoryInherited input:disabled {
+  border-color: var(--admin-border-subtle);
+  background: var(--admin-bg);
+  color: var(--admin-text-muted);
+  cursor: not-allowed;
+}
+
+.productInventoryModeCell {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.productInventoryModeCell small {
+  color: var(--admin-text-muted);
+}
+
 .productListThumb {
   width: 58px;
   height: 58px;
@@ -1782,19 +1822,71 @@ p {
   text-align: center;
 }
 
+.productMediaAdd {
+  gap: 8px;
+  border-width: 2px;
+  color: var(--admin-primary-pressed);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.productMediaAdd:hover {
+  border-color: var(--admin-primary);
+  background: color-mix(in srgb, var(--admin-primary) 8%, var(--admin-bg));
+}
+
+.productMediaAdd svg {
+  width: 34px;
+  height: 34px;
+}
+
 .productMediaTile {
   padding: 0;
   border-style: solid;
+}
+
+.productMediaTileSelect {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 132px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
 }
 
 .productMediaTileActive {
   border-color: var(--admin-border-strong);
 }
 
-.productMediaTile img {
+.productMediaTileSelect img {
   width: 100%;
   height: 132px;
   object-fit: cover;
+}
+
+.productMediaDeleteButton {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--admin-danger);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-danger);
+  cursor: pointer;
+}
+
+.productMediaDeleteButton:hover {
+  background: var(--admin-danger);
+  color: var(--admin-surface);
 }
 
 .productMediaTile strong,
@@ -1842,6 +1934,70 @@ p {
   border-top: 1px solid var(--admin-border);
   background: var(--admin-surface);
   box-shadow: var(--admin-shadow-popover);
+}
+
+.productSavingOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 0.36);
+  backdrop-filter: blur(2px);
+}
+
+.productSavingDialog {
+  display: grid;
+  justify-items: center;
+  min-inline-size: min(420px, 100%);
+  gap: 12px;
+  padding: 28px 32px;
+  border: 1px solid var(--admin-primary);
+  border-radius: 8px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  box-shadow: var(--admin-shadow-popover);
+  text-align: center;
+}
+
+.productSavingRing {
+  inline-size: 64px;
+  block-size: 64px;
+  border-width: 5px;
+  color: var(--admin-primary);
+}
+
+.productSavingDialog strong,
+.productSavingDialog span {
+  display: block;
+}
+
+.productSavingDialog strong {
+  font-size: 20px;
+}
+
+.productSavingDialog > span {
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}
+
+.productSavingSteps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.productSavingSteps span {
+  padding: 4px 8px;
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  background: var(--admin-bg);
+  color: var(--admin-text-muted);
+  font-size: 12px;
 }
 
 @media (max-width: 1100px) {
@@ -1904,6 +2060,7 @@ p {
     margin-top: 16px;
     box-shadow: none;
   }
+
 }
 
 @media (max-width: 680px) {

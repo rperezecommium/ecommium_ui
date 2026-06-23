@@ -14,6 +14,7 @@ import type {
   ProductGateway,
   ProductListFilters,
   ProductListResult,
+  ProductTaxLookupOption,
   ProductSummary,
   ProductVariantCreatePayload,
   ProductVariantOptionPayload,
@@ -386,6 +387,7 @@ function parseFirstProductPrice(value: unknown): PriceDraft | undefined {
 
 function parsePrice(value: unknown): PriceDraft | undefined {
   const record = asRecord(value);
+  const tax = parseTax(record.tax);
   const pricingId = asString(record.pricingId) ?? asString(record.id);
   const basePriceMinor =
     asNullableNumber(record.basePriceMinor) ??
@@ -417,13 +419,43 @@ function parsePrice(value: unknown): PriceDraft | undefined {
       asString(asRecord(record.amount).currency) ??
       "EUR",
     taxIncluded: asBoolean(record.taxIncluded, true),
-    taxCode: asString(record.taxCode) ?? asString(asRecord(record.tax).taxCode),
+    taxCode: asString(record.taxCode) ?? tax?.taxCode,
+    tax,
     priceTableId: asString(record.priceTableId) ?? null,
     tradePolicy: asString(record.tradePolicy),
     channel: asString(record.channel),
     customerGroup: asString(record.customerGroup) ?? null,
     country: asString(record.country),
     source: asString(record.source),
+  };
+}
+
+function parseTax(value: unknown): ProductTaxLookupOption | null {
+  const record = asRecord(value);
+  const taxCode = asString(record.taxCode);
+  const calculationType = asString(record.calculationType)?.toUpperCase();
+  if (!taxCode || (calculationType !== "PERCENTAGE" && calculationType !== "FIXED")) {
+    return null;
+  }
+
+  const taxId = asString(record.taxId) ?? asString(record.id);
+  const rate = asNullableNumber(record.rate);
+  const amountMinor = asNullableNumber(record.amountMinor);
+  const name = asString(record.name) ?? null;
+
+  return {
+    id: taxId ?? [taxCode, calculationType, rate ?? "", amountMinor ?? ""].join(":"),
+    taxId,
+    taxCode,
+    name,
+    label: name ?? taxCode,
+    calculationType,
+    rate,
+    amountMinor,
+    isCompound: asBoolean(record.isCompound, false),
+    isActive: asBoolean(record.isActive, true),
+    validFrom: asString(record.validFrom) ?? null,
+    validUntil: asString(record.validUntil) ?? null,
   };
 }
 
@@ -626,10 +658,19 @@ function parseOfferingBatch(value: unknown): Record<string, ProductOfferingRecor
 }
 
 function parseMediaCollection(value: unknown) {
-  const collection = asRecord(asRecord(value).collection ?? value);
-  const items = listItems(collection.items ?? []);
-  const mediaAssetIds = items
-    .map(mediaAssetIdFromRecord)
+  const root = asRecord(value);
+  const collection = asRecord(root.collection ?? value);
+  const items = listItems(collection.items).length
+    ? listItems(collection.items)
+    : listItems(root.items).length
+      ? listItems(root.items)
+      : listItems(root.mediaItems);
+  const directMediaAssetIds = listItems(collection.mediaAssetIds ?? root.mediaAssetIds)
+    .map((item) => asString(item) ?? mediaAssetIdFromRecord(item));
+  const mediaAssetIds = Array.from(new Set([
+    ...directMediaAssetIds,
+    ...items.map(mediaAssetIdFromRecord),
+  ]))
     .filter((id): id is string => Boolean(id));
 
   return {
@@ -1102,11 +1143,28 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
     fixedPriceMinor: null,
     tiers: null,
     taxIncluded: price.taxIncluded,
-    tax: price.taxCode ? { taxCode: price.taxCode } : null,
+    tax: priceTaxPayload(price),
     active: true,
     priority: 10,
     source: price.source || "BASE",
   });
+  const priceTaxPayload = (price: PriceDraft) => {
+    if (!price.tax?.taxCode || !price.tax.calculationType) {
+      return null;
+    }
+
+    return {
+      taxCode: price.tax.taxCode,
+      name: price.tax.name ?? null,
+      calculationType: price.tax.calculationType,
+      rate: price.tax.calculationType === "PERCENTAGE" ? price.tax.rate ?? null : null,
+      amountMinor: price.tax.calculationType === "FIXED" ? price.tax.amountMinor ?? null : null,
+      isCompound: price.tax.isCompound ?? false,
+      isActive: price.tax.isActive ?? true,
+      validFrom: price.tax.validFrom ?? null,
+      validUntil: price.tax.validUntil ?? null,
+    };
+  };
   const scopedJsonBody = <T extends object>(payload: T) => ({
     ...payload,
     organizationId: context.organizationId,
@@ -1265,6 +1323,15 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
         parse: parseMediaCollection,
       });
     },
+    deleteMediaItem(input) {
+      return requestBff(scopedPath(`/admin/media/collections/${encodeURIComponent(input.mediaCollectionId)}/items/${encodeURIComponent(input.mediaAssetId)}`, { mode: "soft" }), {
+        context,
+        init: {
+          method: "DELETE",
+        },
+        parse: (value) => asRecord(value) as { deleted?: boolean },
+      });
+    },
     assignVariantMedia(input) {
       return requestBff(scopedPath(`/admin/variants/${encodeURIComponent(input.variantId)}/media/bulk`), {
         context,
@@ -1339,7 +1406,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
             costPriceMinor: input.price.costPriceMinor ?? null,
             currency: input.price.currency || context.currency || "EUR",
             taxIncluded: input.price.taxIncluded,
-            tax: input.price.taxCode ? { taxCode: input.price.taxCode } : null,
+            tax: priceTaxPayload(input.price),
             taxCode: input.price.taxCode,
             priceTableId: input.price.priceTableId ?? null,
             tradePolicy: input.price.tradePolicy || "default",

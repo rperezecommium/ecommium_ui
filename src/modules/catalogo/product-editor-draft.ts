@@ -64,6 +64,7 @@ export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): Pro
     },
     media: {
       items: [],
+      removedItems: [],
       assignments: {},
       mainByVariant: {},
     },
@@ -77,6 +78,7 @@ export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): Pro
         currency,
         taxIncluded: true,
         taxCode: "standard",
+        tax: null,
         priceTableId: null,
         tradePolicy: "default",
         channel: "web",
@@ -222,6 +224,7 @@ export function draftFromEditorData(
     defaultVariantId,
     media: {
       items: data.mediaItems,
+      removedItems: [],
       assignments: data.mediaAssignments,
       mainByVariant: data.mediaMainByVariant,
     },
@@ -321,6 +324,7 @@ export function mergeStoredProductDraft(
       ...initialDraft.media,
       ...storedDraft.media,
       items: mergeMediaItems(initialDraft.media.items, storedDraft.media?.items ?? []),
+      removedItems: storedDraft.media?.removedItems ?? [],
       assignments: {
         ...initialDraft.media.assignments,
         ...storedDraft.media?.assignments,

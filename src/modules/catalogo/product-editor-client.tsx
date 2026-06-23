@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Bold, Italic, List, ListOrdered, Redo2, RemoveFormatting, Strikethrough, Undo2 } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Plus, Redo2, RemoveFormatting, Strikethrough, Trash2, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   createAndAttachOfferingAction,
@@ -28,6 +28,7 @@ import type {
   ProductEditorLookups,
   ProductLookupOption,
   ProductSaveReport,
+  ProductTaxLookupOption,
   SaveBlockStatus,
   StockDraft,
 } from "./product-editor-types";
@@ -84,14 +85,9 @@ function formatMoney(value: number | undefined, currency: string) {
   return `${(value / 100).toFixed(2)} ${currency}`;
 }
 
-function taxRateFromLabel(label: string | undefined) {
-  const match = label?.match(/(\d+(?:[.,]\d+)?)\s*%/);
-  return match ? Number(match[1].replace(",", ".")) / 100 : undefined;
-}
-
-function pricePreview(price: ProductDraft["pricing"]["productPrice"], taxLabel: string | undefined) {
+function pricePreview(price: ProductDraft["pricing"]["productPrice"], tax: ProductTaxLookupOption | null | undefined) {
   const base = price?.basePriceMinor ?? 0;
-  const rate = taxRateFromLabel(taxLabel);
+  const rate = tax?.calculationType === "PERCENTAGE" ? tax.rate : undefined;
   if (!rate || base <= 0) {
     return null;
   }
@@ -101,8 +97,8 @@ function pricePreview(price: ProductDraft["pricing"]["productPrice"], taxLabel: 
     return { net, tax: base - net, gross: base };
   }
 
-  const tax = Math.round(base * rate);
-  return { net: base, tax, gross: base + tax };
+  const taxAmount = Math.round(base * rate);
+  return { net: base, tax: taxAmount, gross: base + taxAmount };
 }
 
 function clampInteger(value: number) {
@@ -122,6 +118,20 @@ function availableQuantity(stock: StockDraft | undefined) {
   return stock.availableQuantity ?? Math.max(0, stock.onHandQuantity - stock.reservedQuantity - stock.safetyStockQuantity);
 }
 
+function stockWithAvailability(stock: StockDraft): StockDraft {
+  const available = Math.max(
+    0,
+    stock.onHandQuantity - stock.reservedQuantity - stock.safetyStockQuantity,
+  );
+
+  return {
+    ...stock,
+    availableQuantity: available,
+    available: available > 0,
+    reasons: available > 0 ? [] : ["OUT_OF_STOCK"],
+  };
+}
+
 export function localStorageKey(
   draft: ProductDraft,
   locale: string,
@@ -138,10 +148,58 @@ function statusLabel(status: SaveBlockStatus) {
     running: "Guardando",
     success: "Correcto",
     failed: "Fallo",
-    skipped: "Omitido",
+    skipped: "Sin cambios",
   };
 
   return labels[status];
+}
+
+function fieldErrorLabel(key: string) {
+  if (key === "name") {
+    return "Nombre";
+  }
+  if (key === "slug") {
+    return "URL amigable";
+  }
+  if (key === "categoryId") {
+    return "Categoria principal";
+  }
+  if (key === "refId") {
+    return "Referencia principal";
+  }
+  if (key === "media") {
+    return "Imagenes";
+  }
+  if (key === "pricing.productPrice.tax") {
+    return "Pricing / Impuesto";
+  }
+  if (key.startsWith("pricing.variantPrices:")) {
+    return "Pricing / Precio de variante";
+  }
+  if (key.startsWith("variant:") && key.endsWith(":options")) {
+    return "Variantes / Opciones";
+  }
+  if (key.startsWith("variant:")) {
+    return "Variantes";
+  }
+  if (key.startsWith("media:")) {
+    return "Imagenes de variante";
+  }
+  if (key.startsWith("publication")) {
+    return "Publicacion";
+  }
+
+  return key;
+}
+
+function fieldErrorSummary(fieldErrors: ProductSaveReport["fieldErrors"]) {
+  return Object.entries(fieldErrors)
+    .filter(([, message]) => Boolean(message))
+    .map(([key, message]) => ({
+      key,
+      label: fieldErrorLabel(key),
+      message,
+    }));
 }
 
 function statusClass(status: SaveBlockStatus) {
@@ -522,7 +580,9 @@ function ProductEditorClientInner({
   });
   const [offeringMessage, setOfferingMessage] = useState<string | null>(null);
   const [report, setReport] = useState<ProductSaveReport | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const savingActive = isSaving || isPending;
   const selectedMedia = draft.media.items.find((item) => item.localId === selectedMediaId) ?? draft.media.items[0];
   const productStatus = draft.basic.isActive ? "Activo" : "Fuera de linea";
   const allVariantRows = useMemo(() => [
@@ -548,8 +608,48 @@ function ProductEditorClientInner({
   const offeringTargetKey = offeringTargetVariant?.localId ?? "default";
   const offeringsForTarget = draft.offerings.byVariant[offeringTargetKey] ?? [];
   const productPrice = draft.pricing.productPrice;
-  const selectedTax = lookups.taxes.find((tax) => tax.id === productPrice?.taxCode);
-  const currentPricePreview = pricePreview(productPrice, selectedTax?.label);
+  const selectedTax =
+    productPrice?.tax ??
+    lookups.taxes.find((tax) => tax.id === productPrice?.taxCode || tax.taxCode === productPrice?.taxCode);
+  const taxOptions = selectedTax && !lookups.taxes.some((tax) => tax.id === selectedTax.id)
+    ? [selectedTax, ...lookups.taxes]
+    : lookups.taxes;
+  const selectedPriceTable = productPrice?.priceTableId
+    ? lookups.priceTables.find((table) => table.id === productPrice.priceTableId) ?? {
+        id: productPrice.priceTableId,
+        label: productPrice.priceTableId,
+      }
+    : null;
+  const priceTableOptions = selectedPriceTable && !lookups.priceTables.some((table) => table.id === selectedPriceTable.id)
+    ? [selectedPriceTable, ...lookups.priceTables]
+    : lookups.priceTables;
+  const pricingTaxWarning = lookups.warnings.find((warning) => warning.startsWith("Pricing taxes:"));
+  const pricingTablesWarning = lookups.warnings.find((warning) => warning.startsWith("Pricing price tables:"));
+  const currentPricePreview = pricePreview(productPrice, selectedTax);
+  const priceVariantRows = draft.variants;
+  const selectedPriceVariant =
+    priceVariantRows.find((variant) => variant.localId === selectedVariantKey || variant.variantId === selectedVariantKey) ??
+    priceVariantRows[0];
+  const selectedVariantPrice = selectedPriceVariant
+    ? draft.pricing.variantPrices[selectedPriceVariant.localId]
+    : undefined;
+  const selectedVariantUsesOwnPrice = Boolean(selectedVariantPrice && !selectedVariantPrice.markedForDeletion);
+  const selectedVariantTax =
+    selectedVariantPrice?.tax ??
+    selectedTax ??
+    lookups.taxes.find((tax) => tax.id === selectedVariantPrice?.taxCode || tax.taxCode === selectedVariantPrice?.taxCode);
+  const variantTaxOptions = selectedVariantTax && !taxOptions.some((tax) => tax.id === selectedVariantTax.id)
+    ? [selectedVariantTax, ...taxOptions]
+    : taxOptions;
+  const selectedVariantPriceTable = selectedVariantPrice?.priceTableId
+    ? priceTableOptions.find((table) => table.id === selectedVariantPrice.priceTableId) ?? {
+        id: selectedVariantPrice.priceTableId,
+        label: selectedVariantPrice.priceTableId,
+      }
+    : null;
+  const variantPriceTableOptions = selectedVariantPriceTable && !priceTableOptions.some((table) => table.id === selectedVariantPriceTable.id)
+    ? [selectedVariantPriceTable, ...priceTableOptions]
+    : priceTableOptions;
   const selectedVariantAssignments = draft.media.assignments[selectedVariant.localId] ?? [];
   const selectedVariantMain = draft.media.mainByVariant[selectedVariant.localId];
   const publicationChecklist = useMemo(() => getProductPublicationChecklist(draft), [draft]);
@@ -707,10 +807,17 @@ function ProductEditorClientInner({
 
   function removeMedia(localId: string) {
     updateDraft((current) => {
+      const removedItem = current.media.items.find((item) => item.localId === localId);
       const remaining = current.media.items.filter((item) => item.localId !== localId);
       const nextItems = remaining.some((item) => item.isMain) || remaining.length === 0
         ? remaining
         : remaining.map((item, index) => ({ ...item, isMain: index === 0 }));
+      const nextRemovedItems = removedItem?.persisted && removedItem.mediaAssetId
+        ? [
+            ...(current.media.removedItems ?? []).filter((item) => item.mediaAssetId !== removedItem.mediaAssetId),
+            removedItem,
+          ]
+        : current.media.removedItems ?? [];
       const nextAssignments = Object.fromEntries(
         Object.entries(current.media.assignments).map(([variantKey, assignedIds]) => [
           variantKey,
@@ -741,6 +848,7 @@ function ProductEditorClientInner({
         media: {
           ...current.media,
           items: nextItems,
+          removedItems: nextRemovedItems,
           assignments: nextAssignments,
           mainByVariant: nextMainByVariant,
         },
@@ -972,30 +1080,49 @@ function ProductEditorClientInner({
   }
 
   function updateVariantPrice(variantKey: string, value: string) {
-    updateDraft((current) => ({
-      ...current,
-      pricing: {
-        ...current.pricing,
-        variantPrices: {
-          ...current.pricing.variantPrices,
-          [variantKey]: {
-            ...current.pricing.variantPrices[variantKey],
-            basePriceMinor: inputToCents(value),
+    updateVariantPriceField(variantKey, (price) => ({
+      ...price,
+      basePriceMinor: inputToCents(value),
+    }));
+  }
+
+  function updateVariantPriceField(
+    variantKey: string,
+    updater: (current: NonNullable<ProductDraft["pricing"]["productPrice"]>) => NonNullable<ProductDraft["pricing"]["productPrice"]>,
+  ) {
+    updateDraft((current) => {
+      const existing = current.pricing.variantPrices[variantKey];
+      const inheritedPrice = {
+            basePriceMinor: current.pricing.variantPrices[variantKey]?.basePriceMinor ?? 0,
             listPriceMinor: current.pricing.variantPrices[variantKey]?.listPriceMinor ?? null,
             costPriceMinor: current.pricing.variantPrices[variantKey]?.costPriceMinor ?? null,
             currency,
             taxIncluded: current.pricing.productPrice?.taxIncluded ?? true,
             taxCode: current.pricing.productPrice?.taxCode ?? current.basic.taxCode ?? "standard",
+            tax: current.pricing.productPrice?.tax ?? null,
             priceTableId: current.pricing.productPrice?.priceTableId ?? null,
             tradePolicy: current.pricing.productPrice?.tradePolicy ?? "default",
             channel: current.pricing.productPrice?.channel ?? "web",
             customerGroup: current.pricing.productPrice?.customerGroup ?? null,
             country: current.pricing.productPrice?.country ?? "ES",
             markedForDeletion: false,
+      };
+
+      return {
+        ...current,
+        pricing: {
+          ...current.pricing,
+          variantPrices: {
+            ...current.pricing.variantPrices,
+            [variantKey]: updater({
+              ...inheritedPrice,
+              ...existing,
+              markedForDeletion: false,
+            }),
           },
         },
-      },
-    }));
+      };
+    });
   }
 
   function updateProductPriceField(updater: (current: NonNullable<ProductDraft["pricing"]["productPrice"]>) => ProductDraft["pricing"]["productPrice"]) {
@@ -1007,6 +1134,7 @@ function ProductEditorClientInner({
         currency,
         taxIncluded: true,
         taxCode: current.basic.taxCode || "standard",
+        tax: null,
         priceTableId: null,
         tradePolicy: "default",
         channel: "web",
@@ -1056,6 +1184,73 @@ function ProductEditorClientInner({
     };
   }
 
+  function directStockEntryForVariant(variant: ProductDraftVariant) {
+    const localStock = draft.inventory.stockByVariant[variant.localId];
+    if (localStock) {
+      return { key: variant.localId, stock: localStock };
+    }
+
+    if (variant.variantId && draft.inventory.stockByVariant[variant.variantId]) {
+      return { key: variant.variantId, stock: draft.inventory.stockByVariant[variant.variantId] };
+    }
+
+    return null;
+  }
+
+  function stockForVariantRow(variant: ProductDraftVariant) {
+    const directEntry = directStockEntryForVariant(variant);
+    const defaultStock = stockForKey("default");
+
+    return {
+      key: directEntry?.key ?? variant.localId,
+      stock: directEntry?.stock ?? defaultStock,
+      mode: directEntry ? "own" : "inherited",
+    };
+  }
+
+  function enableVariantOwnStock(variant: ProductDraftVariant) {
+    updateDraft((current) => {
+      const existing =
+        current.inventory.stockByVariant[variant.localId] ??
+        (variant.variantId ? current.inventory.stockByVariant[variant.variantId] : undefined);
+      const defaultStock = current.inventory.stockByVariant.default ?? {
+        warehouseId: "main-warehouse",
+        onHandQuantity: 0,
+        reservedQuantity: 0,
+        safetyStockQuantity: 0,
+      };
+
+      return {
+        ...current,
+        inventory: {
+          ...current.inventory,
+          stockByVariant: {
+            ...current.inventory.stockByVariant,
+            [variant.localId]: stockWithAvailability(existing ?? defaultStock),
+          },
+        },
+      };
+    });
+  }
+
+  function inheritVariantStock(variant: ProductDraftVariant) {
+    updateDraft((current) => {
+      const nextStockByVariant = { ...current.inventory.stockByVariant };
+      delete nextStockByVariant[variant.localId];
+      if (variant.variantId) {
+        delete nextStockByVariant[variant.variantId];
+      }
+
+      return {
+        ...current,
+        inventory: {
+          ...current.inventory,
+          stockByVariant: nextStockByVariant,
+        },
+      };
+    });
+  }
+
   function updateStock(variantKey: string, updater: (stock: StockDraft) => StockDraft) {
     updateDraft((current) => {
       const currentStock = current.inventory.stockByVariant[variantKey] ?? {
@@ -1064,11 +1259,7 @@ function ProductEditorClientInner({
         reservedQuantity: 0,
         safetyStockQuantity: 0,
       };
-      const nextStock = updater(currentStock);
-      const available = Math.max(
-        0,
-        nextStock.onHandQuantity - nextStock.reservedQuantity - nextStock.safetyStockQuantity,
-      );
+      const nextStock = stockWithAvailability(updater(currentStock));
 
       return {
         ...current,
@@ -1076,12 +1267,7 @@ function ProductEditorClientInner({
           ...current.inventory,
           stockByVariant: {
             ...current.inventory.stockByVariant,
-            [variantKey]: {
-              ...nextStock,
-              availableQuantity: available,
-              available: available > 0,
-              reasons: available > 0 ? [] : ["OUT_OF_STOCK"],
-            },
+            [variantKey]: nextStock,
           },
         },
       };
@@ -1167,6 +1353,7 @@ function ProductEditorClientInner({
   function saveDraft() {
     const validation = validateProductDraft(draft);
     if (!validation.ok) {
+      const errors = fieldErrorSummary(validation.fieldErrors);
       setReport({
         ok: false,
         blocks: {
@@ -1177,11 +1364,21 @@ function ProductEditorClientInner({
           pricing: draft.saveState.pricing ?? "pending",
           inventory: draft.saveState.inventory ?? "pending",
         },
-        messages: ["Revisa los campos marcados antes de guardar."],
+        messages: [
+          errors.length
+            ? `No se guardo. Revisa: ${errors.map((error) => error.label).join(", ")}.`
+            : "No se guardo. Revisa los datos del formulario.",
+        ],
         fieldErrors: validation.fieldErrors,
         correlationIds: [],
       });
-      setActiveTab(Object.keys(validation.fieldErrors).some((key) => key.startsWith("variant:")) ? "variants" : "basic");
+      setActiveTab(
+        Object.keys(validation.fieldErrors).some((key) => key.startsWith("pricing."))
+          ? "pricing"
+          : Object.keys(validation.fieldErrors).some((key) => key.startsWith("variant:"))
+            ? "variants"
+            : "basic",
+      );
       return;
     }
 
@@ -1190,37 +1387,62 @@ function ProductEditorClientInner({
     draft.media.items.forEach((item) => {
       const file = filesByLocalId[item.localId];
       if (file && !item.persisted && !item.mediaAssetId) {
+        formData.append("fileLocalIds", item.localId);
         formData.append("files", file);
       }
     });
 
+    setIsSaving(true);
     startTransition(async () => {
-      const result = await saveProductDraftAction(formData);
-      setReport(result);
+      try {
+        const result = await saveProductDraftAction(formData);
+        setReport(result);
 
-      if (result.draftPatch) {
-        setDraft((current) => ({
-          ...current,
-          ...result.draftPatch,
-          media: result.draftPatch?.media
-            ? result.draftPatch.media
-            : {
-                ...current.media,
-                items: result.blocks.media === "success"
-                  ? current.media.items.map((item) => ({ ...item, persisted: true }))
-                  : current.media.items,
-              },
-          saveState: result.draftPatch?.saveState ?? current.saveState,
-        }));
-      }
+        if (result.draftPatch) {
+          setDraft((current) => ({
+            ...current,
+            ...result.draftPatch,
+            media: result.draftPatch?.media
+              ? result.draftPatch.media
+              : {
+                  ...current.media,
+                  items: result.blocks.media === "success"
+                    ? current.media.items.map((item) => ({ ...item, persisted: true }))
+                    : current.media.items,
+                },
+            saveState: result.draftPatch?.saveState ?? current.saveState,
+          }));
+        }
 
-      if (result.ok || result.productId) {
-        setDirty(false);
-        window.localStorage.removeItem(storageKey);
-      }
+        if (result.ok || result.productId) {
+          setDirty(false);
+          window.localStorage.removeItem(storageKey);
+        }
 
-      if (result.blocks.media === "failed" || result.blocks.variantMedia === "failed") {
-        setActiveTab("images");
+        if (result.blocks.variants === "success") {
+          setVariantMessage(null);
+        }
+
+        if (result.fieldErrors.media || result.blocks.media === "failed" || result.blocks.variantMedia === "failed") {
+          setActiveTab("images");
+        }
+      } catch (error) {
+        setReport({
+          ok: false,
+          blocks: {
+            catalog: "failed",
+            variants: "pending",
+            media: "pending",
+            variantMedia: "pending",
+            pricing: "pending",
+            inventory: "pending",
+          },
+          messages: [error instanceof Error ? error.message : "No se pudo completar el guardado."],
+          fieldErrors: {},
+          correlationIds: [],
+        });
+      } finally {
+        setIsSaving(false);
       }
     });
   }
@@ -1282,7 +1504,7 @@ function ProductEditorClientInner({
   }
 
   return (
-    <main className="adminPage productEditorPage">
+    <main className="adminPage productEditorPage" aria-busy={savingActive}>
       <div className="adminBreadcrumb">
         <Link href="/admin">Admin</Link> / <Link href="/admin/catalogo">Catalogo</Link> / <Link href="/admin/products">Productos</Link> / {draft.productId ? "Editar" : "Nuevo"}
       </div>
@@ -1326,6 +1548,15 @@ function ProductEditorClientInner({
       {report ? (
         <section className={`adminBanner ${report.ok ? "" : "adminBannerError"}`} aria-live="polite">
           {report.messages.map((message) => <p key={message}>{message}</p>)}
+          {fieldErrorSummary(report.fieldErrors).length > 0 ? (
+            <ul>
+              {fieldErrorSummary(report.fieldErrors).map((error) => (
+                <li key={error.key}>
+                  <strong>{error.label}:</strong> {error.message}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {report.correlationIds.length > 0 ? (
             <p className="adminContextHint">Correlation: {report.correlationIds.join(", ")}</p>
           ) : null}
@@ -1507,25 +1738,34 @@ function ProductEditorClientInner({
                 </div>
                 <div className="productMediaGrid">
                   <label className="productMediaAdd" aria-label="Anadir imagenes">
-                    <span aria-hidden="true">+</span>
+                    <Plus aria-hidden="true" size={34} />
+                    <span>Anadir imagenes</span>
                     <input className="productFileInput" type="file" accept="image/*" multiple onChange={(event) => addFiles(event.target.files)} />
                   </label>
                   {draft.media.items.map((item) => (
-                    <button
+                    <div
                       className={`productMediaTile ${selectedMedia?.localId === item.localId ? "productMediaTileActive" : ""}`}
-                      type="button"
                       key={item.localId}
-                      onClick={() => setSelectedMediaId(item.localId)}
                     >
-                      {hasRenderableMediaPreview(item) ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.previewUrl} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
-                      ) : (
-                        <span>{item.fileName}</span>
-                      )}
-                      {item.isMain ? <strong>Portada</strong> : null}
-                      {!item.persisted ? <em>Pendiente de guardar</em> : null}
-                    </button>
+                      <button className="productMediaTileSelect" type="button" onClick={() => setSelectedMediaId(item.localId)}>
+                        {hasRenderableMediaPreview(item) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.previewUrl} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
+                        ) : (
+                          <span>{item.fileName}</span>
+                        )}
+                        {item.isMain ? <strong>Portada</strong> : null}
+                        {!item.persisted ? <em>Pendiente de guardar</em> : null}
+                      </button>
+                      <button
+                        aria-label={`Eliminar ${item.alt[locale] ?? item.fileName}`}
+                        className="productMediaDeleteButton"
+                        type="button"
+                        onClick={() => removeMedia(item.localId)}
+                      >
+                        <Trash2 aria-hidden="true" size={16} />
+                      </button>
+                    </div>
                   ))}
                 </div>
                 {report?.fieldErrors.media ? (
@@ -1665,7 +1905,8 @@ function ProductEditorClientInner({
                     ) : draft.variants.map((variant, index) => {
                       const rowError =
                         report?.fieldErrors[`variant:${variant.localId}`] ??
-                        report?.fieldErrors[`variant:${variant.localId}:options`];
+                        report?.fieldErrors[`variant:${variant.localId}:options`] ??
+                        report?.fieldErrors[`pricing.variantPrices:${variant.localId}:tax`];
                       const refError = report?.fieldErrors[`variant:${variant.localId}:refId`];
                       const variantPrice = draft.pricing.variantPrices[variant.localId];
                       const usesOwnPrice = Boolean(variantPrice && !variantPrice.markedForDeletion);
@@ -1898,7 +2139,7 @@ function ProductEditorClientInner({
               <div className="productEditorSectionHeader">
                 <div>
                   <h2>Precio</h2>
-                  <p>Precio base del producto y overrides de variantes.</p>
+                  <p>El precio superior pertenece al producto y a su productVariantDefault. Las variantes adicionales heredan salvo override propio.</p>
                 </div>
               </div>
               <div className="pricingEditorContext">
@@ -1913,7 +2154,7 @@ function ProductEditorClientInner({
               ))}
               <div className="adminFormGrid adminFormGridTwo">
                 <label className="adminField">
-                  <span>Precio base</span>
+                  <span>Precio del producto / defaultVariant</span>
                   <input
                     type="number"
                     min="0"
@@ -1927,7 +2168,7 @@ function ProductEditorClientInner({
                   />
                 </label>
                 <label className="adminField">
-                  <span>Precio tachado</span>
+                  <span>Precio tachado del producto / defaultVariant</span>
                   <input
                     type="number"
                     min="0"
@@ -1942,17 +2183,28 @@ function ProductEditorClientInner({
                 <label className="adminField">
                   <span>Impuesto</span>
                   <select
-                    value={productPrice?.taxCode ?? draft.basic.taxCode ?? "standard"}
-                    onChange={(event) => updateProductPriceField((price) => ({
-                      ...price,
-                      taxCode: event.target.value,
-                    }))}
+                    disabled={taxOptions.length === 0}
+                    value={selectedTax?.id ?? ""}
+                    onChange={(event) => {
+                      const tax = taxOptions.find((item) => item.id === event.target.value) ?? null;
+                      updateProductPriceField((price) => ({
+                        ...price,
+                        taxCode: tax?.taxCode ?? draft.basic.taxCode ?? "standard",
+                        tax,
+                      }));
+                    }}
                   >
-                    <option value="standard">standard</option>
-                    {lookups.taxes.map((tax) => (
+                    <option value="">{taxOptions.length ? "Sin regla fiscal" : "Sin reglas fiscales cargadas"}</option>
+                    {taxOptions.map((tax) => (
                       <option key={tax.id} value={tax.id}>{tax.label}</option>
                     ))}
                   </select>
+                  {report?.fieldErrors["pricing.productPrice.tax"] ? (
+                    <small>{report.fieldErrors["pricing.productPrice.tax"]}</small>
+                  ) : null}
+                  {taxOptions.length === 0 ? (
+                    <small>{pricingTaxWarning ?? "No hay reglas fiscales disponibles para este contexto."}</small>
+                  ) : null}
                 </label>
                 <label className="adminField">
                   <span>priceTableId</span>
@@ -1964,10 +2216,13 @@ function ProductEditorClientInner({
                     }))}
                   >
                     <option value="">Base/default</option>
-                    {lookups.priceTables.map((table) => (
+                    {priceTableOptions.map((table) => (
                       <option key={table.id} value={table.id}>{table.label}</option>
                     ))}
                   </select>
+                  {priceTableOptions.length === 0 ? (
+                    <small>{pricingTablesWarning ?? "No hay price tables disponibles para este contexto."}</small>
+                  ) : null}
                 </label>
                 <label className="adminField">
                   <span>tradePolicy</span>
@@ -2033,22 +2288,133 @@ function ProductEditorClientInner({
                 </div>
                 {!currentPricePreview ? <p>Preview neto/impuesto/bruto pendiente de respuesta resuelta del BFF o de una tasa en el impuesto seleccionado.</p> : null}
               </div>
+              <div className="adminBanner adminSection">
+                <p>La productVariantDefault se gestiona con el precio superior. Las variantes listadas abajo solo necesitan cambios si requieren precio, impuesto o tabla propios.</p>
+              </div>
+              {priceVariantRows.length > 0 ? (
+              <>
+              <div className="adminSection">
+                <div className="productEditorSectionHeader">
+                  <div>
+                    <h3>Override de variante adicional</h3>
+                    <p>{selectedPriceVariant?.name ?? "Selecciona una variante adicional"}</p>
+                  </div>
+                  <span className={`adminBadge ${selectedVariantUsesOwnPrice ? "adminBadgeOk" : ""}`}>
+                    {selectedVariantUsesOwnPrice ? "Precio propio" : "Fallback producto"}
+                  </span>
+                </div>
+                <div className="adminFormGrid adminFormGridTwo">
+                  <label className="adminField">
+                    <span>Variante adicional a editar</span>
+                    <select
+                      value={selectedPriceVariant?.localId ?? ""}
+                      onChange={(event) => setSelectedVariantKey(event.target.value)}
+                    >
+                      {priceVariantRows.map((variant) => (
+                        <option key={variant.localId} value={variant.localId}>
+                          {variant.name} · {variant.refId || "sin referencia"}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Precio propio</span>
+                    <input
+                      disabled={!selectedPriceVariant}
+                      min="0"
+                      step="0.01"
+                      type="number"
+                      value={centsToInput(selectedVariantPrice?.markedForDeletion ? undefined : selectedVariantPrice?.basePriceMinor)}
+                      onChange={(event) => selectedPriceVariant ? updateVariantPrice(selectedPriceVariant.localId, event.target.value) : undefined}
+                    />
+                    {selectedPriceVariant && report?.fieldErrors[`pricing.variantPrices:${selectedPriceVariant.localId}:tax`] ? (
+                      <small>{report.fieldErrors[`pricing.variantPrices:${selectedPriceVariant.localId}:tax`]}</small>
+                    ) : null}
+                  </label>
+                  <label className="adminField">
+                    <span>Impuesto de variante</span>
+                    <select
+                      disabled={!selectedPriceVariant || !selectedVariantUsesOwnPrice || variantTaxOptions.length === 0}
+                      value={selectedVariantTax?.id ?? ""}
+                      onChange={(event) => {
+                        const tax = variantTaxOptions.find((item) => item.id === event.target.value) ?? null;
+                        if (!selectedPriceVariant) {
+                          return;
+                        }
+                        updateVariantPriceField(selectedPriceVariant.localId, (price) => ({
+                          ...price,
+                          taxCode: tax?.taxCode ?? price.taxCode,
+                          tax,
+                        }));
+                      }}
+                    >
+                      <option value="">{variantTaxOptions.length ? "Heredar/sin regla" : "Sin reglas fiscales cargadas"}</option>
+                      {variantTaxOptions.map((tax) => (
+                        <option key={tax.id} value={tax.id}>{tax.label}</option>
+                      ))}
+                    </select>
+                    {!selectedVariantUsesOwnPrice && selectedPriceVariant ? (
+                      <small>Usa el impuesto del producto: {selectedTax?.label ?? "sin regla fiscal"}.</small>
+                    ) : null}
+                  </label>
+                  <label className="adminField">
+                    <span>priceTableId de variante</span>
+                    <select
+                      disabled={!selectedPriceVariant || !selectedVariantUsesOwnPrice}
+                      value={selectedVariantPrice?.priceTableId ?? ""}
+                      onChange={(event) => selectedPriceVariant
+                        ? updateVariantPriceField(selectedPriceVariant.localId, (price) => ({
+                            ...price,
+                            priceTableId: event.target.value || null,
+                          }))
+                        : undefined}
+                    >
+                      <option value="">Base/default</option>
+                      {variantPriceTableOptions.map((table) => (
+                        <option key={table.id} value={table.id}>{table.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="adminButtonRow adminSection">
+                  <button
+                    className="adminButton"
+                    disabled={!selectedPriceVariant || !selectedVariantUsesOwnPrice}
+                    type="button"
+                    onClick={() => selectedPriceVariant ? removeVariantPrice(selectedPriceVariant.localId) : undefined}
+                  >
+                    Quitar precio propio
+                  </button>
+                </div>
+              </div>
               <div className="adminTableScroller adminSection">
                 <table className="adminTable productCombinationTable">
                   <thead>
                     <tr>
+                      <th aria-label="Seleccion">Sel.</th>
                       <th>Variante</th>
                       <th>Modo</th>
-                      <th>Precio propio</th>
+                      <th>Precio</th>
+                      <th>Fiscalidad</th>
                       <th>Accion</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {allVariantRows.map((variant) => {
+                    {priceVariantRows.map((variant) => {
                       const price = draft.pricing.variantPrices[variant.localId];
                       const usesOwnPrice = Boolean(price && !price.markedForDeletion);
+                      const variantTax = price?.tax ?? selectedTax;
+                      const variantPriceTable = price?.priceTableId ?? productPrice?.priceTableId;
                       return (
-                        <tr key={variant.localId}>
+                        <tr className={selectedPriceVariant?.localId === variant.localId ? "productRowSelected" : ""} key={variant.localId}>
+                          <td>
+                            <input
+                              aria-label={`Editar precio de ${variant.refId || variant.name}`}
+                              checked={selectedPriceVariant?.localId === variant.localId}
+                              type="radio"
+                              onChange={() => setSelectedVariantKey(variant.localId)}
+                            />
+                          </td>
                           <td>
                             <strong>{variant.name}</strong>
                             <div className="adminContextHint">{variant.refId}</div>
@@ -2060,25 +2426,22 @@ function ProductEditorClientInner({
 	                            <div className="adminContextHint">
 	                              {price?.pricingId ? `Pricing ${price.pricingId}` : usesOwnPrice ? "Override nuevo" : "Fallback activo"}
 	                            </div>
-	                          </td>
+                          </td>
                           <td>
-                            <input
-                              disabled={variant.localId === "default"}
-                              min="0"
-                              step="0.01"
-                              type="number"
-                              value={centsToInput(price?.markedForDeletion ? undefined : price?.basePriceMinor)}
-                              onChange={(event) => updateVariantPrice(variant.localId, event.target.value)}
-                            />
+                            <strong>{usesOwnPrice ? formatMoney(price?.basePriceMinor, price?.currency || currency) : formatMoney(productPrice?.basePriceMinor, productPrice?.currency || currency)}</strong>
+                            <div className="adminContextHint">{usesOwnPrice ? "Override" : "Producto"}</div>
+                          </td>
+                          <td>
+                            <div>{variantTax?.label ?? "Sin regla fiscal"}</div>
+                            <div className="adminContextHint">{variantPriceTable ?? "Base/default"}</div>
                           </td>
                           <td>
                             <button
                               className="adminButton"
-                              disabled={variant.localId === "default" || !usesOwnPrice}
                               type="button"
-                              onClick={() => removeVariantPrice(variant.localId)}
+                              onClick={() => setSelectedVariantKey(variant.localId)}
                             >
-                              Quitar override
+                              Editar
                             </button>
                           </td>
                         </tr>
@@ -2087,6 +2450,12 @@ function ProductEditorClientInner({
                   </tbody>
                 </table>
               </div>
+              </>
+              ) : (
+                <div className="adminBanner adminSection">
+                  <p>Este producto no tiene variantes adicionales. El precio superior cubre la productVariantDefault.</p>
+                </div>
+              )}
               {report?.blocks.pricing === "failed" ? (
                 <div className="adminBanner adminBannerError adminSection">
                   <p>Pricing fallo sin romper Catalog/Media.</p>
@@ -2322,62 +2691,77 @@ function ProductEditorClientInner({
                     <thead>
                       <tr>
                         <th>Variante</th>
+                        <th>Modo</th>
                         <th>Warehouse</th>
                         <th>On hand</th>
                         <th>Reservado</th>
                         <th>Safety</th>
                         <th>Disponible</th>
                         <th>Estado</th>
+                        <th>Accion</th>
                       </tr>
                     </thead>
                     <tbody>
                       {draft.variants.length === 0 ? (
                         <tr>
-                          <td colSpan={7}>Sin variantes adicionales. Usa el stock default del producto simple.</td>
+                          <td colSpan={9}>Sin variantes adicionales. Usa el stock default del producto simple.</td>
                         </tr>
                       ) : draft.variants.map((variant) => {
-                        const stock = stockForKey(variant.localId);
+                        const stockState = stockForVariantRow(variant);
+                        const stock = stockState.stock;
+                        const hasOwnStock = stockState.mode === "own";
+                        const canReturnToInherited = hasOwnStock && (!variant.variantId || stockState.key !== variant.variantId);
                         const available = availableQuantity(stock);
                         return (
-                          <tr key={variant.localId}>
+                          <tr className={hasOwnStock ? "" : "productInventoryInherited"} key={variant.localId}>
                             <td>
                               <strong>{variant.name}</strong>
                               <div className="adminContextHint">
                                 {variant.variantId ? `variantId ${variant.variantId}` : `${variant.refId} pendiente de guardar`}
                               </div>
                             </td>
+                            <td className="productInventoryModeCell">
+                              <span className={`productMediaStateBadge ${hasOwnStock ? "productMediaStateDirect" : "productMediaStateInherited"}`}>
+                                {hasOwnStock ? "Stock propio" : "Heredado"}
+                              </span>
+                              {!hasOwnStock ? <small>Usa stock default</small> : null}
+                            </td>
                             <td>
                               <input
                                 aria-label={`Warehouse ${variant.refId}`}
+                                disabled={!hasOwnStock}
                                 value={stock.warehouseId}
-                                onChange={(event) => updateStockWarehouse(variant.localId, event.target.value)}
+                                onChange={(event) => updateStockWarehouse(stockState.key, event.target.value)}
                               />
                             </td>
                             <td>
                               <input
                                 aria-label={`On hand ${variant.refId}`}
+                                disabled={!hasOwnStock}
                                 min="0"
                                 type="number"
                                 value={stock.onHandQuantity}
-                                onChange={(event) => updateStockNumber(variant.localId, "onHandQuantity", event.target.value)}
+                                onChange={(event) => updateStockNumber(stockState.key, "onHandQuantity", event.target.value)}
                               />
                             </td>
                             <td>
                               <input
                                 aria-label={`Reservado ${variant.refId}`}
+                                disabled={!hasOwnStock}
                                 min="0"
                                 type="number"
                                 value={stock.reservedQuantity}
-                                onChange={(event) => updateStockNumber(variant.localId, "reservedQuantity", event.target.value)}
+                                onChange={(event) => updateStockNumber(stockState.key, "reservedQuantity", event.target.value)}
                               />
                             </td>
                             <td>
                               <input
                                 aria-label={`Safety ${variant.refId}`}
+                                disabled={!hasOwnStock}
                                 min="0"
                                 type="number"
                                 value={stock.safetyStockQuantity}
-                                onChange={(event) => updateStockNumber(variant.localId, "safetyStockQuantity", event.target.value)}
+                                onChange={(event) => updateStockNumber(stockState.key, "safetyStockQuantity", event.target.value)}
                               />
                             </td>
                             <td>
@@ -2387,6 +2771,23 @@ function ProductEditorClientInner({
                               <span className={`adminBadge ${available > 0 ? "adminBadgeOk" : "adminBadgeWarn"}`}>
                                 {available > 0 ? "Disponible" : "Sin stock"}
                               </span>
+                            </td>
+                            <td>
+                              {hasOwnStock ? (
+                                <button
+                                  className="adminButton"
+                                  disabled={!canReturnToInherited}
+                                  title={canReturnToInherited ? undefined : "Inventory no expone borrado de stock persistido todavia."}
+                                  type="button"
+                                  onClick={() => inheritVariantStock(variant)}
+                                >
+                                  {canReturnToInherited ? "Heredar default" : "Stock propio guardado"}
+                                </button>
+                              ) : (
+                                <button className="adminButton" type="button" onClick={() => enableVariantOwnStock(variant)}>
+                                  Usar stock propio
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
@@ -2404,12 +2805,25 @@ function ProductEditorClientInner({
               ) : null}
 
               <div className="productPriceSummary adminSection">
-                <strong>{availableQuantity(stockForKey("default"))}</strong>
-                <span>Disponible default</span>
-                <strong>{draft.variants.reduce((total, variant) => total + availableQuantity(stockForKey(variant.localId)), 0)}</strong>
-                <span>Disponible variantes</span>
-                <strong>{stockForKey("default").warehouseId}</strong>
-                <span>Warehouse default</span>
+                {(() => {
+                  const variantStockRows = draft.variants.map((variant) => stockForVariantRow(variant));
+                  const ownAvailable = variantStockRows.reduce(
+                    (total, row) => total + (row.mode === "own" ? availableQuantity(row.stock) : 0),
+                    0,
+                  );
+                  const inheritedCount = variantStockRows.filter((row) => row.mode === "inherited").length;
+
+                  return (
+                    <>
+                      <strong>{availableQuantity(stockForKey("default"))}</strong>
+                      <span>Disponible default</span>
+                      <strong>{ownAvailable}</strong>
+                      <span>Disponible stock propio</span>
+                      <strong>{inheritedCount}/{draft.variants.length}</strong>
+                      <span>Variantes heredando</span>
+                    </>
+                  );
+                })()}
               </div>
             </section>
           ) : null}
@@ -2526,6 +2940,23 @@ function ProductEditorClientInner({
         </aside>
       </div>
 
+      {savingActive ? (
+        <div className="productSavingOverlay" role="status" aria-live="assertive">
+          <div className="productSavingDialog">
+            <span className="adminSpinner productSavingRing" aria-hidden="true" />
+            <strong>Guardando producto</strong>
+            <span>Catalog, variantes, imagenes, pricing e inventario se procesan por bloques.</span>
+            <div className="productSavingSteps">
+              <span>Catalog</span>
+              <span>Variantes</span>
+              <span>Media</span>
+              <span>Pricing</span>
+              <span>Inventario</span>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <footer className="productEditorFooter">
         <div className="productSaveBlocks">
           {Object.entries(draft.saveState).map(([block, status]) => (
@@ -2537,8 +2968,9 @@ function ProductEditorClientInner({
         <div className="adminButtonRow">
           <button className="adminButton" type="button">Vista previa</button>
           <span className={`adminBadge ${draft.basic.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>{productStatus}</span>
-          <button className="adminButton adminButtonPrimary" type="button" disabled={isPending} onClick={saveDraft}>
-            {isPending ? "Guardando" : "Guardar producto"}
+          <button className="adminButton adminButtonPrimary" type="button" disabled={savingActive} onClick={saveDraft}>
+            {savingActive ? <span className="adminSpinner adminSpinnerInline" aria-hidden="true" /> : null}
+            {savingActive ? "Guardando producto" : "Guardar producto"}
           </button>
           <button className="adminButton" type="button">Duplicar</button>
           <Link className="adminButton" href="/admin/products">Ir al catalogo</Link>
