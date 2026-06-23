@@ -11,6 +11,8 @@
     "test:e2e": "next build && playwright test"
   },
   "dependencies": {
+    "@tiptap/react": "^3.27.1",
+    "@tiptap/starter-kit": "^3.27.1",
     "lucide-react": "^1.21.0",
     "next": "latest",
     "react": "latest",

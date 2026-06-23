@@ -839,6 +839,9 @@ p {
 }
 
 .richTextToolbarButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 32px;
   height: 32px;
   padding: 0 8px;
@@ -855,8 +858,20 @@ p {
   color: var(--admin-primary-pressed);
 }
 
+.richTextToolbarButton.isActive {
+  border-color: var(--admin-border-strong);
+  background: var(--admin-surface);
+  color: var(--admin-primary-pressed);
+}
+
+.richTextToolbarButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .richTextEditable {
   width: 100%;
+  min-height: inherit;
   padding: 12px;
   background: var(--admin-surface);
   color: var(--admin-text);
@@ -865,14 +880,16 @@ p {
   outline: 0;
 }
 
-.richTextEditable:focus {
+.richTextEditable:focus,
+.richTextEditable.ProseMirror-focused {
   box-shadow: inset 0 0 0 2px var(--admin-focus-ring);
 }
 
 .richTextEditable p,
 .richTextEditable ul,
 .richTextEditable ol,
-.richTextEditable blockquote {
+.richTextEditable blockquote,
+.richTextEditable pre {
   margin: 0 0 10px;
 }
 
@@ -900,6 +917,30 @@ p {
   padding: 8px 10px;
   border-left: 3px solid var(--admin-border-strong);
   background: var(--admin-bg);
+}
+
+.richTextEditable pre {
+  overflow-x: auto;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.richTextEditable code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.richTextEditable pre code {
+  padding: 0;
+  background: transparent;
 }
 
 .richTextSource {

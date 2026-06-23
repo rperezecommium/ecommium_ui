@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { Bold, Italic, List, ListOrdered, Redo2, RemoveFormatting, Strikethrough, Undo2 } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   createAndAttachOfferingAction,
   createProductBrandInlineAction,
@@ -224,90 +227,147 @@ type RichTextEditorProps = {
 };
 
 function RichTextEditor({ label, minHeight = 180, value, onChange }: RichTextEditorProps) {
-  const editorRef = useRef<HTMLDivElement>(null);
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: value || "",
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        "aria-label": label,
+        class: "richTextEditable",
+        role: "textbox",
+      },
+    },
+    onUpdate({ editor: currentEditor }) {
+      onChange(currentEditor.getHTML());
+    },
+  });
 
   useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor || document.activeElement === editor || editor.innerHTML === value) {
+    if (!editor || editor.isFocused || editor.getHTML() === value) {
       return;
     }
 
-    editor.innerHTML = value;
-  }, [value]);
-
-  function emitChange() {
-    const editor = editorRef.current;
-    if (editor) {
-      onChange(editor.innerHTML);
-    }
-  }
-
-  function runCommand(command: string, commandValue?: string) {
-    const editor = editorRef.current;
-    if (!editor) {
-      return;
-    }
-
-    editor.focus();
-    document.execCommand(command, false, commandValue);
-    emitChange();
-  }
-
-  function addLink() {
-    const href = window.prompt("URL del enlace");
-    if (!href) {
-      return;
-    }
-
-    runCommand("createLink", href);
-  }
+    editor.commands.setContent(value || "", { emitUpdate: false });
+  }, [editor, value]);
 
   return (
     <div className="adminField adminSection richTextField">
       <span>{label}</span>
       <div className="richTextEditor">
         <div className="richTextToolbar" aria-label={`Herramientas de ${label}`} role="toolbar">
-          <select aria-label="Formato de bloque" defaultValue="p" onChange={(event) => runCommand("formatBlock", event.target.value)}>
-            <option value="p">Parrafo</option>
+          <select
+            aria-label="Formato de bloque"
+            value={
+              editor?.isActive("heading", { level: 2 })
+                ? "h2"
+                : editor?.isActive("heading", { level: 3 })
+                  ? "h3"
+                  : editor?.isActive("blockquote")
+                    ? "blockquote"
+                    : editor?.isActive("codeBlock")
+                      ? "codeBlock"
+                      : "paragraph"
+            }
+            onChange={(event) => {
+              const chain = editor?.chain().focus();
+              if (!chain) {
+                return;
+              }
+
+              if (event.target.value === "h2") {
+                chain.toggleHeading({ level: 2 }).run();
+              } else if (event.target.value === "h3") {
+                chain.toggleHeading({ level: 3 }).run();
+              } else if (event.target.value === "blockquote") {
+                chain.toggleBlockquote().run();
+              } else if (event.target.value === "codeBlock") {
+                chain.toggleCodeBlock().run();
+              } else {
+                chain.setParagraph().run();
+              }
+            }}
+          >
+            <option value="paragraph">Parrafo</option>
             <option value="h2">Titulo H2</option>
             <option value="h3">Titulo H3</option>
             <option value="blockquote">Cita</option>
+            <option value="codeBlock">Codigo</option>
           </select>
-          <button aria-label="Negrita" className="richTextToolbarButton" type="button" onClick={() => runCommand("bold")}>
-            B
+          <button
+            aria-label="Negrita"
+            className={`richTextToolbarButton ${editor?.isActive("bold") ? "isActive" : ""}`}
+            disabled={!editor}
+            type="button"
+            onClick={() => editor?.chain().focus().toggleBold().run()}
+          >
+            <Bold aria-hidden="true" size={16} strokeWidth={2.4} />
           </button>
-          <button aria-label="Cursiva" className="richTextToolbarButton" type="button" onClick={() => runCommand("italic")}>
-            I
+          <button
+            aria-label="Cursiva"
+            className={`richTextToolbarButton ${editor?.isActive("italic") ? "isActive" : ""}`}
+            disabled={!editor}
+            type="button"
+            onClick={() => editor?.chain().focus().toggleItalic().run()}
+          >
+            <Italic aria-hidden="true" size={16} strokeWidth={2.4} />
           </button>
-          <button aria-label="Subrayado" className="richTextToolbarButton" type="button" onClick={() => runCommand("underline")}>
-            U
+          <button
+            aria-label="Tachado"
+            className={`richTextToolbarButton ${editor?.isActive("strike") ? "isActive" : ""}`}
+            disabled={!editor}
+            type="button"
+            onClick={() => editor?.chain().focus().toggleStrike().run()}
+          >
+            <Strikethrough aria-hidden="true" size={16} strokeWidth={2.4} />
           </button>
-          <button aria-label="Lista con vinetas" className="richTextToolbarButton" type="button" onClick={() => runCommand("insertUnorderedList")}>
-            ul
+          <button
+            aria-label="Lista con vinetas"
+            className={`richTextToolbarButton ${editor?.isActive("bulletList") ? "isActive" : ""}`}
+            disabled={!editor}
+            type="button"
+            onClick={() => editor?.chain().focus().toggleBulletList().run()}
+          >
+            <List aria-hidden="true" size={16} strokeWidth={2.4} />
           </button>
-          <button aria-label="Lista numerada" className="richTextToolbarButton" type="button" onClick={() => runCommand("insertOrderedList")}>
-            ol
+          <button
+            aria-label="Lista numerada"
+            className={`richTextToolbarButton ${editor?.isActive("orderedList") ? "isActive" : ""}`}
+            disabled={!editor}
+            type="button"
+            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+          >
+            <ListOrdered aria-hidden="true" size={16} strokeWidth={2.4} />
           </button>
-          <button aria-label="Crear enlace" className="richTextToolbarButton" type="button" onClick={addLink}>
-            Link
+          <button
+            aria-label="Limpiar formato"
+            className="richTextToolbarButton"
+            disabled={!editor}
+            type="button"
+            onClick={() => editor?.chain().focus().clearNodes().unsetAllMarks().run()}
+          >
+            <RemoveFormatting aria-hidden="true" size={16} strokeWidth={2.4} />
           </button>
-          <button aria-label="Limpiar formato" className="richTextToolbarButton" type="button" onClick={() => runCommand("removeFormat")}>
-            Tx
+          <button
+            aria-label="Deshacer"
+            className="richTextToolbarButton"
+            disabled={!editor?.can().undo()}
+            type="button"
+            onClick={() => editor?.chain().focus().undo().run()}
+          >
+            <Undo2 aria-hidden="true" size={16} strokeWidth={2.4} />
+          </button>
+          <button
+            aria-label="Rehacer"
+            className="richTextToolbarButton"
+            disabled={!editor?.can().redo()}
+            type="button"
+            onClick={() => editor?.chain().focus().redo().run()}
+          >
+            <Redo2 aria-hidden="true" size={16} strokeWidth={2.4} />
           </button>
         </div>
-        <div
-          aria-label={label}
-          className="richTextEditable"
-          contentEditable
-          dangerouslySetInnerHTML={{ __html: value }}
-          onBlur={emitChange}
-          onInput={emitChange}
-          onKeyUp={emitChange}
-          onPaste={() => window.setTimeout(emitChange, 0)}
-          role="textbox"
-          style={{ minHeight }}
-          suppressContentEditableWarning
-        />
+        <EditorContent editor={editor} style={{ minHeight }} />
         <textarea
           aria-label={`${label} HTML`}
           className="richTextSource"
