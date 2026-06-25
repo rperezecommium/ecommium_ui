@@ -258,6 +258,13 @@ function readStoredDraft(key: string, initialDraft: ProductDraft) {
   }
 }
 
+function mediaAssetPreviewUrl(mediaAssetId: string | null | undefined) {
+  const normalizedMediaAssetId = mediaAssetId?.trim();
+  return normalizedMediaAssetId
+    ? `/api/admin/media-assets/${encodeURIComponent(normalizedMediaAssetId)}/content?variant=medium_default`
+    : undefined;
+}
+
 function remoteDraftMediaItemToDraftItem(item: ProductDraftMediaStateItem): ProductDraftMediaItem {
   return {
     localId: item.localId || item.mediaAssetId,
@@ -265,7 +272,7 @@ function remoteDraftMediaItemToDraftItem(item: ProductDraftMediaStateItem): Prod
     fileName: item.fileName ?? item.mediaAssetId,
     fileSize: item.fileSize,
     mimeType: item.mimeType ?? "application/octet-stream",
-    previewUrl: item.previewUrl ?? item.thumbnailUrl ?? undefined,
+    previewUrl: item.previewUrl ?? item.thumbnailUrl ?? mediaAssetPreviewUrl(item.mediaAssetId),
     uploadStatus: "uploaded",
     uploadError: undefined,
     isMain: item.isMain,
@@ -971,8 +978,16 @@ function ProductEditorClientInner({
     setDirty(true);
   }
 
+  function mediaPreviewSrc(item: ProductDraftMediaItem | undefined) {
+    if (!item || brokenMediaPreviewIds[item.localId]) {
+      return undefined;
+    }
+
+    return item.previewUrl ?? mediaAssetPreviewUrl(item.mediaAssetId);
+  }
+
   function hasRenderableMediaPreview(item: ProductDraftMediaItem | undefined) {
-    return Boolean(item?.previewUrl && !brokenMediaPreviewIds[item.localId]);
+    return Boolean(mediaPreviewSrc(item));
   }
 
   function markMediaPreviewBroken(localId: string) {
@@ -2320,7 +2335,7 @@ function ProductEditorClientInner({
                       <button className="productMediaTileSelect" type="button" onClick={() => setSelectedMediaId(item.localId)}>
                         {hasRenderableMediaPreview(item) ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.previewUrl} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
+                          <img src={mediaPreviewSrc(item)} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
                         ) : (
                           <span>{item.fileName}</span>
                         )}
@@ -2487,7 +2502,7 @@ function ProductEditorClientInner({
                             {hasRenderableMediaPreview(assignedMediaForVariant("default")[0]) ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
-                                src={assignedMediaForVariant("default")[0].previewUrl}
+                                src={mediaPreviewSrc(assignedMediaForVariant("default")[0])}
                                 alt=""
                                 onError={() => markMediaPreviewBroken(assignedMediaForVariant("default")[0].localId)}
                               />
@@ -2587,7 +2602,7 @@ function ProductEditorClientInner({
                                 {hasRenderableMediaPreview(assignedMediaForVariant(variant.localId)[0]) ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
-                                  src={assignedMediaForVariant(variant.localId)[0].previewUrl}
+                                  src={mediaPreviewSrc(assignedMediaForVariant(variant.localId)[0])}
                                   alt=""
                                   onError={() => markMediaPreviewBroken(assignedMediaForVariant(variant.localId)[0].localId)}
                                 />
@@ -3675,7 +3690,7 @@ function ProductEditorClientInner({
               {hasRenderableMediaPreview(assignedMediaForVariant("default")[0]) ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={assignedMediaForVariant("default")[0].previewUrl}
+                  src={mediaPreviewSrc(assignedMediaForVariant("default")[0])}
                   alt=""
                   onError={() => markMediaPreviewBroken(assignedMediaForVariant("default")[0].localId)}
                 />
@@ -3717,7 +3732,7 @@ function ProductEditorClientInner({
                       <button type="button" onClick={() => setVariantMainMedia(selectedVariant.localId, item.localId)}>
                         {hasRenderableMediaPreview(item) ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.previewUrl} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
+                          <img src={mediaPreviewSrc(item)} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
                         ) : (
                           <span>{item.fileName}</span>
                         )}
@@ -3782,7 +3797,7 @@ function ProductEditorClientInner({
                   {hasRenderableMediaPreview(previewHeroMedia) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={previewHeroMedia.previewUrl}
+                      src={mediaPreviewSrc(previewHeroMedia)}
                       alt={previewHeroMedia.alt[locale] ?? previewHeroMedia.fileName}
                       onError={() => markMediaPreviewBroken(previewHeroMedia.localId)}
                     />
@@ -3799,7 +3814,7 @@ function ProductEditorClientInner({
                       >
                         {hasRenderableMediaPreview(item) ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.previewUrl} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
+                          <img src={mediaPreviewSrc(item)} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
                         ) : (
                           <span>{item.fileName.slice(0, 2).toUpperCase()}</span>
                         )}
@@ -3829,7 +3844,7 @@ function ProductEditorClientInner({
                               {hasRenderableMediaPreview(variantMedia) ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
-                                  src={variantMedia.previewUrl}
+                                  src={mediaPreviewSrc(variantMedia)}
                                   alt={variantMedia.alt[locale] ?? variantMedia.fileName}
                                   onError={() => markMediaPreviewBroken(variantMedia.localId)}
                                 />
