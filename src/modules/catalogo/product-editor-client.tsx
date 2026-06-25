@@ -852,6 +852,11 @@ function ProductEditorClientInner({
   const previewIsAvailable = previewStock?.available ?? previewAvailableQuantity > 0;
   const previewOfferings = draft.offerings.byVariant[previewVariantKeyResolved] ?? [];
   const previewOptions = previewVariant?.options.filter((option) => !option.markedForDeletion) ?? [];
+  const activePreviewVariants = allVariantRows.filter((variant) => variant.isActive && variant.isVisible);
+  const previewVariantChoiceBase = activePreviewVariants.length ? activePreviewVariants : allVariantRows;
+  const previewVariantChoices = previewVariantChoiceBase.some((variant) => variant.localId === previewVariantKeyResolved)
+    ? previewVariantChoiceBase
+    : [previewVariant, ...previewVariantChoiceBase];
   const publicationChecklist = useMemo(() => getProductPublicationChecklist(draft), [draft]);
   const publicationReady = publicationChecklist.every((item) => item.ok);
   const allowedCarrierOptions = draft.shipping.allowedCarrierIds
@@ -3802,6 +3807,43 @@ function ProductEditorClientInner({
                     ))}
                   </div>
                 ) : null}
+
+                {previewVariantChoices.length > 1 ? (
+                  <section className="productPreviewVariantTiles" aria-label="Variantes activas">
+                    <span>Variantes activas</span>
+                    <div>
+                      {previewVariantChoices.map((variant) => {
+                        const variantMedia = assignedMediaForVariant(variant.localId)[0];
+                        const variantSelected = variant.localId === previewVariantKeyResolved;
+                        return (
+                          <button
+                            aria-label={variant.selectorLabel}
+                            aria-pressed={variantSelected}
+                            className={"productPreviewVariantTile " + (variantSelected ? "productPreviewVariantTileActive" : "")}
+                            key={variant.localId}
+                            title={variant.selectorLabel}
+                            type="button"
+                            onClick={() => setPreviewVariantKey(variant.localId)}
+                          >
+                            <span>
+                              {hasRenderableMediaPreview(variantMedia) ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={variantMedia.previewUrl}
+                                  alt={variantMedia.alt[locale] ?? variantMedia.fileName}
+                                  onError={() => markMediaPreviewBroken(variantMedia.localId)}
+                                />
+                              ) : (
+                                <span>{variant.name.slice(0, 2).toUpperCase() || variant.refId.slice(0, 2).toUpperCase() || "VA"}</span>
+                              )}
+                            </span>
+                            <small>{variant.name || variant.refId || variant.displayLabel}</small>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ) : null}
               </section>
 
               <section className="productPreviewInfoPane">
@@ -3817,7 +3859,7 @@ function ProductEditorClientInner({
                 <label className="adminField productPreviewVariantSelect">
                   <span>Variante</span>
                   <select value={previewVariantKeyResolved} onChange={(event) => setPreviewVariantKey(event.target.value)}>
-                    {allVariantRows.map((variant) => (
+                    {previewVariantChoices.map((variant) => (
                       <option key={variant.localId} value={variant.localId}>
                         {variant.selectorLabel}
                       </option>
