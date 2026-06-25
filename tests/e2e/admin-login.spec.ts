@@ -30,6 +30,7 @@ const capturedSaveOperationRequests: string[] = [];
 const capturedSaveOperationIdempotencyKeys: string[] = [];
 const capturedSaveOperationBodies: string[] = [];
 const capturedEditorStateRequests: string[] = [];
+const capturedMediaAssetContentRequests: string[] = [];
 let saveOperationMode: "partial_failed" | "success" | "published" = "partial_failed";
 let draftMediaUploadMode: "success" | "failed" = "success";
 const uploadedDraftMediaByClientDraftId = new Map<string, Array<{
@@ -422,8 +423,8 @@ async function startBffMock() {
           fileName: "edit-cover.png",
           mimeType: "image/png",
           fileSize: 68,
-          previewUrl: onePixelPngDataUrl,
-          thumbnailUrl: onePixelPngDataUrl,
+          previewUrl: null,
+          thumbnailUrl: null,
           isMain: true,
           position: 1,
           active: true,
@@ -563,6 +564,20 @@ async function startBffMock() {
           mediaCollectionId: "collection-remote",
         },
       });
+      return;
+    }
+
+    if (request.method === "GET" && /^\/api\/v1\/admin\/media\/assets\/[^/]+\/content$/.test(url.pathname)) {
+      capturedMediaAssetContentRequests.push(`${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("variant")).toBe("medium_default");
+      const imageBuffer = Buffer.from(onePixelPngDataUrl.split(",")[1], "base64");
+      response.writeHead(200, {
+        "content-type": "image/png",
+        "content-length": String(imageBuffer.byteLength),
+      });
+      response.end(imageBuffer);
       return;
     }
 
@@ -854,6 +869,28 @@ test("product editor rehydrates persisted draft media through BFF only", async (
   expect(capturedDraftStateRequests[0]).toMatch(/^\/api\/v1\/admin\/product-drafts\/.+/);
   expect(capturedBffRequests.every((item) => item.includes(" /api/v1/"))).toBe(true);
   expect(browserExternalRequests).toEqual([]);
+});
+
+test("product editor renders persisted media through the protected preview proxy", async ({ page }) => {
+  capturedDraftStateRequests.length = 0;
+  capturedMediaAssetContentRequests.length = 0;
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/products/product-edit-1`);
+
+  await expect(page.getByRole("button", { name: "Imagenes" })).toBeVisible();
+  await page.getByRole("button", { name: "Imagenes" }).click();
+
+  const persistedImage = page.locator('img[alt="Imagen producto existente"]').first();
+  await expect(persistedImage).toBeVisible();
+  await expect(persistedImage).toHaveAttribute(
+    "src",
+    /\/api\/admin\/media-assets\/asset-edit-1\/content\?variant=medium_default/,
+  );
+  await expect.poll(() => capturedMediaAssetContentRequests).toContainEqual(
+    expect.stringContaining("/api/v1/admin/media/assets/asset-edit-1/content"),
+  );
+  expect(capturedDraftStateRequests).toEqual(["/api/v1/admin/product-drafts/product-edit-1"]);
 });
 
 test("product editor sends removed persisted media in draft without binary files", async ({ page }) => {
