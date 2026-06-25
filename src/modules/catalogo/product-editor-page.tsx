@@ -81,6 +81,7 @@ export async function ProductEditorPage({ context, productId }: ProductEditorPag
       <ProductEditorClient
         contextIdentity={productEditorContextIdentity(context)}
         initialDraft={draftFromEditorData(result.data, context.locale, context.currency)}
+        initialVariantRows={result.data.variantRows}
         locale={context.locale}
         currency={context.currency}
         lookups={lookups}

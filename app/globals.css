@@ -1412,6 +1412,15 @@ p {
   box-shadow: inset 3px 0 0 var(--admin-border-strong);
 }
 
+.productDefaultVariantRow {
+  background: color-mix(in srgb, var(--admin-primary) 5%, var(--admin-surface));
+}
+
+.productDefaultVariantRow input[readonly] {
+  color: var(--admin-text);
+  background: var(--admin-bg);
+}
+
 .productTinyThumb,
 .productListThumb,
 .productCoverPreview {
@@ -1478,6 +1487,45 @@ p {
 
 .productInventoryModeCell small {
   color: var(--admin-text-muted);
+}
+
+.productShippingCarrierGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.productShippingCarrier {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-height: 54px;
+  padding: 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.productShippingCarrierActive {
+  border-color: var(--admin-border-strong);
+  background: var(--admin-surface-muted);
+}
+
+.productShippingCarrier input {
+  margin-top: 2px;
+}
+
+.productShippingCarrier span,
+.productShippingCarrier strong,
+.productShippingCarrier small {
+  display: block;
+}
+
+.productShippingCarrier small {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .productListThumb {
@@ -1823,6 +1871,8 @@ p {
 }
 
 .productMediaAdd {
+  border: 1px dashed var(--admin-border);
+  appearance: none;
   gap: 8px;
   border-width: 2px;
   color: var(--admin-primary-pressed);
@@ -1834,6 +1884,16 @@ p {
 .productMediaAdd:hover {
   border-color: var(--admin-primary);
   background: color-mix(in srgb, var(--admin-primary) 8%, var(--admin-bg));
+}
+
+.productMediaAdd:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.productMediaAdd:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--admin-primary) 35%, transparent);
+  outline-offset: 2px;
 }
 
 .productMediaAdd svg {
@@ -1918,6 +1978,12 @@ p {
   block-size: 1px;
   opacity: 0;
   pointer-events: none;
+}
+
+.productMediaStatus {
+  margin: 8px 0 0;
+  color: var(--admin-text-muted);
+  font-size: 13px;
 }
 
 .productEditorFooter {

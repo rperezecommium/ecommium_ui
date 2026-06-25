@@ -308,6 +308,7 @@ x-locale: es-ES
 ```json
 {
   "name": "Lego Halcon Millenario",
+  "refId": "LEGO-HALCON-MILLENARIO",
   "slug": "lego-halcon-millenario",
   "shortDescription": "Set Lego Star Wars Halcon Millenario.",
   "description": "Descripcion completa actualizada.",
@@ -586,7 +587,7 @@ Pestana `Variantes`:
 - generador rapido opcional desde atributos:
   - `Color`: rojo, azul;
   - `Talla`: S, M, L;
-- boton `Generar ProductVariants`;
+- boton `Generar variantes`;
 - tabla:
 
 ```text
@@ -688,7 +689,7 @@ La UI debe enviarlas como llamadas separadas por opcion hasta que exista una fac
 
 ### Pruebas de cierre
 
-- Generar ProductVariants no llama a backend hasta guardar.
+- Generar variantes no llama a backend hasta guardar.
 - Guardar crea variantes y opciones.
 - El backend rechaza combinaciones duplicadas; la UI debe mostrar el conflicto en la fila.
 - El listado de variantes se recarga y muestra `variantId` reales.
@@ -725,25 +726,29 @@ Acciones:
 
 - La galeria de producto viene de `Media`.
 - La asignacion comercial vive en `Catalog VariantMedia`.
-- Si una variante no tiene imagenes, hereda la imagen de `defaultVariant`.
+- El selector de la UI debe usar `variantRows[]` de `GET /api/v1/admin/products/:productId/editor-state` para mostrar `Producto`, `Producto base` o `Variante N`, sin exponer `defaultVariant` como una variante comercial adicional.
+- Si una variante no tiene imagenes directas, hereda las imagenes del producto/default variant segun `effectiveMediaSource`.
 
-### Adjuntar una imagen individual
+### Sincronizar imagenes de una variante
 
 ```http
-POST /api/v1/variants/:variantId/media
+PUT /api/v1/admin/variants/:variantId/media
 Authorization: Bearer <admin-token>
 ```
 
 ```json
 {
-  "mediaAssetId": "e95fd308-7015-4bb3-a3f9-5e7679f4dd2e",
-  "sortOrder": 1,
-  "isMain": true,
-  "status": "active"
+  "items": [
+    {
+      "mediaAssetId": "e95fd308-7015-4bb3-a3f9-5e7679f4dd2e",
+      "isMain": true,
+      "status": "active"
+    }
+  ]
 }
 ```
 
-`altText` y `title` pueden omitirse si `Media` ya tiene metadata; `Catalog` toma fallback desde el asset.
+La UI envia la seleccion completa en el orden visual deseado. El BFF/Catalog sincroniza la relacion y asigna `sortOrder` unico por variante; seleccionar una imagen ya existente de la coleccion no vuelve a subir el asset.
 
 ### Limpiar imagenes de variante
 
@@ -756,7 +761,7 @@ Authorization: Bearer <admin-token>
 
 - Variante roja puede tener imagen roja sin afectar variante azul.
 - Cambiar portada de una variante no cambia portada de otras variantes.
-- Limpiar imagenes de una variante activa fallback a `defaultVariant`.
+- Limpiar imagenes de una variante activa fallback a imagenes del producto.
 - PDP/lectura hidratada muestra `variants[].images`.
 
 ## Proceso 10: pestana `Precio`
@@ -952,7 +957,7 @@ Configurar stock por variante y warehouse sin poner stock en Catalog.
 ### UI esperada
 
 - Producto simple: tabla compacta para la variante default.
-- Producto con variantes: separar `Stock default` y `Stock por combinacion`.
+- Producto con variantes: separar `Stock del producto` y `Stock por variante`.
 - Cada fila debe mostrar `warehouseId`, `onHandQuantity`, `reservedQuantity`, `safetyStockQuantity`, `availableQuantity` y estado disponible/sin stock.
 - Warehouse configurable por fila, con default operativo `main-warehouse` o el que entregue el contexto.
 
@@ -1110,7 +1115,7 @@ No se puede publicar todavia
 ### Ajuste UX aplicado tras revision de modelo
 
 - La pestana visible pasa de `Combinaciones` a `Variantes` para no confundir la unidad vendible con sus opciones.
-- La tabla principal representa `ProductVariant`: nombre comercial, SKU/referencia, EAN, precio propio o heredado, stock, imagen heredada/directa, estado activo/visible y acciones de ciclo de vida.
+- La tabla principal representa `Producto` y variantes vendibles: nombre comercial, SKU/referencia, EAN, precio propio o heredado, stock, imagen heredada/directa, estado activo/visible y acciones de ciclo de vida.
 - Las opciones comerciales (`ProductVariantOption`) se editan en un panel de detalle de la variante seleccionada.
 - Para variantes nuevas, las opciones se pueden agregar/quitar antes de guardar y se persisten con `POST /api/v1/admin/variants/:variantId/options`.
 - Para variantes persistidas, el draft conserva `variantOptionId` cuando BFF lo entrega y el guardado sincroniza cambios con `PATCH /api/v1/admin/variants/:variantId/options/:variantOptionId`.

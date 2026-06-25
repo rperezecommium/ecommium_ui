@@ -75,6 +75,46 @@ test("normalizes product names into slugs and default references", () => {
   assert.equal(draftModule.makeRefIdFromName("Lego Halcon Milenario"), "LEGO_HALCON_MILENARIO");
 });
 
+test("hydrates the default variant name from the product base name", () => {
+  const draft = draftModule.draftFromProduct(
+    {
+      productId: "product-1",
+      name: "Lata de aceite morgan blue",
+      slug: "lata-de-aceite-morgan-blue",
+      isActive: false,
+      isVisible: true,
+      defaultVariantId: "variant-default",
+    },
+    [
+      {
+        variantId: "variant-default",
+        name: "BBB Cycling Aeffect cockpit integrado HS-804-0305",
+        refId: "BBB-HAND-HS-804",
+        ean: null,
+        options: [],
+        isActive: true,
+        isVisible: true,
+        isDefault: true,
+      },
+    ],
+    "es-ES",
+    "EUR",
+  );
+
+  assert.equal(draft.defaultVariant.name, "Lata de aceite morgan blue");
+});
+
+test("normalizes the default variant name to the product base name before save", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Lata de aceite morgan blue";
+  draft.defaultVariant.name = "BBB Cycling Aeffect cockpit integrado HS-804-0305";
+  draft.defaultVariant.refId = "MORGAN-BLUE-ACEITE";
+
+  const normalized = validationModule.normalizeProductDraft(draft);
+
+  assert.equal(normalized.defaultVariant.name, "Lata de aceite morgan blue");
+});
+
 test("maps product operational status from BFF active fields", () => {
   assert.equal(productStatusModule.productStatusIsActive({ status: "ACTIVE" }), true);
   assert.equal(productStatusModule.productStatusIsActive({ active: true }), true);
@@ -98,6 +138,18 @@ test("builds a safe create payload with inactive product publication", () => {
   assert.equal(payload.defaultVariant.refId, "LEGO_HALCON_MILENARIO");
   assert.equal(payload.categoryId, "category-1");
   assert.equal(payload.isActive, false);
+});
+
+test("sends the principal reference when updating a product", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Abrazadera ring roja";
+  draft.basic.slug = "abrazadera-ring-roja";
+  draft.defaultVariant.refId = "ABRAZADERA-RING-ROJA";
+
+  const payload = validationModule.toUpdateProductPayload(draft);
+
+  assert.equal(payload.name, "Abrazadera ring roja");
+  assert.equal(payload.refId, "ABRAZADERA-RING-ROJA");
 });
 
 test("requires a principal category before saving a product", () => {
@@ -326,6 +378,31 @@ test("keeps rich HTML in product summary and description payloads", () => {
   assert.equal(payload.description, "<section><h2>Detalle</h2><p>Contenido <em>enriquecido</em></p></section>");
 });
 
+test("includes product shipping metadata in catalog create and update payloads", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Producto transportable";
+  draft.basic.slug = "producto-transportable";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "PRODUCTO-TRANSPORTABLE";
+  draft.shipping.package.weightGrams = 450;
+  draft.shipping.package.widthMm = 120;
+  draft.shipping.package.heightMm = 80;
+  draft.shipping.package.depthMm = 60;
+  draft.shipping.additionalShippingCostMinor = 299;
+  draft.shipping.allowedCarrierIds = ["carrier-bike", "carrier-express"];
+  draft.shipping.deliveryTimeMode = "specific";
+  draft.shipping.deliveryTimeNotes.inStock["es-ES"] = "Entrega en 24h";
+
+  const createPayload = validationModule.toCreateProductPayload(draft, "es-ES");
+  const updatePayload = validationModule.toUpdateProductPayload(draft);
+
+  assert.equal(createPayload.shipping.package.weightGrams, 450);
+  assert.equal(createPayload.shipping.additionalShippingCostMinor, 299);
+  assert.equal(JSON.stringify(createPayload.shipping.allowedCarrierIds), JSON.stringify(["carrier-bike", "carrier-express"]));
+  assert.equal(createPayload.shipping.deliveryTimeNotes.inStock["es-ES"], "Entrega en 24h");
+  assert.equal(JSON.stringify(updatePayload.shipping), JSON.stringify(createPayload.shipping));
+});
+
 test("save orchestrator creates catalog first and keeps later blocks independent", async () => {
   const calls = [];
   const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
@@ -430,6 +507,7 @@ test("save orchestrator creates catalog first and keeps later blocks independent
   assert.equal(report.productId, "product-1");
   assert.equal(report.defaultVariantId, "variant-1");
   assert.equal(report.blocks.catalog, "success");
+  assert.equal(report.blocks.shipping, "success");
   assert.equal(report.blocks.pricing, "success");
   assert.equal(report.blocks.inventory, "success");
   assert.deepEqual(calls, [

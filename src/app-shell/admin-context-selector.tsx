@@ -86,9 +86,6 @@ export function AdminContextSelector({
               <option value={shop.id} key={`${shop.organizationId}:${shop.id}`}>
                 {isCurrent(shop) ? "Activa - " : ""}
                 {shop.name}
-                {shop.shopAlias ? ` (${shop.shopAlias})` : ""}
-                {shop.primaryDomain ? ` - ${shop.primaryDomain}` : ""}
-                {shop.status ? ` - ${shop.status}` : ""}
               </option>
             ))}
           </select>

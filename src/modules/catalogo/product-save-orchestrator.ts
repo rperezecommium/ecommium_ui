@@ -34,6 +34,8 @@ function initialBlocks(): ProductSaveBlocks {
     variantMedia: "pending",
     pricing: "pending",
     inventory: "pending",
+    shipping: "pending",
+    publish: "pending",
   };
 }
 
@@ -46,6 +48,7 @@ function failedReport(fieldErrors: Record<string, string>, messages: string[]): 
     },
     messages,
     fieldErrors,
+    recoveryActions: [],
     correlationIds: [],
   };
 }
@@ -262,6 +265,12 @@ export async function saveProductDraft({
       blocks,
       messages,
       fieldErrors,
+      recoveryActions: [{
+        code: "retry_catalog",
+        label: "Reintentar Catalog",
+        targetBlock: "catalog",
+        retryable: true,
+      }],
       correlationIds,
     };
   }
@@ -269,6 +278,7 @@ export async function saveProductDraft({
   productId = catalogResult.data.productId;
   mediaCollectionId = catalogResult.data.mediaCollectionId ?? mediaCollectionId;
   blocks.catalog = "success";
+  blocks.shipping = "success";
   messages.push(normalizedDraft.productId ? "Producto actualizado." : "Producto creado.");
 
   const variantsResult = await gateway.listVariants(productId);
@@ -692,6 +702,7 @@ export async function saveProductDraft({
 
   const hasFailure = Object.values(blocks).some((status) => status === "failed");
   let finalBasicIsActive = activationRequested && publicationReadyBeforeSave && !hasFailure;
+  blocks.publish = activationRequested ? "running" : "skipped";
 
   if (activationRequested && !finalBasicIsActive && productId) {
     const mediaItemsAfterSave = normalizedDraft.media.items.map((item) => ({
@@ -746,19 +757,52 @@ export async function saveProductDraft({
 
         if (activationResult.ok) {
           finalBasicIsActive = true;
+          blocks.publish = "success";
           messages.push("Producto activado.");
         } else {
           finalBasicIsActive = false;
+          blocks.publish = "failed";
           fieldErrors.publication = activationResult.error;
           messages.push(`Producto guardado fuera de linea. No se pudo activar. ${activationResult.error}`);
         }
       }
     } else {
       finalBasicIsActive = false;
+      blocks.publish = "blocked";
       Object.assign(fieldErrors, publicationValidation.fieldErrors);
       messages.push(activationBlockedMessage(publicationDraft));
     }
+  } else if (activationRequested && !finalBasicIsActive) {
+    blocks.publish = hasFailure ? "blocked" : "failed";
   }
+
+  const recoveryActions = Object.entries(fieldErrors)
+    .filter(([key]) => key === "media" || key.startsWith("media:") || key.startsWith("pricing.") || key.startsWith("publication"))
+    .map(([key]) => {
+      if (key === "media" || key.startsWith("media:")) {
+        return {
+          code: "review_media",
+          label: "Revisar imagenes",
+          targetBlock: "media",
+          retryable: true,
+        };
+      }
+      if (key.startsWith("pricing.")) {
+        return {
+          code: "review_pricing",
+          label: "Revisar precios",
+          targetBlock: "pricing",
+          retryable: true,
+        };
+      }
+      return {
+        code: "review_publication",
+        label: "Completar requisitos de publicacion",
+        targetBlock: "publish",
+        retryable: true,
+      };
+    })
+    .filter((action, index, actions) => actions.findIndex((item) => item.code === action.code) === index);
 
   return {
     ok: !hasFailure && (activationRequested ? finalBasicIsActive || !fieldErrors.publication : true),
@@ -768,6 +812,7 @@ export async function saveProductDraft({
     blocks,
     messages,
     fieldErrors,
+    recoveryActions,
     correlationIds,
     draftPatch: {
       productId,
@@ -794,6 +839,7 @@ export async function saveProductDraft({
       inventory: {
         stockByVariant: nextStockByVariant,
       },
+      shipping: normalizedDraft.shipping,
       saveState: blocks,
     },
   };

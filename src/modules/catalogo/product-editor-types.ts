@@ -2,7 +2,7 @@ import type { BffResult } from "../../shared/bff/types";
 
 export type ProductMode = "simple" | "variants";
 
-export type SaveBlockStatus = "pending" | "running" | "success" | "failed" | "skipped";
+export type SaveBlockStatus = "pending" | "running" | "success" | "failed" | "skipped" | "blocked";
 
 export type PriceDraft = {
   pricingId?: string;
@@ -32,12 +32,30 @@ export type StockDraft = {
   reasons?: string[];
 };
 
+export type ProductShippingDraft = {
+  package: {
+    weightGrams?: number | null;
+    widthMm?: number | null;
+    heightMm?: number | null;
+    depthMm?: number | null;
+  };
+  additionalShippingCostMinor?: number | null;
+  allowedCarrierIds: string[];
+  deliveryTimeMode: "none" | "default" | "specific";
+  deliveryTimeNotes: {
+    inStock: Record<string, string>;
+    outOfStock: Record<string, string>;
+  };
+};
+
 export type ProductDraftMediaItem = {
   localId: string;
   fileName: string;
   fileSize: number;
   mimeType: string;
   previewUrl?: string;
+  uploadStatus?: "local" | "uploading" | "uploaded" | "failed";
+  uploadError?: string;
   isMain: boolean;
   active: boolean;
   alt: Record<string, string>;
@@ -85,6 +103,7 @@ export type ProductOfferingRecord = {
 };
 
 export type ProductDraft = {
+  clientDraftId: string;
   productId?: string;
   defaultVariantId?: string;
   mediaCollectionId?: string | null;
@@ -129,6 +148,7 @@ export type ProductDraft = {
   inventory: {
     stockByVariant: Record<string, StockDraft>;
   };
+  shipping: ProductShippingDraft;
   saveState: Record<string, SaveBlockStatus>;
 };
 
@@ -194,9 +214,29 @@ export type ProductVariantRecord = {
   options?: ProductDraftVariantOption[];
 };
 
+export type ProductEditorVariantRow = {
+  variantId: string;
+  productId?: string;
+  role: "PRODUCT_SIMPLE" | "PRODUCT_DEFAULT" | "VARIANT";
+  position?: number;
+  variantPosition?: number | null;
+  isDefault: boolean;
+  isVisible: boolean;
+  isActive: boolean;
+  refId: string;
+  name: string;
+  displayLabel: string;
+  selectorLabel: string;
+  directMediaCount: number;
+  effectiveMediaSource: "DIRECT" | "DEFAULT_VARIANT" | "NONE";
+  inheritsMediaFromVariantId?: string | null;
+  selectableForMedia?: boolean;
+};
+
 export type ProductEditorData = {
   product: ProductSummary;
   variants: ProductVariantRecord[];
+  variantRows: ProductEditorVariantRow[];
   mediaItems: ProductDraftMediaItem[];
   mediaAssignments: Record<string, string[]>;
   mediaMainByVariant: Record<string, string>;
@@ -204,6 +244,7 @@ export type ProductEditorData = {
   variantPrices: Record<string, PriceDraft>;
   offeringsByVariant: Record<string, ProductOfferingRecord[]>;
   stockByVariant: Record<string, StockDraft>;
+  shipping?: ProductShippingDraft;
   warnings: string[];
   correlationIds: string[];
 };
@@ -232,6 +273,7 @@ export type ProductEditorLookups = {
   brands: ProductLookupOption[];
   taxes: ProductTaxLookupOption[];
   priceTables: ProductLookupOption[];
+  carriers: ProductLookupOption[];
   warnings: string[];
 };
 
@@ -242,16 +284,78 @@ export type ProductSaveBlocks = {
   variantMedia: SaveBlockStatus;
   pricing: SaveBlockStatus;
   inventory: SaveBlockStatus;
+  shipping: SaveBlockStatus;
+  publish: SaveBlockStatus;
+};
+
+export type ProductSaveRecoveryAction = {
+  code: string;
+  label: string;
+  targetBlock?: keyof ProductSaveBlocks | string;
+  retryable?: boolean;
 };
 
 export type ProductSaveReport = {
   ok: boolean;
+  operationId?: string;
+  status?: string;
+  retryable?: boolean;
   productId?: string;
   defaultVariantId?: string;
   mediaCollectionId?: string | null;
   blocks: ProductSaveBlocks;
   messages: string[];
   fieldErrors: Record<string, string>;
+  recoveryActions: ProductSaveRecoveryAction[];
+  correlationIds: string[];
+  draftPatch?: Partial<ProductDraft>;
+};
+
+export type ProductDraftMediaUploadReport = {
+  ok: boolean;
+  uploadOperationId?: string;
+  idempotencyKey?: string;
+  clientDraftId?: string;
+  productId?: string;
+  defaultVariantId?: string | null;
+  mediaCollectionId?: string | null;
+  mediaItem?: ProductDraftMediaItem;
+  status?: string;
+  messages?: string[];
+  fieldErrors?: Record<string, string>;
+  correlationIds: string[];
+  draftPatch?: Partial<ProductDraft>;
+};
+
+export type ProductDraftMediaStateItem = {
+  localId: string;
+  mediaAssetId: string;
+  fileName: string | null;
+  mimeType: string | null;
+  fileSize: number;
+  previewUrl?: string | null;
+  thumbnailUrl?: string | null;
+  isMain: boolean;
+  position?: number;
+  active: boolean;
+  persisted: true;
+  uploadStatus: "uploaded";
+  alt: Record<string, string>;
+  title: Record<string, string>;
+};
+
+export type ProductDraftMediaStateReport = {
+  ok: boolean;
+  clientDraftId?: string;
+  productId?: string | null;
+  defaultVariantId?: string | null;
+  mediaCollectionId?: string | null;
+  status?: string;
+  expiresAt?: string | null;
+  mediaItems: ProductDraftMediaStateItem[];
+  warnings: string[];
+  messages?: string[];
+  fieldErrors?: Record<string, string>;
   correlationIds: string[];
   draftPatch?: Partial<ProductDraft>;
 };
@@ -278,10 +382,12 @@ export type ProductCatalogCreatePayload = {
   taxCode?: string;
   metaTagDescription?: string;
   supplierId?: number;
+  shipping?: ProductShippingDraft;
 };
 
 export type ProductCatalogUpdatePayload = {
   name: string;
+  refId?: string;
   slug: string;
   shortDescription?: string;
   description?: string;
@@ -293,6 +399,7 @@ export type ProductCatalogUpdatePayload = {
   title?: string;
   taxCode?: string;
   metaTagDescription?: string;
+  shipping?: ProductShippingDraft;
 };
 
 export type ProductVariantCreatePayload = {

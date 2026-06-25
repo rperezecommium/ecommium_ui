@@ -229,6 +229,9 @@ Estados UI obligatorios para multistore:
 
 ### Admin: Media, Shipping, Invoice y After Sales
 
+- `POST /api/v1/admin/product-save-operations?organizationId=:org&shopId=:shop&locale=:locale`
+- `GET /api/v1/admin/product-drafts/:clientDraftId?organizationId=:org&shopId=:shop&locale=:locale`
+- `POST /api/v1/admin/product-drafts/:clientDraftId/media?organizationId=:org&shopId=:shop&locale=:locale`
 - `POST /api/v1/admin/media/collections`
 - `POST /api/v1/admin/media/collections/:mediaCollectionId/items`
 - `GET /api/v1/admin/media/collections`
@@ -238,6 +241,8 @@ Estados UI obligatorios para multistore:
 - `DELETE /api/v1/admin/media/collections/:mediaCollectionId?mode=soft|hard`
 - `GET /api/v1/admin/media/assets/:mediaAssetId/content?variant=original|small_default|medium_default|large_default`
 - `GET /api/v1/admin/shipping/warehouses?organizationId=:org&shopId=:shop&includeInactive=false`
+- `GET /api/v1/admin/shipping/configuration?organizationId=:org&shopId=:shop&includeInactive=false`
+- `POST /api/v1/shipping/options/resolve?organizationId=:org&shopId=:shop`
 - `PUT /api/v1/admin/shipping/warehouses?organizationId=:org&shopId=:shop`
 - `GET /api/v1/admin/shipping/sla-policies?organizationId=:org&shopId=:shop&includeInactive=false`
 - `PUT /api/v1/admin/shipping/sla-policies?organizationId=:org&shopId=:shop`
@@ -255,6 +260,24 @@ Estados UI obligatorios para multistore:
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/approve?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/after-sales/cases/:caseId/refund-requests?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/resolve?organizationId=:org&shopId=:shop`
+
+`Admin > Transporte` consume la configuracion global de Shipping/Logistics por
+BFF con `GET /admin/shipping/configuration` y edita zonas, transportistas,
+servicios y reglas tarifarias con `PUT /admin/shipping/{zones,carriers,carrier-services,rate-rules}`.
+Tambien incluye un simulador operativo de cotizacion que llama
+`POST /shipping/options/resolve` con direccion, item, peso, dimensiones y grupo
+de cliente para validar que las reglas configuradas producen SLAs reales.
+La ficha de producto solo guarda atributos logisticos propios del producto y
+referencias a transportistas permitidos; no duplica reglas globales de Shipping.
+
+Guardado Admin de producto:
+
+- La UI genera `clientDraftId` estable antes de persistir el producto y lo conserva en el borrador local.
+- Las imagenes nuevas se suben por `POST /admin/product-drafts/:clientDraftId/media` con multipart, `idempotency-key`, `fileLocalId`, metadata y archivo binario. Media persiste el asset; Catalog solo recibe referencias `mediaAssetId`.
+- Al abrir o restaurar un borrador con `clientDraftId`, la UI consulta `GET /admin/product-drafts/:clientDraftId` y rehidrata `productId`, `defaultVariantId`, `mediaCollectionId` y `mediaItems[]` persistidos.
+- El guardado general usa una sola operacion `POST /admin/product-save-operations` con `draft` JSON, archivos locales pendientes y `idempotency-key`.
+- La respuesta BFF incluye `blocks.catalog|variants|media|variantMedia|pricing|inventory|shipping|publish`, `fieldErrors`, `retryable`, `draftPatch`, `correlationIds` y `recoveryActions`.
+- Si `publish` queda `blocked`, la UI debe mantener el producto como borrador/guardado sin publicar y mostrar las acciones de recuperacion devueltas por BFF. La UI puede anticipar validaciones, pero el BFF decide el estado final.
 
 ## UX PrestaShop-like aplicable
 

@@ -2,8 +2,9 @@ import type {
   ProductCatalogCreatePayload,
   ProductCatalogUpdatePayload,
   ProductDraft,
+  ProductShippingDraft,
 } from "./product-editor-types";
-import { makeRefIdFromName, plainProductText, slugifyProductValue } from "./product-editor-draft";
+import { createEmptyProductShippingDraft, makeRefIdFromName, plainProductText, slugifyProductValue } from "./product-editor-draft";
 
 export type ProductDraftValidation = {
   ok: boolean;
@@ -76,6 +77,47 @@ function stockAvailableQuantity(stock: ProductDraft["inventory"]["stockByVariant
   }
 
   return stock.availableQuantity ?? Math.max(0, stock.onHandQuantity - stock.reservedQuantity - stock.safetyStockQuantity);
+}
+
+function normalizeOptionalPositiveInteger(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.trunc(value) : null;
+}
+
+function normalizeDeliveryNotes(value: Record<string, string> | undefined) {
+  return Object.fromEntries(
+    Object.entries(value ?? {})
+      .map(([locale, note]) => [locale.trim(), note.trim()] as const)
+      .filter(([locale, note]) => Boolean(locale && note)),
+  );
+}
+
+function normalizeShippingDraft(shipping: ProductShippingDraft | undefined): ProductShippingDraft {
+  const fallback = createEmptyProductShippingDraft();
+  const deliveryTimeMode = shipping?.deliveryTimeMode === "default" || shipping?.deliveryTimeMode === "specific"
+    ? shipping.deliveryTimeMode
+    : "none";
+
+  return {
+    package: {
+      weightGrams: normalizeOptionalPositiveInteger(shipping?.package?.weightGrams),
+      widthMm: normalizeOptionalPositiveInteger(shipping?.package?.widthMm),
+      heightMm: normalizeOptionalPositiveInteger(shipping?.package?.heightMm),
+      depthMm: normalizeOptionalPositiveInteger(shipping?.package?.depthMm),
+    },
+    additionalShippingCostMinor: normalizeOptionalPositiveInteger(shipping?.additionalShippingCostMinor),
+    allowedCarrierIds: Array.from(new Set(
+      (shipping?.allowedCarrierIds ?? [])
+        .map((carrierId) => carrierId.trim())
+        .filter(Boolean),
+    )),
+    deliveryTimeMode,
+    deliveryTimeNotes: deliveryTimeMode === "specific"
+      ? {
+          inStock: normalizeDeliveryNotes(shipping?.deliveryTimeNotes?.inStock),
+          outOfStock: normalizeDeliveryNotes(shipping?.deliveryTimeNotes?.outOfStock),
+        }
+      : fallback.deliveryTimeNotes,
+  };
 }
 
 function hasPublishableStock(draft: ProductDraft) {
@@ -181,7 +223,7 @@ export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
     defaultVariant: {
       ...draft.defaultVariant,
       refId,
-      name: cleanOptional(draft.defaultVariant.name),
+      name,
       ean: cleanOptional(draft.defaultVariant.ean ?? undefined) ?? null,
     },
     variants: draft.variants.map((variant) => ({
@@ -202,6 +244,7 @@ export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
       ...draft.pricing,
       variantPrices,
     },
+    shipping: normalizeShippingDraft(draft.shipping),
   };
 }
 
@@ -294,6 +337,7 @@ export function toCreateProductPayload(draft: ProductDraft, locale: string): Pro
     taxCode: normalized.basic.taxCode,
     ...(normalized.basic.metaDescription ? { metaTagDescription: normalized.basic.metaDescription } : {}),
     supplierId: 0,
+    shipping: normalized.shipping,
   };
 }
 
@@ -302,6 +346,7 @@ export function toUpdateProductPayload(draft: ProductDraft): ProductCatalogUpdat
 
   return {
     name: normalized.basic.name,
+    refId: normalized.defaultVariant.refId,
     slug: normalized.basic.slug,
     ...(normalized.basic.shortDescription ? { shortDescription: normalized.basic.shortDescription } : {}),
     ...(normalized.basic.description ? { description: normalized.basic.description } : {}),
@@ -313,5 +358,6 @@ export function toUpdateProductPayload(draft: ProductDraft): ProductCatalogUpdat
     title: normalized.basic.metaTitle || normalized.basic.name,
     taxCode: normalized.basic.taxCode,
     ...(normalized.basic.metaDescription ? { metaTagDescription: normalized.basic.metaDescription } : {}),
+    shipping: normalized.shipping,
   };
 }

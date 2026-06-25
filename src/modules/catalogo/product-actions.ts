@@ -1,10 +1,29 @@
 "use server";
 
 import { getAdminContext } from "../../shared/config/admin-context";
+import { requestBff } from "../../shared/bff/client";
 import { createCatalogEntity, listCatalogEntities, toLookupOptions, type CatalogEntityKind } from "./catalog-taxonomy";
 import { makeProductGateway } from "./products";
-import { saveProductDraft } from "./product-save-orchestrator";
-import type { ProductDraft, ProductDraftMediaFile, ProductLookupOption, ProductOfferingRecord, ProductSaveReport } from "./product-editor-types";
+import type {
+  ProductDraft,
+  ProductDraftMediaStateReport,
+  ProductDraftMediaUploadReport,
+  ProductLookupOption,
+  ProductOfferingRecord,
+  ProductSaveBlocks,
+  ProductSaveReport,
+} from "./product-editor-types";
+
+const defaultProductSaveBlocks: ProductSaveBlocks = {
+  catalog: "pending",
+  variants: "pending",
+  media: "pending",
+  variantMedia: "pending",
+  pricing: "pending",
+  inventory: "pending",
+  shipping: "pending",
+  publish: "pending",
+};
 
 function parseDraft(value: FormDataEntryValue | null): ProductDraft | null {
   if (typeof value !== "string") {
@@ -18,25 +37,141 @@ function parseDraft(value: FormDataEntryValue | null): ProductDraft | null {
   }
 }
 
-function formDataFiles(formData: FormData) {
-  return formData
-    .getAll("files")
-    .filter((value): value is File => value instanceof File && value.size > 0);
+export async function uploadProductDraftMediaAction(
+  clientDraftId: string,
+  formData: FormData,
+): Promise<ProductDraftMediaUploadReport> {
+  const normalizedClientDraftId = clientDraftId.trim();
+  if (!normalizedClientDraftId) {
+    return {
+      ok: false,
+      messages: ["No se pudo identificar el borrador de producto."],
+      fieldErrors: {
+        clientDraftId: "Borrador invalido.",
+      },
+      correlationIds: [],
+    };
+  }
+
+  const context = await getAdminContext();
+  if (!context.organizationId || !context.shopId) {
+    return {
+      ok: false,
+      messages: ["Falta contexto Admin canonico."],
+      fieldErrors: {
+        context: "Selecciona Organization y Shop antes de subir imagenes.",
+      },
+      correlationIds: [],
+    };
+  }
+
+  const idempotencyKeyEntry = formData.get("idempotencyKey");
+  const idempotencyKey =
+    typeof idempotencyKeyEntry === "string" && idempotencyKeyEntry.trim()
+      ? idempotencyKeyEntry.trim()
+      : crypto.randomUUID();
+  const params = new URLSearchParams({
+    organizationId: context.organizationId,
+    shopId: context.shopId,
+    locale: context.locale,
+  });
+
+  const result = await requestBff<ProductDraftMediaUploadReport>(
+    `/admin/product-drafts/${encodeURIComponent(normalizedClientDraftId)}/media?${params.toString()}`,
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: {
+          "idempotency-key": idempotencyKey,
+        },
+        body: formData,
+      },
+      parse: (value) => value as ProductDraftMediaUploadReport,
+    },
+  );
+
+  if (result.ok) {
+    return {
+      ...result.data,
+      correlationIds: Array.from(new Set([...(result.data.correlationIds ?? []), result.correlationId])),
+    };
+  }
+
+  return {
+    ok: false,
+    messages: [`No se pudo subir la imagen. ${result.error}`],
+    fieldErrors: {
+      media: result.error,
+    },
+    correlationIds: [result.correlationId],
+  };
 }
 
-function formDataMediaFiles(formData: FormData): ProductDraftMediaFile[] {
-  const files = formDataFiles(formData);
-  const localIds = formData
-    .getAll("fileLocalIds")
-    .map((value) => typeof value === "string" ? value.trim() : "")
-    .filter(Boolean);
+export async function readProductDraftMediaStateAction(clientDraftId: string): Promise<ProductDraftMediaStateReport> {
+  const normalizedClientDraftId = clientDraftId.trim();
+  if (!normalizedClientDraftId) {
+    return {
+      ok: false,
+      mediaItems: [],
+      warnings: [],
+      messages: ["No se pudo identificar el borrador de producto."],
+      fieldErrors: {
+        clientDraftId: "Borrador invalido.",
+      },
+      correlationIds: [],
+    };
+  }
 
-  return files
-    .map((file, index) => ({
-      file,
-      localId: localIds[index] ?? "",
-    }))
-    .filter((item): item is ProductDraftMediaFile => Boolean(item.localId));
+  const context = await getAdminContext();
+  if (!context.organizationId || !context.shopId) {
+    return {
+      ok: false,
+      mediaItems: [],
+      warnings: [],
+      messages: ["Falta contexto Admin canonico."],
+      fieldErrors: {
+        context: "Selecciona Organization y Shop antes de recuperar imagenes.",
+      },
+      correlationIds: [],
+    };
+  }
+
+  const params = new URLSearchParams({
+    organizationId: context.organizationId,
+    shopId: context.shopId,
+    locale: context.locale,
+  });
+  const result = await requestBff<ProductDraftMediaStateReport>(
+    `/admin/product-drafts/${encodeURIComponent(normalizedClientDraftId)}?${params.toString()}`,
+    {
+      context,
+      init: {
+        method: "GET",
+      },
+      parse: (value) => value as ProductDraftMediaStateReport,
+    },
+  );
+
+  if (result.ok) {
+    return {
+      ...result.data,
+      mediaItems: result.data.mediaItems ?? [],
+      warnings: result.data.warnings ?? [],
+      correlationIds: Array.from(new Set([...(result.data.correlationIds ?? []), result.correlationId])),
+    };
+  }
+
+  return {
+    ok: false,
+    mediaItems: [],
+    warnings: [],
+    messages: [`No se pudieron recuperar imagenes del borrador. ${result.error}`],
+    fieldErrors: {
+      media: result.error,
+    },
+    correlationIds: [result.correlationId],
+  };
 }
 
 export async function saveProductDraftAction(formData: FormData): Promise<ProductSaveReport> {
@@ -46,29 +181,89 @@ export async function saveProductDraftAction(formData: FormData): Promise<Produc
     return {
       ok: false,
       blocks: {
+        ...defaultProductSaveBlocks,
         catalog: "failed",
-        variants: "pending",
-        media: "pending",
-        variantMedia: "pending",
-        pricing: "pending",
-        inventory: "pending",
       },
       messages: ["No se pudo leer el borrador de producto."],
       fieldErrors: {
         draft: "Borrador invalido.",
       },
+      recoveryActions: [],
       correlationIds: [],
     };
   }
 
   const context = await getAdminContext();
-  return saveProductDraft({
-    draft,
-    context,
-    gateway: makeProductGateway(context),
-    files: formDataFiles(formData),
-    mediaFiles: formDataMediaFiles(formData),
+  if (!context.organizationId || !context.shopId) {
+    return {
+      ok: false,
+      blocks: {
+        ...defaultProductSaveBlocks,
+        catalog: "failed",
+      },
+      messages: ["Falta contexto Admin canonico."],
+      fieldErrors: {
+        context: "Selecciona Organization y Shop antes de guardar productos.",
+      },
+      recoveryActions: [],
+      correlationIds: [],
+    };
+  }
+
+  const params = new URLSearchParams({
+    organizationId: context.organizationId,
+    shopId: context.shopId,
+    locale: context.locale,
   });
+
+  const idempotencyKeyEntry = formData.get("idempotencyKey");
+  const idempotencyKey =
+    typeof idempotencyKeyEntry === "string" && idempotencyKeyEntry.trim()
+      ? idempotencyKeyEntry.trim()
+      : crypto.randomUUID();
+
+  const result = await requestBff<ProductSaveReport>(`/admin/product-save-operations?${params.toString()}`, {
+    context,
+    init: {
+      method: "POST",
+      headers: {
+        "idempotency-key": idempotencyKey,
+      },
+      body: formData,
+    },
+    parse: (value) => value as ProductSaveReport,
+  });
+
+  if (result.ok) {
+    return {
+      ...result.data,
+      blocks: {
+        ...defaultProductSaveBlocks,
+        ...result.data.blocks,
+      },
+      recoveryActions: result.data.recoveryActions ?? [],
+      correlationIds: Array.from(new Set([...(result.data.correlationIds ?? []), result.correlationId])),
+    };
+  }
+
+  return {
+    ok: false,
+    blocks: {
+      ...defaultProductSaveBlocks,
+      catalog: "failed",
+    },
+    messages: [`No se pudo guardar el producto. ${result.error}`],
+    fieldErrors: {
+      operation: result.error,
+    },
+    recoveryActions: [{
+      code: "retry_operation",
+      label: "Reintentar guardado",
+      targetBlock: "catalog",
+      retryable: true,
+    }],
+    correlationIds: [result.correlationId],
+  };
 }
 
 type LookupActionResult = {

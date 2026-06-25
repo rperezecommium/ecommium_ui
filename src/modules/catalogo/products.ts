@@ -11,9 +11,12 @@ import type {
   ProductCatalogUpdatePayload,
   ProductEditorData,
   ProductEditorLookups,
+  ProductEditorVariantRow,
   ProductGateway,
   ProductListFilters,
   ProductListResult,
+  ProductLookupOption,
+  ProductShippingDraft,
   ProductTaxLookupOption,
   ProductSummary,
   ProductVariantCreatePayload,
@@ -104,6 +107,12 @@ function asNullableNumber(value: unknown) {
 
 function asNullableString(value: unknown) {
   return asString(value) ?? null;
+}
+
+function asStringArray(value: unknown) {
+  return listItems(value)
+    .map((item) => asString(item))
+    .filter((item): item is string => Boolean(item));
 }
 
 function isString(value: string | undefined): value is string {
@@ -559,6 +568,66 @@ function parseStock(value: unknown, fallbackWarehouseId = "main-warehouse"): Sto
   };
 }
 
+function parsePositiveIntegerOrNull(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.trunc(value) : null;
+}
+
+function parseLocalizedNoteRecord(value: unknown) {
+  const record = asRecord(value);
+  return Object.fromEntries(
+    Object.entries(record)
+      .map(([locale, note]) => [locale, asText(note) ?? ""] as const)
+      .filter(([, note]) => Boolean(note)),
+  );
+}
+
+function parseProductShipping(value: unknown): ProductShippingDraft | undefined {
+  const record = asRecord(value);
+  if (Object.keys(record).length === 0) {
+    return undefined;
+  }
+
+  const packageRecord = asRecord(record.package ?? record.packageDimensions);
+  const deliveryTimeMode = asString(record.deliveryTimeMode);
+  const deliveryTimeNotes = asRecord(record.deliveryTimeNotes);
+
+  return {
+    package: {
+      weightGrams: parsePositiveIntegerOrNull(packageRecord.weightGrams ?? record.weightGrams),
+      widthMm: parsePositiveIntegerOrNull(packageRecord.widthMm ?? record.widthMm),
+      heightMm: parsePositiveIntegerOrNull(packageRecord.heightMm ?? record.heightMm),
+      depthMm: parsePositiveIntegerOrNull(packageRecord.depthMm ?? record.depthMm),
+    },
+    additionalShippingCostMinor: parsePositiveIntegerOrNull(record.additionalShippingCostMinor),
+    allowedCarrierIds: asStringArray(record.allowedCarrierIds ?? record.carrierIds),
+    deliveryTimeMode: deliveryTimeMode === "default" || deliveryTimeMode === "specific" ? deliveryTimeMode : "none",
+    deliveryTimeNotes: {
+      inStock: parseLocalizedNoteRecord(deliveryTimeNotes.inStock),
+      outOfStock: parseLocalizedNoteRecord(deliveryTimeNotes.outOfStock),
+    },
+  };
+}
+
+function parseShippingCarrier(value: unknown): ProductLookupOption | undefined {
+  const record = asRecord(value);
+  const id = asString(record.carrierId) ?? asString(record.id);
+  if (!id) {
+    return undefined;
+  }
+
+  return {
+    id,
+    label: localizedText(record.name ?? record.label) ?? id,
+  };
+}
+
+function parseShippingConfiguration(value: unknown): ProductLookupOption[] {
+  const record = asRecord(value);
+  return listItems(record.carriers ?? value)
+    .map(parseShippingCarrier)
+    .filter((carrier): carrier is ProductLookupOption => Boolean(carrier));
+}
+
 function firstActivePrice(value: unknown): PriceDraft | undefined {
   return listItems(value)
     .map(parsePrice)
@@ -697,6 +766,39 @@ function listVariantMediaItems(variantMedia: unknown, variantId: string) {
   });
 }
 
+function parseVariantRow(value: unknown): ProductEditorVariantRow | null {
+  const record = asRecord(value);
+  const variantId = asString(record.variantId);
+  const role = asString(record.role);
+  const refId = asString(record.refId);
+  const name = asString(record.name);
+  if (!variantId || !refId || !name || !["PRODUCT_SIMPLE", "PRODUCT_DEFAULT", "VARIANT"].includes(role ?? "")) {
+    return null;
+  }
+
+  const effectiveMediaSource = asString(record.effectiveMediaSource);
+  return {
+    variantId,
+    productId: asString(record.productId),
+    role: role as ProductEditorVariantRow["role"],
+    position: asNumber(record.position, 0) || undefined,
+    variantPosition: record.variantPosition === null ? null : asNumber(record.variantPosition, 0) || null,
+    isDefault: asBoolean(record.isDefault),
+    isVisible: asBoolean(record.isVisible),
+    isActive: asBoolean(record.isActive),
+    refId,
+    name,
+    displayLabel: asString(record.displayLabel) ?? name,
+    selectorLabel: asString(record.selectorLabel) ?? `${name} (${refId})`,
+    directMediaCount: asNumber(record.directMediaCount, 0),
+    effectiveMediaSource: ["DIRECT", "DEFAULT_VARIANT", "NONE"].includes(effectiveMediaSource ?? "")
+      ? (effectiveMediaSource as ProductEditorVariantRow["effectiveMediaSource"])
+      : "NONE",
+    inheritsMediaFromVariantId: asString(record.inheritsMediaFromVariantId) ?? null,
+    selectableForMedia: asBoolean(record.selectableForMedia),
+  };
+}
+
 function priceTargetType(value: unknown) {
   return asString(asRecord(value).targetType)?.toUpperCase();
 }
@@ -710,6 +812,9 @@ function parseEditorState(value: unknown, locale: string, currency: string): Pro
   const record = asRecord(value);
   const product = parseProduct(record.product);
   const variants = listItems(record.variants).map(parseVariant).filter((variant) => variant.variantId);
+  const variantRows = listItems(record.variantRows)
+    .map(parseVariantRow)
+    .filter((row): row is ProductEditorVariantRow => Boolean(row));
   const variantOptions = asRecord(record.variantOptions);
   const variantMedia = record.variantMedia;
   const mediaCollection = asRecord(record.mediaCollection);
@@ -796,6 +901,7 @@ function parseEditorState(value: unknown, locale: string, currency: string): Pro
       thumbnailAlt: product.thumbnailAlt ?? (mainMedia ? imageAlt(mainMedia, locale) : null),
     },
     variants,
+    variantRows,
     mediaItems,
     mediaAssignments,
     mediaMainByVariant,
@@ -803,6 +909,7 @@ function parseEditorState(value: unknown, locale: string, currency: string): Pro
     variantPrices,
     offeringsByVariant: {},
     stockByVariant,
+    shipping: parseProductShipping(asRecord(record.product).shipping ?? record.shipping),
     warnings: listItems(record.warnings).map(String),
     correlationIds: [],
   };
@@ -1090,10 +1197,11 @@ export async function getAdminProductEditorData(context: AdminContext, productId
 }
 
 export async function getProductEditorLookups(context: AdminContext): Promise<ProductEditorLookups> {
-  const [categoriesResult, brandsResult, pricingLookups] = await Promise.all([
+  const [categoriesResult, brandsResult, pricingLookups, carriersResult] = await Promise.all([
     listCatalogEntities(context, "categories", { limit: 100, offset: 0, isActive: true }),
     listCatalogEntities(context, "brands", { limit: 100, offset: 0, isActive: true }),
     getPricingEditorLookups(context),
+    getShippingCarrierLookups(context),
   ]);
   const warnings: string[] = [];
 
@@ -1109,7 +1217,29 @@ export async function getProductEditorLookups(context: AdminContext): Promise<Pr
     brands: toLookupOptions(brandsResult),
     taxes: pricingLookups.taxes,
     priceTables: pricingLookups.priceTables,
-    warnings: [...warnings, ...pricingLookups.warnings],
+    carriers: carriersResult.carriers,
+    warnings: [...warnings, ...pricingLookups.warnings, ...carriersResult.warnings],
+  };
+}
+
+async function getShippingCarrierLookups(context: AdminContext) {
+  const params = makeScopedParams(context, { includeInactive: "false" });
+  const endpoint = `/admin/shipping/configuration?${params.toString()}`;
+  const result = await requestBff(endpoint, {
+    context,
+    parse: parseShippingConfiguration,
+  });
+
+  if (!result.ok) {
+    return {
+      carriers: [],
+      warnings: [`Transporte: configuracion BFF no disponible o sin permisos (${result.error}).`],
+    };
+  }
+
+  return {
+    carriers: result.data,
+    warnings: [],
   };
 }
 

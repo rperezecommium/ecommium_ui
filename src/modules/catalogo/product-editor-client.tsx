@@ -1,17 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Italic, List, ListOrdered, Plus, Redo2, RemoveFormatting, Strikethrough, Trash2, Undo2 } from "lucide-react";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import type { ChangeEvent } from "react";
 import {
   createAndAttachOfferingAction,
   createProductBrandInlineAction,
   createProductCategoryInlineAction,
   detachOfferingFromVariantAction,
+  readProductDraftMediaStateAction,
   saveProductDraftAction,
   setOfferingVariantActivationAction,
+  uploadProductDraftMediaAction,
 } from "./product-actions";
 import {
   ensureSingleMainImage,
@@ -23,20 +27,28 @@ import {
 } from "./product-editor-draft";
 import type {
   ProductDraft,
+  ProductDraftMediaStateItem,
   ProductDraftMediaItem,
+  ProductDraftMediaUploadReport,
   ProductDraftVariant,
   ProductEditorLookups,
+  ProductEditorVariantRow,
   ProductLookupOption,
   ProductSaveReport,
   ProductTaxLookupOption,
   SaveBlockStatus,
   StockDraft,
 } from "./product-editor-types";
-import { getProductPublicationChecklist, validateProductDraft } from "./product-editor-validation";
+import {
+  getProductPublicationChecklist,
+  validateProductDraft,
+  validateProductPublicationReadiness,
+} from "./product-editor-validation";
 
 type ProductEditorClientProps = {
   contextIdentity: string;
   initialDraft: ProductDraft;
+  initialVariantRows?: ProductEditorVariantRow[];
   locale: string;
   currency: string;
   lookups?: ProductEditorLookups;
@@ -44,6 +56,14 @@ type ProductEditorClientProps = {
 
 type ProductEditorClientInnerProps = Omit<ProductEditorClientProps, "contextIdentity"> & {
   storageKey: string;
+};
+
+type ProductVariantRowView = ProductDraftVariant & {
+  isDefault: boolean;
+  role: ProductEditorVariantRow["role"];
+  displayLabel: string;
+  selectorLabel: string;
+  effectiveMediaSource: ProductEditorVariantRow["effectiveMediaSource"];
 };
 
 type TabId =
@@ -68,6 +88,9 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: "seo", label: "SEO" },
   { id: "options", label: "Opciones" },
 ];
+
+const remoteMediaConfirmationAttempts = 3;
+const remoteMediaConfirmationDelayMs = 450;
 
 function centsToInput(value: number | undefined) {
   if (!value) {
@@ -149,6 +172,7 @@ function statusLabel(status: SaveBlockStatus) {
     success: "Correcto",
     failed: "Fallo",
     skipped: "Sin cambios",
+    blocked: "Bloqueado",
   };
 
   return labels[status];
@@ -209,7 +233,7 @@ function statusClass(status: SaveBlockStatus) {
   if (status === "failed") {
     return "adminBadgeError";
   }
-  if (status === "running" || status === "pending") {
+  if (status === "running" || status === "pending" || status === "blocked") {
     return "adminBadgeWarn";
   }
 
@@ -224,7 +248,7 @@ function readStoredDraft(key: string, initialDraft: ProductDraft) {
   try {
     const value = window.localStorage.getItem(key);
     const stored = value ? JSON.parse(value) as ProductDraft : null;
-    if (stored && stored.productId !== initialDraft.productId) {
+    if (stored && initialDraft.productId && stored.productId !== initialDraft.productId) {
       return null;
     }
 
@@ -232,6 +256,110 @@ function readStoredDraft(key: string, initialDraft: ProductDraft) {
   } catch {
     return null;
   }
+}
+
+function remoteDraftMediaItemToDraftItem(item: ProductDraftMediaStateItem): ProductDraftMediaItem {
+  return {
+    localId: item.localId || item.mediaAssetId,
+    mediaAssetId: item.mediaAssetId,
+    fileName: item.fileName ?? item.mediaAssetId,
+    fileSize: item.fileSize,
+    mimeType: item.mimeType ?? "application/octet-stream",
+    previewUrl: item.previewUrl ?? item.thumbnailUrl ?? undefined,
+    uploadStatus: "uploaded",
+    uploadError: undefined,
+    isMain: item.isMain,
+    active: item.active,
+    alt: item.alt ?? {},
+    title: item.title ?? {},
+    persisted: true,
+  };
+}
+
+function sameMediaIdentity(left: ProductDraftMediaItem, right: ProductDraftMediaItem) {
+  return Boolean(
+    (left.mediaAssetId && left.mediaAssetId === right.mediaAssetId) ||
+      left.localId === right.localId,
+  );
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function remoteMediaContainsUploadedAssets(
+  remoteItems: ProductDraftMediaStateItem[],
+  uploadedItems: ProductDraftMediaUploadReport["mediaItem"][],
+) {
+  const expectedAssetIds = uploadedItems
+    .map((item) => item?.mediaAssetId)
+    .filter((mediaAssetId): mediaAssetId is string => Boolean(mediaAssetId));
+
+  if (expectedAssetIds.length === 0) {
+    return remoteItems.length > 0;
+  }
+
+  return expectedAssetIds.every((mediaAssetId) =>
+    remoteItems.some((item) => item.mediaAssetId === mediaAssetId),
+  );
+}
+
+function mergeRemoteDraftMediaState(
+  draft: ProductDraft,
+  remote: {
+    productId?: string | null;
+    defaultVariantId?: string | null;
+    mediaCollectionId?: string | null;
+    mediaItems: ProductDraftMediaStateItem[];
+  },
+): ProductDraft {
+  const remoteItems = remote.mediaItems.map(remoteDraftMediaItemToDraftItem);
+  if (!remote.productId && !remote.defaultVariantId && !remote.mediaCollectionId && remoteItems.length === 0) {
+    return draft;
+  }
+
+  const mergedItems = draft.media.items.map((localItem) => {
+    const remoteItem = remoteItems.find((candidate) => sameMediaIdentity(localItem, candidate));
+    if (!remoteItem) {
+      return localItem;
+    }
+
+    return {
+      ...localItem,
+      ...remoteItem,
+      localId: localItem.localId,
+      alt: {
+        ...remoteItem.alt,
+        ...localItem.alt,
+      },
+      title: {
+        ...remoteItem.title,
+        ...localItem.title,
+      },
+      isMain: localItem.isMain || remoteItem.isMain,
+      active: localItem.active ?? remoteItem.active,
+      previewUrl: remoteItem.previewUrl ?? localItem.previewUrl,
+    };
+  });
+  const missingRemoteItems = remoteItems.filter((remoteItem) =>
+    !mergedItems.some((localItem) => sameMediaIdentity(localItem, remoteItem)),
+  );
+  const hasRemoteMedia = remoteItems.length > 0;
+
+  return {
+    ...draft,
+    productId: remote.productId ?? draft.productId,
+    defaultVariantId: remote.defaultVariantId ?? draft.defaultVariantId,
+    mediaCollectionId: remote.mediaCollectionId ?? draft.mediaCollectionId,
+    media: {
+      ...draft.media,
+      items: [...mergedItems, ...missingRemoteItems],
+    },
+    saveState: {
+      ...draft.saveState,
+      media: hasRemoteMedia ? "success" : draft.saveState.media,
+    },
+  };
 }
 
 function combinationRows(colorValues: string, sizeValues: string, productName: string): ProductDraftVariant[] {
@@ -530,9 +658,10 @@ function ProductEntitySelector({
 export function ProductEditorClient({
   contextIdentity,
   initialDraft,
+  initialVariantRows = [],
   locale,
   currency,
-  lookups = { categories: [], brands: [], taxes: [], priceTables: [], warnings: [] },
+  lookups = { categories: [], brands: [], taxes: [], priceTables: [], carriers: [], warnings: [] },
 }: ProductEditorClientProps) {
   const storageKey = useMemo(
     () => localStorageKey(initialDraft, locale, currency, contextIdentity),
@@ -541,10 +670,11 @@ export function ProductEditorClient({
   const editorInstanceKey = `${contextIdentity}:${initialDraft.productId ?? "new"}:${locale}:${currency}`;
 
   return (
-    <ProductEditorClientInner
-      key={editorInstanceKey}
-      initialDraft={initialDraft}
-      locale={locale}
+	    <ProductEditorClientInner
+	      key={editorInstanceKey}
+	      initialDraft={initialDraft}
+	      initialVariantRows={initialVariantRows}
+	      locale={locale}
       currency={currency}
       lookups={lookups}
       storageKey={storageKey}
@@ -554,11 +684,13 @@ export function ProductEditorClient({
 
 function ProductEditorClientInner({
   initialDraft,
+  initialVariantRows = [],
   locale,
   currency,
-  lookups = { categories: [], brands: [], taxes: [], priceTables: [], warnings: [] },
+  lookups = { categories: [], brands: [], taxes: [], priceTables: [], carriers: [], warnings: [] },
   storageKey,
 }: ProductEditorClientInnerProps) {
+  const router = useRouter();
   const [draft, setDraft] = useState<ProductDraft>(initialDraft);
   const [storedDraft, setStoredDraft] = useState<ProductDraft | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("basic");
@@ -566,6 +698,9 @@ function ProductEditorClientInner({
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(draft.media.items[0]?.localId ?? null);
   const [selectedVariantKey, setSelectedVariantKey] = useState<string>("default");
   const [filesByLocalId, setFilesByLocalId] = useState<Record<string, File>>({});
+  const mediaFileInputRef = useRef<HTMLInputElement>(null);
+  const [mediaPickerBusy, setMediaPickerBusy] = useState(false);
+  const [mediaPickerMessage, setMediaPickerMessage] = useState<string | null>(null);
   const [variantColors, setVariantColors] = useState("");
   const [variantSizes, setVariantSizes] = useState("");
   const [pendingGeneratedVariants, setPendingGeneratedVariants] = useState<ProductDraftVariant[] | null>(null);
@@ -582,23 +717,55 @@ function ProductEditorClientInner({
   const [report, setReport] = useState<ProductSaveReport | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const saveOperationKeyRef = useRef<string | null>(null);
+  const hydratedRemoteDraftIdsRef = useRef<Set<string>>(new Set());
   const savingActive = isSaving || isPending;
   const selectedMedia = draft.media.items.find((item) => item.localId === selectedMediaId) ?? draft.media.items[0];
   const productStatus = draft.basic.isActive ? "Activo" : "Fuera de linea";
-  const allVariantRows = useMemo(() => [
-    {
-      localId: "default",
-      variantId: draft.defaultVariantId,
-      name: (draft.defaultVariant.name ?? draft.basic.name) || "Variante predeterminada",
-      refId: draft.defaultVariant.refId,
-      ean: draft.defaultVariant.ean ?? null,
-      options: [],
-      isActive: draft.basic.isActive,
-      isVisible: draft.basic.isVisible,
-      isDefault: true,
-    },
-    ...draft.variants.map((variant) => ({ ...variant, isDefault: false })),
-  ], [draft]);
+  const variantRowsById = useMemo(
+    () => new Map(initialVariantRows.map((row) => [row.variantId, row])),
+    [initialVariantRows],
+  );
+  const allVariantRows = useMemo<ProductVariantRowView[]>(() => {
+    const hasDirectMediaForKey = (variantKey: string) => (draft.media.assignments[variantKey] ?? []).length > 0;
+    const productName = draft.basic.name || "Producto";
+    const productRefId = draft.defaultVariant.refId || "Sin referencia";
+    const productPresentation = draft.defaultVariantId ? variantRowsById.get(draft.defaultVariantId) : undefined;
+    const productDirectMedia = hasDirectMediaForKey("default");
+
+    return [
+      {
+        localId: "default",
+        variantId: draft.defaultVariantId,
+        name: productName,
+        refId: draft.defaultVariant.refId,
+        ean: draft.defaultVariant.ean ?? null,
+        options: [],
+        isActive: draft.basic.isActive,
+        isVisible: draft.basic.isVisible,
+        isDefault: true,
+        role: productPresentation?.role ?? (draft.variants.length > 0 ? "PRODUCT_DEFAULT" : "PRODUCT_SIMPLE"),
+        displayLabel: productPresentation?.displayLabel ?? `Producto - ${productName}`,
+        selectorLabel: productPresentation?.selectorLabel ?? `Producto - ${productName} (${productRefId})`,
+        effectiveMediaSource: productPresentation?.effectiveMediaSource ?? (productDirectMedia ? "DIRECT" : "NONE"),
+      },
+      ...draft.variants.map((variant, index) => {
+        const presentation = variant.variantId ? variantRowsById.get(variant.variantId) : undefined;
+        const directMedia = hasDirectMediaForKey(variant.localId);
+        const inheritsFromProduct = !directMedia && productDirectMedia;
+        const labelBase = variant.name || variant.refId || `Variante ${index + 1}`;
+
+        return {
+          ...variant,
+          isDefault: false,
+          role: presentation?.role ?? "VARIANT",
+          displayLabel: presentation?.displayLabel ?? `Variante ${index + 1} - ${labelBase}`,
+          selectorLabel: presentation?.selectorLabel ?? `Variante ${index + 1} - ${labelBase} (${variant.refId || "Sin referencia"})`,
+          effectiveMediaSource: presentation?.effectiveMediaSource ?? (directMedia ? "DIRECT" : inheritsFromProduct ? "DEFAULT_VARIANT" : "NONE"),
+        };
+      }),
+    ];
+  }, [draft, variantRowsById]);
   const selectedVariant =
     allVariantRows.find((variant) => variant.localId === selectedVariantKey || variant.variantId === selectedVariantKey) ??
     allVariantRows[0];
@@ -654,6 +821,16 @@ function ProductEditorClientInner({
   const selectedVariantMain = draft.media.mainByVariant[selectedVariant.localId];
   const publicationChecklist = useMemo(() => getProductPublicationChecklist(draft), [draft]);
   const publicationReady = publicationChecklist.every((item) => item.ok);
+  const allowedCarrierOptions = draft.shipping.allowedCarrierIds
+    .filter((carrierId) => !lookups.carriers.some((carrier) => carrier.id === carrierId))
+    .map((carrierId) => ({ id: carrierId, label: carrierId }));
+  const carrierOptions = [...lookups.carriers, ...allowedCarrierOptions];
+  const shippingPackage = draft.shipping.package;
+  const shippingDimensionsComplete = Boolean(
+    shippingPackage.widthMm &&
+      shippingPackage.heightMm &&
+      shippingPackage.depthMm,
+  );
   const categoryOptions = useMemo(() => {
     if (!draft.basic.categoryId || !draft.basic.categoryName || lookups.categories.some((item) => item.id === draft.basic.categoryId)) {
       return lookups.categories;
@@ -676,6 +853,44 @@ function ProductEditorClientInner({
 
     return () => window.clearTimeout(timeout);
   }, [initialDraft, storageKey]);
+
+  useEffect(() => {
+    const clientDraftId = draft.clientDraftId?.trim();
+    if (!clientDraftId || hydratedRemoteDraftIdsRef.current.has(clientDraftId)) {
+      return;
+    }
+
+    hydratedRemoteDraftIdsRef.current.add(clientDraftId);
+    let cancelled = false;
+
+    void (async () => {
+      const result = await readProductDraftMediaStateAction(clientDraftId);
+      if (cancelled) {
+        return;
+      }
+
+      if (!result.ok) {
+        setMediaPickerMessage(result.messages?.[0] ?? result.fieldErrors?.media ?? null);
+        return;
+      }
+
+      if (result.mediaItems.length === 0 && !result.productId && !result.mediaCollectionId) {
+        return;
+      }
+
+      setDraft((current) =>
+        current.clientDraftId === clientDraftId
+          ? mergeRemoteDraftMediaState(current, result)
+          : current,
+      );
+      setSelectedMediaId((current) => current ?? result.mediaItems[0]?.localId ?? null);
+      setMediaPickerMessage(result.mediaItems.length > 0 ? `${result.mediaItems.length} imagen(es) recuperada(s) del borrador remoto.` : null);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.clientDraftId]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -742,6 +957,7 @@ function ProductEditorClientInner({
             basic: nextBasic,
             defaultVariant: {
               ...current.defaultVariant,
+              name: value,
               refId: makeRefIdFromName(value),
             },
           };
@@ -751,6 +967,14 @@ function ProductEditorClientInner({
       return {
         ...current,
         basic: nextBasic,
+        ...(field === "name" && typeof value === "string"
+          ? {
+              defaultVariant: {
+                ...current.defaultVariant,
+                name: value,
+              },
+            }
+          : {}),
       };
     });
   }
@@ -761,30 +985,31 @@ function ProductEditorClientInner({
       return;
     }
 
-    updateDraft((current) => {
-      const hasMain = current.media.items.some((item) => item.isMain);
-      const newItems = files.map((file, index) =>
-        makeProductMediaItem({
-          fileName: file.name,
-          fileSize: file.size,
-          mimeType: file.type,
-          productName: current.basic.name,
-          locale,
-          index: current.media.items.length + index,
-          previewUrl: URL.createObjectURL(file),
-          isMain: !hasMain && index === 0,
-        }),
-      );
+    const hasMain = draft.media.items.some((item) => item.isMain);
+    const newItems = files.map((file, index) => ({
+      ...makeProductMediaItem({
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+        productName: draft.basic.name,
+        locale,
+        index: draft.media.items.length + index,
+        previewUrl: URL.createObjectURL(file),
+        isMain: !hasMain && index === 0,
+      }),
+      uploadStatus: "uploading" as const,
+    }));
 
-      setFilesByLocalId((currentFiles) => {
-        const nextFiles = { ...currentFiles };
-        newItems.forEach((item, index) => {
-          nextFiles[item.localId] = files[index];
-        });
-        return nextFiles;
+    setFilesByLocalId((currentFiles) => {
+      const nextFiles = { ...currentFiles };
+      newItems.forEach((item, index) => {
+        nextFiles[item.localId] = files[index];
       });
-      setSelectedMediaId(newItems[0]?.localId ?? selectedMediaId);
+      return nextFiles;
+    });
+    setSelectedMediaId(newItems[0]?.localId ?? selectedMediaId);
 
+    updateDraft((current) => {
       return {
         ...current,
         media: {
@@ -793,6 +1018,180 @@ function ProductEditorClientInner({
         },
       };
     });
+
+    void uploadSelectedMediaItems(newItems, files);
+  }
+
+  async function uploadSelectedMediaItems(items: ProductDraftMediaItem[], files: File[]) {
+    const uploadedItems: ProductDraftMediaUploadReport["mediaItem"][] = [];
+    for (const [index, item] of items.entries()) {
+      const uploadedItem = await uploadSingleMediaItem(item, files[index], draft.media.items.length + index);
+      if (uploadedItem) {
+        uploadedItems.push(uploadedItem);
+      }
+    }
+
+    if (uploadedItems.length > 0) {
+      await confirmUploadedMediaIsOperational(draft.clientDraftId, uploadedItems);
+    }
+
+    setMediaPickerMessage(
+      uploadedItems.length === items.length
+        ? `${uploadedItems.length} imagen(es) subida(s) al borrador.`
+        : `${uploadedItems.length}/${items.length} imagen(es) subidas. Revisa las marcadas con error.`,
+    );
+  }
+
+  async function uploadSingleMediaItem(item: ProductDraftMediaItem, file: File | undefined, position: number) {
+    if (!file) {
+      markMediaUploadFailed(item.localId, "No se encontro el archivo local para subir.");
+      return null;
+    }
+
+    const formData = new FormData();
+    formData.set("fileLocalId", item.localId);
+    formData.set("idempotencyKey", crypto.randomUUID());
+    formData.set("metadata", JSON.stringify({
+      alt: item.alt,
+      title: item.title,
+      isMain: item.isMain,
+      position,
+      active: item.active,
+      productId: draft.productId,
+      defaultVariantId: draft.defaultVariantId,
+      mediaCollectionId: draft.mediaCollectionId,
+      categoryId: draft.basic.categoryId || undefined,
+      brandId: draft.basic.brandId || undefined,
+    }));
+    formData.set("file", file);
+
+    try {
+      const result = await uploadProductDraftMediaAction(draft.clientDraftId, formData);
+      if (!result.ok || !result.mediaItem) {
+        markMediaUploadFailed(item.localId, result.messages?.[0] ?? result.fieldErrors?.media ?? "No se pudo subir la imagen.");
+        return null;
+      }
+
+      setDraft((current) => ({
+        ...current,
+        productId: result.productId ?? current.productId,
+        defaultVariantId: result.defaultVariantId ?? current.defaultVariantId,
+        mediaCollectionId: result.mediaCollectionId ?? current.mediaCollectionId,
+        media: {
+          ...current.media,
+          items: current.media.items.map((currentItem) =>
+            currentItem.localId === item.localId
+              ? {
+                  ...currentItem,
+                  ...result.mediaItem,
+                  localId: currentItem.localId,
+                  previewUrl: result.mediaItem?.previewUrl ?? currentItem.previewUrl,
+                  isMain: result.mediaItem?.isMain ?? currentItem.isMain,
+                  uploadStatus: "uploaded",
+                  uploadError: undefined,
+                  persisted: true,
+                }
+              : currentItem,
+          ),
+        },
+        saveState: {
+          ...current.saveState,
+          media: "success",
+        },
+      }));
+      setFilesByLocalId((currentFiles) => {
+        const nextFiles = { ...currentFiles };
+        delete nextFiles[item.localId];
+        return nextFiles;
+      });
+      setDirty(true);
+      return result.mediaItem;
+    } catch (error) {
+      markMediaUploadFailed(item.localId, error instanceof Error ? error.message : "No se pudo subir la imagen.");
+      return null;
+    }
+  }
+
+  async function confirmUploadedMediaIsOperational(
+    clientDraftId: string,
+    uploadedItems: ProductDraftMediaUploadReport["mediaItem"][],
+  ) {
+    const normalizedClientDraftId = clientDraftId.trim();
+    if (!normalizedClientDraftId) {
+      router.refresh();
+      return;
+    }
+
+    for (let attempt = 1; attempt <= remoteMediaConfirmationAttempts; attempt += 1) {
+      const result = await readProductDraftMediaStateAction(normalizedClientDraftId);
+      if (result.ok) {
+        setDraft((current) =>
+          current.clientDraftId === normalizedClientDraftId
+            ? mergeRemoteDraftMediaState(current, result)
+            : current,
+        );
+        setSelectedMediaId((current) => current ?? result.mediaItems[0]?.localId ?? null);
+
+        if (remoteMediaContainsUploadedAssets(result.mediaItems, uploadedItems)) {
+          router.refresh();
+          return;
+        }
+      }
+
+      if (attempt < remoteMediaConfirmationAttempts) {
+        await delay(remoteMediaConfirmationDelayMs);
+      }
+    }
+
+    router.refresh();
+  }
+
+  function markMediaUploadFailed(localId: string, message: string) {
+    setDraft((current) => ({
+      ...current,
+      media: {
+        ...current.media,
+        items: current.media.items.map((item) =>
+          item.localId === localId
+            ? {
+                ...item,
+                uploadStatus: "failed",
+                uploadError: message,
+                persisted: false,
+              }
+            : item,
+        ),
+      },
+      saveState: {
+        ...current.saveState,
+        media: "failed",
+      },
+    }));
+    setDirty(true);
+  }
+
+  function openMediaFilePicker() {
+    if (mediaPickerBusy) {
+      return;
+    }
+
+    setMediaPickerBusy(true);
+    setMediaPickerMessage("Abriendo selector de archivos...");
+    mediaFileInputRef.current?.click();
+
+    const releasePicker = () => {
+      window.setTimeout(() => setMediaPickerBusy(false), 250);
+    };
+    window.addEventListener("focus", releasePicker, { once: true });
+    window.setTimeout(() => setMediaPickerBusy(false), 3000);
+  }
+
+  function handleMediaFileInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.currentTarget.files ?? []);
+    addFiles(event.currentTarget.files);
+    event.currentTarget.value = "";
+    setMediaPickerBusy(false);
+    setMediaPickerMessage(files.length > 0 ? `${files.length} imagen(es) anadida(s) al borrador.` : "No se seleccionaron archivos.");
   }
 
   function updateMedia(localId: string, updater: (item: ProductDraftMediaItem) => ProductDraftMediaItem) {
@@ -852,6 +1251,14 @@ function ProductEditorClientInner({
           assignments: nextAssignments,
           mainByVariant: nextMainByVariant,
         },
+        saveState: {
+          ...current.saveState,
+          media: nextItems.some((item) => item.uploadStatus === "failed")
+            ? "failed"
+            : nextItems.some((item) => item.persisted || item.uploadStatus === "uploaded")
+              ? "success"
+              : "pending",
+        },
       };
     });
   }
@@ -869,33 +1276,6 @@ function ProductEditorClientInner({
 
   function hasDirectMediaForVariant(variantKey: string) {
     return (draft.media.assignments[variantKey] ?? []).length > 0;
-  }
-
-  function toggleVariantMedia(variantKey: string, mediaLocalId: string) {
-    updateDraft((current) => {
-      const currentAssignments = current.media.assignments[variantKey] ?? [];
-      const assigned = currentAssignments.includes(mediaLocalId)
-        ? currentAssignments.filter((localId) => localId !== mediaLocalId)
-        : [...currentAssignments, mediaLocalId];
-      const nextMain = assigned.includes(current.media.mainByVariant[variantKey])
-        ? current.media.mainByVariant[variantKey]
-        : assigned[0];
-
-      return {
-        ...current,
-        media: {
-          ...current.media,
-          assignments: {
-            ...current.media.assignments,
-            [variantKey]: assigned,
-          },
-          mainByVariant: {
-            ...current.media.mainByVariant,
-            ...(nextMain ? { [variantKey]: nextMain } : {}),
-          },
-        },
-      };
-    });
   }
 
   function clearVariantMedia(variantKey: string) {
@@ -924,7 +1304,7 @@ function ProductEditorClientInner({
         ...current.media,
         assignments: {
           ...current.media.assignments,
-          [variantKey]: Array.from(new Set([...(current.media.assignments[variantKey] ?? []), mediaLocalId])),
+          [variantKey]: [mediaLocalId],
         },
         mainByVariant: {
           ...current.media.mainByVariant,
@@ -1288,6 +1668,54 @@ function ProductEditorClientInner({
     }));
   }
 
+  function updateShipping(updater: (shipping: ProductDraft["shipping"]) => ProductDraft["shipping"]) {
+    updateDraft((current) => ({
+      ...current,
+      shipping: updater(current.shipping),
+    }));
+  }
+
+  function optionalIntegerFromInput(value: string) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
+  }
+
+  function updateShippingPackage(field: keyof ProductDraft["shipping"]["package"], value: string) {
+    updateShipping((shipping) => ({
+      ...shipping,
+      package: {
+        ...shipping.package,
+        [field]: optionalIntegerFromInput(value),
+      },
+    }));
+  }
+
+  function updateShippingDeliveryNote(kind: "inStock" | "outOfStock", value: string) {
+    updateShipping((shipping) => ({
+      ...shipping,
+      deliveryTimeNotes: {
+        ...shipping.deliveryTimeNotes,
+        [kind]: {
+          ...shipping.deliveryTimeNotes[kind],
+          [locale]: value,
+        },
+      },
+    }));
+  }
+
+  function toggleShippingCarrier(carrierId: string, checked: boolean) {
+    updateShipping((shipping) => {
+      const nextCarrierIds = checked
+        ? Array.from(new Set([...shipping.allowedCarrierIds, carrierId]))
+        : shipping.allowedCarrierIds.filter((id) => id !== carrierId);
+
+      return {
+        ...shipping,
+        allowedCarrierIds: nextCarrierIds,
+      };
+    });
+  }
+
   function mergeVariantsByRef(variants: ProductDraftVariant[]) {
     const seen = new Set<string>();
     return variants.filter((variant) => {
@@ -1363,6 +1791,8 @@ function ProductEditorClientInner({
           variantMedia: draft.saveState.variantMedia ?? "pending",
           pricing: draft.saveState.pricing ?? "pending",
           inventory: draft.saveState.inventory ?? "pending",
+          shipping: draft.saveState.shipping ?? "pending",
+          publish: draft.saveState.publish ?? "pending",
         },
         messages: [
           errors.length
@@ -1370,6 +1800,12 @@ function ProductEditorClientInner({
             : "No se guardo. Revisa los datos del formulario.",
         ],
         fieldErrors: validation.fieldErrors,
+        recoveryActions: [{
+          code: "review_validation",
+          label: "Revisar campos obligatorios",
+          targetBlock: "catalog",
+          retryable: false,
+        }],
         correlationIds: [],
       });
       setActiveTab(
@@ -1382,11 +1818,55 @@ function ProductEditorClientInner({
       return;
     }
 
+    if (draft.basic.isActive) {
+      const publicationValidation = validateProductPublicationReadiness(draft);
+      if (!publicationValidation.ok) {
+        const errors = fieldErrorSummary(publicationValidation.fieldErrors);
+        setReport({
+          ok: false,
+          blocks: {
+            catalog: draft.saveState.catalog ?? "pending",
+            variants: draft.saveState.variants ?? "pending",
+            media: draft.saveState.media ?? "pending",
+            variantMedia: draft.saveState.variantMedia ?? "pending",
+            pricing: draft.saveState.pricing ?? "pending",
+            inventory: draft.saveState.inventory ?? "pending",
+            shipping: draft.saveState.shipping ?? "pending",
+            publish: "blocked",
+          },
+          messages: [
+            errors.length
+              ? `No se guardo. Revisa: ${errors.map((error) => error.label).join(", ")}.`
+              : "No se puede activar todavia.",
+          ],
+          fieldErrors: publicationValidation.fieldErrors,
+          recoveryActions: [{
+            code: "review_publication",
+            label: "Revisar publicacion",
+            targetBlock: "publish",
+            retryable: false,
+          }],
+          correlationIds: [],
+        });
+        setDraft((current) => ({
+          ...current,
+          saveState: {
+            ...current.saveState,
+            publish: "blocked",
+          },
+        }));
+        setActiveTab("basic");
+        return;
+      }
+    }
+
     const formData = new FormData();
     formData.set("draft", JSON.stringify(sanitizeDraftForStorage(draft)));
+    saveOperationKeyRef.current ??= crypto.randomUUID();
+    formData.set("idempotencyKey", saveOperationKeyRef.current);
     draft.media.items.forEach((item) => {
       const file = filesByLocalId[item.localId];
-      if (file && !item.persisted && !item.mediaAssetId) {
+      if (file && !item.persisted && !item.mediaAssetId && (!item.uploadStatus || item.uploadStatus === "local")) {
         formData.append("fileLocalIds", item.localId);
         formData.append("files", file);
       }
@@ -1397,6 +1877,9 @@ function ProductEditorClientInner({
       try {
         const result = await saveProductDraftAction(formData);
         setReport(result);
+        if (result.ok || !result.retryable) {
+          saveOperationKeyRef.current = null;
+        }
 
         if (result.draftPatch) {
           setDraft((current) => ({
@@ -1436,9 +1919,17 @@ function ProductEditorClientInner({
             variantMedia: "pending",
             pricing: "pending",
             inventory: "pending",
+            shipping: "pending",
+            publish: "pending",
           },
           messages: [error instanceof Error ? error.message : "No se pudo completar el guardado."],
           fieldErrors: {},
+          recoveryActions: [{
+            code: "retry_operation",
+            label: "Reintentar guardado",
+            targetBlock: "catalog",
+            retryable: true,
+          }],
           correlationIds: [],
         });
       } finally {
@@ -1556,6 +2047,15 @@ function ProductEditorClientInner({
                 </li>
               ))}
             </ul>
+          ) : null}
+          {report.recoveryActions.length > 0 ? (
+            <div className="adminButtonRow" aria-label="Acciones de recuperacion recomendadas">
+              {report.recoveryActions.map((action) => (
+                <span className="adminBadge adminBadgeWarn" key={`${action.code}:${action.targetBlock ?? "operation"}`}>
+                  {action.label}
+                </span>
+              ))}
+            </div>
           ) : null}
           {report.correlationIds.length > 0 ? (
             <p className="adminContextHint">Correlation: {report.correlationIds.join(", ")}</p>
@@ -1737,11 +2237,23 @@ function ProductEditorClientInner({
                   </div>
                 </div>
                 <div className="productMediaGrid">
-                  <label className="productMediaAdd" aria-label="Anadir imagenes">
+                  <input
+                    ref={mediaFileInputRef}
+                    className="productFileInput"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleMediaFileInputChange}
+                  />
+                  <button
+                    className="productMediaAdd"
+                    type="button"
+                    onClick={openMediaFilePicker}
+                    disabled={mediaPickerBusy}
+                  >
                     <Plus aria-hidden="true" size={34} />
-                    <span>Anadir imagenes</span>
-                    <input className="productFileInput" type="file" accept="image/*" multiple onChange={(event) => addFiles(event.target.files)} />
-                  </label>
+                    <span>{mediaPickerBusy ? "Abriendo..." : "Anadir imagenes"}</span>
+                  </button>
                   {draft.media.items.map((item) => (
                     <div
                       className={`productMediaTile ${selectedMedia?.localId === item.localId ? "productMediaTileActive" : ""}`}
@@ -1755,7 +2267,10 @@ function ProductEditorClientInner({
                           <span>{item.fileName}</span>
                         )}
                         {item.isMain ? <strong>Portada</strong> : null}
-                        {!item.persisted ? <em>Pendiente de guardar</em> : null}
+                        {item.uploadStatus === "uploading" ? <em>Subiendo...</em> : null}
+                        {item.uploadStatus === "uploaded" || item.persisted ? <em>Subida</em> : null}
+                        {item.uploadStatus === "failed" ? <em>{item.uploadError ?? "Error al subir"}</em> : null}
+                        {!item.persisted && (!item.uploadStatus || item.uploadStatus === "local") ? <em>Pendiente de subir</em> : null}
                       </button>
                       <button
                         aria-label={`Eliminar ${item.alt[locale] ?? item.fileName}`}
@@ -1768,6 +2283,7 @@ function ProductEditorClientInner({
                     </div>
                   ))}
                 </div>
+                {mediaPickerMessage ? <p className="productMediaStatus">{mediaPickerMessage}</p> : null}
                 {report?.fieldErrors.media ? (
                   <div className="adminBanner adminBannerError adminSection">
                     <p>{report.fieldErrors.media}</p>
@@ -1827,8 +2343,8 @@ function ProductEditorClientInner({
             <div className="productEditorPanel">
               <div className="productEditorSectionHeader">
                 <div>
-                  <h2>Product Variants</h2>
-                  <p>Gestiona unidades vendibles con SKU, EAN, precio, stock, imagenes y estado propios.</p>
+	                  <h2>Producto y variantes</h2>
+	                  <p>Gestiona producto y variantes vendibles con SKU, EAN, precio, stock, imagenes y estado propios.</p>
                 </div>
                 <div className="adminButtonRow">
                   <button className="adminButton" type="button">Filtros</button>
@@ -1841,7 +2357,7 @@ function ProductEditorClientInner({
               <div className="productCombinationGenerator">
                 <div>
                   <strong>Generador rapido desde opciones</strong>
-                  <p>Usalo solo cuando cada resultado generado sea una `ProductVariant` vendible.</p>
+	                  <p>Usalo solo cuando cada resultado generado sea una variante vendible.</p>
                 </div>
                 <div className="adminFormGrid adminFormGridTwo">
                   <label className="adminField">
@@ -1858,7 +2374,7 @@ function ProductEditorClientInner({
                   type="button"
                   onClick={requestCombinationGeneration}
                 >
-                  Generar ProductVariants
+	                  Generar variantes
                 </button>
               </div>
               {pendingGeneratedVariants ? (
@@ -1888,7 +2404,7 @@ function ProductEditorClientInner({
                     <tr>
                       <th aria-label="Seleccion">Sel.</th>
                       <th>Imagen</th>
-                      <th>ProductVariant</th>
+	                      <th>Producto / variante</th>
                       <th>SKU / referencia</th>
                       <th>EAN</th>
                       <th>Precio</th>
@@ -1898,9 +2414,95 @@ function ProductEditorClientInner({
                     </tr>
                   </thead>
                   <tbody>
+                    <tr className={`productDefaultVariantRow ${selectedVariant.isDefault ? "productRowSelected" : ""}`}>
+                      <td>
+                        <input
+	                          aria-label="Seleccionar producto"
+                          checked={selectedVariant.isDefault}
+                          type="radio"
+                          onChange={() => setSelectedVariantKey("default")}
+                        />
+                      </td>
+                      <td>
+                        <div className="productCombinationImageCell">
+                          <div className={`productTinyThumb ${hasDirectMediaForVariant("default") ? "" : "productTinyThumbInherited"}`}>
+                            {hasRenderableMediaPreview(assignedMediaForVariant("default")[0]) ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={assignedMediaForVariant("default")[0].previewUrl}
+                                alt=""
+                                onError={() => markMediaPreviewBroken(assignedMediaForVariant("default")[0].localId)}
+                              />
+                            ) : (
+                              <span>No image</span>
+                            )}
+                          </div>
+                          <span className={`productMediaStateBadge ${hasDirectMediaForVariant("default") ? "productMediaStateDirect" : "productMediaStateInherited"}`}>
+                            {hasDirectMediaForVariant("default") ? "Directa" : "Portada producto"}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <input
+	                          aria-label="Nombre del producto"
+                          readOnly
+                          value={draft.basic.name}
+                        />
+                        <div className="adminContextHint">
+                          {draft.defaultVariantId ? `variantId ${draft.defaultVariantId}` : "Se resolvera al guardar"}
+                        </div>
+	                        <div className="adminContextHint">{allVariantRows[0]?.displayLabel ?? "Producto base"}</div>
+                      </td>
+                      <td>
+                        <input
+	                          aria-label="Referencia principal"
+                          readOnly
+                          value={draft.defaultVariant.refId}
+                        />
+                      </td>
+                      <td>
+                        <input
+	                          aria-label="EAN principal"
+                          readOnly
+                          value={draft.defaultVariant.ean ?? ""}
+                        />
+                      </td>
+                      <td>
+                        <div className="productInlinePriceCell">
+                          <input
+	                            aria-label="Precio del producto"
+                            readOnly
+                            value={centsToInput(productPrice?.basePriceMinor)}
+                          />
+                          <span className="adminBadge adminBadgeOk">Precio del producto</span>
+                        </div>
+                      </td>
+                      <td>
+                        <input
+	                          aria-label="Stock principal"
+                          readOnly
+                          value={stockForKey("default").onHandQuantity}
+                        />
+                      </td>
+                      <td>
+                        <div className="productVariantStateStack">
+                          <span className={`adminBadge ${draft.basic.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>
+                            {draft.basic.isActive ? "Activa" : "Inactiva"}
+                          </span>
+                          <span className={`adminBadge ${draft.basic.isVisible ? "adminBadgeOk" : "adminBadgeWarn"}`}>
+                            {draft.basic.isVisible ? "Visible" : "Oculta"}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <button className="adminButton" type="button" onClick={() => setActiveTab("basic")}>
+                          Editar base
+                        </button>
+                      </td>
+                    </tr>
                     {draft.variants.length === 0 ? (
                       <tr>
-                        <td colSpan={9}>Sin variantes adicionales. El producto usa la variante predeterminada.</td>
+                        <td colSpan={9}>Sin variantes adicionales. El producto usa solo la variante predeterminada.</td>
                       </tr>
                     ) : draft.variants.map((variant, index) => {
                       const rowError =
@@ -2139,7 +2741,7 @@ function ProductEditorClientInner({
               <div className="productEditorSectionHeader">
                 <div>
                   <h2>Precio</h2>
-                  <p>El precio superior pertenece al producto y a su productVariantDefault. Las variantes adicionales heredan salvo override propio.</p>
+	                  <p>El precio superior pertenece al producto. Las variantes adicionales heredan salvo override propio.</p>
                 </div>
               </div>
               <div className="pricingEditorContext">
@@ -2154,7 +2756,7 @@ function ProductEditorClientInner({
               ))}
               <div className="adminFormGrid adminFormGridTwo">
                 <label className="adminField">
-                  <span>Precio del producto / defaultVariant</span>
+	                  <span>Precio del producto</span>
                   <input
                     type="number"
                     min="0"
@@ -2168,7 +2770,7 @@ function ProductEditorClientInner({
                   />
                 </label>
                 <label className="adminField">
-                  <span>Precio tachado del producto / defaultVariant</span>
+	                  <span>Precio tachado del producto</span>
                   <input
                     type="number"
                     min="0"
@@ -2215,7 +2817,7 @@ function ProductEditorClientInner({
                       priceTableId: event.target.value || null,
                     }))}
                   >
-                    <option value="">Base/default</option>
+	                    <option value="">Precio base</option>
                     {priceTableOptions.map((table) => (
                       <option key={table.id} value={table.id}>{table.label}</option>
                     ))}
@@ -2369,7 +2971,7 @@ function ProductEditorClientInner({
                           }))
                         : undefined}
                     >
-                      <option value="">Base/default</option>
+	                      <option value="">Precio base</option>
                       {variantPriceTableOptions.map((table) => (
                         <option key={table.id} value={table.id}>{table.label}</option>
                       ))}
@@ -2433,7 +3035,7 @@ function ProductEditorClientInner({
                           </td>
                           <td>
                             <div>{variantTax?.label ?? "Sin regla fiscal"}</div>
-                            <div className="adminContextHint">{variantPriceTable ?? "Base/default"}</div>
+	                            <div className="adminContextHint">{variantPriceTable ?? "Precio base"}</div>
                           </td>
                           <td>
                             <button
@@ -2488,11 +3090,11 @@ function ProductEditorClientInner({
                       setOfferingMessage(null);
                     }}
                   >
-                    {allVariantRows.map((variant) => (
-                      <option key={variant.localId} value={variant.localId}>
-                        {variant.isDefault ? "Default - " : ""}{variant.refId || variant.name}
-                      </option>
-                    ))}
+	                    {allVariantRows.map((variant) => (
+	                      <option key={variant.localId} value={variant.localId}>
+	                        {variant.selectorLabel}
+	                      </option>
+	                    ))}
                   </select>
                   {!offeringTargetVariant?.variantId ? <small>Esta variante todavia no tiene variantId.</small> : null}
                 </label>
@@ -2615,7 +3217,7 @@ function ProductEditorClientInner({
                 <table className="adminTable productCombinationTable">
                   <thead>
                     <tr>
-                      <th>Stock default</th>
+	                      <th>Stock del producto</th>
                       <th>Warehouse</th>
                       <th>On hand</th>
                       <th>Reservado</th>
@@ -2631,7 +3233,7 @@ function ProductEditorClientInner({
                       return (
                         <tr>
                           <td>
-                            <strong>{draft.defaultVariant.refId || "Default"}</strong>
+	                            <strong>{allVariantRows[0]?.displayLabel ?? "Producto"}</strong>
                             <div className="adminContextHint">
                               {draft.defaultVariantId ? `variantId ${draft.defaultVariantId}` : "Se resolvera al guardar"}
                             </div>
@@ -2704,7 +3306,7 @@ function ProductEditorClientInner({
                     <tbody>
                       {draft.variants.length === 0 ? (
                         <tr>
-                          <td colSpan={9}>Sin variantes adicionales. Usa el stock default del producto simple.</td>
+	                          <td colSpan={9}>Sin variantes adicionales. Usa el stock del producto simple.</td>
                         </tr>
                       ) : draft.variants.map((variant) => {
                         const stockState = stockForVariantRow(variant);
@@ -2724,7 +3326,7 @@ function ProductEditorClientInner({
                               <span className={`productMediaStateBadge ${hasOwnStock ? "productMediaStateDirect" : "productMediaStateInherited"}`}>
                                 {hasOwnStock ? "Stock propio" : "Heredado"}
                               </span>
-                              {!hasOwnStock ? <small>Usa stock default</small> : null}
+	                              {!hasOwnStock ? <small>Usa stock del producto</small> : null}
                             </td>
                             <td>
                               <input
@@ -2781,7 +3383,7 @@ function ProductEditorClientInner({
                                   type="button"
                                   onClick={() => inheritVariantStock(variant)}
                                 >
-                                  {canReturnToInherited ? "Heredar default" : "Stock propio guardado"}
+	                                  {canReturnToInherited ? "Heredar stock del producto" : "Stock propio guardado"}
                                 </button>
                               ) : (
                                 <button className="adminButton" type="button" onClick={() => enableVariantOwnStock(variant)}>
@@ -2816,7 +3418,7 @@ function ProductEditorClientInner({
                   return (
                     <>
                       <strong>{availableQuantity(stockForKey("default"))}</strong>
-                      <span>Disponible default</span>
+	                      <span>Disponible producto</span>
                       <strong>{ownAvailable}</strong>
                       <span>Disponible stock propio</span>
                       <strong>{inheritedCount}/{draft.variants.length}</strong>
@@ -2830,8 +3432,150 @@ function ProductEditorClientInner({
 
           {activeTab === "shipping" ? (
             <section className="productEditorPanel">
-              <h2>Transporte</h2>
-              <div className="adminEmptyState">Peso, dimensiones y reglas logisticas quedan pendientes para la fachada Shipping del producto.</div>
+              <div className="productEditorSectionHeader">
+                <div>
+                  <h2>Transporte</h2>
+	                  <p>Datos logisticos del producto; las variantes heredan salvo reglas propias futuras.</p>
+                </div>
+	                <span className="adminBadge">Producto</span>
+              </div>
+
+              <div className="pricingEditorContext">
+                <span><strong>Peso:</strong> {draft.shipping.package.weightGrams ? `${draft.shipping.package.weightGrams} g` : "Sin definir"}</span>
+                <span><strong>Dimensiones:</strong> {shippingDimensionsComplete ? `${shippingPackage.widthMm} x ${shippingPackage.heightMm} x ${shippingPackage.depthMm} mm` : "Sin definir"}</span>
+                <span><strong>Coste adicional:</strong> {formatMoney(draft.shipping.additionalShippingCostMinor ?? 0, currency)}</span>
+                <span><strong>Transportistas:</strong> {draft.shipping.allowedCarrierIds.length > 0 ? `${draft.shipping.allowedCarrierIds.length} seleccionados` : "Todos los activos"}</span>
+              </div>
+
+              <div className="adminFormGrid adminFormGridTwo">
+                <label className="adminField">
+                  <span>Peso del paquete (g)</span>
+                  <input
+                    inputMode="numeric"
+                    min="0"
+                    type="number"
+                    value={draft.shipping.package.weightGrams ?? ""}
+                    onChange={(event) => updateShippingPackage("weightGrams", event.target.value)}
+                  />
+                </label>
+                <label className="adminField">
+                  <span>Coste adicional ({currency})</span>
+                  <input
+                    inputMode="decimal"
+                    value={centsToInput(draft.shipping.additionalShippingCostMinor ?? undefined)}
+                    onChange={(event) => updateShipping((shipping) => ({
+                      ...shipping,
+                      additionalShippingCostMinor: inputToCents(event.target.value),
+                    }))}
+                  />
+                </label>
+                <label className="adminField">
+                  <span>Ancho (mm)</span>
+                  <input
+                    inputMode="numeric"
+                    min="0"
+                    type="number"
+                    value={draft.shipping.package.widthMm ?? ""}
+                    onChange={(event) => updateShippingPackage("widthMm", event.target.value)}
+                  />
+                </label>
+                <label className="adminField">
+                  <span>Alto (mm)</span>
+                  <input
+                    inputMode="numeric"
+                    min="0"
+                    type="number"
+                    value={draft.shipping.package.heightMm ?? ""}
+                    onChange={(event) => updateShippingPackage("heightMm", event.target.value)}
+                  />
+                </label>
+                <label className="adminField">
+                  <span>Profundidad (mm)</span>
+                  <input
+                    inputMode="numeric"
+                    min="0"
+                    type="number"
+                    value={draft.shipping.package.depthMm ?? ""}
+                    onChange={(event) => updateShippingPackage("depthMm", event.target.value)}
+                  />
+                </label>
+                <label className="adminField">
+                  <span>Plazo de entrega</span>
+                  <select
+                    value={draft.shipping.deliveryTimeMode}
+                    onChange={(event) => updateShipping((shipping) => ({
+                      ...shipping,
+                      deliveryTimeMode: event.target.value as ProductDraft["shipping"]["deliveryTimeMode"],
+                    }))}
+                  >
+                    <option value="none">Sin texto propio</option>
+                    <option value="default">Usar plazo por defecto</option>
+                    <option value="specific">Texto especifico del producto</option>
+                  </select>
+                </label>
+              </div>
+
+              {draft.shipping.deliveryTimeMode === "specific" ? (
+                <div className="adminFormGrid adminFormGridTwo adminSection">
+                  <label className="adminField">
+                    <span>Entrega con stock ({locale})</span>
+                    <textarea
+                      className="adminTextarea"
+                      value={draft.shipping.deliveryTimeNotes.inStock[locale] ?? ""}
+                      onChange={(event) => updateShippingDeliveryNote("inStock", event.target.value)}
+                    />
+                  </label>
+                  <label className="adminField">
+                    <span>Entrega sin stock ({locale})</span>
+                    <textarea
+                      className="adminTextarea"
+                      value={draft.shipping.deliveryTimeNotes.outOfStock[locale] ?? ""}
+                      onChange={(event) => updateShippingDeliveryNote("outOfStock", event.target.value)}
+                    />
+                  </label>
+                </div>
+              ) : null}
+
+              <div className="productEditorSectionHeader productEditorSectionHeaderCompact adminSection">
+                <div>
+                  <h3>Transportistas permitidos</h3>
+                  <p>Sin seleccion explicita, el producto permite todos los transportistas activos del modulo Transporte.</p>
+                </div>
+                {draft.shipping.allowedCarrierIds.length > 0 ? (
+                  <button
+                    className="adminButton"
+                    type="button"
+                    onClick={() => updateShipping((shipping) => ({ ...shipping, allowedCarrierIds: [] }))}
+                  >
+                    Permitir todos
+                  </button>
+                ) : null}
+              </div>
+
+              {carrierOptions.length > 0 ? (
+                <div className="productShippingCarrierGrid">
+                  {carrierOptions.map((carrier) => {
+                    const checked = draft.shipping.allowedCarrierIds.includes(carrier.id);
+                    return (
+                      <label className={`productShippingCarrier ${checked ? "productShippingCarrierActive" : ""}`} key={carrier.id}>
+                        <input
+                          checked={checked}
+                          type="checkbox"
+                          onChange={(event) => toggleShippingCarrier(carrier.id, event.target.checked)}
+                        />
+                        <span>
+                          <strong>{carrier.label}</strong>
+                          <small>{carrier.id}</small>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="adminBanner adminSection">
+                  <p>No hay transportistas cargados desde BFF Shipping. Puedes guardar paquete y coste; la seleccion de carriers quedara en todos los activos.</p>
+                </div>
+              )}
             </section>
           ) : null}
 
@@ -2895,23 +3639,24 @@ function ProductEditorClientInner({
               <label className="adminField">
                 <span>Variante seleccionada</span>
                 <select value={selectedVariant.localId} onChange={(event) => setSelectedVariantKey(event.target.value)}>
-                  {allVariantRows.map((variant) => (
-                    <option key={variant.localId} value={variant.localId}>
-                      {variant.isDefault ? "Default - " : ""}{variant.refId || variant.name}
-                    </option>
-                  ))}
+	                  {allVariantRows.map((variant) => (
+	                    <option key={variant.localId} value={variant.localId}>
+	                      {variant.selectorLabel}
+	                    </option>
+	                  ))}
                 </select>
               </label>
               <div className="productVariantMediaPicker">
                 {draft.media.items.length === 0 ? (
                   <div className="adminEmptyState">Sube imagenes en la pestana Imagenes para asignarlas a una variante.</div>
                 ) : draft.media.items.map((item) => {
-                  const checked = selectedVariantAssignments.includes(item.localId);
-                  const isMain = selectedVariantMain === item.localId;
+                  const selectedVariantMediaId = selectedVariantMain ?? selectedVariantAssignments[0];
+                  const checked = selectedVariantMediaId === item.localId;
+                  const isMain = checked;
                   const fieldError = report?.fieldErrors[`media:${selectedVariant.localId}`];
                   return (
                     <div className={`productVariantMediaItem ${checked ? "productVariantMediaItemSelected" : ""}`} key={item.localId}>
-                      <button type="button" onClick={() => toggleVariantMedia(selectedVariant.localId, item.localId)}>
+                      <button type="button" onClick={() => setVariantMainMedia(selectedVariant.localId, item.localId)}>
                         {hasRenderableMediaPreview(item) ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={item.previewUrl} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
@@ -2920,11 +3665,21 @@ function ProductEditorClientInner({
                         )}
                       </button>
                       <label className="adminCheckbox">
-                        <input checked={checked} type="checkbox" onChange={() => toggleVariantMedia(selectedVariant.localId, item.localId)} />
+                        <input
+                          checked={checked}
+                          type="checkbox"
+                          onChange={(event) => {
+                            if (event.target.checked) {
+                              setVariantMainMedia(selectedVariant.localId, item.localId);
+                            } else {
+                              clearVariantMedia(selectedVariant.localId);
+                            }
+                          }}
+                        />
                         Asignada
                       </label>
                       <label className="adminCheckbox">
-                        <input checked={isMain} disabled={!checked} type="radio" onChange={() => setVariantMainMedia(selectedVariant.localId, item.localId)} />
+                        <input checked={isMain} type="radio" onChange={() => setVariantMainMedia(selectedVariant.localId, item.localId)} />
                         Portada
                       </label>
                       {fieldError && checked ? <small>{fieldError}</small> : null}
@@ -2933,7 +3688,7 @@ function ProductEditorClientInner({
                 })}
               </div>
               <button className="adminButton adminSection" type="button" onClick={() => clearVariantMedia(selectedVariant.localId)}>
-                Limpiar imagenes y heredar default
+	                Limpiar imagenes y heredar producto
               </button>
             </section>
           ) : null}
@@ -2945,13 +3700,15 @@ function ProductEditorClientInner({
           <div className="productSavingDialog">
             <span className="adminSpinner productSavingRing" aria-hidden="true" />
             <strong>Guardando producto</strong>
-            <span>Catalog, variantes, imagenes, pricing e inventario se procesan por bloques.</span>
+              <span>Catalog, variantes, imagenes, pricing, inventario y transporte se procesan por bloques.</span>
             <div className="productSavingSteps">
               <span>Catalog</span>
               <span>Variantes</span>
               <span>Media</span>
               <span>Pricing</span>
               <span>Inventario</span>
+              <span>Transporte</span>
+              <span>Publicacion</span>
             </div>
           </div>
         </div>

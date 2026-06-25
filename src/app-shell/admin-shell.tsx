@@ -126,7 +126,6 @@ export function AdminShell({ children, context, directory, session }: AdminShell
 
       <section className="adminMain">
         <header className="adminTopbar">
-          <input className="adminSearch" type="search" placeholder="Buscar en el backoffice" />
           <AdminContextSelector
             context={context}
             directory={directory}

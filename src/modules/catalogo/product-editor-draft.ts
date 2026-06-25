@@ -2,6 +2,7 @@ import type {
   ProductEditorData,
   ProductDraft,
   ProductDraftMediaItem,
+  ProductShippingDraft,
   ProductSummary,
   ProductVariantRecord,
 } from "./product-editor-types";
@@ -37,10 +38,33 @@ export function makeRefIdFromName(value: string) {
     .slice(0, 64);
 }
 
+function createClientDraftId() {
+  return globalThis.crypto?.randomUUID?.() ?? `client-draft-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+export function createEmptyProductShippingDraft(): ProductShippingDraft {
+  return {
+    package: {
+      weightGrams: null,
+      widthMm: null,
+      heightMm: null,
+      depthMm: null,
+    },
+    additionalShippingCostMinor: null,
+    allowedCarrierIds: [],
+    deliveryTimeMode: "none",
+    deliveryTimeNotes: {
+      inStock: {},
+      outOfStock: {},
+    },
+  };
+}
+
 export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): ProductDraft {
   void locale;
 
   return {
+    clientDraftId: createClientDraftId(),
     basic: {
       name: "",
       slug: "",
@@ -99,6 +123,7 @@ export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): Pro
         },
       },
     },
+    shipping: createEmptyProductShippingDraft(),
     saveState: {
       catalog: "pending",
       variants: "pending",
@@ -106,6 +131,8 @@ export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): Pro
       variantMedia: "pending",
       pricing: "pending",
       inventory: "pending",
+      shipping: "pending",
+      publish: "pending",
     },
   };
 }
@@ -129,6 +156,7 @@ export function makeProductMediaItem(input: {
     fileSize: input.fileSize,
     mimeType: input.mimeType,
     previewUrl: input.previewUrl,
+    uploadStatus: "local",
     isMain: Boolean(input.isMain),
     active: true,
     alt: {
@@ -162,6 +190,7 @@ export function draftFromProduct(
 
   return {
     ...empty,
+    clientDraftId: product.productId,
     productId: product.productId,
     defaultVariantId: product.defaultVariantId ?? defaultVariant?.variantId,
     mediaCollectionId: product.mediaCollectionId ?? null,
@@ -185,7 +214,7 @@ export function draftFromProduct(
     mode: realVariants.length > 0 ? "variants" : "simple",
     defaultVariant: {
       refId: defaultVariant?.refId ?? makeRefIdFromName(product.name),
-      name: defaultVariant?.name,
+      name: product.name,
       ean: defaultVariant?.ean ?? null,
     },
     variants: realVariants
@@ -253,6 +282,7 @@ export function draftFromEditorData(
         ...data.stockByVariant,
       },
     },
+    shipping: data.shipping ?? draft.shipping,
   };
 }
 
@@ -266,6 +296,7 @@ export function sanitizeDraftForStorage(draft: ProductDraft): ProductDraft {
         previewUrl: item.persisted ? item.previewUrl : undefined,
       })),
     },
+    shipping: draft.shipping ?? createEmptyProductShippingDraft(),
   };
 }
 
@@ -301,6 +332,8 @@ function mergeMediaItems(
           mediaAssetId: storedItem.mediaAssetId ?? freshItem.mediaAssetId,
           previewUrl: storedItem.previewUrl || freshItem.previewUrl,
           persisted: storedItem.persisted ?? freshItem.persisted,
+          uploadStatus: storedItem.uploadStatus ?? freshItem.uploadStatus,
+          uploadError: storedItem.uploadError ?? freshItem.uploadError,
         }
       : storedItem;
 
@@ -317,9 +350,17 @@ export function mergeStoredProductDraft(
   initialDraft: ProductDraft,
   storedDraft: ProductDraft,
 ): ProductDraft {
+  const mergedBasic = storedDraft.basic ?? initialDraft.basic;
+
   return {
     ...initialDraft,
     ...storedDraft,
+    clientDraftId: storedDraft.clientDraftId ?? initialDraft.clientDraftId,
+    defaultVariant: {
+      ...initialDraft.defaultVariant,
+      ...storedDraft.defaultVariant,
+      name: mergedBasic.name,
+    },
     media: {
       ...initialDraft.media,
       ...storedDraft.media,
@@ -335,6 +376,7 @@ export function mergeStoredProductDraft(
       },
     },
     offerings: storedDraft.offerings ?? initialDraft.offerings,
+    shipping: storedDraft.shipping ?? initialDraft.shipping,
     saveState: {
       ...initialDraft.saveState,
       ...storedDraft.saveState,
