@@ -423,7 +423,7 @@ async function startBffMock() {
           fileName: "edit-cover.png",
           mimeType: "image/png",
           fileSize: 68,
-          previewUrl: null,
+          previewUrl: "22222222-2222-4222-8222-222222222222/media-product-edit-1/asset-edit-1/original.png",
           thumbnailUrl: null,
           isMain: true,
           position: 1,

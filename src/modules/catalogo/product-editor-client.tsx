@@ -265,6 +265,10 @@ function mediaAssetPreviewUrl(mediaAssetId: string | null | undefined) {
     : undefined;
 }
 
+function isEphemeralPreviewUrl(value: string | undefined) {
+  return Boolean(value?.startsWith("blob:") || value?.startsWith("data:image/"));
+}
+
 function remoteDraftMediaItemToDraftItem(item: ProductDraftMediaStateItem): ProductDraftMediaItem {
   return {
     localId: item.localId || item.mediaAssetId,
@@ -983,7 +987,11 @@ function ProductEditorClientInner({
       return undefined;
     }
 
-    return item.previewUrl ?? mediaAssetPreviewUrl(item.mediaAssetId);
+    if (isEphemeralPreviewUrl(item.previewUrl)) {
+      return item.previewUrl;
+    }
+
+    return mediaAssetPreviewUrl(item.mediaAssetId) ?? item.previewUrl;
   }
 
   function hasRenderableMediaPreview(item: ProductDraftMediaItem | undefined) {
