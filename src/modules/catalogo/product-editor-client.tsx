@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Bold, Italic, List, ListOrdered, Plus, Redo2, RemoveFormatting, Strikethrough, Trash2, Undo2 } from "lucide-react";
+import { Bold, Eye, Italic, List, ListOrdered, Plus, Redo2, RemoveFormatting, Strikethrough, Trash2, Undo2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { ChangeEvent } from "react";
 import {
@@ -697,6 +697,8 @@ function ProductEditorClientInner({
   const [dirty, setDirty] = useState(false);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(draft.media.items[0]?.localId ?? null);
   const [selectedVariantKey, setSelectedVariantKey] = useState<string>("default");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewVariantKey, setPreviewVariantKey] = useState<string>("default");
   const [filesByLocalId, setFilesByLocalId] = useState<Record<string, File>>({});
   const mediaFileInputRef = useRef<HTMLInputElement>(null);
   const [mediaPickerBusy, setMediaPickerBusy] = useState(false);
@@ -819,6 +821,37 @@ function ProductEditorClientInner({
     : priceTableOptions;
   const selectedVariantAssignments = draft.media.assignments[selectedVariant.localId] ?? [];
   const selectedVariantMain = draft.media.mainByVariant[selectedVariant.localId];
+  const previewVariant =
+    allVariantRows.find((variant) => variant.localId === previewVariantKey || variant.variantId === previewVariantKey) ??
+    selectedVariant;
+  const previewVariantKeyResolved = previewVariant?.localId ?? "default";
+  const previewMediaItems = previewVariant
+    ? assignedMediaForVariant(previewVariantKeyResolved)
+    : draft.media.items.filter((item) => item.isMain).slice(0, 1);
+  const previewMainMediaId = previewVariant ? draft.media.mainByVariant[previewVariantKeyResolved] : undefined;
+  const previewHeroMedia =
+    previewMediaItems.find((item) => item.localId === previewMainMediaId) ??
+    previewMediaItems.find((item) => item.isMain) ??
+    previewMediaItems[0] ??
+    draft.media.items.find((item) => item.isMain);
+  const previewOwnPrice = !previewVariant?.isDefault
+    ? draft.pricing.variantPrices[previewVariantKeyResolved]
+    : undefined;
+  const previewEffectivePrice = previewOwnPrice && !previewOwnPrice.markedForDeletion
+    ? previewOwnPrice
+    : productPrice;
+  const previewTax =
+    previewEffectivePrice?.tax ??
+    selectedTax ??
+    lookups.taxes.find((tax) => tax.id === previewEffectivePrice?.taxCode || tax.taxCode === previewEffectivePrice?.taxCode);
+  const previewPriceBreakdown = pricePreview(previewEffectivePrice, previewTax);
+  const previewStock =
+    draft.inventory.stockByVariant[previewVariantKeyResolved] ??
+    (previewVariant?.isDefault ? draft.inventory.stockByVariant.default : undefined);
+  const previewAvailableQuantity = previewStock?.availableQuantity ?? availableQuantity(previewStock);
+  const previewIsAvailable = previewStock?.available ?? previewAvailableQuantity > 0;
+  const previewOfferings = draft.offerings.byVariant[previewVariantKeyResolved] ?? [];
+  const previewOptions = previewVariant?.options.filter((option) => !option.markedForDeletion) ?? [];
   const publicationChecklist = useMemo(() => getProductPublicationChecklist(draft), [draft]);
   const publicationReady = publicationChecklist.every((item) => item.ok);
   const allowedCarrierOptions = draft.shipping.allowedCarrierIds
@@ -913,6 +946,21 @@ function ProductEditorClientInner({
     window.localStorage.setItem(storageKey, JSON.stringify(sanitizeDraftForStorage(draft)));
   }, [dirty, draft, storageKey]);
 
+  useEffect(() => {
+    if (!previewOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPreviewOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [previewOpen]);
+
   function updateDraft(updater: (current: ProductDraft) => ProductDraft) {
     setDraft((current) => updater(current));
     setDirty(true);
@@ -924,6 +972,11 @@ function ProductEditorClientInner({
 
   function markMediaPreviewBroken(localId: string) {
     setBrokenMediaPreviewIds((current) => ({ ...current, [localId]: true }));
+  }
+
+  function openProductPreview() {
+    setPreviewVariantKey(selectedVariant.localId);
+    setPreviewOpen(true);
   }
 
   function setOfferingsForVariant(variantKey: string, offerings: ProductDraft["offerings"]["byVariant"][string]) {
@@ -3695,6 +3748,162 @@ function ProductEditorClientInner({
         </aside>
       </div>
 
+      {previewOpen ? (
+        <div
+          className="productPreviewOverlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setPreviewOpen(false);
+            }
+          }}
+        >
+          <aside aria-labelledby="product-preview-title" aria-modal="true" className="productPreviewDrawer" role="dialog">
+            <header className="productPreviewHeader">
+              <div>
+                <span className={"adminBadge " + (draft.basic.isActive && draft.basic.isVisible ? "adminBadgeOk" : "adminBadgeWarn")}>
+                  {draft.basic.isActive && draft.basic.isVisible ? "Publicado" : "Borrador"}
+                </span>
+                <h2 id="product-preview-title">Vista previa PDP</h2>
+              </div>
+              <button aria-label="Cerrar vista previa" className="adminIconButton" type="button" onClick={() => setPreviewOpen(false)}>
+                <X aria-hidden="true" size={18} />
+              </button>
+            </header>
+
+            <div className="productPreviewBody">
+              <section className="productPreviewMediaPane" aria-label="Imagenes del producto">
+                <div className="productPreviewMediaStage">
+                  {hasRenderableMediaPreview(previewHeroMedia) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={previewHeroMedia.previewUrl}
+                      alt={previewHeroMedia.alt[locale] ?? previewHeroMedia.fileName}
+                      onError={() => markMediaPreviewBroken(previewHeroMedia.localId)}
+                    />
+                  ) : (
+                    <span>Sin imagen</span>
+                  )}
+                </div>
+                {previewMediaItems.length > 1 ? (
+                  <div className="productPreviewThumbs">
+                    {previewMediaItems.slice(0, 6).map((item) => (
+                      <span
+                        className={"productPreviewThumb " + (item.localId === previewHeroMedia?.localId ? "productPreviewThumbActive" : "")}
+                        key={item.localId}
+                      >
+                        {hasRenderableMediaPreview(item) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.previewUrl} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
+                        ) : (
+                          <span>{item.fileName.slice(0, 2).toUpperCase()}</span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+
+              <section className="productPreviewInfoPane">
+                <div className="productPreviewBrandRow">
+                  <span>{draft.basic.brandName || "Sin marca"}</span>
+                  <span className={"adminBadge " + (previewIsAvailable ? "adminBadgeOk" : "adminBadgeWarn")}>
+                    {previewIsAvailable ? "Disponible" : "Sin stock"}
+                  </span>
+                </div>
+                <h3>{draft.basic.name || "Producto sin nombre"}</h3>
+                <p>{draft.basic.shortDescription || "Sin descripcion corta"}</p>
+
+                <label className="adminField productPreviewVariantSelect">
+                  <span>Variante</span>
+                  <select value={previewVariantKeyResolved} onChange={(event) => setPreviewVariantKey(event.target.value)}>
+                    {allVariantRows.map((variant) => (
+                      <option key={variant.localId} value={variant.localId}>
+                        {variant.selectorLabel}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="productPreviewPriceBlock">
+                  <strong>{formatMoney(previewEffectivePrice?.basePriceMinor, previewEffectivePrice?.currency || currency)}</strong>
+                  {previewEffectivePrice?.listPriceMinor ? (
+                    <span>{formatMoney(previewEffectivePrice.listPriceMinor, previewEffectivePrice.currency || currency)}</span>
+                  ) : null}
+                </div>
+
+                <dl className="productPreviewMetaGrid">
+                  <div><dt>Referencia</dt><dd>{previewVariant?.refId || draft.defaultVariant.refId || "-"}</dd></div>
+                  <div><dt>EAN</dt><dd>{previewVariant?.ean || "-"}</dd></div>
+                  <div><dt>Stock</dt><dd>{previewAvailableQuantity}</dd></div>
+                  <div><dt>Impuesto</dt><dd>{previewTax?.label ?? previewTax?.name ?? previewEffectivePrice?.taxCode ?? draft.basic.taxCode}</dd></div>
+                </dl>
+
+                {previewOptions.length ? (
+                  <section className="productPreviewSection">
+                    <h4>Combinacion</h4>
+                    <div className="productPreviewOptionList">
+                      {previewOptions.map((option) => (
+                        <span key={option.attributeCode + ":" + option.valueCode}>
+                          <strong>{option.attributeCode}</strong>
+                          {option.valueCode}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {previewPriceBreakdown ? (
+                  <section className="productPreviewSection">
+                    <h4>Precio calculado</h4>
+                    <dl className="productPreviewMetaGrid">
+                      <div><dt>Neto</dt><dd>{formatMoney(previewPriceBreakdown.net, previewEffectivePrice?.currency || currency)}</dd></div>
+                      <div><dt>Impuesto</dt><dd>{formatMoney(previewPriceBreakdown.tax, previewEffectivePrice?.currency || currency)}</dd></div>
+                      <div><dt>Total</dt><dd>{formatMoney(previewPriceBreakdown.gross, previewEffectivePrice?.currency || currency)}</dd></div>
+                    </dl>
+                  </section>
+                ) : null}
+
+                <section className="productPreviewSection">
+                  <h4>Servicios y disponibilidad</h4>
+                  {previewOfferings.length ? (
+                    <div className="productPreviewOfferingList">
+                      {previewOfferings.map((offering) => (
+                        <span className={offering.active ? "" : "productPreviewMuted"} key={offering.offeringId}>
+                          {offering.name}
+                          <small>{formatMoney(offering.priceMinor, offering.currency)}</small>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="productPreviewEmpty">Sin servicios adicionales para esta variante.</p>
+                  )}
+                </section>
+
+                <section className="productPreviewSection">
+                  <h4>Detalles</h4>
+                  {draft.basic.description ? (
+                    <div className="productPreviewDescription" dangerouslySetInnerHTML={{ __html: draft.basic.description }} />
+                  ) : (
+                    <p className="productPreviewEmpty">Sin descripcion extendida.</p>
+                  )}
+                </section>
+
+                <section className="productPreviewSection">
+                  <h4>Envio</h4>
+                  <dl className="productPreviewShippingGrid">
+                    <div><dt>Peso</dt><dd>{draft.shipping.package.weightGrams ? String(draft.shipping.package.weightGrams) + " g" : "-"}</dd></div>
+                    <div><dt>Ancho</dt><dd>{draft.shipping.package.widthMm ? String(draft.shipping.package.widthMm) + " mm" : "-"}</dd></div>
+                    <div><dt>Alto</dt><dd>{draft.shipping.package.heightMm ? String(draft.shipping.package.heightMm) + " mm" : "-"}</dd></div>
+                    <div><dt>Fondo</dt><dd>{draft.shipping.package.depthMm ? String(draft.shipping.package.depthMm) + " mm" : "-"}</dd></div>
+                  </dl>
+                </section>
+              </section>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
       {savingActive ? (
         <div className="productSavingOverlay" role="status" aria-live="assertive">
           <div className="productSavingDialog">
@@ -3723,7 +3932,10 @@ function ProductEditorClientInner({
           ))}
         </div>
         <div className="adminButtonRow">
-          <button className="adminButton" type="button">Vista previa</button>
+          <button className="adminButton" type="button" onClick={openProductPreview}>
+            <Eye aria-hidden="true" size={16} />
+            Vista previa
+          </button>
           <span className={`adminBadge ${draft.basic.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>{productStatus}</span>
           <button className="adminButton adminButtonPrimary" type="button" disabled={savingActive} onClick={saveDraft}>
             {savingActive ? <span className="adminSpinner adminSpinnerInline" aria-hidden="true" /> : null}
