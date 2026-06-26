@@ -227,6 +227,42 @@ Estados UI obligatorios para multistore:
 - `PATCH /api/v1/admin/payments/rules/:ruleId?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/payments/card-lookup?organizationId=:org&shopId=:shop`
 
+### Admin: Pricing
+
+- `GET /api/v1/admin/pricing/taxes?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/pricing/taxes?organizationId=:org&shopId=:shop`
+- `PATCH /api/v1/admin/pricing/taxes/:taxCode?organizationId=:org&shopId=:shop`
+- `DELETE /api/v1/admin/pricing/taxes/:taxCode?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/pricing/price-tables?organizationId=:org&shopId=:shop&includeInactive=:optional`
+- `POST /api/v1/admin/pricing/price-tables?organizationId=:org&shopId=:shop`
+- `PATCH /api/v1/admin/pricing/price-tables/:priceTableId?organizationId=:org&shopId=:shop`
+- `DELETE /api/v1/admin/pricing/price-tables/:priceTableId?organizationId=:org&shopId=:shop`
+- `GET|POST /api/v1/admin/pricing/customer-groups?organizationId=:org&shopId=:shop&includeInactive=:optional`
+- `PATCH|DELETE /api/v1/admin/pricing/customer-groups/:code?organizationId=:org&shopId=:shop`
+- `GET|POST /api/v1/admin/pricing/channels?organizationId=:org&shopId=:shop&includeInactive=:optional`
+- `PATCH|DELETE /api/v1/admin/pricing/channels/:code?organizationId=:org&shopId=:shop`
+- `GET|POST /api/v1/admin/pricing/trade-policies?organizationId=:org&shopId=:shop&includeInactive=:optional`
+- `PATCH|DELETE /api/v1/admin/pricing/trade-policies/:code?organizationId=:org&shopId=:shop`
+- `GET|POST /api/v1/admin/pricing/countries?organizationId=:org&shopId=:shop&includeInactive=:optional`
+- `PATCH|DELETE /api/v1/admin/pricing/countries/:code?organizationId=:org&shopId=:shop`
+
+`Admin > Configuracion > Precios` consume estas listas maestras por BFF para
+alimentar selectores de impuestos, price tables, grupos de cliente, canales,
+politicas comerciales y paises. La UI no debe aceptar listas locales inventadas
+que luego no hagan match con el motor de Pricing.
+
+Certificacion UI 2026-06-26: Playwright valida
+`/admin/configuracion/precios?tab=references`, muestra `default-iva`,
+`vip-table`, `vip`, `web`, `default` y `ES`, crea `playwright-vip` via BFF y
+comprueba que el navegador no llama servicios internos. La grilla de Pricing
+usa columnas densas responsivas para evitar que tablas y formularios se
+superpongan sobre botones de accion.
+
+`Producto > Precio` consume esas mismas listas maestras como selects en el
+contexto avanzado de precio base, precios especificos y simulador aplicado.
+Los valores legacy se muestran como opcion actual si todavia no existen en
+`Configuracion > Precios`.
+
 ### Admin: Media, Shipping, Invoice y After Sales
 
 - `POST /api/v1/admin/product-save-operations?organizationId=:org&shopId=:shop&locale=:locale`

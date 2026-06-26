@@ -30,9 +30,84 @@ const capturedSaveOperationRequests: string[] = [];
 const capturedSaveOperationIdempotencyKeys: string[] = [];
 const capturedSaveOperationBodies: string[] = [];
 const capturedEditorStateRequests: string[] = [];
+const capturedPricingPreviewRequests: string[] = [];
+const capturedPricingGovernanceRequests: string[] = [];
+const capturedPricingMutations: Array<{
+  method: string;
+  path: string;
+  body: Record<string, unknown>;
+}> = [];
 const capturedMediaAssetContentRequests: string[] = [];
 let saveOperationMode: "partial_failed" | "success" | "published" = "partial_failed";
 let draftMediaUploadMode: "success" | "failed" = "success";
+const pricingTaxes = [{
+  taxId: "tax-standard",
+  taxCode: "standard",
+  name: "IVA general",
+  calculationType: "PERCENTAGE",
+  rate: 0.21,
+  isActive: true,
+}, {
+  taxId: "tax-default-iva",
+  taxCode: "default-iva",
+  name: "Default IVA",
+  calculationType: "PERCENTAGE",
+  rate: 0.1,
+  country: "ES",
+  isActive: true,
+}];
+const pricingPriceTables = [{
+  priceTableId: "base",
+  name: "Base",
+  active: true,
+  currency: "EUR",
+}, {
+  priceTableId: "cockpit-vip",
+  name: "Cockpit VIP",
+  active: true,
+  currency: "EUR",
+}, {
+  priceTableId: "vip-table",
+  name: "VIP table",
+  active: true,
+  currency: "EUR",
+}];
+const pricingReferenceState: Record<string, Array<{
+  code: string;
+  name: string;
+  helpText: string;
+  active: boolean;
+}>> = {
+  "customer-groups": [{
+    code: "vip",
+    name: "VIP",
+    helpText: "Segmento comercial usado para reglas de precio especifico.",
+    active: true,
+  }],
+  channels: [{
+    code: "web",
+    name: "Web",
+    helpText: "Canal de venta web.",
+    active: true,
+  }, {
+    code: "marketplace",
+    name: "Marketplace",
+    helpText: "Canal de venta marketplace.",
+    active: true,
+  }],
+  "trade-policies": [{
+    code: "default",
+    name: "Default",
+    helpText: "Politica comercial base.",
+    active: true,
+  }],
+  countries: [{
+    code: "ES",
+    name: "Espana",
+    helpText: "Mercado Espana.",
+    active: true,
+  }],
+};
 const uploadedDraftMediaByClientDraftId = new Map<string, Array<{
   localId: string;
   mediaAssetId: string;
@@ -96,6 +171,32 @@ function sendJson(response: ServerResponse, status: number, payload: unknown) {
     "content-type": "application/json",
   });
   response.end(JSON.stringify(payload));
+}
+
+function assertPricingTenant(url: URL) {
+  expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+  expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+}
+
+function upsertReference(
+  rows: Array<{ code: string; name: string; helpText: string; active: boolean }>,
+  body: Record<string, unknown>,
+) {
+  const code = typeof body.code === "string" ? body.code : "";
+  const next = {
+    code,
+    name: typeof body.name === "string" ? body.name : code,
+    helpText: typeof body.helpText === "string" ? body.helpText : "",
+    active: typeof body.active === "boolean" ? body.active : true,
+  };
+  const index = rows.findIndex((item) => item.code === code);
+  if (index >= 0) {
+    rows[index] = next;
+  } else {
+    rows.push(next);
+  }
+
+  return next;
 }
 
 function parseMultipartTextField(body: string, name: string) {
@@ -249,29 +350,177 @@ async function startBffMock() {
     }
 
     if (request.method === "GET" && url.pathname === "/api/v1/admin/pricing/taxes") {
-      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
-      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
-      sendJson(response, 200, {
-        items: [{
-          taxId: "tax-standard",
-          taxCode: "standard",
-          name: "IVA general",
-          calculationType: "PERCENTAGE",
-          rate: 0.21,
-          isActive: true,
-        }],
-      });
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      sendJson(response, 200, { items: pricingTaxes });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/v1/admin/pricing/taxes") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const body = await readJsonBody(request);
+      capturedPricingMutations.push({ method: "POST", path: url.pathname, body });
+      const taxCode = typeof body.code === "string" ? body.code : "tax-playwright";
+      const next = {
+        taxId: `tax-${taxCode}`,
+        taxCode,
+        name: typeof body.name === "string" ? body.name : taxCode,
+        calculationType: typeof body.calculationType === "string" ? body.calculationType : "PERCENTAGE",
+        rate: typeof body.rate === "number" ? body.rate : null,
+        country: typeof body.country === "string" ? body.country : "ES",
+        isActive: body.active !== false,
+      };
+      const index = pricingTaxes.findIndex((item) => item.taxCode === taxCode);
+      if (index >= 0) {
+        pricingTaxes[index] = next;
+      } else {
+        pricingTaxes.push(next);
+      }
+      sendJson(response, 200, next);
       return;
     }
 
     if (request.method === "GET" && url.pathname === "/api/v1/admin/pricing/price-tables") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      sendJson(response, 200, { items: pricingPriceTables });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/v1/admin/pricing/price-tables") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const body = await readJsonBody(request);
+      capturedPricingMutations.push({ method: "POST", path: url.pathname, body });
+      const priceTableId = typeof body.code === "string" ? body.code : "table-playwright";
+      const next = {
+        priceTableId,
+        name: typeof body.name === "string" ? body.name : priceTableId,
+        active: body.active !== false,
+        currency: typeof body.currency === "string" ? body.currency : "EUR",
+      };
+      const index = pricingPriceTables.findIndex((item) => item.priceTableId === priceTableId);
+      if (index >= 0) {
+        pricingPriceTables[index] = next;
+      } else {
+        pricingPriceTables.push(next);
+      }
+      sendJson(response, 200, next);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/pricing/config") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      sendJson(response, 200, {
+        pricingMode: "governed",
+        currency: "EUR",
+        country: "ES",
+      });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/pricing/migration") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      sendJson(response, 200, {
+        status: "ready",
+        referenceData: true,
+      });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/pricing/pipeline/catalog") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      sendJson(response, 200, {
+        items: [{ priceTableId: "vip-table", active: true, status: "ready" }],
+      });
+      return;
+    }
+
+    const pricingReferenceMatch = url.pathname.match(/^\/api\/v1\/admin\/pricing\/(customer-groups|channels|trade-policies|countries)$/);
+    if (pricingReferenceMatch && request.method === "GET") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      sendJson(response, 200, { items: pricingReferenceState[pricingReferenceMatch[1]] });
+      return;
+    }
+
+    if (pricingReferenceMatch && request.method === "POST") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const body = await readJsonBody(request);
+      capturedPricingMutations.push({ method: "POST", path: url.pathname, body });
+      sendJson(response, 200, upsertReference(pricingReferenceState[pricingReferenceMatch[1]], body));
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/pricing/preview") {
+      capturedPricingPreviewRequests.push(`${url.pathname}?${url.searchParams.toString()}`);
       expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
       expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("productId")).toBe("product-edit-1");
+      expect(url.searchParams.get("defaultVariantId")).toBe("variant-edit-default");
+      expect(url.searchParams.get("currency")).toBe("EUR");
+      expect(url.searchParams.get("country")).toBe("ES");
+      expect(url.searchParams.get("tradePolicy")).toBe("default");
+      expect(url.searchParams.get("channel")).toBe("web");
+      expect(url.searchParams.get("priceTableId")).toBe("cockpit-vip");
+      expect(url.searchParams.get("quantity")).toBe("3");
       sendJson(response, 200, {
-        items: [{
-          priceTableId: "base",
-          name: "Base",
-        }],
+        ok: true,
+        status: "APPLIED",
+        reason: null,
+        requested: {
+          productId: "product-edit-1",
+          variantId: null,
+          defaultVariantId: "variant-edit-default",
+          currency: "EUR",
+          country: "ES",
+          tradePolicy: "default",
+          channel: "web",
+          customerGroup: null,
+          priceTableId: "cockpit-vip",
+          quantity: 3,
+          at: null,
+        },
+        resolution: {
+          source: "PRODUCT",
+          usedFallback: false,
+        },
+        price: {
+          pricingId: "pricing-preview-cockpit-vip",
+          targetType: "PRODUCT",
+          productId: "product-edit-1",
+          variantId: null,
+          priceTableId: "cockpit-vip",
+          tradePolicy: "default",
+          channel: "web",
+          customerGroup: null,
+          country: "ES",
+          currency: "EUR",
+          basePrice: { currency: "EUR", amountMinor: 129900 },
+          listPrice: null,
+          fixedPrice: { currency: "EUR", amountMinor: 9500 },
+          tiers: [{ minQuantity: 3, price: { currency: "EUR", amountMinor: 9500 } }],
+          taxIncluded: true,
+          active: true,
+          priority: 100,
+          source: "FIXED",
+          resolved: {
+            currency: "EUR",
+            netAmountMinor: 7851,
+            taxAmountMinor: 1649,
+            grossAmountMinor: 9500,
+            taxIncluded: true,
+          },
+        },
+        conditions: [
+          { key: "priceTableId", requested: "cockpit-vip", matched: "cockpit-vip", status: "MATCH" },
+          { key: "minQuantity", requested: 3, matched: 3, status: "MATCH" },
+        ],
       });
       return;
     }
@@ -846,6 +1095,68 @@ test("admin login authenticates without tenant fields and loads context afterwar
   expect(capturedLoginPayloads.at(-1)).not.toHaveProperty("shopAlias");
 });
 
+test("pricing configuration exposes master data and creates customer groups through BFF", async ({ page }) => {
+  capturedPricingGovernanceRequests.length = 0;
+  capturedPricingMutations.length = 0;
+  pricingReferenceState["customer-groups"] = pricingReferenceState["customer-groups"].filter((item) =>
+    item.code !== "playwright-vip"
+  );
+  const browserExternalRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.hostname === "127.0.0.1" && url.port && Number(url.port) !== nextPort) {
+      browserExternalRequests.push(request.url());
+    }
+  });
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/configuracion/precios?tab=references`);
+
+  await expect(page.getByRole("heading", { name: "Configuracion de precios" })).toBeVisible();
+  await expect(page.getByText("Admin / Configuracion / Precios")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Parametros" })).toHaveClass(/productEditorTabActive/);
+  await expect(page.getByRole("heading", { name: "Grupos de cliente", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Canales", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Politicas comerciales", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Paises", exact: true })).toBeVisible();
+  await expect(page.getByRole("row", { name: /vip VIP/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /web Web/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /default Default/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /ES Espana/ })).toBeVisible();
+
+  const customerGroupPanel = page.locator("section.pricingPanel").filter({
+    has: page.getByRole("heading", { name: "Grupos de cliente", exact: true }),
+  }).first();
+  await customerGroupPanel.getByLabel("Codigo").fill("playwright-vip");
+  await customerGroupPanel.getByLabel("Nombre").fill("Playwright VIP");
+  await customerGroupPanel.getByLabel("Ayuda").fill("Grupo creado desde Playwright.");
+  await customerGroupPanel.getByRole("button", { name: "Guardar" }).click();
+
+  await expect(page.getByText("Parametro guardado.")).toBeVisible();
+  await expect(page.getByRole("row", { name: /playwright-vip Playwright VIP/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Impuestos" })).toBeVisible();
+  await page.getByRole("link", { name: "Impuestos" }).click();
+  await expect(page.getByRole("row", { name: /default-iva Default IVA/ })).toBeVisible();
+  await page.getByRole("link", { name: "Price tables" }).click();
+  await expect(page.getByRole("row", { name: /vip-table VIP table/ })).toBeVisible();
+
+  expect(capturedPricingGovernanceRequests).toContain("GET /api/v1/admin/pricing/customer-groups");
+  expect(capturedPricingGovernanceRequests).toContain("GET /api/v1/admin/pricing/channels");
+  expect(capturedPricingGovernanceRequests).toContain("GET /api/v1/admin/pricing/trade-policies");
+  expect(capturedPricingGovernanceRequests).toContain("GET /api/v1/admin/pricing/countries");
+  expect(capturedPricingMutations).toContainEqual({
+    method: "POST",
+    path: "/api/v1/admin/pricing/customer-groups",
+    body: {
+      code: "playwright-vip",
+      name: "Playwright VIP",
+      helpText: "Grupo creado desde Playwright.",
+      active: true,
+    },
+  });
+  expect(browserExternalRequests).toEqual([]);
+});
+
 test("product editor rehydrates persisted draft media through BFF only", async ({ page }) => {
   capturedDraftStateRequests.length = 0;
   const browserExternalRequests: string[] = [];
@@ -869,6 +1180,21 @@ test("product editor rehydrates persisted draft media through BFF only", async (
   expect(capturedDraftStateRequests[0]).toMatch(/^\/api\/v1\/admin\/product-drafts\/.+/);
   expect(capturedBffRequests.every((item) => item.includes(" /api/v1/"))).toBe(true);
   expect(browserExternalRequests).toEqual([]);
+});
+
+test("product preview renders rich product summary below the title", async ({ page }) => {
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/products/new`);
+
+  await page.getByLabel("Nombre", { exact: true }).fill("Producto Rich Preview");
+  await page.getByLabel("Resumen HTML").fill("<p><strong>Resumen</strong> con formato</p>");
+  await page.getByRole("button", { name: "Vista previa" }).click();
+
+  const previewDialog = page.getByRole("dialog", { name: "Vista previa PDP" });
+  await expect(previewDialog).toBeVisible();
+  await expect(previewDialog.locator(".productPreviewSummary strong")).toHaveText("Resumen");
+  await expect(previewDialog.locator(".productPreviewSummary")).toContainText("con formato");
+  await expect(previewDialog.getByText("<strong>Resumen</strong> con formato")).toHaveCount(0);
 });
 
 test("product editor renders persisted media through the protected preview proxy", async ({ page }) => {
@@ -1299,8 +1625,8 @@ test("product editor publishes through save operation when commercial minimums a
   await page.getByLabel("Nombre del producto").fill("Producto Publicable");
   await page.getByLabel("Categoria principal", { exact: true }).selectOption("category-bikes");
 
-  await page.getByRole("button", { name: "Precio" }).click();
-  await page.getByLabel("Precio del producto / defaultVariant").fill("49.90");
+  await page.getByRole("button", { name: "Precio", exact: true }).click();
+  await page.getByLabel("Precio de venta sin impuestos").fill("49.90");
   await page.getByRole("combobox", { name: /Impuesto/ }).selectOption("tax-standard");
 
   await page.getByRole("button", { name: "Inventario" }).click();
@@ -1457,4 +1783,40 @@ test("product editor loads existing product state and saves through operation en
   expect(capturedSaveOperationRequests).toHaveLength(1);
   expect(capturedBffRequests).not.toContain("PATCH /api/v1/admin/products/product-edit-1");
   expect(capturedBffRequests).not.toContain("POST /api/v1/admin/prices");
+});
+
+test("product editor applies the pricing preview simulator from the pricing tab", async ({ page }) => {
+  capturedEditorStateRequests.length = 0;
+  capturedDraftStateRequests.length = 0;
+  capturedPricingPreviewRequests.length = 0;
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/products/product-edit-1`);
+
+  await expect(page.getByLabel("Nombre del producto")).toHaveValue("Producto existente Playwright");
+  await page.getByRole("button", { name: "Precio", exact: true }).click();
+
+  const simulator = page.locator("section.productSpecificPrices").filter({ has: page.getByRole("heading", { name: "Simulador de precio aplicado" }) });
+  await expect(simulator).toBeVisible();
+  await expect(simulator.getByLabel("Canal")).toHaveValue("web");
+  await expect(simulator.getByLabel("Canal").locator('option[value="web"]')).toHaveText("Web");
+  await expect(simulator.getByLabel("Canal").locator('option[value="marketplace"]')).toHaveText("Marketplace");
+
+  await simulator.getByLabel("Cantidad").fill("3");
+  await simulator.getByLabel("Price table").selectOption("cockpit-vip");
+  await simulator.getByRole("button", { name: "Simular precio" }).click();
+
+  await expect(simulator.getByText("Precio aplicado", { exact: true })).toBeVisible();
+  await expect(simulator.getByText("95.00 EUR").first()).toBeVisible();
+  await expect(simulator.getByText("95.00 EUR")).toHaveCount(2);
+  await expect(simulator.getByText("pricing-preview-cockpit-vip")).toBeVisible();
+  await expect(simulator.getByRole("row", { name: /Price table cockpit-vip cockpit-vip Cumple/ })).toBeVisible();
+  await expect(simulator.getByRole("row", { name: /Cantidad minima 3 3 Cumple/ })).toBeVisible();
+  await expect(simulator.getByText("Cumple").first()).toBeVisible();
+
+  expect(capturedPricingPreviewRequests).toHaveLength(1);
+  expect(capturedPricingPreviewRequests[0]).toContain("productId=product-edit-1");
+  expect(capturedPricingPreviewRequests[0]).toContain("defaultVariantId=variant-edit-default");
+  expect(capturedPricingPreviewRequests[0]).toContain("priceTableId=cockpit-vip");
+  expect(capturedPricingPreviewRequests[0]).toContain("quantity=3");
 });

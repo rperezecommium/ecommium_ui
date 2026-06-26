@@ -7,7 +7,6 @@ export default function CatalogoPage() {
     { href: "/admin/catalogo/atributos-caracteristicas", label: "Atributos / Caracteristicas", description: "Opciones de combinacion y ficha tecnica." },
     { href: "/admin/catalogo/marcas", label: "Marcas / Proveedores", description: "Fabricantes, proveedores y colecciones." },
     { href: "/admin/catalogo/media", label: "Media / Archivos", description: "Imagenes, documentos y portadas." },
-    { href: "/admin/catalogo/precios", label: "Precios", description: "Precio base y overrides por variante." },
     { href: "/admin/catalogo/offerings", label: "Offerings / Servicios adicionales", description: "Servicios vendibles y add-ons." },
     { href: "/admin/catalogo/stock", label: "Stock", description: "Existencias por variante y almacen." },
     { href: "/admin/catalogo/descuentos", label: "Descuentos", description: "Promociones y reducciones comerciales." },

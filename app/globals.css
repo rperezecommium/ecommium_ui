@@ -1663,6 +1663,46 @@ p {
   color: var(--admin-text);
 }
 
+.productBasicPricing,
+.productSpecificPrices,
+.productSpecificPriceForm,
+.productPricingAdvanced {
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-bg);
+}
+
+.productSpecificPrices {
+  display: grid;
+  gap: 12px;
+}
+
+.productSpecificPriceForm {
+  display: grid;
+  gap: 12px;
+}
+
+.productPricingAdvanced {
+  margin-top: 12px;
+}
+
+.productPricingAdvanced summary {
+  cursor: pointer;
+  color: var(--admin-text);
+  font-weight: 700;
+}
+
+.productPricingAdvanced[open] summary {
+  margin-bottom: 12px;
+}
+
+.productSpecificPriceTable th,
+.productSpecificPriceTable td {
+  white-space: nowrap;
+  vertical-align: top;
+}
+
 .pricingAdminPage {
   display: grid;
   gap: 14px;
@@ -1696,9 +1736,14 @@ p {
   gap: 14px;
 }
 
+.pricingGridTwo > * {
+  min-width: 0;
+}
+
 .pricingPanel {
   display: grid;
   gap: 12px;
+  min-width: 0;
   padding: 14px;
   border: 1px solid var(--admin-border);
   border-radius: 6px;
@@ -1789,8 +1834,12 @@ p {
 }
 
 .pricingDenseForm {
-  grid-template-columns: repeat(6, minmax(120px, 1fr)) auto;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   align-items: end;
+}
+
+.pricingDenseForm .adminButton {
+  justify-self: start;
 }
 
 .pricingDangerForm {
@@ -2100,6 +2149,7 @@ p {
   box-shadow: inset 0 0 0 1px var(--admin-primary);
 }
 
+
 .productPreviewVariantTiles {
   display: grid;
   gap: 8px;
@@ -2201,7 +2251,7 @@ p {
   line-height: 1.12;
 }
 
-.productPreviewInfoPane > p {
+.productPreviewSummary {
   margin: -6px 0 0;
   color: var(--admin-text-muted);
   line-height: 1.5;
@@ -2304,16 +2354,74 @@ p {
   font-size: 13px;
 }
 
-.productPreviewDescription {
+.productPreviewRichText {
   color: var(--admin-text);
   line-height: 1.55;
 }
 
-.productPreviewDescription :first-child {
+.productPreviewRichText p,
+.productPreviewRichText ul,
+.productPreviewRichText ol,
+.productPreviewRichText blockquote,
+.productPreviewRichText pre {
+  margin: 0 0 10px;
+}
+
+.productPreviewRichText h2,
+.productPreviewRichText h3 {
+  margin: 0 0 10px;
+  color: var(--admin-text);
+  letter-spacing: 0;
+}
+
+.productPreviewRichText h2 {
+  font-size: 18px;
+}
+
+.productPreviewRichText h3 {
+  font-size: 16px;
+}
+
+.productPreviewRichText ul,
+.productPreviewRichText ol {
+  padding-left: 22px;
+}
+
+.productPreviewRichText blockquote {
+  padding: 8px 10px;
+  border-left: 3px solid var(--admin-border-strong);
+  background: var(--admin-bg);
+}
+
+.productPreviewRichText pre {
+  overflow-x: auto;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.productPreviewRichText code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.productPreviewRichText pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.productPreviewRichText :first-child {
   margin-top: 0;
 }
 
-.productPreviewDescription :last-child {
+.productPreviewRichText :last-child {
   margin-bottom: 0;
 }
 

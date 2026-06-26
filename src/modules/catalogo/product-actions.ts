@@ -5,6 +5,8 @@ import { requestBff } from "../../shared/bff/client";
 import { createCatalogEntity, listCatalogEntities, toLookupOptions, type CatalogEntityKind } from "./catalog-taxonomy";
 import { makeProductGateway } from "./products";
 import type {
+  ProductAppliedPricePreview,
+  ProductAppliedPricePreviewInput,
   ProductDraft,
   ProductDraftMediaStateReport,
   ProductDraftMediaUploadReport,
@@ -170,6 +172,73 @@ export async function readProductDraftMediaStateAction(clientDraftId: string): P
     fieldErrors: {
       media: result.error,
     },
+    correlationIds: [result.correlationId],
+  };
+}
+
+export async function previewAppliedProductPriceAction(
+  input: ProductAppliedPricePreviewInput,
+): Promise<ProductAppliedPricePreview> {
+  const context = await getAdminContext();
+  if (!context.organizationId || !context.shopId) {
+    return {
+      ok: false,
+      status: "NOT_APPLIED",
+      reason: "Selecciona Organization y Shop antes de simular precios.",
+      requested: {
+        productId: input.productId ?? null,
+        variantId: input.variantId ?? null,
+        defaultVariantId: input.defaultVariantId ?? null,
+        currency: input.currency ?? context.currency ?? "EUR",
+        country: input.country ?? context.country ?? "ES",
+        tradePolicy: input.tradePolicy ?? "default",
+        channel: input.channel ?? context.channel ?? "web",
+        customerGroup: input.customerGroup ?? null,
+        priceTableId: input.priceTableId ?? null,
+        quantity: Number(input.quantity ?? 1),
+        at: input.at ?? null,
+      },
+      resolution: {
+        source: "NONE",
+        usedFallback: false,
+      },
+      price: null,
+      conditions: [],
+      correlationIds: [],
+    };
+  }
+
+  const result = await makeProductGateway(context).previewAppliedPrice(input);
+  if (result.ok) {
+    return {
+      ...result.data,
+      correlationIds: Array.from(new Set([...(result.data.correlationIds ?? []), result.correlationId])),
+    };
+  }
+
+  return {
+    ok: false,
+    status: "NOT_APPLIED",
+    reason: `No se pudo simular el precio. ${result.error}`,
+    requested: {
+      productId: input.productId ?? null,
+      variantId: input.variantId ?? null,
+      defaultVariantId: input.defaultVariantId ?? null,
+      currency: input.currency ?? context.currency ?? "EUR",
+      country: input.country ?? context.country ?? "ES",
+      tradePolicy: input.tradePolicy ?? "default",
+      channel: input.channel ?? context.channel ?? "web",
+      customerGroup: input.customerGroup ?? null,
+      priceTableId: input.priceTableId ?? null,
+      quantity: Number(input.quantity ?? 1),
+      at: input.at ?? null,
+    },
+    resolution: {
+      source: "NONE",
+      usedFallback: false,
+    },
+    price: null,
+    conditions: [],
     correlationIds: [result.correlationId],
   };
 }

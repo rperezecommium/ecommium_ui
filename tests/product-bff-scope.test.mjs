@@ -120,7 +120,20 @@ test("product list and editor-state use Admin BFF endpoints scoped by active sho
       return ok({
         product: { productId: "product-1", name: "Producto Barcelona", slug: "producto-barcelona", isActive: false, isVisible: true },
         variants: [{ variantId: "variant-1", refId: "PRODUCTO-BARCELONA", isActive: true, isVisible: true, isDefault: true }],
-        prices: { items: [] },
+        prices: {
+          items: [],
+          specificPrices: [{
+            pricingId: "specific-product-1",
+            targetType: "PRODUCT",
+            productId: "product-1",
+            variantId: null,
+            currency: "EUR",
+            country: "ES",
+            minQuantity: 2,
+            fixedPriceMinor: 899,
+            active: true,
+          }],
+        },
         availability: { items: [] },
       }, options);
     }
@@ -133,11 +146,14 @@ test("product list and editor-state use Admin BFF endpoints scoped by active sho
   const { getAdminProducts, getAdminProductEditorData } = loadProductsModule(requestBff);
 
   await getAdminProducts(context, { limit: 20, offset: 0 });
-  await getAdminProductEditorData(context, "product-1");
+  const editorData = await getAdminProductEditorData(context, "product-1");
 
   assert.equal(calls.some((call) => call.path.startsWith("/inventory/")), false);
   assert.ok(calls.some((call) => call.path.startsWith("/admin/inventory/availability/resolve-batch?")));
   assert.ok(calls.some((call) => call.path.startsWith("/admin/products/product-1/editor-state?")));
+  assert.equal(editorData.ok, true);
+  assert.equal(editorData.data.specificPrices[0].pricingId, "specific-product-1");
+  assert.equal(editorData.data.specificPrices[0].fixedPriceMinor, 899);
   assert.equal(calls.every((call) => call.path.startsWith("/admin/")), true);
   calls.forEach((call) => assertScopedPath(call.path));
 });

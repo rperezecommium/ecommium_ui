@@ -29,6 +29,7 @@ const navItems = [
 const configurationNavItems = [
   { href: "/admin/configuracion/contexto", label: "Contexto", description: "Organization y Shop", permission: "admin:configuration:view" as const },
   { href: "/admin/configuracion/equipo", label: "Equipo", description: "Empleados y permisos", permission: "admin:employees:view" as const },
+  { href: "/admin/configuracion/precios", label: "Precios", description: "Impuestos, tablas y reglas", permission: "admin:catalog:view" as const },
 ];
 
 const catalogNavItems = [
@@ -37,7 +38,6 @@ const catalogNavItems = [
   { href: "/admin/catalogo/atributos-caracteristicas", label: "Atributos / Caracteristicas", description: "Combinaciones y ficha tecnica", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/marcas", label: "Marcas / Proveedores", description: "Fabricantes y colecciones", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/media", label: "Media / Archivos", description: "Imagenes y documentos", permission: "admin:catalog:view" as const },
-  { href: "/admin/catalogo/precios", label: "Precios", description: "Base y overrides", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/offerings", label: "Offerings / Servicios adicionales", description: "Servicios vendibles asociados", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/stock", label: "Stock", description: "Existencias por variante", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/descuentos", label: "Descuentos", description: "Promociones y reducciones", permission: "admin:catalog:view" as const },

@@ -322,6 +322,144 @@ test("variant price inherits product tax before validation and save", () => {
   assert.equal(normalized.pricing.variantPrices["variant-red"].priceTableId, "vip-table");
 });
 
+test("specific prices inherit product pricing context before validation and save", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Urban Runner";
+  draft.basic.slug = "urban-runner";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "URBAN-RUNNER";
+  draft.pricing.productPrice.basePriceMinor = 5000;
+  draft.pricing.productPrice.taxCode = "BIKE_STANDARD";
+  draft.pricing.productPrice.tax = validTax();
+  draft.pricing.productPrice.priceTableId = "vip-table";
+  draft.pricing.specificPrices = [{
+    targetType: "VARIANT",
+    variantKey: "variant-red",
+    currency: null,
+    country: "",
+    customerGroup: "",
+    channel: "",
+    tradePolicy: "",
+    priceTableId: null,
+    minQuantity: 0,
+    validFrom: "",
+    validUntil: "",
+    unlimited: true,
+    impactType: "FIXED_PRICE",
+    fixedPriceMinor: 3999,
+    reductionValue: null,
+    reductionTaxIncluded: true,
+    taxIncluded: undefined,
+    tax: null,
+    active: true,
+    priority: null,
+  }];
+
+  const normalized = validationModule.normalizeProductDraft(draft);
+  const validation = validationModule.validateProductDraft(draft);
+  const specificPrice = normalized.pricing.specificPrices[0];
+
+  assert.equal(validation.ok, true);
+  assert.equal(specificPrice.targetType, "VARIANT");
+  assert.equal(specificPrice.variantKey, "variant-red");
+  assert.equal(specificPrice.currency, "EUR");
+  assert.equal(specificPrice.country, null);
+  assert.equal(specificPrice.minQuantity, 1);
+  assert.equal(specificPrice.priceTableId, "vip-table");
+  assert.equal(specificPrice.basePriceMinor, 3999);
+  assert.equal(specificPrice.tax.taxCode, "BIKE_STANDARD");
+});
+
+test("draftFromEditorData preserves specific prices from editor-state", () => {
+  const draft = draftModule.draftFromEditorData({
+    product: {
+      productId: "product-1",
+      name: "Urban Runner",
+      slug: "urban-runner",
+      isActive: false,
+      isVisible: true,
+      defaultVariantId: "variant-default",
+    },
+    variants: [
+      {
+        variantId: "variant-default",
+        name: "Urban Runner",
+        refId: "URBAN-RUNNER",
+        ean: null,
+        options: [],
+        isActive: true,
+        isVisible: true,
+        isDefault: true,
+      },
+      {
+        variantId: "variant-red",
+        name: "Urban Runner / Rojo",
+        refId: "URBAN-RUNNER-RED",
+        ean: null,
+        options: [{ attributeCode: "color", valueCode: "red", isActive: true }],
+        isActive: true,
+        isVisible: true,
+        isDefault: false,
+      },
+    ],
+    variantRows: [],
+    mediaItems: [],
+    mediaAssignments: {},
+    mediaMainByVariant: {},
+    productPrice: {
+      pricingId: "price-base",
+      basePriceMinor: 5000,
+      listPriceMinor: null,
+      costPriceMinor: null,
+      currency: "EUR",
+      taxIncluded: true,
+      taxCode: "BIKE_STANDARD",
+      tax: validTax(),
+      priceTableId: null,
+      tradePolicy: "default",
+      channel: "web",
+      customerGroup: null,
+      country: "ES",
+    },
+    variantPrices: {},
+    specificPrices: [{
+      pricingId: "specific-red",
+      targetType: "VARIANT",
+      productId: "product-1",
+      variantId: "variant-red",
+      variantKey: "variant-red",
+      currency: "EUR",
+      country: "ES",
+      customerGroup: null,
+      channel: "web",
+      tradePolicy: "default",
+      priceTableId: null,
+      minQuantity: 2,
+      validFrom: "2026-06-26T00:00:00.000Z",
+      validUntil: null,
+      unlimited: true,
+      impactType: "FIXED_PRICE",
+      basePriceMinor: 5000,
+      fixedPriceMinor: 3999,
+      reductionValue: null,
+      reductionTaxIncluded: true,
+      taxIncluded: true,
+      tax: validTax(),
+      active: true,
+      priority: 100,
+    }],
+    offeringsByVariant: {},
+    stockByVariant: {},
+    warnings: [],
+    correlationIds: [],
+  }, "es-ES", "EUR");
+
+  assert.equal(draft.pricing.specificPrices.length, 1);
+  assert.equal(draft.pricing.specificPrices[0].pricingId, "specific-red");
+  assert.equal(draft.pricing.specificPrices[0].variantKey, "variant-red");
+  assert.equal(draft.variants[0].variantId, "variant-red");
+});
+
 test("restores persisted variant media preview from fresh editor state after reload", () => {
   const mediaAssetId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   const initialDraft = draftModule.createEmptyProductDraft("es-ES", "EUR");

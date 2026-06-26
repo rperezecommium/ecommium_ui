@@ -22,6 +22,34 @@ export type PriceDraft = {
   markedForDeletion?: boolean;
 };
 
+export type SpecificPriceDraft = {
+  pricingId?: string;
+  targetType: "PRODUCT" | "VARIANT";
+  productId?: string;
+  variantKey?: string;
+  variantId?: string | null;
+  currency?: string | null;
+  country?: string | null;
+  customerGroup?: string | null;
+  channel?: string | null;
+  tradePolicy?: string | null;
+  priceTableId?: string | null;
+  minQuantity: number;
+  validFrom?: string | null;
+  validUntil?: string | null;
+  unlimited?: boolean;
+  impactType: "FIXED_PRICE" | "REDUCTION_AMOUNT" | "REDUCTION_PERCENTAGE";
+  basePriceMinor?: number | null;
+  fixedPriceMinor?: number | null;
+  reductionValue?: number | null;
+  reductionTaxIncluded?: boolean;
+  taxIncluded?: boolean;
+  tax?: ProductTaxLookupOption | null;
+  active: boolean;
+  priority?: number | null;
+  markedForDeletion?: boolean;
+};
+
 export type StockDraft = {
   warehouseId: string;
   onHandQuantity: number;
@@ -102,6 +130,69 @@ export type ProductOfferingRecord = {
   active: boolean;
 };
 
+export type ProductAppliedPricePreviewInput = {
+  productId?: string | null;
+  variantId?: string | null;
+  defaultVariantId?: string | null;
+  currency?: string | null;
+  country?: string | null;
+  tradePolicy?: string | null;
+  channel?: string | null;
+  customerGroup?: string | null;
+  priceTableId?: string | null;
+  quantity?: number | string | null;
+  at?: string | null;
+};
+
+export type ProductAppliedPricePreviewCondition = {
+  key: string;
+  requested: string | number | null;
+  matched: string | number | null;
+  status: "MATCH" | "ANY" | "MISMATCH";
+};
+
+export type ProductAppliedPricePreview = {
+  ok: boolean;
+  status: "APPLIED" | "NOT_APPLIED";
+  reason: string | null;
+  requested: Required<Pick<ProductAppliedPricePreviewInput, "productId" | "variantId" | "defaultVariantId" | "currency" | "country" | "tradePolicy" | "channel" | "customerGroup" | "priceTableId" | "at">> & {
+    quantity: number;
+  };
+  resolution: {
+    source: "PRODUCT" | "VARIANT" | "DEFAULT_VARIANT" | "PRODUCT_FALLBACK" | "NONE";
+    usedFallback: boolean;
+  };
+  price: {
+    pricingId: string;
+    targetType: "PRODUCT" | "VARIANT";
+    productId: string;
+    variantId: string | null;
+    priceTableId: string | null;
+    tradePolicy: string | null;
+    channel: string | null;
+    customerGroup: string | null;
+    country: string | null;
+    currency: string;
+    basePrice: { currency: string; amountMinor: number };
+    listPrice: { currency: string; amountMinor: number } | null;
+    fixedPrice: { currency: string; amountMinor: number } | null;
+    tiers: Array<{ minQuantity: number; price: { currency: string; amountMinor: number } }> | null;
+    taxIncluded: boolean;
+    active: boolean;
+    priority: number;
+    source: string;
+    resolved?: {
+      currency: string;
+      netAmountMinor: number;
+      taxAmountMinor: number;
+      grossAmountMinor: number;
+      taxIncluded: boolean;
+    };
+  } | null;
+  conditions: ProductAppliedPricePreviewCondition[];
+  correlationIds?: string[];
+};
+
 export type ProductDraft = {
   clientDraftId: string;
   productId?: string;
@@ -141,6 +232,7 @@ export type ProductDraft = {
   pricing: {
     productPrice?: PriceDraft;
     variantPrices: Record<string, PriceDraft>;
+    specificPrices: SpecificPriceDraft[];
   };
   offerings: {
     byVariant: Record<string, ProductOfferingRecord[]>;
@@ -242,6 +334,7 @@ export type ProductEditorData = {
   mediaMainByVariant: Record<string, string>;
   productPrice?: PriceDraft;
   variantPrices: Record<string, PriceDraft>;
+  specificPrices: SpecificPriceDraft[];
   offeringsByVariant: Record<string, ProductOfferingRecord[]>;
   stockByVariant: Record<string, StockDraft>;
   shipping?: ProductShippingDraft;
@@ -273,6 +366,10 @@ export type ProductEditorLookups = {
   brands: ProductLookupOption[];
   taxes: ProductTaxLookupOption[];
   priceTables: ProductLookupOption[];
+  customerGroups: ProductLookupOption[];
+  channels: ProductLookupOption[];
+  tradePolicies: ProductLookupOption[];
+  countries: ProductLookupOption[];
   carriers: ProductLookupOption[];
   warnings: string[];
 };
@@ -486,6 +583,7 @@ export type ProductGateway = {
     variantId: string;
     price: PriceDraft;
   }): Promise<BffResult<{ pricingId?: string }>>;
+  previewAppliedPrice(input: ProductAppliedPricePreviewInput): Promise<BffResult<ProductAppliedPricePreview>>;
   createOffering(payload: ProductOfferingCreatePayload): Promise<BffResult<{ offering: ProductOfferingRecord; message?: string }>>;
   attachOfferingToVariant(input: {
     offeringId: string;

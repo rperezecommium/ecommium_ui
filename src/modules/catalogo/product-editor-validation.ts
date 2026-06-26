@@ -83,6 +83,46 @@ function normalizeOptionalPositiveInteger(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.trunc(value) : null;
 }
 
+function normalizeSpecificPriceDraft(
+  price: ProductDraft["pricing"]["specificPrices"][number],
+  productPrice: ProductDraft["pricing"]["productPrice"],
+): ProductDraft["pricing"]["specificPrices"][number] {
+  const targetType = price.targetType === "VARIANT" || price.variantKey || price.variantId
+    ? "VARIANT"
+    : "PRODUCT";
+  const fixedPriceMinor = normalizeOptionalPositiveInteger(price.fixedPriceMinor);
+
+  return {
+    ...price,
+    targetType,
+    variantKey: targetType === "VARIANT" ? cleanOptional(price.variantKey ?? price.variantId ?? undefined) : undefined,
+    variantId: targetType === "VARIANT" ? price.variantId ?? null : null,
+    currency: price.currency || productPrice?.currency || "EUR",
+    country: price.country?.trim() || null,
+    customerGroup: price.customerGroup?.trim() || null,
+    channel: price.channel?.trim() || productPrice?.channel || "web",
+    tradePolicy: price.tradePolicy?.trim() || productPrice?.tradePolicy || "default",
+    priceTableId: price.priceTableId?.trim() || productPrice?.priceTableId || null,
+    minQuantity: normalizeOptionalPositiveInteger(price.minQuantity) ?? 1,
+    validFrom: price.validFrom?.trim() || null,
+    validUntil: price.unlimited ? null : price.validUntil?.trim() || null,
+    unlimited: price.unlimited ?? !price.validUntil,
+    impactType: price.impactType === "REDUCTION_AMOUNT" || price.impactType === "REDUCTION_PERCENTAGE"
+      ? price.impactType
+      : "FIXED_PRICE",
+    basePriceMinor: normalizeOptionalPositiveInteger(price.basePriceMinor) ?? fixedPriceMinor,
+    fixedPriceMinor,
+    reductionValue: typeof price.reductionValue === "number" && Number.isFinite(price.reductionValue)
+      ? price.reductionValue
+      : null,
+    reductionTaxIncluded: price.reductionTaxIncluded ?? true,
+    taxIncluded: price.taxIncluded ?? productPrice?.taxIncluded ?? true,
+    tax: price.tax ?? productPrice?.tax ?? null,
+    active: price.active ?? true,
+    priority: normalizeOptionalPositiveInteger(price.priority) ?? 100,
+  };
+}
+
 function normalizeDeliveryNotes(value: Record<string, string> | undefined) {
   return Object.fromEntries(
     Object.entries(value ?? {})
@@ -202,6 +242,9 @@ export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
       },
     ]),
   );
+  const specificPrices = (draft.pricing.specificPrices ?? []).map((price) =>
+    normalizeSpecificPriceDraft(price, productPrice),
+  );
 
   return {
     ...draft,
@@ -243,6 +286,7 @@ export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
     pricing: {
       ...draft.pricing,
       variantPrices,
+      specificPrices,
     },
     shipping: normalizeShippingDraft(draft.shipping),
   };
@@ -304,6 +348,21 @@ export function validateProductDraft(draft: ProductDraft): ProductDraftValidatio
       fieldErrors[`pricing.variantPrices:${variantKey}:tax`] = taxValidationMessage(price);
     }
   }
+
+  normalized.pricing.specificPrices.forEach((price, index) => {
+    if (price.markedForDeletion) {
+      return;
+    }
+    if (price.impactType !== "FIXED_PRICE") {
+      fieldErrors[`pricing.specificPrices:${index}:impactType`] = "Las reducciones requieren ADR/migracion; usa precio fijo especifico.";
+    }
+    if (price.targetType === "VARIANT" && !price.variantKey && !price.variantId) {
+      fieldErrors[`pricing.specificPrices:${index}:target`] = "Selecciona una variante para este precio especifico.";
+    }
+    if (!price.fixedPriceMinor || price.fixedPriceMinor <= 0) {
+      fieldErrors[`pricing.specificPrices:${index}:fixedPriceMinor`] = "El precio especifico debe ser mayor que cero.";
+    }
+  });
 
   return {
     ok: Object.keys(fieldErrors).length === 0,

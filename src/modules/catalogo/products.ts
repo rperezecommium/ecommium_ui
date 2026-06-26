@@ -5,6 +5,8 @@ import { getPricingEditorLookups } from "./pricing-admin";
 import { productStatusIsActive } from "./product-status";
 import type {
   PriceDraft,
+  ProductAppliedPricePreview,
+  ProductAppliedPricePreviewInput,
   ProductOfferingCreatePayload,
   ProductOfferingRecord,
   ProductCatalogCreatePayload,
@@ -22,6 +24,7 @@ import type {
   ProductVariantCreatePayload,
   ProductVariantOptionPayload,
   ProductVariantRecord,
+  SpecificPriceDraft,
   ProductVariantUpdatePayload,
   StockDraft,
 } from "./product-editor-types";
@@ -113,6 +116,21 @@ function asStringArray(value: unknown) {
   return listItems(value)
     .map((item) => asString(item))
     .filter((item): item is string => Boolean(item));
+}
+
+function asAppliedPricePreview(value: unknown): ProductAppliedPricePreview {
+  const record = asRecord(value);
+  return {
+    ok: asBoolean(record.ok),
+    status: asString(record.status) === "APPLIED" ? "APPLIED" : "NOT_APPLIED",
+    reason: asNullableString(record.reason),
+    requested: asRecord(record.requested) as ProductAppliedPricePreview["requested"],
+    resolution: asRecord(record.resolution) as ProductAppliedPricePreview["resolution"],
+    price: (record.price ?? null) as ProductAppliedPricePreview["price"],
+    conditions: Array.isArray(record.conditions)
+      ? record.conditions as ProductAppliedPricePreview["conditions"]
+      : [],
+  };
 }
 
 function isString(value: string | undefined): value is string {
@@ -436,6 +454,54 @@ function parsePrice(value: unknown): PriceDraft | undefined {
     customerGroup: asString(record.customerGroup) ?? null,
     country: asString(record.country),
     source: asString(record.source),
+  };
+}
+
+function parseSpecificPrice(value: unknown): SpecificPriceDraft | undefined {
+  const record = asRecord(value);
+  const pricingId = asString(record.pricingId) ?? asString(record.id);
+  const rawTargetType = asString(record.targetType)?.toUpperCase();
+  const variantId = asString(record.variantId) ?? null;
+  const fixedPriceMinor =
+    asNullableNumber(record.fixedPriceMinor) ??
+    nestedAmountMinor(record.fixedPrice) ??
+    asNullableNumber(record.basePriceMinor) ??
+    nestedAmountMinor(record.basePrice);
+  const minQuantity = asNullableNumber(record.minQuantity);
+  const impactType = asString(record.impactType)?.toUpperCase();
+
+  if (fixedPriceMinor === null && !pricingId) {
+    return undefined;
+  }
+
+  return {
+    pricingId,
+    targetType: rawTargetType === "VARIANT" || variantId ? "VARIANT" : "PRODUCT",
+    productId: asString(record.productId),
+    variantId,
+    variantKey: asString(record.variantKey) ?? variantId ?? undefined,
+    currency: asString(record.currency) ?? "EUR",
+    country: asString(record.country) ?? null,
+    customerGroup: asString(record.customerGroup) ?? null,
+    channel: asString(record.channel),
+    tradePolicy: asString(record.tradePolicy),
+    priceTableId: asString(record.priceTableId) ?? null,
+    minQuantity: typeof minQuantity === "number" && minQuantity > 0 ? Math.trunc(minQuantity) : 1,
+    validFrom: asString(record.validFrom) ?? null,
+    validUntil: asString(record.validUntil) ?? null,
+    unlimited: asBoolean(record.unlimited, record.validUntil === null),
+    impactType: impactType === "REDUCTION_AMOUNT" || impactType === "REDUCTION_PERCENTAGE"
+      ? impactType
+      : "FIXED_PRICE",
+    basePriceMinor: asNullableNumber(record.basePriceMinor) ?? nestedAmountMinor(record.basePrice),
+    fixedPriceMinor,
+    reductionValue: asNullableNumber(record.reductionValue),
+    reductionTaxIncluded: asBoolean(record.reductionTaxIncluded, true),
+    taxIncluded: asBoolean(record.taxIncluded, true),
+    tax: parseTax(record.tax),
+    active: asBoolean(record.active, true),
+    priority: asNullableNumber(record.priority),
+    markedForDeletion: asBoolean(record.markedForDeletion, false),
   };
 }
 
@@ -881,6 +947,9 @@ function parseEditorState(value: unknown, locale: string, currency: string): Pro
       };
     }
   }
+  const specificPrices = listItems(prices.specificPrices)
+    .map(parseSpecificPrice)
+    .filter((price): price is SpecificPriceDraft => Boolean(price));
 
   const stockByVariant: Record<string, StockDraft> = {};
   for (const item of listItems(asRecord(record.availability).items)) {
@@ -907,6 +976,7 @@ function parseEditorState(value: unknown, locale: string, currency: string): Pro
     mediaMainByVariant,
     productPrice: productPrice ? { ...productPrice, currency: productPrice.currency || currency } : undefined,
     variantPrices,
+    specificPrices,
     offeringsByVariant: {},
     stockByVariant,
     shipping: parseProductShipping(asRecord(record.product).shipping ?? record.shipping),
@@ -1215,10 +1285,14 @@ export async function getProductEditorLookups(context: AdminContext): Promise<Pr
   return {
     categories: toLookupOptions(categoriesResult),
     brands: toLookupOptions(brandsResult),
-    taxes: pricingLookups.taxes,
-    priceTables: pricingLookups.priceTables,
+    taxes: pricingLookups.taxes ?? [],
+    priceTables: pricingLookups.priceTables ?? [],
+    customerGroups: pricingLookups.customerGroups ?? [],
+    channels: pricingLookups.channels ?? [],
+    tradePolicies: pricingLookups.tradePolicies ?? [],
+    countries: pricingLookups.countries ?? [],
     carriers: carriersResult.carriers,
-    warnings: [...warnings, ...pricingLookups.warnings, ...carriersResult.warnings],
+    warnings: [...warnings, ...(pricingLookups.warnings ?? []), ...carriersResult.warnings],
   };
 }
 
@@ -1573,6 +1647,32 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
           })),
         },
         parse: (value) => asRecord(value) as { pricingId?: string },
+      });
+    },
+    previewAppliedPrice(input: ProductAppliedPricePreviewInput) {
+      const params = makeScopedParams(context);
+      const setParam = (key: string, value: string | number | null | undefined) => {
+        const normalizedValue = typeof value === "string" ? value.trim() : value;
+        if (normalizedValue !== null && normalizedValue !== undefined && String(normalizedValue).length > 0) {
+          params.set(key, String(normalizedValue));
+        }
+      };
+
+      setParam("productId", input.productId);
+      setParam("variantId", input.variantId);
+      setParam("defaultVariantId", input.defaultVariantId);
+      setParam("currency", input.currency ?? context.currency ?? "EUR");
+      setParam("country", input.country ?? context.country ?? "ES");
+      setParam("tradePolicy", input.tradePolicy ?? "default");
+      setParam("channel", input.channel ?? context.channel ?? "web");
+      setParam("customerGroup", input.customerGroup);
+      setParam("priceTableId", input.priceTableId);
+      setParam("quantity", input.quantity ?? 1);
+      setParam("at", input.at);
+
+      return requestBff(`/admin/pricing/preview?${params.toString()}`, {
+        context,
+        parse: asAppliedPricePreview,
       });
     },
     createOffering(payload: ProductOfferingCreatePayload) {

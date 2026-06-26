@@ -720,6 +720,7 @@ export async function saveProductDraft({
       pricing: {
         productPrice: nextProductPrice,
         variantPrices: nextVariantPrices,
+        specificPrices: normalizedDraft.pricing.specificPrices,
       },
       inventory: {
         stockByVariant: nextStockByVariant,
@@ -835,6 +836,7 @@ export async function saveProductDraft({
       pricing: {
         productPrice: nextProductPrice,
         variantPrices: nextVariantPrices,
+        specificPrices: normalizedDraft.pricing.specificPrices,
       },
       inventory: {
         stockByVariant: nextStockByVariant,

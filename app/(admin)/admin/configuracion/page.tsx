@@ -25,6 +25,9 @@ export default function ConfiguracionPage() {
           <Link className="adminButton adminButtonPrimary" href="/admin/configuracion/contexto">
             Abrir contexto multistore
           </Link>
+          <Link className="adminButton" href="/admin/configuracion/precios">
+            Abrir precios
+          </Link>
           <Link className="adminButton" href="/admin/configuracion/equipo">
             Abrir equipo y permisos
           </Link>

@@ -95,6 +95,7 @@ export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): Pro
     variants: [],
     pricing: {
       variantPrices: {},
+      specificPrices: [],
       productPrice: {
         basePriceMinor: 0,
         listPriceMinor: null,
@@ -272,6 +273,7 @@ export function draftFromEditorData(
     pricing: {
       productPrice: data.productPrice ?? draft.pricing.productPrice,
       variantPrices: data.variantPrices,
+      specificPrices: data.specificPrices,
     },
     offerings: {
       byVariant: offeringsByVariant,

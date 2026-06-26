@@ -6,12 +6,13 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Eye, Italic, List, ListOrdered, Plus, Redo2, RemoveFormatting, Strikethrough, Trash2, Undo2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, InputHTMLAttributes } from "react";
 import {
   createAndAttachOfferingAction,
   createProductBrandInlineAction,
   createProductCategoryInlineAction,
   detachOfferingFromVariantAction,
+  previewAppliedProductPriceAction,
   readProductDraftMediaStateAction,
   saveProductDraftAction,
   setOfferingVariantActivationAction,
@@ -26,6 +27,7 @@ import {
   slugifyProductValue,
 } from "./product-editor-draft";
 import type {
+  ProductAppliedPricePreview,
   ProductDraft,
   ProductDraftMediaStateItem,
   ProductDraftMediaItem,
@@ -37,6 +39,7 @@ import type {
   ProductSaveReport,
   ProductTaxLookupOption,
   SaveBlockStatus,
+  SpecificPriceDraft,
   StockDraft,
 } from "./product-editor-types";
 import {
@@ -66,6 +69,34 @@ type ProductVariantRowView = ProductDraftVariant & {
   effectiveMediaSource: ProductEditorVariantRow["effectiveMediaSource"];
 };
 
+type SpecificPriceFormState = {
+  targetKey: string;
+  fixedPrice: string;
+  minQuantity: string;
+  validFrom: string;
+  validUntil: string;
+  unlimited: boolean;
+  country: string;
+  customerGroup: string;
+  channel: string;
+  tradePolicy: string;
+  priceTableId: string;
+  taxIncluded: boolean;
+  active: boolean;
+  priority: string;
+};
+
+type PricingPreviewFormState = {
+  targetKey: string;
+  quantity: string;
+  country: string;
+  channel: string;
+  tradePolicy: string;
+  customerGroup: string;
+  priceTableId: string;
+  at: string;
+};
+
 type TabId =
   | "basic"
   | "images"
@@ -91,6 +122,64 @@ const tabs: Array<{ id: TabId; label: string }> = [
 
 const remoteMediaConfirmationAttempts = 3;
 const remoteMediaConfirmationDelayMs = 450;
+
+const defaultProductEditorLookups: ProductEditorLookups = {
+  categories: [],
+  brands: [],
+  taxes: [],
+  priceTables: [],
+  customerGroups: [],
+  channels: [],
+  tradePolicies: [],
+  countries: [],
+  carriers: [],
+  warnings: [],
+};
+
+type DecimalNumberInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "step" | "type" | "value"> & {
+  value: string;
+  step?: string;
+  onValueChange: (value: string) => void;
+};
+
+function formatDecimalInputOnBlur(value: string) {
+  if (value === "") {
+    return "";
+  }
+
+  const parsed = Number(value.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed.toFixed(2) : value;
+}
+
+function DecimalNumberInput({ value, step = "0.01", onValueChange, onBlur, onFocus, ...props }: DecimalNumberInputProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  const [draftValue, setDraftValue] = useState(value);
+
+  return (
+    <input
+      {...props}
+      type="number"
+      step={step}
+      value={isFocused ? draftValue : value}
+      onFocus={(event) => {
+        setIsFocused(true);
+        setDraftValue(value);
+        onFocus?.(event);
+      }}
+      onChange={(event) => {
+        setDraftValue(event.target.value);
+        onValueChange(event.target.value);
+      }}
+      onBlur={(event) => {
+        const nextValue = formatDecimalInputOnBlur(event.target.value);
+        setIsFocused(false);
+        setDraftValue(nextValue);
+        onValueChange(nextValue);
+        onBlur?.(event);
+      }}
+    />
+  );
+}
 
 function centsToInput(value: number | undefined) {
   if (!value) {
@@ -131,6 +220,64 @@ function clampInteger(value: number) {
 function inputToCents(value: string) {
   const parsed = Number(value.replace(",", "."));
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
+}
+
+function taxRate(tax: ProductTaxLookupOption | null | undefined) {
+  return tax?.calculationType === "PERCENTAGE" && typeof tax.rate === "number" ? tax.rate : null;
+}
+
+function netMinorFromPrice(price: ProductDraft["pricing"]["productPrice"], tax: ProductTaxLookupOption | null | undefined) {
+  const amount = price?.basePriceMinor ?? 0;
+  const rate = taxRate(tax);
+  if (!rate || amount <= 0) {
+    return amount;
+  }
+
+  return price?.taxIncluded ?? true ? Math.round(amount / (1 + rate)) : amount;
+}
+
+function grossMinorFromPrice(price: ProductDraft["pricing"]["productPrice"], tax: ProductTaxLookupOption | null | undefined) {
+  const amount = price?.basePriceMinor ?? 0;
+  const rate = taxRate(tax);
+  if (!rate || amount <= 0) {
+    return amount;
+  }
+
+  return price?.taxIncluded ?? true ? amount : Math.round(amount * (1 + rate));
+}
+
+function baseMinorFromNetInput(value: string, price: ProductDraft["pricing"]["productPrice"], tax: ProductTaxLookupOption | null | undefined) {
+  const net = inputToCents(value);
+  const rate = taxRate(tax);
+  return (price?.taxIncluded ?? true) && rate ? Math.round(net * (1 + rate)) : net;
+}
+
+function baseMinorFromGrossInput(value: string, price: ProductDraft["pricing"]["productPrice"], tax: ProductTaxLookupOption | null | undefined) {
+  const gross = inputToCents(value);
+  const rate = taxRate(tax);
+  return !(price?.taxIncluded ?? true) && rate ? Math.round(gross / (1 + rate)) : gross;
+}
+
+function dateTimeLocalToIso(value: string) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function isoToDateTimeLocal(value: string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toISOString().slice(0, 16);
 }
 
 function availableQuantity(stock: StockDraft | undefined) {
@@ -178,6 +325,116 @@ function statusLabel(status: SaveBlockStatus) {
   return labels[status];
 }
 
+function defaultSpecificPriceForm(
+  productPrice: ProductDraft["pricing"]["productPrice"],
+  targetKey = "__product__",
+): SpecificPriceFormState {
+  return {
+    targetKey,
+    fixedPrice: "",
+    minQuantity: "1",
+    validFrom: "",
+    validUntil: "",
+    unlimited: true,
+    country: productPrice?.country ?? "",
+    customerGroup: productPrice?.customerGroup ?? "",
+    channel: productPrice?.channel ?? "web",
+    tradePolicy: productPrice?.tradePolicy ?? "default",
+    priceTableId: productPrice?.priceTableId ?? "",
+    taxIncluded: productPrice?.taxIncluded ?? true,
+    active: true,
+    priority: "100",
+  };
+}
+
+function defaultPricingPreviewForm(
+  productPrice: ProductDraft["pricing"]["productPrice"],
+  targetKey = "__product__",
+): PricingPreviewFormState {
+  return {
+    targetKey,
+    quantity: "1",
+    country: productPrice?.country ?? "ES",
+    channel: productPrice?.channel ?? "web",
+    tradePolicy: productPrice?.tradePolicy ?? "default",
+    customerGroup: productPrice?.customerGroup ?? "",
+    priceTableId: productPrice?.priceTableId ?? "",
+    at: "",
+  };
+}
+
+function pricingResolutionLabel(source: ProductAppliedPricePreview["resolution"]["source"]) {
+  const labels: Record<ProductAppliedPricePreview["resolution"]["source"], string> = {
+    PRODUCT: "Precio de producto",
+    VARIANT: "Precio propio de variante",
+    DEFAULT_VARIANT: "Fallback productVariantDefault",
+    PRODUCT_FALLBACK: "Fallback al producto",
+    NONE: "Sin precio aplicable",
+  };
+
+  return labels[source];
+}
+
+function pricingConditionLabel(key: string) {
+  const labels: Record<string, string> = {
+    currency: "Moneda",
+    country: "Pais",
+    channel: "Canal",
+    tradePolicy: "Politica",
+    customerGroup: "Grupo cliente",
+    priceTableId: "Price table",
+    minQuantity: "Cantidad minima",
+  };
+
+  return labels[key] ?? key;
+}
+
+function pricingConditionStatusLabel(status: ProductAppliedPricePreview["conditions"][number]["status"]) {
+  if (status === "MATCH") {
+    return "Cumple";
+  }
+  if (status === "ANY") {
+    return "Todos";
+  }
+  return "No cumple";
+}
+
+function lookupOptionsWithCurrent(
+  options: ProductLookupOption[] | undefined,
+  currentValue?: string | null,
+  currentLabel?: string,
+) {
+  const safeOptions = options ?? [];
+  const value = currentValue?.trim();
+  if (!value || safeOptions.some((option) => option.id === value)) {
+    return safeOptions;
+  }
+
+  return [{ id: value, label: currentLabel ?? value }, ...safeOptions];
+}
+
+function specificPriceToForm(
+  price: SpecificPriceDraft,
+  productPrice: ProductDraft["pricing"]["productPrice"],
+): SpecificPriceFormState {
+  return {
+    ...defaultSpecificPriceForm(productPrice, price.targetType === "VARIANT" ? price.variantKey ?? price.variantId ?? "__product__" : "__product__"),
+    fixedPrice: centsToInput(price.fixedPriceMinor ?? undefined),
+    minQuantity: String(price.minQuantity || 1),
+    validFrom: isoToDateTimeLocal(price.validFrom),
+    validUntil: isoToDateTimeLocal(price.validUntil),
+    unlimited: price.unlimited ?? !price.validUntil,
+    country: price.country ?? "",
+    customerGroup: price.customerGroup ?? "",
+    channel: price.channel ?? productPrice?.channel ?? "web",
+    tradePolicy: price.tradePolicy ?? productPrice?.tradePolicy ?? "default",
+    priceTableId: price.priceTableId ?? productPrice?.priceTableId ?? "",
+    taxIncluded: price.taxIncluded ?? productPrice?.taxIncluded ?? true,
+    active: price.active ?? true,
+    priority: String(price.priority ?? 100),
+  };
+}
+
 function fieldErrorLabel(key: string) {
   if (key === "name") {
     return "Nombre";
@@ -199,6 +456,9 @@ function fieldErrorLabel(key: string) {
   }
   if (key.startsWith("pricing.variantPrices:")) {
     return "Pricing / Precio de variante";
+  }
+  if (key.startsWith("pricing.specificPrices:")) {
+    return "Pricing / Precio especifico";
   }
   if (key.startsWith("variant:") && key.endsWith(":options")) {
     return "Variantes / Opciones";
@@ -414,6 +674,115 @@ function offeringName(
   return offering.localizedName.find((item) => item.locale === locale)?.value ??
     offering.localizedName[0]?.value ??
     offering.name;
+}
+
+const allowedRichTextTags = new Set([
+  "a",
+  "blockquote",
+  "br",
+  "code",
+  "em",
+  "h2",
+  "h3",
+  "i",
+  "li",
+  "ol",
+  "p",
+  "pre",
+  "s",
+  "strong",
+  "strike",
+  "ul",
+]);
+
+function isSafeRichTextHref(value: string) {
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized.startsWith("/") ||
+    normalized.startsWith("#") ||
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://") ||
+    normalized.startsWith("mailto:") ||
+    normalized.startsWith("tel:")
+  );
+}
+
+function sanitizeRichTextHtml(html: string) {
+  if (!html.trim() || typeof document === "undefined") {
+    return "";
+  }
+
+  const template = document.createElement("template");
+  template.innerHTML = html;
+
+  function cleanNode(node: Node): Node | null {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return document.createTextNode(node.textContent ?? "");
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return null;
+    }
+
+    const element = node as HTMLElement;
+    const tagName = element.tagName.toLowerCase();
+    const cleanChildren = Array.from(element.childNodes)
+      .map(cleanNode)
+      .filter((child): child is Node => Boolean(child));
+
+    if (!allowedRichTextTags.has(tagName)) {
+      const fragment = document.createDocumentFragment();
+      cleanChildren.forEach((child) => fragment.appendChild(child));
+      return fragment;
+    }
+
+    const cleanElement = document.createElement(tagName);
+    if (tagName === "a") {
+      const href = element.getAttribute("href");
+      if (href && isSafeRichTextHref(href)) {
+        cleanElement.setAttribute("href", href.trim());
+        cleanElement.setAttribute("rel", "noopener noreferrer");
+      }
+      const title = element.getAttribute("title");
+      if (title) {
+        cleanElement.setAttribute("title", title);
+      }
+    }
+
+    cleanChildren.forEach((child) => cleanElement.appendChild(child));
+    return cleanElement;
+  }
+
+  const wrapper = document.createElement("div");
+  Array.from(template.content.childNodes).forEach((node) => {
+    const cleanNodeResult = cleanNode(node);
+    if (cleanNodeResult) {
+      wrapper.appendChild(cleanNodeResult);
+    }
+  });
+
+  return wrapper.innerHTML;
+}
+
+type RichTextPreviewProps = {
+  className?: string;
+  emptyLabel: string;
+  html: string;
+};
+
+function RichTextPreview({ className = "", emptyLabel, html }: RichTextPreviewProps) {
+  const sanitizedHtml = useMemo(() => sanitizeRichTextHtml(html), [html]);
+
+  if (!html.trim() || !sanitizedHtml) {
+    return <p className="productPreviewEmpty">{emptyLabel}</p>;
+  }
+
+  return (
+    <div
+      className={`productPreviewRichText ${className}`.trim()}
+      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+    />
+  );
 }
 
 type RichTextEditorProps = {
@@ -672,7 +1041,7 @@ export function ProductEditorClient({
   initialVariantRows = [],
   locale,
   currency,
-  lookups = { categories: [], brands: [], taxes: [], priceTables: [], carriers: [], warnings: [] },
+  lookups = defaultProductEditorLookups,
 }: ProductEditorClientProps) {
   const storageKey = useMemo(
     () => localStorageKey(initialDraft, locale, currency, contextIdentity),
@@ -698,7 +1067,7 @@ function ProductEditorClientInner({
   initialVariantRows = [],
   locale,
   currency,
-  lookups = { categories: [], brands: [], taxes: [], priceTables: [], carriers: [], warnings: [] },
+  lookups = defaultProductEditorLookups,
   storageKey,
 }: ProductEditorClientInnerProps) {
   const router = useRouter();
@@ -708,6 +1077,15 @@ function ProductEditorClientInner({
   const [dirty, setDirty] = useState(false);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(draft.media.items[0]?.localId ?? null);
   const [selectedVariantKey, setSelectedVariantKey] = useState<string>("default");
+  const [specificPriceForm, setSpecificPriceForm] = useState<SpecificPriceFormState>(() =>
+    defaultSpecificPriceForm(initialDraft.pricing.productPrice, "__product__"),
+  );
+  const [specificPriceEditIndex, setSpecificPriceEditIndex] = useState<number | null>(null);
+  const [pricingPreviewForm, setPricingPreviewForm] = useState<PricingPreviewFormState>(() =>
+    defaultPricingPreviewForm(initialDraft.pricing.productPrice, "__product__"),
+  );
+  const [pricingPreviewResult, setPricingPreviewResult] = useState<ProductAppliedPricePreview | null>(null);
+  const [pricingPreviewBusy, setPricingPreviewBusy] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewVariantKey, setPreviewVariantKey] = useState<string>("default");
   const [filesByLocalId, setFilesByLocalId] = useState<Record<string, File>>({});
@@ -803,10 +1181,36 @@ function ProductEditorClientInner({
   const priceTableOptions = selectedPriceTable && !lookups.priceTables.some((table) => table.id === selectedPriceTable.id)
     ? [selectedPriceTable, ...lookups.priceTables]
     : lookups.priceTables;
+  const productChannelOptions = lookupOptionsWithCurrent(lookups.channels, productPrice?.channel ?? "web");
+  const productTradePolicyOptions = lookupOptionsWithCurrent(lookups.tradePolicies, productPrice?.tradePolicy ?? "default");
+  const productCountryOptions = lookupOptionsWithCurrent(lookups.countries, productPrice?.country ?? "ES");
+  const productCustomerGroupOptions = lookupOptionsWithCurrent(lookups.customerGroups, productPrice?.customerGroup);
+  const specificChannelOptions = lookupOptionsWithCurrent(lookups.channels, specificPriceForm.channel || productPrice?.channel || "web");
+  const specificTradePolicyOptions = lookupOptionsWithCurrent(lookups.tradePolicies, specificPriceForm.tradePolicy || productPrice?.tradePolicy || "default");
+  const specificCountryOptions = lookupOptionsWithCurrent(lookups.countries, specificPriceForm.country);
+  const specificCustomerGroupOptions = lookupOptionsWithCurrent(lookups.customerGroups, specificPriceForm.customerGroup);
+  const previewChannelOptions = lookupOptionsWithCurrent(lookups.channels, pricingPreviewForm.channel || productPrice?.channel || "web");
+  const previewTradePolicyOptions = lookupOptionsWithCurrent(lookups.tradePolicies, pricingPreviewForm.tradePolicy || productPrice?.tradePolicy || "default");
+  const previewCountryOptions = lookupOptionsWithCurrent(lookups.countries, pricingPreviewForm.country || productPrice?.country || "ES");
+  const previewCustomerGroupOptions = lookupOptionsWithCurrent(lookups.customerGroups, pricingPreviewForm.customerGroup);
   const pricingTaxWarning = lookups.warnings.find((warning) => warning.startsWith("Pricing taxes:"));
   const pricingTablesWarning = lookups.warnings.find((warning) => warning.startsWith("Pricing price tables:"));
   const currentPricePreview = pricePreview(productPrice, selectedTax);
   const priceVariantRows = draft.variants;
+  const specificPrices = draft.pricing.specificPrices ?? [];
+  const visibleSpecificPrices = specificPrices.filter((price) => !price.markedForDeletion);
+  const specificPriceTargetOptions = [
+    {
+      key: "__product__",
+      label: "Producto completo",
+      refId: draft.defaultVariant.refId || "Todas las combinaciones",
+    },
+    ...priceVariantRows.map((variant) => ({
+      key: variant.localId,
+      label: variant.name || variant.refId || "Variante",
+      refId: variant.refId,
+    })),
+  ];
   const selectedPriceVariant =
     priceVariantRows.find((variant) => variant.localId === selectedVariantKey || variant.variantId === selectedVariantKey) ??
     priceVariantRows[0];
@@ -830,6 +1234,11 @@ function ProductEditorClientInner({
   const variantPriceTableOptions = selectedVariantPriceTable && !priceTableOptions.some((table) => table.id === selectedVariantPriceTable.id)
     ? [selectedVariantPriceTable, ...priceTableOptions]
     : priceTableOptions;
+  const specificPriceTarget = specificPriceTargetOptions.find((target) => target.key === specificPriceForm.targetKey) ?? specificPriceTargetOptions[0];
+  const pricingPreviewTarget =
+    pricingPreviewForm.targetKey === "__product__"
+      ? allVariantRows[0]
+      : allVariantRows.find((variant) => variant.localId === pricingPreviewForm.targetKey || variant.variantId === pricingPreviewForm.targetKey);
   const selectedVariantAssignments = draft.media.assignments[selectedVariant.localId] ?? [];
   const selectedVariantMain = draft.media.mainByVariant[selectedVariant.localId];
   const previewVariant =
@@ -1504,6 +1913,10 @@ function ProductEditorClientInner({
         pricing: {
           ...current.pricing,
           variantPrices: nextVariantPrices,
+          specificPrices: (current.pricing.specificPrices ?? []).filter((price) =>
+            price.targetType !== "VARIANT" ||
+            !keys.some((key) => price.variantKey === key || price.variantId === key),
+          ),
         },
         inventory: {
           ...current.inventory,
@@ -1634,6 +2047,207 @@ function ProductEditorClientInner({
         },
       };
     });
+  }
+
+  function specificPriceTargetLabel(price: SpecificPriceDraft) {
+    if (price.targetType !== "VARIANT") {
+      return "Producto completo";
+    }
+
+    const variantKey = price.variantKey ?? price.variantId;
+    const target = specificPriceTargetOptions.find((item) => item.key === variantKey);
+    return target ? `${target.label} · ${target.refId}` : variantKey ?? "Variante";
+  }
+
+  function specificPriceCountForVariant(variant: ProductDraftVariant) {
+    return visibleSpecificPrices.filter((price) =>
+      price.targetType === "PRODUCT" ||
+      price.variantKey === variant.localId ||
+      price.variantKey === variant.variantId ||
+      price.variantId === variant.variantId,
+    ).length;
+  }
+
+  function resetSpecificPriceForm(targetKey = "__product__") {
+    setSpecificPriceEditIndex(null);
+    setSpecificPriceForm(defaultSpecificPriceForm(productPrice, targetKey));
+  }
+
+  function editSpecificPrice(index: number) {
+    const price = specificPrices[index];
+    if (!price) {
+      return;
+    }
+
+    setSpecificPriceEditIndex(index);
+    setSpecificPriceForm(specificPriceToForm(price, productPrice));
+  }
+
+  function removeSpecificPrice(index: number) {
+    updateDraft((current) => {
+      const nextSpecificPrices = [...(current.pricing.specificPrices ?? [])];
+      const existing = nextSpecificPrices[index];
+      if (!existing) {
+        return current;
+      }
+
+      if (existing.pricingId) {
+        nextSpecificPrices[index] = {
+          ...existing,
+          active: false,
+          markedForDeletion: true,
+        };
+      } else {
+        nextSpecificPrices.splice(index, 1);
+      }
+
+      return {
+        ...current,
+        pricing: {
+          ...current.pricing,
+          specificPrices: nextSpecificPrices,
+        },
+      };
+    });
+
+    if (specificPriceEditIndex === index) {
+      resetSpecificPriceForm();
+    }
+  }
+
+  function saveSpecificPriceForm() {
+    const targetKey = specificPriceForm.targetKey || "__product__";
+    const targetType = targetKey === "__product__" ? "PRODUCT" : "VARIANT";
+    const fixedPriceMinor = inputToCents(specificPriceForm.fixedPrice);
+    const minQuantity = Math.max(1, clampInteger(Number(specificPriceForm.minQuantity || "1")));
+    const priority = Math.max(1, clampInteger(Number(specificPriceForm.priority || "100")));
+    const selectedVariantOwnPrice = targetType === "VARIANT"
+      ? draft.pricing.variantPrices[targetKey]
+      : undefined;
+    const basePriceMinor = selectedVariantOwnPrice?.basePriceMinor || productPrice?.basePriceMinor || fixedPriceMinor;
+    const nextPrice: SpecificPriceDraft = {
+      ...(specificPriceEditIndex !== null ? specificPrices[specificPriceEditIndex] : undefined),
+      targetType,
+      variantKey: targetType === "VARIANT" ? targetKey : undefined,
+      variantId: targetType === "VARIANT"
+        ? priceVariantRows.find((variant) => variant.localId === targetKey)?.variantId ?? null
+        : null,
+      currency: productPrice?.currency || currency,
+      country: specificPriceForm.country.trim() || null,
+      customerGroup: specificPriceForm.customerGroup.trim() || null,
+      channel: specificPriceForm.channel.trim() || productPrice?.channel || "web",
+      tradePolicy: specificPriceForm.tradePolicy.trim() || productPrice?.tradePolicy || "default",
+      priceTableId: specificPriceForm.priceTableId || null,
+      minQuantity,
+      validFrom: dateTimeLocalToIso(specificPriceForm.validFrom),
+      validUntil: specificPriceForm.unlimited ? null : dateTimeLocalToIso(specificPriceForm.validUntil),
+      unlimited: specificPriceForm.unlimited,
+      impactType: "FIXED_PRICE",
+      fixedPriceMinor,
+      reductionValue: null,
+      reductionTaxIncluded: true,
+      taxIncluded: specificPriceForm.taxIncluded,
+      tax: productPrice?.tax ?? null,
+      active: specificPriceForm.active,
+      priority,
+      basePriceMinor,
+    } as SpecificPriceDraft;
+
+    updateDraft((current) => {
+      const nextSpecificPrices = [...(current.pricing.specificPrices ?? [])];
+      if (specificPriceEditIndex === null) {
+        nextSpecificPrices.push(nextPrice);
+      } else {
+        nextSpecificPrices[specificPriceEditIndex] = nextPrice;
+      }
+
+      return {
+        ...current,
+        pricing: {
+          ...current.pricing,
+          specificPrices: nextSpecificPrices,
+        },
+      };
+    });
+    resetSpecificPriceForm(targetKey);
+  }
+
+  async function runPricingPreview() {
+    const target = pricingPreviewTarget;
+    const productId = draft.productId?.trim();
+    const variantId = pricingPreviewForm.targetKey === "__product__" ? null : target?.variantId ?? null;
+
+    if (!productId) {
+      setPricingPreviewResult({
+        ok: false,
+        status: "NOT_APPLIED",
+        reason: "Guarda el producto antes de simular el precio aplicado.",
+        requested: {
+          productId: null,
+          variantId,
+          defaultVariantId: draft.defaultVariantId ?? null,
+          currency: productPrice?.currency ?? currency,
+          country: pricingPreviewForm.country || productPrice?.country || "ES",
+          tradePolicy: pricingPreviewForm.tradePolicy || productPrice?.tradePolicy || "default",
+          channel: pricingPreviewForm.channel || productPrice?.channel || "web",
+          customerGroup: pricingPreviewForm.customerGroup || null,
+          priceTableId: pricingPreviewForm.priceTableId || null,
+          quantity: Math.max(1, clampInteger(Number(pricingPreviewForm.quantity || "1"))),
+          at: dateTimeLocalToIso(pricingPreviewForm.at),
+        },
+        resolution: { source: "NONE", usedFallback: false },
+        price: null,
+        conditions: [],
+        correlationIds: [],
+      });
+      return;
+    }
+
+    if (pricingPreviewForm.targetKey !== "__product__" && !variantId) {
+      setPricingPreviewResult({
+        ok: false,
+        status: "NOT_APPLIED",
+        reason: "Guarda la variante antes de simular un precio especifico de variante.",
+        requested: {
+          productId,
+          variantId: null,
+          defaultVariantId: draft.defaultVariantId ?? null,
+          currency: productPrice?.currency ?? currency,
+          country: pricingPreviewForm.country || productPrice?.country || "ES",
+          tradePolicy: pricingPreviewForm.tradePolicy || productPrice?.tradePolicy || "default",
+          channel: pricingPreviewForm.channel || productPrice?.channel || "web",
+          customerGroup: pricingPreviewForm.customerGroup || null,
+          priceTableId: pricingPreviewForm.priceTableId || null,
+          quantity: Math.max(1, clampInteger(Number(pricingPreviewForm.quantity || "1"))),
+          at: dateTimeLocalToIso(pricingPreviewForm.at),
+        },
+        resolution: { source: "NONE", usedFallback: false },
+        price: null,
+        conditions: [],
+        correlationIds: [],
+      });
+      return;
+    }
+
+    setPricingPreviewBusy(true);
+    try {
+      const result = await previewAppliedProductPriceAction({
+        productId,
+        variantId,
+        defaultVariantId: draft.defaultVariantId ?? null,
+        currency: productPrice?.currency ?? currency,
+        country: pricingPreviewForm.country || productPrice?.country || "ES",
+        tradePolicy: pricingPreviewForm.tradePolicy || productPrice?.tradePolicy || "default",
+        channel: pricingPreviewForm.channel || productPrice?.channel || "web",
+        customerGroup: pricingPreviewForm.customerGroup || null,
+        priceTableId: pricingPreviewForm.priceTableId || null,
+        quantity: Math.max(1, clampInteger(Number(pricingPreviewForm.quantity || "1"))),
+        at: dateTimeLocalToIso(pricingPreviewForm.at),
+      });
+      setPricingPreviewResult(result);
+    } finally {
+      setPricingPreviewBusy(false);
+    }
   }
 
   function stockForKey(variantKey: string) {
@@ -1832,6 +2446,7 @@ function ProductEditorClientInner({
         pricing: {
           ...current.pricing,
           variantPrices: {},
+          specificPrices: (current.pricing.specificPrices ?? []).filter((price) => price.targetType !== "VARIANT"),
         },
         inventory: {
           ...current.inventory,
@@ -2268,6 +2883,77 @@ function ProductEditorClientInner({
                     />
                   </label>
                 </div>
+                <section className="productBasicPricing adminSection">
+                  <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
+                    <div>
+                      <h3>Precio base</h3>
+                      <p>{formatMoney(productPrice?.basePriceMinor, productPrice?.currency || currency)} · {selectedTax?.label ?? "Sin regla fiscal"}</p>
+                    </div>
+                    <button className="adminButton" type="button" onClick={() => setActiveTab("pricing")}>
+                      Ver precio avanzado
+                    </button>
+                  </div>
+                  <div className="adminFormGrid adminFormGridTwo">
+                    <label className="adminField">
+                      <span>Precio venta imp. excl.</span>
+                      <DecimalNumberInput
+                        min="0"
+                        value={centsToInput(netMinorFromPrice(productPrice, selectedTax))}
+                        onValueChange={(value) => updateProductPriceField((price) => ({
+                          ...price,
+                          basePriceMinor: baseMinorFromNetInput(value, price, selectedTax),
+                          currency: price.currency || currency,
+                        }))}
+                      />
+                    </label>
+                    <label className="adminField">
+                      <span>Precio venta imp. incl.</span>
+                      <DecimalNumberInput
+                        min="0"
+                        value={centsToInput(grossMinorFromPrice(productPrice, selectedTax))}
+                        onValueChange={(value) => updateProductPriceField((price) => ({
+                          ...price,
+                          basePriceMinor: baseMinorFromGrossInput(value, price, selectedTax),
+                          currency: price.currency || currency,
+                        }))}
+                      />
+                    </label>
+                    <label className="adminField">
+                      <span>Regla de impuestos</span>
+                      <select
+                        disabled={taxOptions.length === 0}
+                        value={selectedTax?.id ?? ""}
+                        onChange={(event) => {
+                          const tax = taxOptions.find((item) => item.id === event.target.value) ?? null;
+                          updateProductPriceField((price) => ({
+                            ...price,
+                            taxCode: tax?.taxCode ?? draft.basic.taxCode ?? "standard",
+                            tax,
+                          }));
+                        }}
+                      >
+                        <option value="">{taxOptions.length ? "Sin regla fiscal" : "Sin reglas fiscales cargadas"}</option>
+                        {taxOptions.map((tax) => (
+                          <option key={tax.id} value={tax.id}>{tax.label}</option>
+                        ))}
+                      </select>
+                      {report?.fieldErrors["pricing.productPrice.tax"] ? (
+                        <small>{report.fieldErrors["pricing.productPrice.tax"]}</small>
+                      ) : null}
+                    </label>
+                    <label className="adminField">
+                      <span>Precio de coste</span>
+                      <DecimalNumberInput
+                        min="0"
+                        value={centsToInput(productPrice?.costPriceMinor ?? undefined)}
+                        onValueChange={(value) => updateProductPriceField((price) => ({
+                          ...price,
+                          costPriceMinor: inputToCents(value) || null,
+                        }))}
+                      />
+                    </label>
+                  </div>
+                </section>
                 <RichTextEditor
                   label="Resumen"
                   minHeight={140}
@@ -2551,7 +3237,7 @@ function ProductEditorClientInner({
                       <td>
                         <div className="productInlinePriceCell">
                           <input
-	                            aria-label="Precio del producto"
+	                            aria-label="Precio del producto / defaultVariant"
                             readOnly
                             value={centsToInput(productPrice?.basePriceMinor)}
                           />
@@ -2652,13 +3338,11 @@ function ProductEditorClientInner({
                           </td>
                           <td>
                             <div className="productInlinePriceCell">
-                              <input
+                              <DecimalNumberInput
                                 aria-label={`Precio variante ${index + 1}`}
                                 min="0"
-                                step="0.01"
-                                type="number"
                                 value={centsToInput(variantPrice?.markedForDeletion ? undefined : variantPrice?.basePriceMinor)}
-                                onChange={(event) => updateVariantPrice(variant.localId, event.target.value)}
+                                onValueChange={(value) => updateVariantPrice(variant.localId, value)}
                               />
                               <button
                                 className="adminButton"
@@ -2822,44 +3506,42 @@ function ProductEditorClientInner({
               <div className="productEditorSectionHeader">
                 <div>
                   <h2>Precio</h2>
-	                  <p>El precio superior pertenece al producto. Las variantes adicionales heredan salvo override propio.</p>
+                  <p>Define el precio base del producto y anade excepciones solo cuando las necesites.</p>
                 </div>
               </div>
               <div className="pricingEditorContext">
                 <span>Currency: <strong>{productPrice?.currency || currency}</strong></span>
                 <span>Country: <strong>{productPrice?.country || "ES"}</strong></span>
-                <span>Trade policy: <strong>{productPrice?.tradePolicy || "default"}</strong></span>
-                <span>Channel: <strong>{productPrice?.channel || "web"}</strong></span>
-                <span>Customer group: <strong>{productPrice?.customerGroup || "Todos"}</strong></span>
+                <span>Precio base: <strong>{formatMoney(productPrice?.basePriceMinor, productPrice?.currency || currency)}</strong></span>
+                <span>Reglas especificas: <strong>{visibleSpecificPrices.length}</strong></span>
               </div>
               {lookups.warnings.filter((warning) => warning.startsWith("Pricing")).map((warning) => (
                 <div className="adminBanner" key={warning}><p>{warning}</p></div>
               ))}
               <div className="adminFormGrid adminFormGridTwo">
                 <label className="adminField">
-	                  <span>Precio del producto</span>
-                  <input
-                    type="number"
+                  <span>Precio de venta (imp. excl.)</span>
+                  <DecimalNumberInput
+                    aria-label="Precio de venta sin impuestos"
                     min="0"
-                    step="0.01"
-                    value={centsToInput(productPrice?.basePriceMinor)}
-                    onChange={(event) => updateProductPriceField((price) => ({
+                    value={centsToInput(netMinorFromPrice(productPrice, selectedTax))}
+                    onValueChange={(value) => updateProductPriceField((price) => ({
                       ...price,
-                      basePriceMinor: inputToCents(event.target.value),
+                      basePriceMinor: baseMinorFromNetInput(value, price, selectedTax),
                       currency: price.currency || currency,
                     }))}
                   />
                 </label>
                 <label className="adminField">
-	                  <span>Precio tachado del producto</span>
-                  <input
-                    type="number"
+                  <span>Precio de venta (imp. incl.)</span>
+                  <DecimalNumberInput
+                    aria-label="Precio de venta con impuestos"
                     min="0"
-                    step="0.01"
-                    value={centsToInput(productPrice?.listPriceMinor ?? undefined)}
-                    onChange={(event) => updateProductPriceField((price) => ({
+                    value={centsToInput(grossMinorFromPrice(productPrice, selectedTax))}
+                    onValueChange={(value) => updateProductPriceField((price) => ({
                       ...price,
-                      listPriceMinor: inputToCents(event.target.value) || null,
+                      basePriceMinor: baseMinorFromGrossInput(value, price, selectedTax),
+                      currency: price.currency || currency,
                     }))}
                   />
                 </label>
@@ -2890,50 +3572,25 @@ function ProductEditorClientInner({
                   ) : null}
                 </label>
                 <label className="adminField">
-                  <span>priceTableId</span>
-                  <select
-                    value={productPrice?.priceTableId ?? ""}
-                    onChange={(event) => updateProductPriceField((price) => ({
+                  <span>Precio de coste</span>
+                  <DecimalNumberInput
+                    min="0"
+                    value={centsToInput(productPrice?.costPriceMinor ?? undefined)}
+                    onValueChange={(value) => updateProductPriceField((price) => ({
                       ...price,
-                      priceTableId: event.target.value || null,
+                      costPriceMinor: inputToCents(value) || null,
                     }))}
-                  >
-	                    <option value="">Precio base</option>
-                    {priceTableOptions.map((table) => (
-                      <option key={table.id} value={table.id}>{table.label}</option>
-                    ))}
-                  </select>
-                  {priceTableOptions.length === 0 ? (
-                    <small>{pricingTablesWarning ?? "No hay price tables disponibles para este contexto."}</small>
-                  ) : null}
-                </label>
-                <label className="adminField">
-                  <span>tradePolicy</span>
-                  <input
-                    value={productPrice?.tradePolicy ?? "default"}
-                    onChange={(event) => updateProductPriceField((price) => ({ ...price, tradePolicy: event.target.value }))}
                   />
                 </label>
                 <label className="adminField">
-                  <span>channel</span>
-                  <input
-                    value={productPrice?.channel ?? "web"}
-                    onChange={(event) => updateProductPriceField((price) => ({ ...price, channel: event.target.value }))}
-                  />
-                </label>
-                <label className="adminField">
-                  <span>country</span>
-                  <input
-                    value={productPrice?.country ?? "ES"}
-                    onChange={(event) => updateProductPriceField((price) => ({ ...price, country: event.target.value }))}
-                  />
-                </label>
-                <label className="adminField">
-                  <span>customerGroup</span>
-                  <input
-                    value={productPrice?.customerGroup ?? ""}
-                    placeholder="Todos"
-                    onChange={(event) => updateProductPriceField((price) => ({ ...price, customerGroup: event.target.value || null }))}
+                  <span>Precio tachado</span>
+                  <DecimalNumberInput
+                    min="0"
+                    value={centsToInput(productPrice?.listPriceMinor ?? undefined)}
+                    onValueChange={(value) => updateProductPriceField((price) => ({
+                      ...price,
+                      listPriceMinor: inputToCents(value) || null,
+                    }))}
                   />
                 </label>
               </div>
@@ -2948,6 +3605,74 @@ function ProductEditorClientInner({
                 />
                 Impuestos incluidos
               </label>
+              <details className="productPricingAdvanced adminSection">
+                <summary>Contexto avanzado de precio base</summary>
+                <div className="adminFormGrid adminFormGridTwo">
+                  <label className="adminField">
+                    <span>priceTableId</span>
+                    <select
+                      value={productPrice?.priceTableId ?? ""}
+                      onChange={(event) => updateProductPriceField((price) => ({
+                        ...price,
+                        priceTableId: event.target.value || null,
+                      }))}
+                    >
+                      <option value="">Precio base</option>
+                      {priceTableOptions.map((table) => (
+                        <option key={table.id} value={table.id}>{table.label}</option>
+                      ))}
+                    </select>
+                    {priceTableOptions.length === 0 ? (
+                      <small>{pricingTablesWarning ?? "No hay price tables disponibles para este contexto."}</small>
+                    ) : null}
+                  </label>
+                  <label className="adminField">
+                    <span>tradePolicy</span>
+                    <select
+                      value={productPrice?.tradePolicy ?? "default"}
+                      onChange={(event) => updateProductPriceField((price) => ({ ...price, tradePolicy: event.target.value }))}
+                    >
+                      {productTradePolicyOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>channel</span>
+                    <select
+                      value={productPrice?.channel ?? "web"}
+                      onChange={(event) => updateProductPriceField((price) => ({ ...price, channel: event.target.value }))}
+                    >
+                      {productChannelOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>country</span>
+                    <select
+                      value={productPrice?.country ?? "ES"}
+                      onChange={(event) => updateProductPriceField((price) => ({ ...price, country: event.target.value }))}
+                    >
+                      {productCountryOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>customerGroup</span>
+                    <select
+                      value={productPrice?.customerGroup ?? ""}
+                      onChange={(event) => updateProductPriceField((price) => ({ ...price, customerGroup: event.target.value || null }))}
+                    >
+                      <option value="">Todos</option>
+                      {productCustomerGroupOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </details>
               <div className="productPriceSummary productPriceSummaryWide adminSection">
                 <div>
                   <strong>{formatMoney(productPrice?.basePriceMinor, productPrice?.currency || currency)}</strong>
@@ -2971,6 +3696,420 @@ function ProductEditorClientInner({
                 </div>
                 {!currentPricePreview ? <p>Preview neto/impuesto/bruto pendiente de respuesta resuelta del BFF o de una tasa en el impuesto seleccionado.</p> : null}
               </div>
+              <section className="productSpecificPrices adminSection">
+                <div className="productEditorSectionHeader">
+                  <div>
+                    <h3>Precios especificos</h3>
+                    <p>{visibleSpecificPrices.length > 0 ? `${visibleSpecificPrices.length} regla(s) enlazada(s) al producto.` : "Sin reglas especificas todavia."}</p>
+                  </div>
+                  <button className="adminButton" type="button" onClick={() => resetSpecificPriceForm()}>
+                    Anadir precio especifico
+                  </button>
+                </div>
+                <div className="productSpecificPriceForm">
+                  <div className="adminFormGrid adminFormGridTwo">
+                    <label className="adminField">
+                      <span>Aplicar a</span>
+                      <select
+                        value={specificPriceForm.targetKey}
+                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, targetKey: event.target.value }))}
+                      >
+                        {specificPriceTargetOptions.map((target) => (
+                          <option key={target.key} value={target.key}>
+                            {target.label} · {target.refId}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="adminField">
+                      <span>Precio especifico</span>
+                      <DecimalNumberInput
+                        aria-label="Precio especifico"
+                        min="0"
+                        value={specificPriceForm.fixedPrice}
+                        onValueChange={(value) => setSpecificPriceForm((current) => ({ ...current, fixedPrice: value }))}
+                      />
+                    </label>
+                    <label className="adminField">
+                      <span>Minimo de unidades</span>
+                      <input
+                        min="1"
+                        step="1"
+                        type="number"
+                        value={specificPriceForm.minQuantity}
+                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, minQuantity: event.target.value }))}
+                      />
+                    </label>
+                    <label className="adminField">
+                      <span>Fecha inicial</span>
+                      <input
+                        type="datetime-local"
+                        value={specificPriceForm.validFrom}
+                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, validFrom: event.target.value }))}
+                      />
+                    </label>
+                    <label className="adminCheckbox">
+                      <input
+                        checked={specificPriceForm.unlimited}
+                        type="checkbox"
+                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, unlimited: event.target.checked }))}
+                      />
+                      Ilimitado
+                    </label>
+                    <label className="adminField">
+                      <span>Fecha final</span>
+                      <input
+                        disabled={specificPriceForm.unlimited}
+                        type="datetime-local"
+                        value={specificPriceForm.validUntil}
+                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, validUntil: event.target.value }))}
+                      />
+                    </label>
+                  </div>
+                  <details className="productPricingAdvanced">
+                    <summary>Condiciones avanzadas</summary>
+                    <div className="adminFormGrid adminFormGridTwo">
+                      <label className="adminField">
+                        <span>Pais</span>
+                        <select
+                          value={specificPriceForm.country}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, country: event.target.value }))}
+                        >
+                          <option value="">Todos</option>
+                          {specificCountryOptions.map((option) => (
+                            <option key={option.id} value={option.id}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="adminField">
+                        <span>Grupo cliente</span>
+                        <select
+                          value={specificPriceForm.customerGroup}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, customerGroup: event.target.value }))}
+                        >
+                          <option value="">Todos</option>
+                          {specificCustomerGroupOptions.map((option) => (
+                            <option key={option.id} value={option.id}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="adminField">
+                        <span>Canal</span>
+                        <select
+                          value={specificPriceForm.channel}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, channel: event.target.value }))}
+                        >
+                          {specificChannelOptions.map((option) => (
+                            <option key={option.id} value={option.id}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="adminField">
+                        <span>Politica comercial</span>
+                        <select
+                          value={specificPriceForm.tradePolicy}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, tradePolicy: event.target.value }))}
+                        >
+                          {specificTradePolicyOptions.map((option) => (
+                            <option key={option.id} value={option.id}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="adminField">
+                        <span>Price table</span>
+                        <select
+                          value={specificPriceForm.priceTableId}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, priceTableId: event.target.value }))}
+                        >
+                          <option value="">Sin tabla</option>
+                          {priceTableOptions.map((table) => (
+                            <option key={table.id} value={table.id}>{table.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="adminField">
+                        <span>Prioridad</span>
+                        <input
+                          min="1"
+                          step="1"
+                          type="number"
+                          value={specificPriceForm.priority}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, priority: event.target.value }))}
+                        />
+                      </label>
+                      <label className="adminCheckbox">
+                        <input
+                          checked={specificPriceForm.taxIncluded}
+                          type="checkbox"
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, taxIncluded: event.target.checked }))}
+                        />
+                        Precio con impuestos
+                      </label>
+                      <label className="adminCheckbox">
+                        <input
+                          checked={specificPriceForm.active}
+                          type="checkbox"
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, active: event.target.checked }))}
+                        />
+                        Activo
+                      </label>
+                    </div>
+                  </details>
+                  {specificPriceEditIndex !== null ? (
+                    <p className="adminContextHint">Editando regla #{specificPriceEditIndex + 1} para {specificPriceTarget.label}.</p>
+                  ) : null}
+                  <div className="adminButtonRow">
+                    <button className="adminButton adminButtonPrimary" type="button" onClick={saveSpecificPriceForm}>
+                      {specificPriceEditIndex === null ? "Guardar precio especifico" : "Actualizar precio especifico"}
+                    </button>
+                    <button className="adminButton" type="button" onClick={() => resetSpecificPriceForm()}>
+                      Limpiar
+                    </button>
+                  </div>
+                </div>
+                {visibleSpecificPrices.length > 0 ? (
+                  <div className="adminTableScroller adminSection">
+                    <table className="adminTable productSpecificPriceTable">
+                      <thead>
+                        <tr>
+                          <th>Aplicacion</th>
+                          <th>Precio</th>
+                          <th>Unidades</th>
+                          <th>Duracion</th>
+                          <th>Contexto</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {specificPrices.map((price, index) => {
+                          if (price.markedForDeletion) {
+                            return null;
+                          }
+                          return (
+                            <tr key={price.pricingId ?? `${price.targetType}-${index}`}>
+                              <td>
+                                <strong>{specificPriceTargetLabel(price)}</strong>
+                                <div className="adminContextHint">{price.targetType === "VARIANT" ? "Variante/combinacion" : "Todas las combinaciones"}</div>
+                              </td>
+                              <td>
+                                <strong>{formatMoney(price.fixedPriceMinor ?? undefined, price.currency ?? productPrice?.currency ?? currency)}</strong>
+                                <div className="adminContextHint">{price.taxIncluded ? "Imp. incl." : "Imp. excl."}</div>
+                              </td>
+                              <td>{price.minQuantity || 1}</td>
+                              <td>{price.validUntil ? price.validUntil.slice(0, 10) : "Ilimitado"}</td>
+                              <td>
+                                <div>{price.country || "Todos los paises"} · {price.customerGroup || "Todos los grupos"}</div>
+                                <div className="adminContextHint">{price.channel || "web"} · {price.tradePolicy || "default"}</div>
+                              </td>
+                              <td>
+                                <div className="adminButtonRow">
+                                  <button className="adminButton" type="button" onClick={() => editSpecificPrice(index)}>Editar</button>
+                                  <button className="adminButton adminButtonDanger" type="button" onClick={() => removeSpecificPrice(index)}>Eliminar</button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+              </section>
+              <section className="productSpecificPrices adminSection">
+                <div className="productEditorSectionHeader">
+                  <div>
+                    <h3>Simulador de precio aplicado</h3>
+                    <p>Confirma el precio que Pricing devuelve para producto, variante y contexto.</p>
+                  </div>
+                  <span className={`adminBadge ${pricingPreviewResult?.ok ? "adminBadgeOk" : "adminBadgeWarn"}`}>
+                    {pricingPreviewResult ? pricingResolutionLabel(pricingPreviewResult.resolution.source) : "Sin simular"}
+                  </span>
+                </div>
+                <div className="adminFormGrid adminFormGridTwo">
+                  <label className="adminField">
+                    <span>Aplicar sobre</span>
+                    <select
+                      value={pricingPreviewForm.targetKey}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, targetKey: event.target.value }))}
+                    >
+                      <option value="__product__">Producto completo · {draft.defaultVariant.refId || draft.basic.name}</option>
+                      {priceVariantRows.map((variant) => (
+                        <option key={variant.localId} value={variant.localId}>
+                          {variant.name || variant.refId || "Variante"} · {variant.refId || "sin referencia"}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Cantidad</span>
+                    <input
+                      min="1"
+                      step="1"
+                      type="number"
+                      value={pricingPreviewForm.quantity}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, quantity: event.target.value }))}
+                    />
+                  </label>
+                  <label className="adminField">
+                    <span>Pais</span>
+                    <select
+                      value={pricingPreviewForm.country}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, country: event.target.value }))}
+                    >
+                      {previewCountryOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Canal</span>
+                    <select
+                      value={pricingPreviewForm.channel}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, channel: event.target.value }))}
+                    >
+                      {previewChannelOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Politica comercial</span>
+                    <select
+                      value={pricingPreviewForm.tradePolicy}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, tradePolicy: event.target.value }))}
+                    >
+                      {previewTradePolicyOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Grupo cliente</span>
+                    <select
+                      value={pricingPreviewForm.customerGroup}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, customerGroup: event.target.value }))}
+                    >
+                      <option value="">Todos</option>
+                      {previewCustomerGroupOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Price table</span>
+                    <select
+                      value={pricingPreviewForm.priceTableId}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, priceTableId: event.target.value }))}
+                    >
+                      <option value="">Auto / base</option>
+                      {priceTableOptions.map((table) => (
+                        <option key={table.id} value={table.id}>{table.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Fecha de simulacion</span>
+                    <input
+                      type="datetime-local"
+                      value={pricingPreviewForm.at}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, at: event.target.value }))}
+                    />
+                  </label>
+                </div>
+                <div className="adminButtonRow adminSection">
+                  <button
+                    className="adminButton adminButtonPrimary"
+                    disabled={pricingPreviewBusy}
+                    type="button"
+                    onClick={runPricingPreview}
+                  >
+                    {pricingPreviewBusy ? "Simulando..." : "Simular precio"}
+                  </button>
+                  <button
+                    className="adminButton"
+                    type="button"
+                    onClick={() => {
+                      setPricingPreviewForm(defaultPricingPreviewForm(productPrice, "__product__"));
+                      setPricingPreviewResult(null);
+                    }}
+                  >
+                    Reiniciar
+                  </button>
+                </div>
+                {pricingPreviewResult ? (
+                  <div className="adminSection">
+                    {pricingPreviewResult.ok && pricingPreviewResult.price ? (
+                      <div className="productPriceSummary productPriceSummaryWide">
+                        <div>
+                          <strong>{formatMoney(
+                            pricingPreviewResult.price.resolved?.grossAmountMinor ??
+                              pricingPreviewResult.price.fixedPrice?.amountMinor ??
+                              pricingPreviewResult.price.basePrice.amountMinor,
+                            pricingPreviewResult.price.resolved?.currency ?? pricingPreviewResult.price.currency,
+                          )}</strong>
+                          <span>Precio aplicado</span>
+                        </div>
+                        <div>
+                          <strong>{formatMoney(pricingPreviewResult.price.basePrice.amountMinor, pricingPreviewResult.price.currency)}</strong>
+                          <span>Precio base</span>
+                        </div>
+                        <div>
+                          <strong>{pricingPreviewResult.price.fixedPrice ? formatMoney(pricingPreviewResult.price.fixedPrice.amountMinor, pricingPreviewResult.price.fixedPrice.currency) : "-"}</strong>
+                          <span>Precio especifico</span>
+                        </div>
+                        <div>
+                          <strong>{pricingPreviewResult.price.source}</strong>
+                          <span>Fuente</span>
+                        </div>
+                        <div>
+                          <strong>{pricingPreviewResult.price.pricingId}</strong>
+                          <span>pricingId</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="adminBanner adminBannerError">
+                        <p>{pricingPreviewResult.reason ?? "No hay precio aplicable para estos parametros."}</p>
+                      </div>
+                    )}
+                    <div className="pricingEditorContext">
+                      <span>Target: <strong>{pricingPreviewTarget?.displayLabel ?? "Producto"}</strong></span>
+                      <span>Resolucion: <strong>{pricingResolutionLabel(pricingPreviewResult.resolution.source)}</strong></span>
+                      <span>Fallback: <strong>{pricingPreviewResult.resolution.usedFallback ? "Si" : "No"}</strong></span>
+                      {pricingPreviewResult.price ? (
+                        <span>Tabla: <strong>{pricingPreviewResult.price.priceTableId ?? "base"}</strong></span>
+                      ) : null}
+                    </div>
+                    {pricingPreviewResult.conditions.length > 0 ? (
+                      <div className="adminTableScroller adminSection">
+                        <table className="adminTable productSpecificPriceTable">
+                          <thead>
+                            <tr>
+                              <th>Parametro</th>
+                              <th>Solicitado</th>
+                              <th>Regla aplicada</th>
+                              <th>Estado</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pricingPreviewResult.conditions.map((condition) => (
+                              <tr key={condition.key}>
+                                <td>{pricingConditionLabel(condition.key)}</td>
+                                <td>{condition.requested ?? "Todos"}</td>
+                                <td>{condition.matched ?? "Todos"}</td>
+                                <td>
+                                  <span className={`adminBadge ${condition.status === "MATCH" || condition.status === "ANY" ? "adminBadgeOk" : "adminBadgeWarn"}`}>
+                                    {pricingConditionStatusLabel(condition.status)}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </section>
               <div className="adminBanner adminSection">
                 <p>La productVariantDefault se gestiona con el precio superior. Las variantes listadas abajo solo necesitan cambios si requieren precio, impuesto o tabla propios.</p>
               </div>
@@ -3002,13 +4141,11 @@ function ProductEditorClientInner({
                   </label>
                   <label className="adminField">
                     <span>Precio propio</span>
-                    <input
+                    <DecimalNumberInput
                       disabled={!selectedPriceVariant}
                       min="0"
-                      step="0.01"
-                      type="number"
                       value={centsToInput(selectedVariantPrice?.markedForDeletion ? undefined : selectedVariantPrice?.basePriceMinor)}
-                      onChange={(event) => selectedPriceVariant ? updateVariantPrice(selectedPriceVariant.localId, event.target.value) : undefined}
+                      onValueChange={(value) => selectedPriceVariant ? updateVariantPrice(selectedPriceVariant.localId, value) : undefined}
                     />
                     {selectedPriceVariant && report?.fieldErrors[`pricing.variantPrices:${selectedPriceVariant.localId}:tax`] ? (
                       <small>{report.fieldErrors[`pricing.variantPrices:${selectedPriceVariant.localId}:tax`]}</small>
@@ -3078,6 +4215,7 @@ function ProductEditorClientInner({
                       <th>Variante</th>
                       <th>Modo</th>
                       <th>Precio</th>
+                      <th>Especificos</th>
                       <th>Fiscalidad</th>
                       <th>Accion</th>
                     </tr>
@@ -3088,6 +4226,7 @@ function ProductEditorClientInner({
                       const usesOwnPrice = Boolean(price && !price.markedForDeletion);
                       const variantTax = price?.tax ?? selectedTax;
                       const variantPriceTable = price?.priceTableId ?? productPrice?.priceTableId;
+                      const specificCount = specificPriceCountForVariant(variant);
                       return (
                         <tr className={selectedPriceVariant?.localId === variant.localId ? "productRowSelected" : ""} key={variant.localId}>
                           <td>
@@ -3115,17 +4254,31 @@ function ProductEditorClientInner({
                             <div className="adminContextHint">{usesOwnPrice ? "Override" : "Producto"}</div>
                           </td>
                           <td>
+                            <span className={`adminBadge ${specificCount > 0 ? "adminBadgeOk" : ""}`}>
+                              {specificCount > 0 ? `${specificCount} regla(s)` : "Sin reglas"}
+                            </span>
+                          </td>
+                          <td>
                             <div>{variantTax?.label ?? "Sin regla fiscal"}</div>
 	                            <div className="adminContextHint">{variantPriceTable ?? "Precio base"}</div>
                           </td>
                           <td>
-                            <button
-                              className="adminButton"
-                              type="button"
-                              onClick={() => setSelectedVariantKey(variant.localId)}
-                            >
-                              Editar
-                            </button>
+                            <div className="adminButtonRow">
+                              <button
+                                className="adminButton"
+                                type="button"
+                                onClick={() => setSelectedVariantKey(variant.localId)}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                className="adminButton"
+                                type="button"
+                                onClick={() => resetSpecificPriceForm(variant.localId)}
+                              >
+                                Anadir especifico
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -3200,12 +4353,10 @@ function ProductEditorClientInner({
                 </label>
                 <label className="adminField">
                   <span>Precio</span>
-                  <input
+                  <DecimalNumberInput
                     min="0"
-                    step="0.01"
-                    type="number"
                     value={offeringForm.price}
-                    onChange={(event) => setOfferingForm((current) => ({ ...current, price: event.target.value }))}
+                    onValueChange={(value) => setOfferingForm((current) => ({ ...current, price: value }))}
                   />
                 </label>
               </div>
@@ -3464,7 +4615,7 @@ function ProductEditorClientInner({
                                   type="button"
                                   onClick={() => inheritVariantStock(variant)}
                                 >
-	                                  {canReturnToInherited ? "Heredar stock del producto" : "Stock propio guardado"}
+	                                  {canReturnToInherited ? "Heredar default" : "Stock propio guardado"}
                                 </button>
                               ) : (
                                 <button className="adminButton" type="button" onClick={() => enableVariantOwnStock(variant)}>
@@ -3541,12 +4692,13 @@ function ProductEditorClientInner({
                 </label>
                 <label className="adminField">
                   <span>Coste adicional ({currency})</span>
-                  <input
+                  <DecimalNumberInput
                     inputMode="decimal"
+                    min="0"
                     value={centsToInput(draft.shipping.additionalShippingCostMinor ?? undefined)}
-                    onChange={(event) => updateShipping((shipping) => ({
+                    onValueChange={(value) => updateShipping((shipping) => ({
                       ...shipping,
-                      additionalShippingCostMinor: inputToCents(event.target.value),
+                      additionalShippingCostMinor: inputToCents(value),
                     }))}
                   />
                 </label>
@@ -3877,7 +5029,11 @@ function ProductEditorClientInner({
                   </span>
                 </div>
                 <h3>{draft.basic.name || "Producto sin nombre"}</h3>
-                <p>{draft.basic.shortDescription || "Sin descripcion corta"}</p>
+                <RichTextPreview
+                  className="productPreviewSummary"
+                  emptyLabel="Sin descripcion corta"
+                  html={draft.basic.shortDescription}
+                />
 
                 <label className="adminField productPreviewVariantSelect">
                   <span>Variante</span>
@@ -3947,11 +5103,11 @@ function ProductEditorClientInner({
 
                 <section className="productPreviewSection">
                   <h4>Detalles</h4>
-                  {draft.basic.description ? (
-                    <div className="productPreviewDescription" dangerouslySetInnerHTML={{ __html: draft.basic.description }} />
-                  ) : (
-                    <p className="productPreviewEmpty">Sin descripcion extendida.</p>
-                  )}
+                  <RichTextPreview
+                    className="productPreviewDescription"
+                    emptyLabel="Sin descripcion extendida."
+                    html={draft.basic.description}
+                  />
                 </section>
 
                 <section className="productPreviewSection">

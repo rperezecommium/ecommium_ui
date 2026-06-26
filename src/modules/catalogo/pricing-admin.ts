@@ -7,6 +7,7 @@ export type PricingAdminTab =
   | "summary"
   | "taxes"
   | "tables"
+  | "references"
   | "rules"
   | "fixed"
   | "computed"
@@ -30,6 +31,10 @@ export type PricingGovernanceData = {
   migration: PricingAdminResult<PricingRecord>;
   taxes: PricingAdminResult<PricingRecord[]>;
   priceTables: PricingAdminResult<PricingRecord[]>;
+  customerGroups: PricingAdminResult<PricingRecord[]>;
+  channels: PricingAdminResult<PricingRecord[]>;
+  tradePolicies: PricingAdminResult<PricingRecord[]>;
+  countries: PricingAdminResult<PricingRecord[]>;
   selectedPriceTable: PricingAdminResult<PricingRecord>;
   rules: PricingAdminResult<PricingRecord[]>;
   fixedPrices: PricingAdminResult<PricingRecord[]>;
@@ -220,10 +225,22 @@ export async function getPricingPriceTables(context: AdminContext): Promise<Pric
   return getPricing(context, endpoint, [], normalizeList);
 }
 
+export async function getPricingReferenceData(
+  context: AdminContext,
+  kind: "customer-groups" | "channels" | "trade-policies" | "countries",
+): Promise<PricingAdminResult<PricingRecord[]>> {
+  const endpoint = `/admin/pricing/${kind}?${makeScopedParams(context).toString()}`;
+  return getPricing(context, endpoint, [], normalizeList);
+}
+
 export async function getPricingEditorLookups(context: AdminContext) {
-  const [taxes, priceTables] = await Promise.all([
+  const [taxes, priceTables, customerGroups, channels, tradePolicies, countries] = await Promise.all([
     getPricingTaxes(context),
     getPricingPriceTables(context),
+    getPricingReferenceData(context, "customer-groups"),
+    getPricingReferenceData(context, "channels"),
+    getPricingReferenceData(context, "trade-policies"),
+    getPricingReferenceData(context, "countries"),
   ]);
   const warnings: string[] = [];
 
@@ -233,10 +250,26 @@ export async function getPricingEditorLookups(context: AdminContext) {
   if (priceTables.source === "unavailable") {
     warnings.push(`Pricing price tables: ${priceTables.message}`);
   }
+  if (customerGroups.source === "unavailable") {
+    warnings.push(`Pricing customer groups: ${customerGroups.message}`);
+  }
+  if (channels.source === "unavailable") {
+    warnings.push(`Pricing channels: ${channels.message}`);
+  }
+  if (tradePolicies.source === "unavailable") {
+    warnings.push(`Pricing trade policies: ${tradePolicies.message}`);
+  }
+  if (countries.source === "unavailable") {
+    warnings.push(`Pricing countries: ${countries.message}`);
+  }
 
   return {
     taxes: uniqueTaxes(taxes.data.map(toTaxLookupOption).filter((option): option is ProductTaxLookupOption => Boolean(option))),
     priceTables: priceTables.data.map(toLookupOption).filter((option): option is ProductLookupOption => Boolean(option)),
+    customerGroups: customerGroups.data.map(toLookupOption).filter((option): option is ProductLookupOption => Boolean(option)),
+    channels: channels.data.map(toLookupOption).filter((option): option is ProductLookupOption => Boolean(option)),
+    tradePolicies: tradePolicies.data.map(toLookupOption).filter((option): option is ProductLookupOption => Boolean(option)),
+    countries: countries.data.map(toLookupOption).filter((option): option is ProductLookupOption => Boolean(option)),
     warnings,
   };
 }
@@ -298,6 +331,10 @@ export async function getPricingGovernanceData(
     migration,
     taxes,
     priceTables,
+    customerGroups,
+    channels,
+    tradePolicies,
+    countries,
     selectedPriceTable,
     rules,
     fixedPrices,
@@ -312,6 +349,10 @@ export async function getPricingGovernanceData(
     getPricing(context, `/admin/pricing/migration?${scoped()}`, {}, normalizeRecord),
     getPricingTaxes(context),
     getPricingPriceTables(context),
+    getPricingReferenceData(context, "customer-groups"),
+    getPricingReferenceData(context, "channels"),
+    getPricingReferenceData(context, "trade-policies"),
+    getPricingReferenceData(context, "countries"),
     priceTableId
       ? getPricing(context, `/admin/pricing/price-tables/${encodeURIComponent(priceTableId)}?${scoped()}`, {}, normalizeRecord)
       : Promise.resolve(emptyRecord),
@@ -325,13 +366,13 @@ export async function getPricingGovernanceData(
       ? getPricing(context, `/admin/pricing/prices/${encodeURIComponent(itemId)}/computed/${encodeURIComponent(priceTableId)}?${scoped()}`, {}, normalizeRecord)
       : Promise.resolve(emptyRecord),
     priceTableId && itemId
-      ? postPricing(context, `/admin/pricing/prices/computed/${encodeURIComponent(priceTableId)}/resolve-batch?${scoped()}`, [], { items: [{ itemId }] }, normalizeList)
+      ? postPricing(context, `/admin/pricing/prices/computed/${encodeURIComponent(priceTableId)}/resolve-batch?${scoped()}`, [], { itemIds: [itemId] }, normalizeList)
       : Promise.resolve(emptyList),
     itemId
       ? getPricing(context, `/admin/pricing/prices/${encodeURIComponent(itemId)}/computed-auto?${scoped()}`, {}, normalizeRecord)
       : Promise.resolve(emptyRecord),
     itemId
-      ? postPricing(context, `/admin/pricing/prices/computed-auto/resolve-batch?${scoped()}`, [], { items: [{ itemId }] }, normalizeList)
+      ? postPricing(context, `/admin/pricing/prices/computed-auto/resolve-batch?${scoped()}`, [], { itemIds: [itemId] }, normalizeList)
       : Promise.resolve(emptyList),
     getPricing(context, `/admin/pricing/pipeline/catalog?${scoped()}`, [], normalizeList),
     priceTableId
@@ -345,6 +386,10 @@ export async function getPricingGovernanceData(
     migration,
     taxes,
     priceTables,
+    customerGroups,
+    channels,
+    tradePolicies,
+    countries,
     selectedPriceTable,
     rules,
     fixedPrices,
@@ -360,7 +405,7 @@ export async function getPricingGovernanceData(
 export async function mutatePricing(
   context: AdminContext,
   path: string,
-  method: "PATCH" | "PUT" | "DELETE",
+  method: "POST" | "PATCH" | "PUT" | "DELETE",
   payload?: Record<string, unknown>,
 ) {
   const result = await requestBff(path, {

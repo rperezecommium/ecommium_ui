@@ -18,6 +18,15 @@ function asNumber(value: FormDataEntryValue | null) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function asBoolean(value: FormDataEntryValue | null, fallback = true) {
+  const text = asString(value);
+  if (!text) {
+    return fallback;
+  }
+
+  return text === "true";
+}
+
 function scopedPath(path: string, organizationId: string, shopId: string, extra?: Record<string, string | undefined>) {
   const params = new URLSearchParams({ organizationId, shopId });
   for (const [key, value] of Object.entries(extra ?? {})) {
@@ -30,8 +39,8 @@ function scopedPath(path: string, organizationId: string, shopId: string, extra?
 }
 
 function finish(tab: string, message?: string): never {
-  revalidatePath("/admin/catalogo/precios");
-  redirect(`/admin/catalogo/precios?tab=${encodeURIComponent(tab)}${message ? `&pricingMessage=${encodeURIComponent(message)}` : ""}`);
+  revalidatePath("/admin/configuracion/precios");
+  redirect(`/admin/configuracion/precios?tab=${encodeURIComponent(tab)}${message ? `&pricingMessage=${encodeURIComponent(message)}` : ""}`);
 }
 
 function mutationMessage(result: Awaited<ReturnType<typeof mutatePricing>>, success: string) {
@@ -40,6 +49,141 @@ function mutationMessage(result: Awaited<ReturnType<typeof mutatePricing>>, succ
   }
 
   return result.status === 403 ? "Falta permiso pricing.admin.write." : result.error;
+}
+
+export async function upsertTaxDefinitionAction(formData: FormData) {
+  const context = await getAdminContext();
+  const code = asString(formData.get("code"));
+  const name = asString(formData.get("name"));
+  const calculationType = asString(formData.get("calculationType")) ?? "PERCENTAGE";
+
+  if (!code || !name) {
+    finish("taxes", "Falta codigo o nombre del impuesto.");
+  }
+
+  const ratePercent = asNumber(formData.get("ratePercent"));
+  const amountMinor = asNumber(formData.get("amountMinor"));
+  const payload = {
+    code,
+    name,
+    helpText: asString(formData.get("helpText")) ?? null,
+    calculationType,
+    rate: calculationType === "PERCENTAGE" && typeof ratePercent === "number"
+      ? ratePercent / 100
+      : null,
+    amountMinor: calculationType === "FIXED" ? amountMinor ?? null : null,
+    country: asString(formData.get("country")) ?? context.country,
+    active: asBoolean(formData.get("active")),
+  };
+  const path = scopedPath("/admin/pricing/taxes", context.organizationId, context.shopId);
+  const result = await mutatePricing(context, path, "POST", payload);
+  finish("taxes", mutationMessage(result, "Impuesto guardado."));
+}
+
+export async function deleteTaxDefinitionAction(formData: FormData) {
+  const context = await getAdminContext();
+  const taxCode = asString(formData.get("taxCode"));
+  const confirmed = asString(formData.get("confirmDelete")) === "DELETE";
+
+  if (!confirmed) {
+    finish("taxes", "Confirma escribiendo DELETE antes de desactivar el impuesto.");
+  }
+  if (!taxCode) {
+    finish("taxes", "Falta taxCode.");
+  }
+
+  const path = scopedPath(`/admin/pricing/taxes/${encodeURIComponent(taxCode)}`, context.organizationId, context.shopId);
+  const result = await mutatePricing(context, path, "DELETE");
+  finish("taxes", mutationMessage(result, "Impuesto desactivado."));
+}
+
+export async function upsertPriceTableReferenceAction(formData: FormData) {
+  const context = await getAdminContext();
+  const code = asString(formData.get("code"));
+  const name = asString(formData.get("name"));
+
+  if (!code || !name) {
+    finish("tables", "Falta codigo o nombre de la tabla.");
+  }
+
+  const payload = {
+    code,
+    name,
+    helpText: asString(formData.get("helpText")) ?? null,
+    currency: asString(formData.get("currency")) ?? context.currency,
+    active: asBoolean(formData.get("active")),
+  };
+  const path = scopedPath("/admin/pricing/price-tables", context.organizationId, context.shopId);
+  const result = await mutatePricing(context, path, "POST", payload);
+  finish("tables", mutationMessage(result, "Price table guardada."));
+}
+
+export async function deletePriceTableReferenceAction(formData: FormData) {
+  const context = await getAdminContext();
+  const priceTableId = asString(formData.get("priceTableId"));
+  const confirmed = asString(formData.get("confirmDelete")) === "DELETE";
+
+  if (!confirmed) {
+    finish("tables", "Confirma escribiendo DELETE antes de desactivar la tabla.");
+  }
+  if (!priceTableId) {
+    finish("tables", "Falta priceTableId.");
+  }
+
+  const path = scopedPath(`/admin/pricing/price-tables/${encodeURIComponent(priceTableId)}`, context.organizationId, context.shopId);
+  const result = await mutatePricing(context, path, "DELETE");
+  finish("tables", mutationMessage(result, "Price table desactivada."));
+}
+
+function referenceKindPath(kind: string) {
+  return ["customer-groups", "channels", "trade-policies", "countries"].includes(kind)
+    ? kind
+    : null;
+}
+
+export async function upsertPricingReferenceAction(formData: FormData) {
+  const context = await getAdminContext();
+  const kind = referenceKindPath(asString(formData.get("kind")) ?? "");
+  const code = asString(formData.get("code"));
+  const name = asString(formData.get("name"));
+
+  if (!kind) {
+    finish("references", "Lista no valida.");
+  }
+  if (!code || !name) {
+    finish("references", "Falta codigo o nombre.");
+  }
+
+  const payload = {
+    code,
+    name,
+    helpText: asString(formData.get("helpText")) ?? null,
+    active: asBoolean(formData.get("active")),
+  };
+  const path = scopedPath(`/admin/pricing/${kind}`, context.organizationId, context.shopId);
+  const result = await mutatePricing(context, path, "POST", payload);
+  finish("references", mutationMessage(result, "Parametro guardado."));
+}
+
+export async function deletePricingReferenceAction(formData: FormData) {
+  const context = await getAdminContext();
+  const kind = referenceKindPath(asString(formData.get("kind")) ?? "");
+  const code = asString(formData.get("code"));
+  const confirmed = asString(formData.get("confirmDelete")) === "DELETE";
+
+  if (!kind) {
+    finish("references", "Lista no valida.");
+  }
+  if (!confirmed) {
+    finish("references", "Confirma escribiendo DELETE antes de desactivar el parametro.");
+  }
+  if (!code) {
+    finish("references", "Falta codigo.");
+  }
+
+  const path = scopedPath(`/admin/pricing/${kind}/${encodeURIComponent(code)}`, context.organizationId, context.shopId);
+  const result = await mutatePricing(context, path, "DELETE");
+  finish("references", mutationMessage(result, "Parametro desactivado."));
 }
 
 export async function updatePriceTableActivationAction(formData: FormData) {

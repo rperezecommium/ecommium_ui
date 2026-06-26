@@ -20,7 +20,7 @@ const context = {
   channel: "web",
 };
 
-function loadProductActionsModule({ requestBff, getAdminContext }) {
+function loadProductActionsModule({ requestBff, getAdminContext, makeProductGateway = () => ({}) }) {
   const source = readFileSync(path.resolve(root, "src/modules/catalogo/product-actions.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -54,7 +54,7 @@ function loadProductActionsModule({ requestBff, getAdminContext }) {
       }
       if (specifier === "./products") {
         return {
-          makeProductGateway: () => ({}),
+          makeProductGateway,
         };
       }
 
@@ -98,6 +98,7 @@ function productDraft() {
     pricing: {
       productPrice: undefined,
       variantPrices: {},
+      specificPrices: [],
     },
     inventory: {
       stockByVariant: {},
@@ -198,6 +199,192 @@ test("saveProductDraftAction sends one idempotent product save operation to BFF"
   assert.equal(result.blocks.publish, "skipped");
   assert.deepEqual(result.recoveryActions, []);
   assert.deepEqual([...result.correlationIds], ["bff-corr", "ui-corr"]);
+});
+
+test("previewAppliedProductPriceAction delegates to product gateway with Admin context", async () => {
+  const calls = [];
+  const makeProductGateway = (gatewayContext) => ({
+    previewAppliedPrice: async (input) => {
+      calls.push({ gatewayContext, input });
+      return {
+        ok: true,
+        data: {
+          ok: true,
+          status: "APPLIED",
+          reason: null,
+          requested: {
+            productId: input.productId,
+            variantId: input.variantId,
+            defaultVariantId: input.defaultVariantId,
+            currency: "EUR",
+            country: "ES",
+            tradePolicy: "default",
+            channel: "web",
+            customerGroup: null,
+            priceTableId: "vip-table",
+            quantity: 1,
+            at: null,
+          },
+          resolution: {
+            source: "PRODUCT_FALLBACK",
+            usedFallback: true,
+          },
+          price: {
+            pricingId: "pricing-specific-product",
+            targetType: "PRODUCT",
+            productId: "product-1",
+            variantId: null,
+            priceTableId: "vip-table",
+            tradePolicy: "default",
+            channel: "web",
+            customerGroup: null,
+            country: "ES",
+            currency: "EUR",
+            basePrice: { currency: "EUR", amountMinor: 700 },
+            listPrice: null,
+            fixedPrice: { currency: "EUR", amountMinor: 500 },
+            tiers: [{ minQuantity: 1, price: { currency: "EUR", amountMinor: 500 } }],
+            taxIncluded: true,
+            active: true,
+            priority: 100,
+            source: "FIXED",
+            resolved: {
+              currency: "EUR",
+              netAmountMinor: 413,
+              taxAmountMinor: 87,
+              grossAmountMinor: 500,
+              taxIncluded: true,
+            },
+          },
+          conditions: [{
+            key: "priceTableId",
+            requested: "vip-table",
+            matched: "vip-table",
+            status: "MATCH",
+          }],
+        },
+        status: 200,
+        correlationId: "corr-preview",
+      };
+    },
+  });
+  const { previewAppliedProductPriceAction } = loadProductActionsModule({
+    requestBff: async () => {
+      throw new Error("requestBff should not be called directly");
+    },
+    getAdminContext: async () => context,
+    makeProductGateway,
+  });
+
+  const result = await previewAppliedProductPriceAction({
+    productId: "product-1",
+    variantId: "variant-1",
+    defaultVariantId: "default-variant",
+    currency: "EUR",
+    country: "ES",
+    tradePolicy: "default",
+    channel: "web",
+    priceTableId: "vip-table",
+    quantity: 1,
+  });
+
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].gatewayContext, context);
+  assert.equal(calls[0].input.productId, "product-1");
+  assert.equal(calls[0].input.variantId, "variant-1");
+  assert.equal(result.ok, true);
+  assert.equal(result.resolution.source, "PRODUCT_FALLBACK");
+  assert.deepEqual([...result.correlationIds], ["corr-preview"]);
+});
+
+test("saveProductDraftAction forwards product-centric specific prices to BFF", async () => {
+  const draft = productDraft();
+  draft.pricing.productPrice = {
+    basePriceMinor: 10999,
+    listPriceMinor: null,
+    costPriceMinor: null,
+    currency: "EUR",
+    taxIncluded: true,
+    taxCode: "standard",
+    tax: null,
+    priceTableId: null,
+    tradePolicy: "default",
+    channel: "web",
+    customerGroup: null,
+    country: "ES",
+  };
+  draft.pricing.specificPrices = [{
+    targetType: "PRODUCT",
+    currency: "EUR",
+    country: "ES",
+    customerGroup: null,
+    channel: "web",
+    tradePolicy: "default",
+    priceTableId: null,
+    minQuantity: 2,
+    validFrom: "2026-06-26T00:00:00.000Z",
+    validUntil: null,
+    unlimited: true,
+    impactType: "FIXED_PRICE",
+    basePriceMinor: 10999,
+    fixedPriceMinor: 8999,
+    reductionValue: null,
+    reductionTaxIncluded: true,
+    taxIncluded: true,
+    tax: null,
+    active: true,
+    priority: 100,
+  }];
+
+  const requestBff = async (pathValue, options = {}) => {
+    assert.equal(pathValue.startsWith("/admin/product-save-operations?"), true);
+    const sentDraft = JSON.parse(options.init.body.get("draft"));
+    assert.equal(sentDraft.pricing.specificPrices.length, 1);
+    assert.equal(sentDraft.pricing.specificPrices[0].targetType, "PRODUCT");
+    assert.equal(sentDraft.pricing.specificPrices[0].fixedPriceMinor, 8999);
+    assert.equal(sentDraft.pricing.specificPrices[0].minQuantity, 2);
+
+    const raw = {
+      ok: true,
+      operationId: "pso-specific",
+      productId: "product-1",
+      defaultVariantId: "variant-default",
+      retryable: false,
+      blocks: {
+        catalog: "success",
+        variants: "skipped",
+        media: "skipped",
+        variantMedia: "skipped",
+        pricing: "success",
+        inventory: "skipped",
+        shipping: "success",
+        publish: "skipped",
+      },
+      messages: ["Precio guardado."],
+      fieldErrors: {},
+      recoveryActions: [],
+      correlationIds: ["bff-corr"],
+    };
+
+    return {
+      ok: true,
+      data: options.parse ? options.parse(raw) : raw,
+      status: 200,
+      correlationId: "ui-corr",
+    };
+  };
+  const { saveProductDraftAction } = loadProductActionsModule({
+    requestBff,
+    getAdminContext: async () => context,
+  });
+  const formData = new FormData();
+  formData.set("draft", JSON.stringify(draft));
+  formData.set("idempotencyKey", "ui-save-specific");
+
+  const result = await saveProductDraftAction(formData);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.blocks.pricing, "success");
 });
 
 test("saveProductDraftAction preserves BFF recovery actions for partial failures", async () => {
