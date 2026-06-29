@@ -32,6 +32,7 @@ const capturedSaveOperationBodies: string[] = [];
 const capturedEditorStateRequests: string[] = [];
 const capturedPricingPreviewRequests: string[] = [];
 const capturedPricingGovernanceRequests: string[] = [];
+const capturedCatalogSpecificationRequests: string[] = [];
 const capturedPricingMutations: Array<{
   method: string;
   path: string;
@@ -108,6 +109,61 @@ const pricingReferenceState: Record<string, Array<{
     active: true,
   }],
 };
+const catalogSpecificationGroups = [{
+  specificationGroupId: "spec-group-technical",
+  categoryId: "category-bikes",
+  name: "Ficha tecnica",
+  isActive: true,
+  fieldCount: 2,
+  linkedCategoryIds: ["category-bikes"],
+  fields: [{
+    fieldId: "field-composition",
+    specificationGroupId: "spec-group-technical",
+    fieldTypeId: 1,
+    name: "Composicion",
+    description: "Composicion",
+    position: 1,
+    isFilter: true,
+    isRequired: false,
+    isOnProductDetails: true,
+    isStockKeepingUnit: false,
+    isActive: true,
+    isTopMenuLinkActive: false,
+    isSideMenuLinkActive: false,
+    defaultValue: null,
+    values: [{
+      fieldValueId: "value-aluminium",
+      fieldId: "field-composition",
+      name: "Aluminio",
+      text: null,
+      isActive: true,
+      position: 1,
+    }],
+  }, {
+    fieldId: "field-color",
+    specificationGroupId: "spec-group-technical",
+    fieldTypeId: 1,
+    name: "Color",
+    description: "Color",
+    position: 2,
+    isFilter: true,
+    isRequired: false,
+    isOnProductDetails: true,
+    isStockKeepingUnit: true,
+    isActive: true,
+    isTopMenuLinkActive: false,
+    isSideMenuLinkActive: false,
+    defaultValue: null,
+    values: [{
+      fieldValueId: "value-red",
+      fieldId: "field-color",
+      name: "Rojo",
+      text: null,
+      isActive: true,
+      position: 1,
+    }],
+  }],
+}];
 const uploadedDraftMediaByClientDraftId = new Map<string, Array<{
   localId: string;
   mediaAssetId: string;
@@ -346,6 +402,104 @@ async function startBffMock() {
         }],
         total: 1,
       });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/specifications/groups") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      capturedCatalogSpecificationRequests.push("GET /api/v1/admin/specifications/groups");
+      sendJson(response, 200, {
+        items: catalogSpecificationGroups.map((group) => ({
+          specificationGroupId: group.specificationGroupId,
+          categoryId: group.categoryId,
+          name: group.name,
+          isActive: group.isActive,
+          fieldCount: group.fields.length,
+        })),
+        total: catalogSpecificationGroups.length,
+      });
+      return;
+    }
+
+    const specificationGroupMatch = url.pathname.match(/^\/api\/v1\/admin\/specifications\/groups\/([^/]+)$/);
+    if (specificationGroupMatch && request.method === "GET") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const groupId = decodeURIComponent(specificationGroupMatch[1]);
+      capturedCatalogSpecificationRequests.push(`GET /api/v1/admin/specifications/groups/${groupId}`);
+      sendJson(response, 200, catalogSpecificationGroups.find((group) => group.specificationGroupId === groupId) ?? catalogSpecificationGroups[0]);
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/v1/admin/specifications/groups") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const body = await readJsonBody(request);
+      capturedCatalogSpecificationRequests.push("POST /api/v1/admin/specifications/groups");
+      const fields = Array.isArray(body.fields) ? body.fields as Array<Record<string, unknown>> : [];
+      const group = {
+        specificationGroupId: "spec-group-playwright",
+        categoryId: String(body.categoryId ?? "category-bikes"),
+        name: String(body.name ?? "Playwright group"),
+        isActive: true,
+        fieldCount: fields.length,
+        linkedCategoryIds: ["category-bikes"],
+        fields: fields.map((field, index) => ({
+          ...field,
+          fieldId: `field-playwright-${index}`,
+          specificationGroupId: "spec-group-playwright",
+          values: Array.isArray(field.values)
+            ? field.values.map((value, valueIndex) => ({
+                ...(value as Record<string, unknown>),
+                fieldValueId: `value-playwright-${valueIndex}`,
+                fieldId: `field-playwright-${index}`,
+              }))
+            : [],
+        })),
+      };
+      catalogSpecificationGroups.push(group as typeof catalogSpecificationGroups[number]);
+      sendJson(response, 200, group);
+      return;
+    }
+
+    if (specificationGroupMatch && request.method === "PATCH") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const groupId = decodeURIComponent(specificationGroupMatch[1]);
+      const body = await readJsonBody(request);
+      capturedCatalogSpecificationRequests.push(`PATCH /api/v1/admin/specifications/groups/${groupId}`);
+      const groupIndex = catalogSpecificationGroups.findIndex((group) => group.specificationGroupId === groupId);
+      const currentGroup = catalogSpecificationGroups[groupIndex] ?? catalogSpecificationGroups[0];
+      const fields = Array.isArray(body.fields) ? body.fields as Array<Record<string, unknown>> : [];
+      const nextGroup = {
+        ...currentGroup,
+        categoryId: String(body.categoryId ?? currentGroup.categoryId),
+        name: String(body.name ?? currentGroup.name),
+        isActive: typeof body.isActive === "boolean" ? body.isActive : currentGroup.isActive,
+        fieldCount: fields.length,
+        linkedCategoryIds: Array.isArray(body.linkedCategoryIds) ? body.linkedCategoryIds.map(String) : currentGroup.linkedCategoryIds,
+        fields: fields.map((field, index) => {
+          const existingField = currentGroup.fields.find((item) => item.fieldId === field.fieldId);
+          return {
+            ...existingField,
+            ...field,
+            fieldId: String(field.fieldId ?? existingField?.fieldId ?? `field-playwright-${index}`),
+            specificationGroupId: groupId,
+            values: Array.isArray(field.values)
+              ? field.values.map((value, valueIndex) => ({
+                  ...(value as Record<string, unknown>),
+                  fieldValueId: String((value as Record<string, unknown>).fieldValueId ?? `value-playwright-${valueIndex}`),
+                  fieldId: String(field.fieldId ?? existingField?.fieldId ?? `field-playwright-${index}`),
+                }))
+              : [],
+          };
+        }),
+      };
+      if (groupIndex >= 0) {
+        catalogSpecificationGroups[groupIndex] = nextGroup as typeof catalogSpecificationGroups[number];
+      }
+      sendJson(response, 200, nextGroup);
       return;
     }
 
@@ -645,7 +799,37 @@ async function startBffMock() {
           isActive: true,
           isVisible: true,
           isDefault: true,
+        }, {
+          variantId: "variant-edit-red",
+          name: "Producto existente Playwright rojo",
+          refId: "PEP-RED",
+          ean: "8430000000002",
+          isActive: true,
+          isVisible: true,
+          isDefault: false,
+        }, {
+          variantId: "variant-edit-green",
+          name: "Producto existente Playwright verde",
+          refId: "PEP-GREEN",
+          ean: "8430000000003",
+          isActive: true,
+          isVisible: true,
+          isDefault: false,
         }],
+        variantOptions: {
+          "variant-edit-red": [{
+            variantOptionId: "option-red",
+            attributeCode: "color",
+            valueCode: "rojo",
+            isActive: true,
+          }],
+          "variant-edit-green": [{
+            variantOptionId: "option-green",
+            attributeCode: "color",
+            valueCode: "verde",
+            isActive: true,
+          }],
+        },
         mediaCollection: {
           mediaCollectionId: "collection-edit-1",
           items: [{
@@ -684,6 +868,17 @@ async function startBffMock() {
             },
             priceTableId: "base",
           }],
+          variants: [{
+            pricingId: "pricing-edit-green",
+            targetType: "VARIANT",
+            productId: "product-edit-1",
+            variantId: "variant-edit-green",
+            basePriceMinor: 9900,
+            currency: "EUR",
+            taxIncluded: true,
+            taxCode: "standard",
+            priceTableId: "base",
+          }],
         },
         availability: {
           items: [{
@@ -693,6 +888,22 @@ async function startBffMock() {
             reservedQuantity: 2,
             safetyStockQuantity: 1,
             availableQuantity: 9,
+            available: true,
+          }, {
+            variantId: "variant-edit-red",
+            warehouseId: "main-warehouse",
+            onHandQuantity: 0,
+            reservedQuantity: 0,
+            safetyStockQuantity: 0,
+            availableQuantity: 0,
+            available: false,
+          }, {
+            variantId: "variant-edit-green",
+            warehouseId: "main-warehouse",
+            onHandQuantity: 4,
+            reservedQuantity: 0,
+            safetyStockQuantity: 0,
+            availableQuantity: 4,
             available: true,
           }],
         },
@@ -707,6 +918,12 @@ async function startBffMock() {
       sendJson(response, 200, {
         variants: [{
           variantId: "variant-edit-default",
+          offerings: [],
+        }, {
+          variantId: "variant-edit-red",
+          offerings: [],
+        }, {
+          variantId: "variant-edit-green",
           offerings: [],
         }],
       });
@@ -1155,6 +1372,87 @@ test("admin login authenticates without tenant fields and loads context afterwar
   expect(capturedLoginPayloads.at(-1)).not.toHaveProperty("shopAlias");
 });
 
+test("catalog attributes and features page filters and creates feature values through BFF", async ({ page }) => {
+  capturedCatalogSpecificationRequests.length = 0;
+  const existingIndex = catalogSpecificationGroups.findIndex((group) => group.specificationGroupId === "spec-group-playwright");
+  if (existingIndex >= 0) {
+    catalogSpecificationGroups.splice(existingIndex, 1);
+  }
+  const browserExternalRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.hostname === "127.0.0.1" && url.port && Number(url.port) !== nextPort) {
+      browserExternalRequests.push(request.url());
+    }
+  });
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/catalogo/atributos-caracteristicas?tab=features`);
+
+  await expect(page.getByRole("heading", { name: "Caracteristicas Tecnicas", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Atributos", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: "ID" })).toBeVisible();
+  await expect(page.getByLabel("Filtrar por ID superior")).toBeVisible();
+  await expect(page.getByLabel("Filtrar por nombre superior")).toBeVisible();
+  await expect(page.getByLabel("Filtrar por grupo superior")).toBeVisible();
+  await expect(page.getByLabel("Filtrar por ID", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Filtrar por nombre", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Filtrar por grupo", { exact: true })).toHaveCount(0);
+
+  const filterForm = page.getByRole("form", { name: "Filtros superiores" });
+  await expect(filterForm).toHaveCSS("flex-direction", "row");
+  await expect(filterForm).toHaveCSS("flex-wrap", "nowrap");
+  await filterForm.getByLabel("Filtrar por nombre superior").fill("Composicion");
+  await filterForm.getByRole("button", { name: "Buscar" }).click();
+  await expect(page).toHaveURL(/q=Composicion/);
+  await expect(page.getByRole("row", { name: /field-co.*Composicion.*Ficha tecnica/ })).toBeVisible();
+
+  await page.getByRole("link", { name: "Limpiar" }).click();
+  await expect(page).toHaveURL(/tab=features/);
+
+  await page.getByRole("link", { name: "Crear caracteristica" }).click();
+  await expect(page).toHaveURL(/panel=create/);
+  await expect(page.getByRole("dialog", { name: "Crear caracteristica" })).toBeVisible();
+  await expect(page.locator(".adminFeatureDrawerHeader")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.locator(".adminFeatureDrawerHeader")).toHaveCSS("color", "rgb(54, 58, 65)");
+  await expect(page.locator(".adminFeatureDrawerBackdrop")).toBeVisible();
+  await expect(page.locator(".adminFeatureContent")).toHaveCSS("filter", /blur\(2px\)/);
+  const createForm = page.getByRole("form", { name: "Crear caracteristica" });
+  await createForm.locator('select[name="groupId"]').selectOption("");
+  await createForm.locator('input[name="groupName"]').fill("Playwright specs");
+  await createForm.locator('select[name="categoryId"]').selectOption("category-bikes");
+  await createForm.locator('input[name="name"]').fill("Material Playwright");
+  await createForm.locator('input[name="values"]').fill("Carbono, Aluminio");
+  await createForm.getByRole("button", { name: "Guardar cambios" }).click();
+  await expect(page).toHaveURL(/tab=features$/);
+  await expect(page.getByRole("dialog", { name: "Crear caracteristica" })).toHaveCount(0);
+
+  const createdRow = page.getByRole("row", { name: /field-pl.*Material Playwright.*Playwright specs/ });
+  await expect(createdRow).toBeVisible();
+  await expect(createdRow.getByText("Carbono")).toBeVisible();
+  await expect(createdRow.getByText("Aluminio")).toBeVisible();
+  await expect(createdRow.getByRole("link", { name: "Editar Material Playwright" })).toBeVisible();
+  await expect(createdRow.getByRole("button", { name: "Eliminar Material Playwright" })).toBeVisible();
+  await createdRow.getByRole("button", { name: "Quitar valor Carbono" }).click();
+  await expect.poll(() => capturedCatalogSpecificationRequests).toContain("PATCH /api/v1/admin/specifications/groups/spec-group-playwright");
+  const updatedRow = page.getByRole("row", { name: /field-pl.*Material Playwright.*Playwright specs/ });
+  await expect(updatedRow.getByText("Carbono")).toHaveCount(0);
+  await expect(updatedRow.getByText("Aluminio")).toBeVisible();
+  await updatedRow.getByRole("link", { name: "Editar Material Playwright" }).click();
+  await expect(page).toHaveURL(/panel=edit/);
+  await expect(page.getByRole("dialog", { name: /Editar Caracteristica: field-pl/ })).toBeVisible();
+  await expect(page.getByRole("form", { name: "Editar Material Playwright" })).toBeVisible();
+  await expect(page.getByRole("form", { name: "Anadir valor Material Playwright" })).toBeVisible();
+  await expect(page.getByRole("form", { name: "Editar Material Playwright" }).locator('input[name="name"]')).toHaveCSS("height", "40px");
+  await expect(page.getByLabel("Nuevo valor Material Playwright")).toHaveCSS("height", "40px");
+  await expect(page.getByLabel("Nuevo valor Material Playwright")).toHaveCSS("border-radius", "4px");
+  await expect(page.getByRole("button", { name: "Guardar cambios" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Eliminar caracteristica" })).toBeVisible();
+  expect(capturedCatalogSpecificationRequests).toContain("GET /api/v1/admin/specifications/groups");
+  expect(capturedCatalogSpecificationRequests).toContain("POST /api/v1/admin/specifications/groups");
+  expect(browserExternalRequests).toEqual([]);
+});
+
 test("pricing configuration exposes master data and creates customer groups through BFF", async ({ page }) => {
   capturedPricingGovernanceRequests.length = 0;
   capturedPricingMutations.length = 0;
@@ -1292,6 +1590,66 @@ test("product preview renders rich product summary below the title", async ({ pa
   await expect(previewDialog.locator(".productPreviewSummary strong")).toHaveText("Resumen");
   await expect(previewDialog.locator(".productPreviewSummary")).toContainText("con formato");
   await expect(previewDialog.getByText("<strong>Resumen</strong> con formato")).toHaveCount(0);
+});
+
+test("product editor selects catalog feature values and renders them in preview", async ({ page }) => {
+  capturedCatalogSpecificationRequests.length = 0;
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/products/new`);
+
+  await page.getByLabel("Nombre del producto").fill("Producto con ficha tecnica");
+  await page.getByRole("button", { name: "Caracteristicas" }).click();
+  await expect(page.getByRole("heading", { name: "Caracteristicas" })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Ficha tecnica Composicion/ })).toBeVisible();
+
+  await page.getByLabel("Valor Composicion").selectOption("value-aluminium");
+  await page.getByRole("button", { name: "Vista previa" }).click();
+
+  const previewDialog = page.getByRole("dialog", { name: "Vista previa PDP" });
+  await expect(previewDialog).toBeVisible();
+  await expect(previewDialog.getByRole("heading", { name: "Caracteristicas tecnicas" })).toBeVisible();
+  await expect(previewDialog.getByText("Composicion")).toBeVisible();
+  await expect(previewDialog.getByText("Aluminio")).toBeVisible();
+  expect(capturedCatalogSpecificationRequests).toContain("GET /api/v1/admin/specifications/groups");
+  expect(capturedCatalogSpecificationRequests).toContain("GET /api/v1/admin/specifications/groups/spec-group-technical");
+});
+
+test("product editor presents variant options as combination attributes", async ({ page }) => {
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/products/new`);
+
+  await page.getByRole("button", { name: "Variantes", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Producto y variantes" })).toBeVisible();
+  await expect(page.getByText("Generador rapido desde atributos")).toBeVisible();
+  await page.getByRole("button", { name: "Anadir variante" }).click();
+
+  await expect(page.getByRole("heading", { name: "Atributos de combinacion" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Anadir atributo" })).toBeVisible();
+  await expect(page.getByText("Estos atributos identifican esta variante vendible.")).toBeVisible();
+});
+
+test("product preview resolves attribute choices to sellable variants", async ({ page }) => {
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/products/product-edit-1`);
+
+  await page.getByRole("button", { name: "Vista previa" }).click();
+
+  const previewDialog = page.getByRole("dialog", { name: "Vista previa PDP" });
+  await expect(previewDialog).toBeVisible();
+  await expect(previewDialog.getByText("Variante vendible")).toBeVisible();
+
+  const redChoice = previewDialog.getByRole("button", { name: "color rojo sin stock" });
+  await expect(redChoice).toBeDisabled();
+  await expect(redChoice).toContainText("Sin stock");
+
+  const greenChoice = previewDialog.getByRole("button", { name: "color verde" });
+  await greenChoice.click();
+
+  await expect(greenChoice).toHaveAttribute("aria-pressed", "true");
+  await expect(previewDialog.locator(".productPreviewMetaGrid div", { hasText: "Referencia" }).first()).toContainText("PEP-GREEN");
+  await expect(previewDialog.locator(".productPreviewPriceBlock strong")).toHaveText("99.00 EUR");
+  await expect(previewDialog.locator(".productPreviewMetaGrid div", { hasText: "Stock" }).first()).toContainText("4");
 });
 
 test("product editor renders persisted media through the protected preview proxy", async ({ page }) => {
@@ -1893,8 +2251,20 @@ test("product editor applies the pricing preview simulator from the pricing tab"
   await expect(page.getByLabel("Nombre del producto")).toHaveValue("Producto existente Playwright");
   await page.getByRole("button", { name: "Precio", exact: true }).click();
 
-  const simulator = page.locator("section.productSpecificPrices").filter({ has: page.getByRole("heading", { name: "Simulador de precio aplicado" }) });
+  const baseAdvancedPanel = page.locator("details.productPricingAdvanced").filter({ has: page.locator("summary", { hasText: "Contexto avanzado de precio base" }) });
+  await expect(baseAdvancedPanel.locator(":scope > summary .productCollapseIcon")).toBeVisible();
+
+  const specificPricesPanel = page.locator("details.productSpecificPrices").filter({ has: page.locator("summary", { hasText: "Precios especificos" }) });
+  await expect(specificPricesPanel).toBeVisible();
+  await expect(specificPricesPanel).not.toHaveAttribute("open", "");
+  await expect(specificPricesPanel.locator(":scope > summary .productCollapseIcon")).toBeVisible();
+
+  const simulator = page.locator("details.productSpecificPrices").filter({ has: page.locator("summary", { hasText: "Simulador de precio aplicado" }) });
   await expect(simulator).toBeVisible();
+  await expect(simulator).not.toHaveAttribute("open", "");
+  await expect(simulator.locator(":scope > summary .productCollapseIcon")).toBeVisible();
+  await simulator.locator("summary", { hasText: "Simulador de precio aplicado" }).click();
+  await expect(simulator).toHaveAttribute("open", "");
   await expect(simulator.getByLabel("Canal")).toHaveValue("web");
   await expect(simulator.getByLabel("Canal").locator('option[value="web"]')).toHaveText("Web");
   await expect(simulator.getByLabel("Canal").locator('option[value="marketplace"]')).toHaveText("Marketplace");

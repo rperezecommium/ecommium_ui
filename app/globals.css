@@ -378,6 +378,12 @@ p {
   opacity: 0.58;
 }
 
+.adminButtonTiny {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
 .adminIconButton {
   display: inline-grid;
   place-items: center;
@@ -605,6 +611,15 @@ p {
   padding-left: 18px;
 }
 
+.adminFeatureValueItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 220px;
+  padding: 4px 0;
+}
+
 .adminCatalogAreaGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -679,6 +694,14 @@ p {
 .adminTable input {
   width: 100%;
   padding: 0 10px;
+  line-height: 1.35;
+}
+
+.adminField input[readonly],
+.adminField select:disabled {
+  background: var(--admin-surface-muted);
+  color: var(--admin-text-muted);
+  opacity: 1;
 }
 
 .adminCheckbox {
@@ -739,6 +762,311 @@ p {
   border: 1px solid var(--admin-border-subtle);
   border-radius: 4px;
   background: var(--admin-bg);
+}
+
+.adminFeaturePage {
+  position: relative;
+  min-height: calc(100vh - 56px);
+}
+
+.adminFeatureContent {
+  transition: filter 0.18s ease, opacity 0.18s ease;
+}
+
+.adminFeaturePageWithDrawer .adminFeatureContent {
+  filter: blur(2px);
+  opacity: 0.72;
+  pointer-events: none;
+  user-select: none;
+}
+
+.adminFeatureListArea {
+  display: grid;
+  gap: 16px;
+}
+
+.adminFeatureListHeader,
+.adminFeatureFilterBar,
+.adminFeatureTableShell {
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-popover);
+}
+
+.adminFeatureListHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+}
+
+.adminFeatureListHeader h2,
+.adminFeatureListHeader p {
+  margin-bottom: 4px;
+}
+
+.adminFeatureFilterBar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 14px;
+  align-items: end;
+  max-width: 1180px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.adminFeatureFilterBar .adminField {
+  flex: 0 0 160px;
+}
+
+.adminFeatureFilterBar .adminFeatureFilterName {
+  flex-basis: 300px;
+}
+
+.adminFeatureFilterBar .adminButton {
+  flex: 0 0 auto;
+}
+
+.adminFeatureTableShell {
+  overflow-x: auto;
+}
+
+.adminFeatureTable th,
+.adminFeatureTable td {
+  padding: 14px 18px;
+  vertical-align: middle;
+}
+
+.adminFeatureTable th {
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.adminFeatureTable tbody tr:hover {
+  background: var(--admin-bg);
+}
+
+.adminFeatureNameCell {
+  display: grid;
+  gap: 4px;
+}
+
+.adminFeatureNameCell span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.adminFeatureChipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-width: 220px;
+}
+
+.adminFeatureChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--admin-primary) 24%, var(--admin-border));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--admin-primary) 18%, var(--admin-surface));
+  color: var(--admin-text);
+}
+
+.adminFeatureChip form {
+  display: inline-flex;
+}
+
+.adminFeatureChipRemove {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--admin-text);
+}
+
+.adminFeatureChipRemove:hover {
+  background: color-mix(in srgb, var(--admin-border-strong) 10%, transparent);
+}
+
+.adminFeatureRowActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.adminFeatureDrawerBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: rgba(54, 58, 65, 0.24);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.adminFeatureDrawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(440px, 100vw);
+  height: 100vh;
+  border-left: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: -16px 0 32px rgba(54, 58, 65, 0.26);
+}
+
+.adminFeatureDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+}
+
+.adminFeatureDrawerHeader h2 {
+  margin-bottom: 0;
+  font-size: 18px;
+}
+
+.adminFeatureDrawerHeader .adminIconButton {
+  border-color: transparent;
+  background: transparent;
+  color: var(--admin-text-muted);
+}
+
+.adminFeatureDrawerBody {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.adminFeatureDrawerStack {
+  display: grid;
+  gap: 14px;
+}
+
+.adminFeatureDrawer .adminField span,
+.adminFeatureDrawerLabel {
+  color: var(--admin-text);
+  font-weight: 700;
+}
+
+.adminFeatureDrawer .adminField input,
+.adminFeatureDrawer .adminField select,
+.adminFeatureAddValueForm input {
+  min-height: 40px;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  line-height: 1.35;
+}
+
+.adminFeatureDrawer .adminField input:focus,
+.adminFeatureDrawer .adminField select:focus,
+.adminFeatureAddValueForm input:focus {
+  border-color: var(--admin-primary);
+}
+
+.adminFeatureDrawer .adminField input[readonly],
+.adminFeatureDrawer .adminField select:disabled {
+  background: var(--admin-surface-muted);
+  color: var(--admin-text-muted);
+  cursor: not-allowed;
+}
+
+.adminFeatureReadOnlyLine {
+  display: grid;
+  gap: 4px;
+}
+
+.adminFeatureReadOnlyLine span {
+  color: var(--admin-text);
+  font-weight: 700;
+}
+
+.adminFeatureReadOnlyLine strong {
+  color: var(--admin-text-muted);
+  font-weight: 400;
+}
+
+.adminFeatureToggleGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+}
+
+.adminSwitch {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--admin-text);
+}
+
+.adminSwitch input {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  margin: 0;
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  appearance: none;
+  background: var(--admin-border);
+}
+
+.adminSwitch input::before {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--admin-surface);
+  content: "";
+  transition: transform 0.16s ease;
+}
+
+.adminSwitch input:checked {
+  border-color: var(--admin-primary-pressed);
+  background: var(--admin-primary-pressed);
+}
+
+.adminSwitch input:checked::before {
+  transform: translateX(16px);
+}
+
+.adminFeatureAddValueForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.adminFeatureAddValueForm .adminIconButton {
+  width: 40px;
+  height: 40px;
+  color: var(--admin-primary-pressed);
 }
 
 .adminTableEditForm {
@@ -1688,6 +2016,9 @@ p {
 }
 
 .productPricingAdvanced summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
   color: var(--admin-text);
   font-weight: 700;
@@ -1695,6 +2026,30 @@ p {
 
 .productPricingAdvanced[open] summary {
   margin-bottom: 12px;
+}
+
+.productPricingPreviewSummary {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.productPricingSummaryLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.productCollapseIcon {
+  flex: 0 0 auto;
+  color: var(--admin-text-muted);
+  transition: transform 0.16s ease;
+}
+
+.productPricingAdvanced[open] > summary .productCollapseIcon {
+  transform: rotate(90deg);
 }
 
 .productSpecificPriceTable th,
@@ -2255,6 +2610,73 @@ p {
   margin: -6px 0 0;
   color: var(--admin-text-muted);
   line-height: 1.5;
+}
+
+.productPreviewAttributeSelector {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-bg);
+}
+
+.productPreviewAttributeGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.productPreviewAttributeGroup > span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.productPreviewAttributeGroup > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.productPreviewAttributeChoice {
+  display: inline-grid;
+  min-width: 68px;
+  min-height: 38px;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  padding: 7px 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.productPreviewAttributeChoice:hover:not(:disabled) {
+  border-color: var(--admin-primary);
+}
+
+.productPreviewAttributeChoice small {
+  color: var(--admin-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.productPreviewAttributeChoiceActive {
+  border-color: var(--admin-primary);
+  box-shadow: inset 0 0 0 1px var(--admin-primary);
+}
+
+.productPreviewAttributeChoice:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .productPreviewVariantSelect {
