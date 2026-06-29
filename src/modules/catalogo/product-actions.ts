@@ -21,6 +21,7 @@ const defaultProductSaveBlocks: ProductSaveBlocks = {
   variants: "pending",
   media: "pending",
   variantMedia: "pending",
+  specifications: "pending",
   pricing: "pending",
   inventory: "pending",
   shipping: "pending",

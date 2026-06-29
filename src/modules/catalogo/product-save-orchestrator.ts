@@ -32,6 +32,7 @@ function initialBlocks(): ProductSaveBlocks {
     variants: "pending",
     media: "pending",
     variantMedia: "pending",
+    specifications: "pending",
     pricing: "pending",
     inventory: "pending",
     shipping: "pending",
@@ -700,6 +701,9 @@ export async function saveProductDraft({
     blocks.inventory = "skipped";
   }
 
+  blocks.specifications =
+    normalizedDraft.specifications?.selections?.length ? "success" : "skipped";
+
   const hasFailure = Object.values(blocks).some((status) => status === "failed");
   let finalBasicIsActive = activationRequested && publicationReadyBeforeSave && !hasFailure;
   blocks.publish = activationRequested ? "running" : "skipped";
@@ -722,6 +726,7 @@ export async function saveProductDraft({
         variantPrices: nextVariantPrices,
         specificPrices: normalizedDraft.pricing.specificPrices,
       },
+      specifications: normalizedDraft.specifications,
       inventory: {
         stockByVariant: nextStockByVariant,
       },

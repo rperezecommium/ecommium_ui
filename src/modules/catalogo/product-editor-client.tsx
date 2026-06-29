@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Bold, Eye, Italic, List, ListOrdered, Plus, Redo2, RemoveFormatting, Strikethrough, Trash2, Undo2, X } from "lucide-react";
+import { Bold, ChevronRight, Eye, Italic, List, ListOrdered, Plus, Redo2, RemoveFormatting, Strikethrough, Trash2, Undo2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { ChangeEvent, InputHTMLAttributes } from "react";
 import {
@@ -69,6 +69,21 @@ type ProductVariantRowView = ProductDraftVariant & {
   effectiveMediaSource: ProductEditorVariantRow["effectiveMediaSource"];
 };
 
+type ProductPreviewAttributeChoice = {
+  valueCode: string;
+  variantLocalId: string | null;
+  variantLabel: string;
+  availableQuantity: number;
+  available: boolean;
+  selected: boolean;
+  disabled: boolean;
+};
+
+type ProductPreviewAttributeGroup = {
+  attributeCode: string;
+  values: ProductPreviewAttributeChoice[];
+};
+
 type SpecificPriceFormState = {
   targetKey: string;
   fixedPrice: string;
@@ -101,6 +116,7 @@ type TabId =
   | "basic"
   | "images"
   | "variants"
+  | "specifications"
   | "pricing"
   | "offerings"
   | "inventory"
@@ -112,6 +128,7 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: "basic", label: "Ajustes basicos" },
   { id: "images", label: "Imagenes" },
   { id: "variants", label: "Variantes" },
+  { id: "specifications", label: "Caracteristicas" },
   { id: "pricing", label: "Precio" },
   { id: "offerings", label: "Offering" },
   { id: "inventory", label: "Inventario" },
@@ -133,6 +150,7 @@ const defaultProductEditorLookups: ProductEditorLookups = {
   tradePolicies: [],
   countries: [],
   carriers: [],
+  specificationFields: [],
   warnings: [],
 };
 
@@ -461,7 +479,7 @@ function fieldErrorLabel(key: string) {
     return "Pricing / Precio especifico";
   }
   if (key.startsWith("variant:") && key.endsWith(":options")) {
-    return "Variantes / Opciones";
+    return "Variantes / Atributos";
   }
   if (key.startsWith("variant:")) {
     return "Variantes";
@@ -664,7 +682,7 @@ function combinationRows(colorValues: string, sizeValues: string, productName: s
 function optionLabel(variant: ProductDraftVariant) {
   return variant.options.length
     ? variant.options.map((option) => `${option.attributeCode}: ${option.valueCode}`).join(", ")
-    : "Sin opciones";
+    : "Sin atributos";
 }
 
 function offeringName(
@@ -1113,6 +1131,16 @@ function ProductEditorClientInner({
   const savingActive = isSaving || isPending;
   const selectedMedia = draft.media.items.find((item) => item.localId === selectedMediaId) ?? draft.media.items[0];
   const productStatus = draft.basic.isActive ? "Activo" : "Fuera de linea";
+  const selectedSpecifications = useMemo(() => {
+    const byFieldId = new Map(draft.specifications.selections.map((selection) => [selection.fieldId, selection]));
+    return lookups.specificationFields
+      .map((field) => {
+        const selection = byFieldId.get(field.fieldId);
+        const value = selection ? field.values.find((item) => item.fieldValueId === selection.fieldValueId) : undefined;
+        return { field, selection, value };
+      })
+      .filter((item) => item.selection && item.value);
+  }, [draft.specifications.selections, lookups.specificationFields]);
   const variantRowsById = useMemo(
     () => new Map(initialVariantRows.map((row) => [row.variantId, row])),
     [initialVariantRows],
@@ -1255,7 +1283,7 @@ function ProductEditorClientInner({
     previewMediaItems[0] ??
     draft.media.items.find((item) => item.isMain);
   const previewOwnPrice = !previewVariant?.isDefault
-    ? draft.pricing.variantPrices[previewVariantKeyResolved]
+    ? scopedDraftValue(draft.pricing.variantPrices, previewVariant)
     : undefined;
   const previewEffectivePrice = previewOwnPrice && !previewOwnPrice.markedForDeletion
     ? previewOwnPrice
@@ -1265,18 +1293,17 @@ function ProductEditorClientInner({
     selectedTax ??
     lookups.taxes.find((tax) => tax.id === previewEffectivePrice?.taxCode || tax.taxCode === previewEffectivePrice?.taxCode);
   const previewPriceBreakdown = pricePreview(previewEffectivePrice, previewTax);
-  const previewStock =
-    draft.inventory.stockByVariant[previewVariantKeyResolved] ??
-    (previewVariant?.isDefault ? draft.inventory.stockByVariant.default : undefined);
-  const previewAvailableQuantity = previewStock?.availableQuantity ?? availableQuantity(previewStock);
-  const previewIsAvailable = previewStock?.available ?? previewAvailableQuantity > 0;
-  const previewOfferings = draft.offerings.byVariant[previewVariantKeyResolved] ?? [];
+  const previewAvailability = previewVariantAvailability(previewVariant);
+  const previewAvailableQuantity = previewAvailability.availableQuantity;
+  const previewIsAvailable = previewAvailability.available;
+  const previewOfferings = scopedDraftValue(draft.offerings.byVariant, previewVariant) ?? [];
   const previewOptions = previewVariant?.options.filter((option) => !option.markedForDeletion) ?? [];
   const activePreviewVariants = allVariantRows.filter((variant) => variant.isActive && variant.isVisible);
   const previewVariantChoiceBase = activePreviewVariants.length ? activePreviewVariants : allVariantRows;
   const previewVariantChoices = previewVariantChoiceBase.some((variant) => variant.localId === previewVariantKeyResolved)
     ? previewVariantChoiceBase
     : [previewVariant, ...previewVariantChoiceBase];
+  const previewAttributeGroups = buildPreviewAttributeGroups(previewVariantChoices, previewOptions);
   const publicationChecklist = useMemo(() => getProductPublicationChecklist(draft), [draft]);
   const publicationReady = publicationChecklist.every((item) => item.ok);
   const allowedCarrierOptions = draft.shipping.allowedCarrierIds
@@ -1465,6 +1492,37 @@ function ProductEditorClientInner({
               },
             }
           : {}),
+      };
+    });
+  }
+
+  function updateSpecificationSelection(fieldId: string, fieldValueId: string) {
+    updateDraft((current) => {
+      const field = lookups.specificationFields.find((item) => item.fieldId === fieldId);
+      const value = field?.values.find((item) => item.fieldValueId === fieldValueId);
+      const remaining = current.specifications.selections.filter((selection) => selection.fieldId !== fieldId);
+
+      return {
+        ...current,
+        specifications: {
+          productId: current.productId,
+          selections: value && field
+            ? [
+                ...remaining,
+                {
+                  fieldId,
+                  fieldValueId,
+                  groupId: field.groupId,
+                  fieldName: field.name,
+                  valueName: value.name,
+                },
+              ]
+            : remaining,
+        },
+        saveState: {
+          ...current.saveState,
+          specifications: "pending",
+        },
       };
     });
   }
@@ -1849,6 +1907,20 @@ function ProductEditorClientInner({
         { attributeCode: "", valueCode: "", isActive: true, createdInDraft: true },
       ],
     }));
+  }
+
+  function variantOptionWarning(variant: ProductDraftVariant) {
+    const seenAttributes = new Set<string>();
+    for (const option of variant.options) {
+      if (option.markedForDeletion || option.isActive === false || !option.attributeCode || !option.valueCode) {
+        continue;
+      }
+      if (seenAttributes.has(option.attributeCode)) {
+        return `El atributo ${option.attributeCode} ya tiene un valor activo. Crea otra variante vendible para otro valor.`;
+      }
+      seenAttributes.add(option.attributeCode);
+    }
+    return null;
   }
 
   function updateSelectedVariantOption(index: number, field: "attributeCode" | "valueCode", value: string) {
@@ -2283,6 +2355,102 @@ function ProductEditorClientInner({
     };
   }
 
+  function scopedDraftValue<T>(record: Record<string, T | undefined>, variant: ProductVariantRowView | undefined) {
+    if (!variant) {
+      return undefined;
+    }
+
+    return record[variant.localId] ?? (variant.variantId ? record[variant.variantId] : undefined);
+  }
+
+  function previewVariantAvailability(variant: ProductVariantRowView | undefined) {
+    const stock = variant ? stockForVariantRow(variant).stock : undefined;
+    const quantity = stock?.availableQuantity ?? availableQuantity(stock);
+
+    return {
+      stock,
+      availableQuantity: quantity,
+      available: stock?.available ?? quantity > 0,
+    };
+  }
+
+  function activeVariantOptions(variant: ProductVariantRowView) {
+    return variant.options.filter((option) => !option.markedForDeletion && (option.isActive ?? true));
+  }
+
+  function variantHasOption(variant: ProductVariantRowView, attributeCode: string, valueCode: string) {
+    return activeVariantOptions(variant).some(
+      (option) => option.attributeCode === attributeCode && option.valueCode === valueCode,
+    );
+  }
+
+  function variantMatchesSelectedOptions(
+    variant: ProductVariantRowView,
+    selectedByAttribute: Map<string, string>,
+    ignoredAttributeCode: string,
+  ) {
+    for (const [attributeCode, valueCode] of selectedByAttribute.entries()) {
+      if (attributeCode === ignoredAttributeCode) {
+        continue;
+      }
+
+      if (!variantHasOption(variant, attributeCode, valueCode)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  function buildPreviewAttributeGroups(
+    variants: ProductVariantRowView[],
+    selectedOptions: ProductDraftVariant["options"],
+  ): ProductPreviewAttributeGroup[] {
+    const sellableVariants = variants.filter(
+      (variant) => !variant.isDefault && variant.isActive && variant.isVisible && activeVariantOptions(variant).length > 0,
+    );
+    const selectedByAttribute = new Map(
+      selectedOptions
+        .filter((option) => !option.markedForDeletion && (option.isActive ?? true))
+        .map((option) => [option.attributeCode, option.valueCode] as const),
+    );
+    const valuesByAttribute = new Map<string, string[]>();
+
+    for (const variant of sellableVariants) {
+      for (const option of activeVariantOptions(variant)) {
+        const values = valuesByAttribute.get(option.attributeCode) ?? [];
+        if (!values.includes(option.valueCode)) {
+          values.push(option.valueCode);
+        }
+        valuesByAttribute.set(option.attributeCode, values);
+      }
+    }
+
+    return Array.from(valuesByAttribute.entries()).map(([attributeCode, valueCodes]) => ({
+      attributeCode,
+      values: valueCodes.map((valueCode) => {
+        const candidate =
+          sellableVariants.find(
+            (variant) =>
+              variantHasOption(variant, attributeCode, valueCode) &&
+              variantMatchesSelectedOptions(variant, selectedByAttribute, attributeCode),
+          ) ??
+          sellableVariants.find((variant) => variantHasOption(variant, attributeCode, valueCode));
+        const availability = previewVariantAvailability(candidate);
+
+        return {
+          valueCode,
+          variantLocalId: candidate?.localId ?? null,
+          variantLabel: candidate?.selectorLabel ?? valueCode,
+          availableQuantity: availability.availableQuantity,
+          available: availability.available,
+          selected: selectedByAttribute.get(attributeCode) === valueCode,
+          disabled: !candidate || !availability.available,
+        };
+      }),
+    }));
+  }
+
   function enableVariantOwnStock(variant: ProductDraftVariant) {
     updateDraft((current) => {
       const existing =
@@ -2485,6 +2653,7 @@ function ProductEditorClientInner({
           variants: draft.saveState.variants ?? "pending",
           media: draft.saveState.media ?? "pending",
           variantMedia: draft.saveState.variantMedia ?? "pending",
+          specifications: draft.saveState.specifications ?? "pending",
           pricing: draft.saveState.pricing ?? "pending",
           inventory: draft.saveState.inventory ?? "pending",
           shipping: draft.saveState.shipping ?? "pending",
@@ -2525,6 +2694,7 @@ function ProductEditorClientInner({
             variants: draft.saveState.variants ?? "pending",
             media: draft.saveState.media ?? "pending",
             variantMedia: draft.saveState.variantMedia ?? "pending",
+            specifications: draft.saveState.specifications ?? "pending",
             pricing: draft.saveState.pricing ?? "pending",
             inventory: draft.saveState.inventory ?? "pending",
             shipping: draft.saveState.shipping ?? "pending",
@@ -2613,6 +2783,7 @@ function ProductEditorClientInner({
             variants: "pending",
             media: "pending",
             variantMedia: "pending",
+            specifications: "pending",
             pricing: "pending",
             inventory: "pending",
             shipping: "pending",
@@ -3123,7 +3294,7 @@ function ProductEditorClientInner({
               </div>
               <div className="productCombinationGenerator">
                 <div>
-                  <strong>Generador rapido desde opciones</strong>
+                  <strong>Generador rapido desde atributos</strong>
 	                  <p>Usalo solo cuando cada resultado generado sea una variante vendible.</p>
                 </div>
                 <div className="adminFormGrid adminFormGridTwo">
@@ -3318,7 +3489,7 @@ function ProductEditorClientInner({
                             <div className="adminContextHint">
                               {variant.variantId ? `variantId ${variant.variantId}` : "Pendiente de guardar"}
                             </div>
-                            <div className="adminContextHint">Opciones: {optionLabel(variant)}</div>
+                            <div className="adminContextHint">Atributos: {optionLabel(variant)}</div>
                             {rowError ? <small>{rowError}</small> : null}
                           </td>
                           <td>
@@ -3413,7 +3584,7 @@ function ProductEditorClientInner({
                 <section className="productVariantDetailPanel">
                   <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
                     <div>
-                      <h3>Opciones de la variante</h3>
+                      <h3>Atributos de combinacion</h3>
                       <p>{selectedVariant.isDefault ? "La variante predeterminada se configura desde Ajustes basicos." : selectedVariant.name}</p>
                     </div>
                     <button
@@ -3422,16 +3593,25 @@ function ProductEditorClientInner({
                       type="button"
                       onClick={addSelectedVariantOption}
                     >
-                      Anadir opcion
+                      Anadir atributo
                     </button>
                   </div>
                   {selectedVariant.variantId ? (
                     <div className="adminBanner">
-                      <p>Las opciones guardadas se actualizaran al guardar la ficha. Quitar una opcion persistida la desactiva de forma segura.</p>
+                      <p>Los atributos guardados se actualizaran al guardar la ficha. Quitar un atributo persistido lo desactiva de forma segura.</p>
                     </div>
                   ) : null}
+                  {variantOptionWarning(selectedVariant) ? (
+                    <div className="adminBanner adminBannerError">
+                      <p>{variantOptionWarning(selectedVariant)}</p>
+                    </div>
+                  ) : (
+                    <div className="adminBanner">
+                      <p>Estos atributos identifican esta variante vendible. Si un color o talla necesita stock o imagen propia, crea una variante separada.</p>
+                    </div>
+                  )}
                   {selectedVariant.options.filter((option) => !option.markedForDeletion).length === 0 ? (
-                    <p className="adminContextHint">Sin opciones comerciales asignadas.</p>
+                    <p className="adminContextHint">Sin atributos de combinacion asignados.</p>
                   ) : (
                     <div className="adminTableScroller">
                       <table className="adminTable productOptionTable">
@@ -3450,7 +3630,7 @@ function ProductEditorClientInner({
                             <tr key={`${selectedVariant.localId}-${optionIndex}`}>
                               <td>
                                 <input
-                                  aria-label={`Atributo opcion ${optionIndex + 1}`}
+                                  aria-label={`Atributo de combinacion ${optionIndex + 1}`}
                                   disabled={selectedVariant.isDefault}
                                   placeholder="color"
                                   value={option.attributeCode}
@@ -3459,7 +3639,7 @@ function ProductEditorClientInner({
                               </td>
                               <td>
                                 <input
-                                  aria-label={`Valor opcion ${optionIndex + 1}`}
+                                  aria-label={`Valor de combinacion ${optionIndex + 1}`}
                                   disabled={selectedVariant.isDefault}
                                   placeholder="negro"
                                   value={option.valueCode}
@@ -3488,17 +3668,91 @@ function ProductEditorClientInner({
                 </section>
                 <section className="productVariantDetailPanel">
                   <h3>Especificaciones</h3>
-                  <p>Las especificaciones pertenecen al catalogo del producto/categoria, no al precio, stock ni media.</p>
-                  <div className="adminBanner">
-                    <p>Las especificaciones del producto estan pendientes de integrarse en esta ficha.</p>
-                  </div>
+                  <p>Las caracteristicas tecnicas se editan en su pestana propia para no mezclarlas con opciones de variante.</p>
+                  <button className="adminButton" type="button" onClick={() => setActiveTab("specifications")}>
+                    Ir a caracteristicas
+                  </button>
                   <dl className="productMetaList">
                     <div><dt>Categoria</dt><dd>{draft.basic.categoryName || draft.basic.categoryId || "Sin categoria"}</dd></div>
-                    <div><dt>Contrato esperado</dt><dd>Listar campos por categoria y guardar selecciones por producto.</dd></div>
+                    <div><dt>Seleccionadas</dt><dd>{draft.specifications.selections.length}</dd></div>
                   </dl>
                 </section>
               </div>
             </div>
+          ) : null}
+
+          {activeTab === "specifications" ? (
+            <section className="productEditorPanel">
+              <div className="productEditorSectionHeader">
+                <div>
+                  <h2>Caracteristicas</h2>
+                  <p>Selecciona los valores tecnicos visibles en la ficha del producto.</p>
+                </div>
+                <Link className="adminButton" href="/admin/catalogo/atributos-caracteristicas?tab=features">
+                  Administrar valores
+                </Link>
+              </div>
+
+              {lookups.specificationFields.length === 0 ? (
+                <div className="adminEmptyState">
+                  <h2>Sin caracteristicas configuradas</h2>
+                  <p>Crea primero caracteristicas en Catalogo / Caracteristicas.</p>
+                </div>
+              ) : (
+                <div className="adminTableScroller">
+                  <table className="adminTable">
+                    <thead>
+                      <tr>
+                        <th>Grupo</th>
+                        <th>Caracteristica</th>
+                        <th>Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lookups.specificationFields.map((field) => {
+                        const selected = draft.specifications.selections.find((selection) => selection.fieldId === field.fieldId);
+                        return (
+                          <tr key={field.fieldId}>
+                            <td>{field.groupName}</td>
+                            <td>{field.name}</td>
+                            <td>
+                              <select
+                                aria-label={`Valor ${field.name}`}
+                                value={selected?.fieldValueId ?? ""}
+                                onChange={(event) => updateSpecificationSelection(field.fieldId, event.target.value)}
+                              >
+                                <option value="">Sin valor</option>
+                                {field.values.map((value) => (
+                                  <option key={value.fieldValueId} value={value.fieldValueId}>
+                                    {value.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <section className="productEditorSubsection">
+                <h3>Preview de ficha tecnica</h3>
+                {selectedSpecifications.length === 0 ? (
+                  <p className="adminContextHint">No hay caracteristicas seleccionadas para este producto.</p>
+                ) : (
+                  <dl className="productMetaList">
+                    {selectedSpecifications.map(({ field, value }) => (
+                      <div key={field.fieldId}>
+                        <dt>{field.name}</dt>
+                        <dd>{value?.name}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </section>
+            </section>
           ) : null}
 
           {activeTab === "pricing" ? (
@@ -3606,7 +3860,10 @@ function ProductEditorClientInner({
                 Impuestos incluidos
               </label>
               <details className="productPricingAdvanced adminSection">
-                <summary>Contexto avanzado de precio base</summary>
+                <summary>
+                  <ChevronRight aria-hidden="true" className="productCollapseIcon" size={16} />
+                  <span>Contexto avanzado de precio base</span>
+                </summary>
                 <div className="adminFormGrid adminFormGridTwo">
                   <label className="adminField">
                     <span>priceTableId</span>
@@ -3696,12 +3953,18 @@ function ProductEditorClientInner({
                 </div>
                 {!currentPricePreview ? <p>Preview neto/impuesto/bruto pendiente de respuesta resuelta del BFF o de una tasa en el impuesto seleccionado.</p> : null}
               </div>
-              <section className="productSpecificPrices adminSection">
+              <details className="productSpecificPrices productPricingAdvanced adminSection">
+                <summary className="productPricingPreviewSummary">
+                  <span className="productPricingSummaryLabel">
+                    <ChevronRight aria-hidden="true" className="productCollapseIcon" size={16} />
+                    <span>Precios especificos</span>
+                  </span>
+                  <span className={`adminBadge ${visibleSpecificPrices.length > 0 ? "adminBadgeOk" : "adminBadgeWarn"}`}>
+                    {visibleSpecificPrices.length > 0 ? `${visibleSpecificPrices.length} regla(s)` : "Sin reglas"}
+                  </span>
+                </summary>
                 <div className="productEditorSectionHeader">
-                  <div>
-                    <h3>Precios especificos</h3>
-                    <p>{visibleSpecificPrices.length > 0 ? `${visibleSpecificPrices.length} regla(s) enlazada(s) al producto.` : "Sin reglas especificas todavia."}</p>
-                  </div>
+                  <p>{visibleSpecificPrices.length > 0 ? `${visibleSpecificPrices.length} regla(s) enlazada(s) al producto.` : "Sin reglas especificas todavia."}</p>
                   <button className="adminButton" type="button" onClick={() => resetSpecificPriceForm()}>
                     Anadir precio especifico
                   </button>
@@ -3767,7 +4030,10 @@ function ProductEditorClientInner({
                     </label>
                   </div>
                   <details className="productPricingAdvanced">
-                    <summary>Condiciones avanzadas</summary>
+                    <summary>
+                      <ChevronRight aria-hidden="true" className="productCollapseIcon" size={16} />
+                      <span>Condiciones avanzadas</span>
+                    </summary>
                     <div className="adminFormGrid adminFormGridTwo">
                       <label className="adminField">
                         <span>Pais</span>
@@ -3914,17 +4180,18 @@ function ProductEditorClientInner({
                     </table>
                   </div>
                 ) : null}
-              </section>
-              <section className="productSpecificPrices adminSection">
-                <div className="productEditorSectionHeader">
-                  <div>
-                    <h3>Simulador de precio aplicado</h3>
-                    <p>Confirma el precio que Pricing devuelve para producto, variante y contexto.</p>
-                  </div>
+              </details>
+              <details className="productSpecificPrices productPricingAdvanced adminSection">
+                <summary className="productPricingPreviewSummary">
+                  <span className="productPricingSummaryLabel">
+                    <ChevronRight aria-hidden="true" className="productCollapseIcon" size={16} />
+                    <span>Simulador de precio aplicado</span>
+                  </span>
                   <span className={`adminBadge ${pricingPreviewResult?.ok ? "adminBadgeOk" : "adminBadgeWarn"}`}>
                     {pricingPreviewResult ? pricingResolutionLabel(pricingPreviewResult.resolution.source) : "Sin simular"}
                   </span>
-                </div>
+                </summary>
+                <p className="adminContextHint">Confirma el precio que Pricing devuelve para producto, variante y contexto.</p>
                 <div className="adminFormGrid adminFormGridTwo">
                   <label className="adminField">
                     <span>Aplicar sobre</span>
@@ -4109,7 +4376,7 @@ function ProductEditorClientInner({
                     ) : null}
                   </div>
                 ) : null}
-              </section>
+              </details>
               <div className="adminBanner adminSection">
                 <p>La productVariantDefault se gestiona con el precio superior. Las variantes listadas abajo solo necesitan cambios si requieren precio, impuesto o tabla propios.</p>
               </div>
@@ -5035,8 +5302,39 @@ function ProductEditorClientInner({
                   html={draft.basic.shortDescription}
                 />
 
+                {previewAttributeGroups.length ? (
+                  <section className="productPreviewAttributeSelector" aria-label="Seleccion de atributos">
+                    {previewAttributeGroups.map((group) => (
+                      <div className="productPreviewAttributeGroup" key={group.attributeCode}>
+                        <span>{group.attributeCode}</span>
+                        <div>
+                          {group.values.map((choice) => (
+                            <button
+                              aria-label={`${group.attributeCode} ${choice.valueCode}${choice.available ? "" : " sin stock"}`}
+                              aria-pressed={choice.selected}
+                              className={"productPreviewAttributeChoice " + (choice.selected ? "productPreviewAttributeChoiceActive" : "")}
+                              disabled={choice.disabled}
+                              key={choice.valueCode}
+                              title={choice.variantLabel}
+                              type="button"
+                              onClick={() => {
+                                if (choice.variantLocalId) {
+                                  setPreviewVariantKey(choice.variantLocalId);
+                                }
+                              }}
+                            >
+                              <span>{choice.valueCode}</span>
+                              {!choice.available ? <small>Sin stock</small> : null}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </section>
+                ) : null}
+
                 <label className="adminField productPreviewVariantSelect">
-                  <span>Variante</span>
+                  <span>Variante vendible</span>
                   <select value={previewVariantKeyResolved} onChange={(event) => setPreviewVariantKey(event.target.value)}>
                     {previewVariantChoices.map((variant) => (
                       <option key={variant.localId} value={variant.localId}>
@@ -5071,6 +5369,20 @@ function ProductEditorClientInner({
                         </span>
                       ))}
                     </div>
+                  </section>
+                ) : null}
+
+                {selectedSpecifications.length ? (
+                  <section className="productPreviewSection">
+                    <h4>Caracteristicas tecnicas</h4>
+                    <dl className="productPreviewMetaGrid">
+                      {selectedSpecifications.map(({ field, value }) => (
+                        <div key={field.fieldId}>
+                          <dt>{field.name}</dt>
+                          <dd>{value?.name}</dd>
+                        </div>
+                      ))}
+                    </dl>
                   </section>
                 ) : null}
 
@@ -5130,11 +5442,12 @@ function ProductEditorClientInner({
           <div className="productSavingDialog">
             <span className="adminSpinner productSavingRing" aria-hidden="true" />
             <strong>Guardando producto</strong>
-              <span>Catalog, variantes, imagenes, pricing, inventario y transporte se procesan por bloques.</span>
+              <span>Catalog, variantes, imagenes, caracteristicas, pricing, inventario y transporte se procesan por bloques.</span>
             <div className="productSavingSteps">
               <span>Catalog</span>
               <span>Variantes</span>
               <span>Media</span>
+              <span>Caracteristicas</span>
               <span>Pricing</span>
               <span>Inventario</span>
               <span>Transporte</span>

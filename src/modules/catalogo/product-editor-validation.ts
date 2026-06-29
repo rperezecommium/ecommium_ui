@@ -276,8 +276,8 @@ export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
       ean: cleanOptional(variant.ean ?? undefined) ?? null,
       options: variant.options.map((option) => ({
         variantOptionId: option.variantOptionId,
-        attributeCode: option.attributeCode.trim(),
-        valueCode: option.valueCode.trim(),
+        attributeCode: slugifyProductValue(option.attributeCode),
+        valueCode: slugifyProductValue(option.valueCode),
         isActive: option.isActive ?? true,
         createdInDraft: option.createdInDraft,
         markedForDeletion: option.markedForDeletion,
@@ -313,6 +313,7 @@ export function validateProductDraft(draft: ProductDraft): ProductDraftValidatio
   }
 
   const seenRefs = new Set<string>();
+  const seenVariantCombinations = new Map<string, string>();
   for (const variant of normalized.variants) {
     if (!variant.refId) {
       fieldErrors[`variant:${variant.localId}:refId`] = "La referencia de variante es obligatoria.";
@@ -327,15 +328,36 @@ export function validateProductDraft(draft: ProductDraft): ProductDraftValidatio
     const editableOptions = variant.options.filter((option) => !option.markedForDeletion);
     const completeOptions = editableOptions.filter((option) => option.attributeCode && option.valueCode);
     const hasIncompleteOptions = editableOptions.some((option) => !option.attributeCode || !option.valueCode);
-    const optionKey = completeOptions
+    const activeCompleteOptions = completeOptions.filter((option) => option.isActive !== false);
+    const seenOptionAttributes = new Set<string>();
+    let optionError: string | undefined;
+
+    for (const option of activeCompleteOptions) {
+      if (seenOptionAttributes.has(option.attributeCode)) {
+        optionError = "Cada atributo de combinacion solo puede tener un valor activo. Crea una variante por cada valor vendible.";
+        break;
+      }
+      seenOptionAttributes.add(option.attributeCode);
+    }
+
+    const optionKey = activeCompleteOptions
       .map((option) => `${option.attributeCode}:${option.valueCode}`)
       .sort()
       .join("|");
 
-    if (normalized.mode === "variants" && hasIncompleteOptions && !variant.variantId) {
-      fieldErrors[`variant:${variant.localId}:options`] = "Completa atributo y valor en cada opcion de la variante.";
+    if (normalized.mode === "variants" && optionError) {
+      fieldErrors[`variant:${variant.localId}:options`] = optionError;
+    } else if (normalized.mode === "variants" && hasIncompleteOptions && !variant.variantId) {
+      fieldErrors[`variant:${variant.localId}:options`] = "Completa atributo y valor en cada atributo de combinacion.";
     } else if (normalized.mode === "variants" && !optionKey && !variant.variantId) {
-      fieldErrors[`variant:${variant.localId}:options`] = "La variante necesita al menos una opcion comercial.";
+      fieldErrors[`variant:${variant.localId}:options`] = "La variante necesita al menos un atributo de combinacion.";
+    } else if (normalized.mode === "variants" && optionKey) {
+      const existingVariant = seenVariantCombinations.get(optionKey);
+      if (existingVariant) {
+        fieldErrors[`variant:${variant.localId}:options`] = "Ya existe otra variante con la misma combinacion. Cada combinacion vendible debe ser unica.";
+      } else {
+        seenVariantCombinations.set(optionKey, variant.localId);
+      }
     }
   }
 

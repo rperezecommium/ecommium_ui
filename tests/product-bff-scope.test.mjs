@@ -50,6 +50,15 @@ function loadProductsModule(requestBff) {
           toLookupOptions: () => [],
         };
       }
+      if (specifier === "./catalog-attributes-features") {
+        return {
+          listCatalogAttributeFeatureData: async () => ({
+            groups: [],
+            fields: [],
+            source: "bff",
+          }),
+        };
+      }
       if (specifier === "./pricing-admin") {
         return {
           getPricingEditorLookups: async () => ({ taxes: [], priceTables: [], warnings: [] }),

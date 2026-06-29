@@ -35,7 +35,7 @@ const configurationNavItems = [
 const catalogNavItems = [
   { href: "/admin/products", label: "Productos", description: "Ficha, variantes y media", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/categorias", label: "Categorias", description: "Arbol, familias y rutas", permission: "admin:catalog:view" as const },
-  { href: "/admin/catalogo/atributos-caracteristicas", label: "Atributos / Caracteristicas", description: "Combinaciones y ficha tecnica", permission: "admin:catalog:view" as const },
+  { href: "/admin/catalogo/atributos-caracteristicas", label: "Caracteristicas", description: "Ficha tecnica y filtros", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/marcas", label: "Marcas / Proveedores", description: "Fabricantes y colecciones", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/media", label: "Media / Archivos", description: "Imagenes y documentos", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/offerings", label: "Offerings / Servicios adicionales", description: "Servicios vendibles asociados", permission: "admin:catalog:view" as const },

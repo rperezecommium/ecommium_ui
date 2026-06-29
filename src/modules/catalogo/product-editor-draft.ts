@@ -111,6 +111,9 @@ export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): Pro
         country: "ES",
       },
     },
+    specifications: {
+      selections: [],
+    },
     offerings: {
       byVariant: {},
     },
@@ -130,6 +133,7 @@ export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): Pro
       variants: "pending",
       media: "pending",
       variantMedia: "pending",
+      specifications: "pending",
       pricing: "pending",
       inventory: "pending",
       shipping: "pending",
@@ -275,6 +279,7 @@ export function draftFromEditorData(
       variantPrices: data.variantPrices,
       specificPrices: data.specificPrices,
     },
+    specifications: data.specifications ?? draft.specifications,
     offerings: {
       byVariant: offeringsByVariant,
     },
@@ -378,6 +383,7 @@ export function mergeStoredProductDraft(
       },
     },
     offerings: storedDraft.offerings ?? initialDraft.offerings,
+    specifications: storedDraft.specifications ?? initialDraft.specifications,
     shipping: storedDraft.shipping ?? initialDraft.shipping,
     saveState: {
       ...initialDraft.saveState,

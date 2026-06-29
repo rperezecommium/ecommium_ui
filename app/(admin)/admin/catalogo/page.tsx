@@ -4,7 +4,7 @@ export default function CatalogoPage() {
   const catalogAreas = [
     { href: "/admin/products", label: "Productos", description: "Ficha, combinaciones, imagenes, precio y stock." },
     { href: "/admin/catalogo/categorias", label: "Categorias", description: "Arbol comercial y breadcrumbs." },
-    { href: "/admin/catalogo/atributos-caracteristicas", label: "Atributos / Caracteristicas", description: "Opciones de combinacion y ficha tecnica." },
+    { href: "/admin/catalogo/atributos-caracteristicas", label: "Caracteristicas", description: "Ficha tecnica y filtros." },
     { href: "/admin/catalogo/marcas", label: "Marcas / Proveedores", description: "Fabricantes, proveedores y colecciones." },
     { href: "/admin/catalogo/media", label: "Media / Archivos", description: "Imagenes, documentos y portadas." },
     { href: "/admin/catalogo/offerings", label: "Offerings / Servicios adicionales", description: "Servicios vendibles y add-ons." },

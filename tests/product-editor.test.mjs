@@ -201,7 +201,7 @@ test("allows persisted legacy variants without options while still requiring opt
   assert.equal(newValidation.ok, false);
   assert.equal(
     newValidation.fieldErrors["variant:variant-new:options"],
-    "La variante necesita al menos una opcion comercial.",
+    "La variante necesita al menos un atributo de combinacion.",
   );
 });
 
@@ -227,7 +227,73 @@ test("rejects incomplete options on new product variants before sending them to 
   assert.equal(validation.ok, false);
   assert.equal(
     validation.fieldErrors["variant:variant-new:options"],
-    "Completa atributo y valor en cada opcion de la variante.",
+    "Completa atributo y valor en cada atributo de combinacion.",
+  );
+});
+
+test("rejects multiple active values for the same variant attribute before saving", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Camiseta con mangas";
+  draft.basic.slug = "camiseta-con-mangas";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "CAMISETA";
+  draft.mode = "variants";
+  draft.variants = [{
+    localId: "variant-sleeves",
+    name: "Camiseta con mangas",
+    refId: "CAMISETA-MANGAS",
+    ean: null,
+    options: [
+      { attributeCode: "color", valueCode: "rojo", isActive: true },
+      { attributeCode: "color", valueCode: "verde", isActive: true },
+    ],
+    isActive: true,
+    isVisible: true,
+  }];
+
+  const validation = validationModule.validateProductDraft(draft);
+
+  assert.equal(validation.ok, false);
+  assert.equal(
+    validation.fieldErrors["variant:variant-sleeves:options"],
+    "Cada atributo de combinacion solo puede tener un valor activo. Crea una variante por cada valor vendible.",
+  );
+});
+
+test("rejects duplicated sellable combinations before saving", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.basic.name = "Camiseta deportiva";
+  draft.basic.slug = "camiseta-deportiva";
+  draft.basic.categoryId = "category-1";
+  draft.defaultVariant.refId = "CAMISETA";
+  draft.mode = "variants";
+  draft.variants = [
+    {
+      localId: "variant-red-1",
+      name: "Camiseta roja 1",
+      refId: "CAMISETA-ROJA-1",
+      ean: null,
+      options: [{ attributeCode: "color", valueCode: "rojo", isActive: true }],
+      isActive: true,
+      isVisible: true,
+    },
+    {
+      localId: "variant-red-2",
+      name: "Camiseta roja 2",
+      refId: "CAMISETA-ROJA-2",
+      ean: null,
+      options: [{ attributeCode: "color", valueCode: "rojo", isActive: true }],
+      isActive: true,
+      isVisible: true,
+    },
+  ];
+
+  const validation = validationModule.validateProductDraft(draft);
+
+  assert.equal(validation.ok, false);
+  assert.equal(
+    validation.fieldErrors["variant:variant-red-2:options"],
+    "Ya existe otra variante con la misma combinacion. Cada combinacion vendible debe ser unica.",
   );
 });
 

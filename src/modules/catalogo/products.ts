@@ -1,5 +1,6 @@
 import { requestBff } from "../../shared/bff/client";
 import type { AdminContext } from "../../shared/config/admin-context";
+import { listCatalogAttributeFeatureData } from "./catalog-attributes-features";
 import { listCatalogEntities, toLookupOptions } from "./catalog-taxonomy";
 import { getPricingEditorLookups } from "./pricing-admin";
 import { productStatusIsActive } from "./product-status";
@@ -19,6 +20,7 @@ import type {
   ProductListResult,
   ProductLookupOption,
   ProductShippingDraft,
+  ProductSpecificationSelectionDraft,
   ProductTaxLookupOption,
   ProductSummary,
   ProductVariantCreatePayload,
@@ -865,6 +867,23 @@ function parseVariantRow(value: unknown): ProductEditorVariantRow | null {
   };
 }
 
+function parseSpecificationSelections(value: unknown): ProductSpecificationSelectionDraft[] {
+  return listItems(asRecord(value).items ?? value)
+    .map((item) => {
+      const record = asRecord(item);
+      const fieldId = asString(record.fieldId);
+      const fieldValueId = asString(record.fieldValueId);
+      if (!fieldId || !fieldValueId) {
+        return null;
+      }
+      return {
+        fieldId,
+        fieldValueId,
+      };
+    })
+    .filter((item): item is ProductSpecificationSelectionDraft => Boolean(item));
+}
+
 function priceTargetType(value: unknown) {
   return asString(asRecord(value).targetType)?.toUpperCase();
 }
@@ -950,6 +969,7 @@ function parseEditorState(value: unknown, locale: string, currency: string): Pro
   const specificPrices = listItems(prices.specificPrices)
     .map(parseSpecificPrice)
     .filter((price): price is SpecificPriceDraft => Boolean(price));
+  const specifications = asRecord(record.specifications);
 
   const stockByVariant: Record<string, StockDraft> = {};
   for (const item of listItems(asRecord(record.availability).items)) {
@@ -977,6 +997,10 @@ function parseEditorState(value: unknown, locale: string, currency: string): Pro
     productPrice: productPrice ? { ...productPrice, currency: productPrice.currency || currency } : undefined,
     variantPrices,
     specificPrices,
+    specifications: {
+      productId: asString(specifications.productId) ?? product.productId,
+      selections: parseSpecificationSelections(specifications),
+    },
     offeringsByVariant: {},
     stockByVariant,
     shipping: parseProductShipping(asRecord(record.product).shipping ?? record.shipping),
@@ -1267,11 +1291,12 @@ export async function getAdminProductEditorData(context: AdminContext, productId
 }
 
 export async function getProductEditorLookups(context: AdminContext): Promise<ProductEditorLookups> {
-  const [categoriesResult, brandsResult, pricingLookups, carriersResult] = await Promise.all([
+  const [categoriesResult, brandsResult, pricingLookups, carriersResult, specificationsResult] = await Promise.all([
     listCatalogEntities(context, "categories", { limit: 100, offset: 0, isActive: true }),
     listCatalogEntities(context, "brands", { limit: 100, offset: 0, isActive: true }),
     getPricingEditorLookups(context),
     getShippingCarrierLookups(context),
+    listCatalogAttributeFeatureData(context),
   ]);
   const warnings: string[] = [];
 
@@ -1280,6 +1305,9 @@ export async function getProductEditorLookups(context: AdminContext): Promise<Pr
   }
   if (brandsResult.source === "unavailable") {
     warnings.push(`Marcas: contrato BFF no disponible o sin permisos (${brandsResult.message}).`);
+  }
+  if (specificationsResult.source === "unavailable") {
+    warnings.push(`Caracteristicas: contrato BFF no disponible o sin permisos (${specificationsResult.message}).`);
   }
 
   return {
@@ -1292,6 +1320,23 @@ export async function getProductEditorLookups(context: AdminContext): Promise<Pr
     tradePolicies: pricingLookups.tradePolicies ?? [],
     countries: pricingLookups.countries ?? [],
     carriers: carriersResult.carriers,
+    specificationFields: specificationsResult.fields
+      .filter((field) => !field.isStockKeepingUnit && field.isActive)
+      .map((field) => ({
+        fieldId: field.fieldId,
+        groupId: field.groupId,
+        groupName: field.groupName,
+        name: field.name,
+        isStockKeepingUnit: field.isStockKeepingUnit,
+        isActive: field.isActive,
+        values: field.values
+          .filter((value) => value.isActive)
+          .map((value) => ({
+            fieldValueId: value.fieldValueId,
+            name: value.name,
+            isActive: value.isActive,
+          })),
+      })),
     warnings: [...warnings, ...(pricingLookups.warnings ?? []), ...carriersResult.warnings],
   };
 }

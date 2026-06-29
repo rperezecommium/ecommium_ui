@@ -76,6 +76,29 @@ export type ProductShippingDraft = {
   };
 };
 
+export type ProductSpecificationSelectionDraft = {
+  fieldId: string;
+  fieldValueId: string;
+  groupId?: string;
+  fieldName?: string;
+  valueName?: string;
+  markedForDeletion?: boolean;
+};
+
+export type ProductSpecificationLookupField = {
+  fieldId: string;
+  groupId: string;
+  groupName: string;
+  name: string;
+  isStockKeepingUnit: boolean;
+  isActive: boolean;
+  values: Array<{
+    fieldValueId: string;
+    name: string;
+    isActive: boolean;
+  }>;
+};
+
 export type ProductDraftMediaItem = {
   localId: string;
   fileName: string;
@@ -234,6 +257,10 @@ export type ProductDraft = {
     variantPrices: Record<string, PriceDraft>;
     specificPrices: SpecificPriceDraft[];
   };
+  specifications: {
+    productId?: string;
+    selections: ProductSpecificationSelectionDraft[];
+  };
   offerings: {
     byVariant: Record<string, ProductOfferingRecord[]>;
   };
@@ -335,6 +362,10 @@ export type ProductEditorData = {
   productPrice?: PriceDraft;
   variantPrices: Record<string, PriceDraft>;
   specificPrices: SpecificPriceDraft[];
+  specifications: {
+    productId?: string;
+    selections: ProductSpecificationSelectionDraft[];
+  };
   offeringsByVariant: Record<string, ProductOfferingRecord[]>;
   stockByVariant: Record<string, StockDraft>;
   shipping?: ProductShippingDraft;
@@ -371,6 +402,7 @@ export type ProductEditorLookups = {
   tradePolicies: ProductLookupOption[];
   countries: ProductLookupOption[];
   carriers: ProductLookupOption[];
+  specificationFields: ProductSpecificationLookupField[];
   warnings: string[];
 };
 
@@ -379,6 +411,7 @@ export type ProductSaveBlocks = {
   variants: SaveBlockStatus;
   media: SaveBlockStatus;
   variantMedia: SaveBlockStatus;
+  specifications: SaveBlockStatus;
   pricing: SaveBlockStatus;
   inventory: SaveBlockStatus;
   shipping: SaveBlockStatus;
