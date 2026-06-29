@@ -117,6 +117,170 @@ test("pricing governance uses scoped BFF endpoints and maps read 403 permissions
   assert.ok(calls.some((call) => call.method === "POST" && JSON.stringify(call.body) === JSON.stringify({ itemIds: ["item-1"] })));
 });
 
+test("pricing governance flattens fixed price records for table rendering", async () => {
+  const requestBff = async (pathValue, options = {}) => {
+    const raw = pathValue.includes("/fixed?")
+      ? {
+          items: [
+            {
+              productId: "product-1",
+              variantId: "variant-1",
+              priceTableId: "vip_table",
+              fixedPrice: { amountMinor: 12345, currency: "EUR" },
+              basePrice: { amountMinor: 12345, currency: "EUR" },
+              listPrice: { amountMinor: 15000, currency: "EUR" },
+              currency: "EUR",
+              active: true,
+            },
+          ],
+        }
+      : pathValue.includes("/price-tables?")
+        ? { items: [{ priceTableId: "vip_table", name: "VIP table" }] }
+        : { items: [] };
+
+    return {
+      ok: true,
+      data: options.parse ? options.parse(raw) : raw,
+    };
+  };
+  const { getPricingGovernanceData } = loadPricingAdminModule(requestBff);
+
+  const data = await getPricingGovernanceData(context, {
+    tab: "fixed",
+    priceTableId: "vip_table",
+    itemId: "variant-1",
+  });
+
+  assert.equal(data.fixedPrices.data[0].itemId, "variant-1");
+  assert.equal(data.fixedPrices.data[0].fixedPriceMinor, 12345);
+  assert.equal(data.fixedPrices.data[0].basePriceMinor, 12345);
+  assert.equal(data.fixedPrices.data[0].listPriceMinor, 15000);
+});
+
+test("pricing governance flattens computed-auto responses for table rendering", async () => {
+  const requestBff = async (pathValue, options = {}) => {
+    const raw = pathValue.includes("/computed-auto/resolve-batch?")
+      ? {
+          items: [{
+            itemId: "product-1",
+            source: "AUTO_TABLE_MATCH",
+            appliedPriceTableId: "vip_table",
+            price: {
+              targetType: "PRODUCT",
+              productId: "product-1",
+              variantId: null,
+              priceTableId: "vip_table",
+              currency: "EUR",
+              basePrice: { amountMinor: 12345, currency: "EUR" },
+              fixedPrice: { amountMinor: 9999, currency: "EUR" },
+              resolved: {
+                currency: "EUR",
+                netAmountMinor: 8264,
+                taxAmountMinor: 1735,
+                grossAmountMinor: 9999,
+              },
+              source: "FIXED",
+            },
+          }],
+        }
+      : pathValue.includes("/computed-auto?")
+        ? {
+            source: "AUTO_TABLE_MATCH",
+            appliedPriceTableId: "vip_table",
+            price: {
+              targetType: "PRODUCT",
+              productId: "product-1",
+              variantId: null,
+              priceTableId: "vip_table",
+              currency: "EUR",
+              basePrice: { amountMinor: 12345, currency: "EUR" },
+              fixedPrice: { amountMinor: 9999, currency: "EUR" },
+              resolved: {
+                currency: "EUR",
+                netAmountMinor: 8264,
+                taxAmountMinor: 1735,
+                grossAmountMinor: 9999,
+              },
+              source: "FIXED",
+            },
+          }
+        : pathValue.includes("/price-tables?")
+          ? { items: [{ priceTableId: "vip_table", name: "VIP table" }] }
+          : { items: [] };
+
+    return {
+      ok: true,
+      data: options.parse ? options.parse(raw) : raw,
+    };
+  };
+  const { getPricingGovernanceData } = loadPricingAdminModule(requestBff);
+
+  const data = await getPricingGovernanceData(context, {
+    tab: "computed-auto",
+    itemId: "product-1",
+  });
+
+  assert.equal(data.computedAuto.data.itemId, "product-1");
+  assert.equal(data.computedAuto.data.priceTableId, "vip_table");
+  assert.equal(data.computedAuto.data.netMinor, 8264);
+  assert.equal(data.computedAuto.data.taxMinor, 1735);
+  assert.equal(data.computedAuto.data.grossMinor, 9999);
+  assert.equal(data.computedAutoBatch.data[0].itemId, "product-1");
+  assert.equal(data.computedAutoBatch.data[0].source, "AUTO_TABLE_MATCH");
+});
+
+test("pricing governance forwards commercial context to computed-auto endpoints", async () => {
+  const calls = [];
+  const requestBff = async (pathValue, options = {}) => {
+    calls.push({
+      path: pathValue,
+      method: options.init?.method ?? "GET",
+    });
+
+    return {
+      ok: true,
+      data: options.parse ? options.parse(pathValue.includes("resolve-batch") ? { items: [] } : {}) : {},
+    };
+  };
+  const { getPricingGovernanceData } = loadPricingAdminModule(requestBff);
+
+  await getPricingGovernanceData(context, {
+    tab: "computed-auto",
+    itemId: "variant-1",
+    currency: "USD",
+    country: "ES",
+    channel: "web",
+    tradePolicy: "b2c",
+    customerGroup: "vip",
+    quantity: "2",
+  });
+
+  assert.ok(calls.some((call) =>
+    call.path === "/admin/pricing/prices/variant-1/computed-auto?organizationId=org-1&shopId=shop-1&currency=USD&country=ES&tradePolicy=b2c&channel=web&customerGroup=vip&quantity=2"
+  ));
+  assert.ok(calls.some((call) =>
+    call.path === "/admin/pricing/prices/computed-auto/resolve-batch?organizationId=org-1&shopId=shop-1&currency=USD&country=ES&tradePolicy=b2c&channel=web&customerGroup=vip&quantity=2" &&
+    call.method === "POST"
+  ));
+});
+
+test("fixed prices UI sends the canonical BFF payload fields", () => {
+  const pageSource = readFileSync(path.resolve(root, "src/modules/catalogo/pricing-admin-page.tsx"), "utf8");
+  const actionsSource = readFileSync(path.resolve(root, "src/modules/catalogo/pricing-admin-actions.ts"), "utf8");
+
+  assert.match(pageSource, /name="productId"/);
+  assert.match(pageSource, /name="fixedPriceMinor"/);
+  assert.match(pageSource, /name="timezone"/);
+  assert.match(pageSource, /placeholder="variantId"/);
+  assert.match(pageSource, /"fixedPriceMinor"/);
+  assert.match(actionsSource, /const productId = asString\(formData\.get\("productId"\)\)/);
+  assert.match(actionsSource, /const fixedPriceMinor = asNumber\(formData\.get\("fixedPriceMinor"\)\)/);
+  assert.match(actionsSource, /productId,/);
+  assert.match(actionsSource, /fixedPriceMinor,/);
+  assert.match(actionsSource, /timezone:/);
+  assert.doesNotMatch(actionsSource, /Falta itemId o priceTableId\./);
+});
+
 test("pricing editor lookups preserve complete tax rules and collapse duplicates", async () => {
   const calls = [];
   const requestBff = async (pathValue, options = {}) => {

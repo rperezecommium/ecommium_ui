@@ -24,6 +24,13 @@ type PricingAdminPageProps = {
     tab: PricingAdminTab;
     priceTableId?: string;
     itemId?: string;
+    productId?: string;
+    currency?: string;
+    country?: string;
+    tradePolicy?: string;
+    channel?: string;
+    customerGroup?: string;
+    quantity?: string;
     pricingMessage?: string;
   };
 };
@@ -47,6 +54,14 @@ function tabHref(tab: PricingAdminTab, filters: PricingAdminPageProps["filters"]
   }
   if (filters.itemId) {
     params.set("itemId", filters.itemId);
+  }
+  if (filters.productId) {
+    params.set("productId", filters.productId);
+  }
+  for (const key of ["currency", "country", "tradePolicy", "channel", "customerGroup", "quantity"] as const) {
+    if (filters[key]) {
+      params.set(key, filters[key]);
+    }
   }
 
   return `/admin/configuracion/precios?${params.toString()}`;
@@ -267,6 +282,30 @@ function PricingFilters({ filters, data }: { filters: PricingAdminPageProps["fil
       <label className="adminField">
         <span>itemId</span>
         <input name="itemId" defaultValue={filters.itemId ?? ""} placeholder="productId, variantId o SKU" />
+      </label>
+      <label className="adminField">
+        <span>currency</span>
+        <input name="currency" defaultValue={filters.currency ?? ""} placeholder="EUR" />
+      </label>
+      <label className="adminField">
+        <span>country</span>
+        <input name="country" defaultValue={filters.country ?? ""} placeholder="ES" />
+      </label>
+      <label className="adminField">
+        <span>channel</span>
+        <input name="channel" defaultValue={filters.channel ?? ""} placeholder="web" list="pricing-channels" />
+      </label>
+      <label className="adminField">
+        <span>tradePolicy</span>
+        <input name="tradePolicy" defaultValue={filters.tradePolicy ?? ""} placeholder="b2c" list="pricing-trade-policies" />
+      </label>
+      <label className="adminField">
+        <span>customerGroup</span>
+        <input name="customerGroup" defaultValue={filters.customerGroup ?? ""} placeholder="vip" list="pricing-customer-groups" />
+      </label>
+      <label className="adminField">
+        <span>quantity</span>
+        <input name="quantity" defaultValue={filters.quantity ?? ""} inputMode="numeric" placeholder="1" />
       </label>
       <button className="adminButton adminButtonPrimary" type="submit">Aplicar filtros</button>
     </form>
@@ -514,11 +553,14 @@ function FixedPriceForms({ filters, data }: { filters: PricingAdminPageProps["fi
         <h2>Editar fixed price</h2>
       </div>
       <form action={upsertFixedPriceAction} className="pricingDenseForm">
-        <input name="itemId" defaultValue={filters.itemId ?? ""} placeholder="itemId" />
+        <input name="productId" defaultValue={filters.productId ?? ""} placeholder="productId" aria-label="productId fixed price" />
+        <input name="itemId" defaultValue={filters.itemId ?? ""} placeholder="variantId" aria-label="variantId fixed price" />
         <PriceTableSelect data={data} defaultValue={filters.priceTableId} label="priceTableId fixed price" />
+        <input name="fixedPriceMinor" type="number" min={0} placeholder="fixedPriceMinor" aria-label="fixedPriceMinor" />
         <input name="basePriceMinor" type="number" min={0} placeholder="basePriceMinor" />
         <input name="listPriceMinor" type="number" min={0} placeholder="listPriceMinor" />
         <input name="currency" defaultValue="EUR" placeholder="currency" />
+        <input name="timezone" defaultValue="Europe/Madrid" placeholder="timezone" aria-label="timezone fixed price" />
         <select name="taxIncluded" defaultValue="true" aria-label="taxIncluded">
           <option value="true">taxIncluded</option>
           <option value="false">taxExcluded</option>
@@ -526,7 +568,7 @@ function FixedPriceForms({ filters, data }: { filters: PricingAdminPageProps["fi
         <button className="adminButton adminButtonPrimary" type="submit">Guardar fixed price</button>
       </form>
       <form action={deleteFixedPriceAction} className="pricingDenseForm pricingDangerForm">
-        <input name="itemId" defaultValue={filters.itemId ?? ""} placeholder="itemId" />
+        <input name="itemId" defaultValue={filters.itemId ?? ""} placeholder="variantId" aria-label="variantId delete fixed price" />
         <PriceTableSelect data={data} defaultValue={filters.priceTableId} label="priceTableId delete fixed price" />
         <input name="confirmDelete" placeholder="DELETE" aria-label="Confirmar borrar fixed price" />
         <button className="adminButton adminButtonDanger" type="submit">Borrar fixed price</button>
@@ -640,8 +682,8 @@ export function PricingAdminPage({ context, data, filters }: PricingAdminPagePro
       {activeTab === "fixed" ? (
         <>
           <FixedPriceForms filters={filters} data={data} />
-          {!filters.itemId ? <div className="adminBanner"><p>Informa itemId para consultar fixed prices existentes.</p></div> : null}
-          <RecordTable title="Fixed prices" result={data.fixedPrices} columns={["itemId", "priceTableId", "basePriceMinor", "listPriceMinor", "currency", "taxIncluded", "active"]} empty="No hay fixed prices para el item." />
+          {!filters.itemId ? <div className="adminBanner"><p>Informa variantId para consultar fixed prices existentes.</p></div> : null}
+          <RecordTable title="Fixed prices" result={data.fixedPrices} columns={["itemId", "productId", "priceTableId", "fixedPriceMinor", "basePriceMinor", "listPriceMinor", "currency", "taxIncluded", "active"]} empty="No hay fixed prices para la variante." />
         </>
       ) : null}
       {activeTab === "computed" ? (

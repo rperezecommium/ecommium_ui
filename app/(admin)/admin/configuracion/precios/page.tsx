@@ -7,6 +7,13 @@ type PreciosPageProps = {
     tab?: string;
     priceTableId?: string;
     itemId?: string;
+    productId?: string;
+    currency?: string;
+    country?: string;
+    tradePolicy?: string;
+    channel?: string;
+    customerGroup?: string;
+    quantity?: string;
     pricingMessage?: string;
   }>;
 };
@@ -34,6 +41,13 @@ export default async function PreciosPage({ searchParams }: PreciosPageProps) {
     tab: tabParam(params?.tab),
     priceTableId: params?.priceTableId,
     itemId: params?.itemId,
+    productId: params?.productId,
+    currency: params?.currency,
+    country: params?.country,
+    tradePolicy: params?.tradePolicy,
+    channel: params?.channel,
+    customerGroup: params?.customerGroup,
+    quantity: params?.quantity,
     pricingMessage: params?.pricingMessage,
   };
   const data = await getPricingGovernanceData(context, filters);

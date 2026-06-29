@@ -440,6 +440,66 @@ async function startBffMock() {
       return;
     }
 
+    const fixedPriceMatch = url.pathname.match(/^\/api\/v1\/admin\/pricing\/prices\/([^/]+)\/fixed$/);
+    if (fixedPriceMatch && request.method === "GET") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const itemId = decodeURIComponent(fixedPriceMatch[1]);
+      sendJson(response, 200, {
+        items: itemId === "variant-computed-auto"
+          ? [{
+              productId: "product-computed-auto",
+              variantId: "variant-computed-auto",
+              priceTableId: "vip-table",
+              fixedPrice: { amountMinor: 9300, currency: "EUR" },
+              basePrice: { amountMinor: 9300, currency: "EUR" },
+              listPrice: { amountMinor: 10900, currency: "EUR" },
+              taxIncluded: true,
+              active: true,
+            }]
+          : [],
+      });
+      return;
+    }
+
+    const computedAutoMatch = url.pathname.match(/^\/api\/v1\/admin\/pricing\/prices\/([^/]+)\/computed-auto$/);
+    if (computedAutoMatch && request.method === "GET") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const itemId = decodeURIComponent(computedAutoMatch[1]);
+      expect(itemId).toBe("variant-computed-auto");
+      sendJson(response, 200, {
+        itemId,
+        priceTableId: "vip-table",
+        netMinor: 7686,
+        taxMinor: 1614,
+        grossMinor: 9300,
+        currency: "EUR",
+        source: "FIXED_PRICE",
+      });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/v1/admin/pricing/prices/computed-auto/resolve-batch") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const body = await readJsonBody(request);
+      capturedPricingMutations.push({ method: "POST", path: url.pathname, body });
+      expect(body).toEqual({ itemIds: ["variant-computed-auto"] });
+      sendJson(response, 200, {
+        items: [{
+          itemId: "variant-computed-auto",
+          priceTableId: "vip-table",
+          netMinor: 7686,
+          taxMinor: 1614,
+          grossMinor: 9300,
+          currency: "EUR",
+          source: "FIXED_PRICE",
+        }],
+      });
+      return;
+    }
+
     const pricingReferenceMatch = url.pathname.match(/^\/api\/v1\/admin\/pricing\/(customer-groups|channels|trade-policies|countries)$/);
     if (pricingReferenceMatch && request.method === "GET") {
       capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
@@ -1153,6 +1213,43 @@ test("pricing configuration exposes master data and creates customer groups thro
       helpText: "Grupo creado desde Playwright.",
       active: true,
     },
+  });
+  expect(browserExternalRequests).toEqual([]);
+});
+
+test("pricing configuration resolves computed auto prices through BFF", async ({ page }) => {
+  capturedPricingGovernanceRequests.length = 0;
+  capturedPricingMutations.length = 0;
+  const browserExternalRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.hostname === "127.0.0.1" && url.port && Number(url.port) !== nextPort) {
+      browserExternalRequests.push(request.url());
+    }
+  });
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/configuracion/precios?tab=computed-auto&itemId=variant-computed-auto`);
+
+  await expect(page.getByRole("heading", { name: "Configuracion de precios" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Computed auto" })).toHaveClass(/productEditorTabActive/);
+  const itemPanel = page.locator("section.pricingPanel").filter({
+    has: page.getByRole("heading", { name: "Computed auto item" }),
+  });
+  const batchPanel = page.locator("section.pricingPanel").filter({
+    has: page.getByRole("heading", { name: "Computed auto batch" }),
+  });
+  await expect(itemPanel.getByRole("term").filter({ hasText: "grossMinor" })).toBeVisible();
+  await expect(itemPanel.getByText("9300")).toBeVisible();
+  await expect(itemPanel.getByText("FIXED_PRICE")).toBeVisible();
+  await expect(batchPanel.getByRole("row", { name: /variant-computed-auto vip-table 7686 1614 9300 EUR FIXED_PRICE/ })).toBeVisible();
+
+  expect(capturedPricingGovernanceRequests).toContain("GET /api/v1/admin/pricing/prices/variant-computed-auto/computed-auto");
+  expect(capturedPricingGovernanceRequests).toContain("POST /api/v1/admin/pricing/prices/computed-auto/resolve-batch");
+  expect(capturedPricingMutations).toContainEqual({
+    method: "POST",
+    path: "/api/v1/admin/pricing/prices/computed-auto/resolve-batch",
+    body: { itemIds: ["variant-computed-auto"] },
   });
   expect(browserExternalRequests).toEqual([]);
 });

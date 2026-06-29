@@ -50,6 +50,12 @@ export type PricingGovernanceFilters = {
   tab: PricingAdminTab;
   priceTableId?: string;
   itemId?: string;
+  currency?: string;
+  country?: string;
+  tradePolicy?: string;
+  channel?: string;
+  customerGroup?: string;
+  quantity?: string;
   q?: string;
 };
 
@@ -71,6 +77,12 @@ function scalar(value: unknown): string | number | boolean | null | undefined {
   return undefined;
 }
 
+function nestedAmountMinor(value: unknown): number | undefined {
+  const record = asRecord(value);
+  const amount = record.amountMinor ?? record.valueMinor ?? record.amount;
+  return typeof amount === "number" && Number.isFinite(amount) ? amount : undefined;
+}
+
 function listItems(value: unknown): unknown[] {
   const record = asRecord(value);
   const items = record.items ?? record.data ?? record.results ?? record.taxes ?? record.priceTables ?? record.rules ?? record.prices ?? record.pipeline ?? value;
@@ -79,11 +91,26 @@ function listItems(value: unknown): unknown[] {
 
 function normalizeRecord(value: unknown): PricingRecord {
   const record = asRecord(value);
+  const price = asRecord(record.price);
+  const resolved = asRecord(record.resolved ?? price.resolved);
   const normalized: PricingRecord = {};
 
   for (const [key, item] of Object.entries(record)) {
     normalized[key] = scalar(item) ?? (Array.isArray(item) ? `array(${item.length})` : undefined);
   }
+
+  normalized.itemId = normalized.itemId ?? scalar(record.variantId) ?? scalar(price.variantId) ?? scalar(price.productId);
+  normalized.productId = normalized.productId ?? scalar(price.productId);
+  normalized.variantId = normalized.variantId ?? scalar(price.variantId);
+  normalized.priceTableId = normalized.priceTableId ?? scalar(record.appliedPriceTableId) ?? scalar(price.priceTableId);
+  normalized.currency = normalized.currency ?? scalar(resolved.currency) ?? scalar(price.currency);
+  normalized.source = normalized.source ?? scalar(price.source);
+  normalized.basePriceMinor = normalized.basePriceMinor ?? nestedAmountMinor(record.basePrice) ?? nestedAmountMinor(price.basePrice);
+  normalized.listPriceMinor = normalized.listPriceMinor ?? nestedAmountMinor(record.listPrice) ?? nestedAmountMinor(price.listPrice);
+  normalized.fixedPriceMinor = normalized.fixedPriceMinor ?? nestedAmountMinor(record.fixedPrice) ?? nestedAmountMinor(price.fixedPrice);
+  normalized.netMinor = normalized.netMinor ?? scalar(resolved.netAmountMinor);
+  normalized.taxMinor = normalized.taxMinor ?? scalar(resolved.taxAmountMinor);
+  normalized.grossMinor = normalized.grossMinor ?? scalar(resolved.grossAmountMinor);
 
   return normalized;
 }
@@ -322,6 +349,14 @@ export async function getPricingGovernanceData(
   const scoped = (extra?: Record<string, string | undefined>) => makeScopedParams(context, extra).toString();
   const priceTableId = filters.priceTableId ?? "";
   const itemId = filters.itemId ?? "";
+  const pricingContext = {
+    currency: filters.currency,
+    country: filters.country,
+    tradePolicy: filters.tradePolicy,
+    channel: filters.channel,
+    customerGroup: filters.customerGroup,
+    quantity: filters.quantity,
+  };
 
   const emptyRecord = { source: "bff" as const, data: {} };
   const emptyList = { source: "bff" as const, data: [] };
@@ -363,16 +398,16 @@ export async function getPricingGovernanceData(
       ? getPricing(context, `/admin/pricing/prices/${encodeURIComponent(itemId)}/fixed?${scoped()}`, [], normalizeList)
       : Promise.resolve(emptyList),
     itemId && priceTableId
-      ? getPricing(context, `/admin/pricing/prices/${encodeURIComponent(itemId)}/computed/${encodeURIComponent(priceTableId)}?${scoped()}`, {}, normalizeRecord)
+      ? getPricing(context, `/admin/pricing/prices/${encodeURIComponent(itemId)}/computed/${encodeURIComponent(priceTableId)}?${scoped(pricingContext)}`, {}, normalizeRecord)
       : Promise.resolve(emptyRecord),
     priceTableId && itemId
-      ? postPricing(context, `/admin/pricing/prices/computed/${encodeURIComponent(priceTableId)}/resolve-batch?${scoped()}`, [], { itemIds: [itemId] }, normalizeList)
+      ? postPricing(context, `/admin/pricing/prices/computed/${encodeURIComponent(priceTableId)}/resolve-batch?${scoped(pricingContext)}`, [], { itemIds: [itemId] }, normalizeList)
       : Promise.resolve(emptyList),
     itemId
-      ? getPricing(context, `/admin/pricing/prices/${encodeURIComponent(itemId)}/computed-auto?${scoped()}`, {}, normalizeRecord)
+      ? getPricing(context, `/admin/pricing/prices/${encodeURIComponent(itemId)}/computed-auto?${scoped(pricingContext)}`, {}, normalizeRecord)
       : Promise.resolve(emptyRecord),
     itemId
-      ? postPricing(context, `/admin/pricing/prices/computed-auto/resolve-batch?${scoped()}`, [], { itemIds: [itemId] }, normalizeList)
+      ? postPricing(context, `/admin/pricing/prices/computed-auto/resolve-batch?${scoped(pricingContext)}`, [], { itemIds: [itemId] }, normalizeList)
       : Promise.resolve(emptyList),
     getPricing(context, `/admin/pricing/pipeline/catalog?${scoped()}`, [], normalizeList),
     priceTableId

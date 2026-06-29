@@ -38,9 +38,18 @@ function scopedPath(path: string, organizationId: string, shopId: string, extra?
   return `${path}?${params.toString()}`;
 }
 
-function finish(tab: string, message?: string): never {
+function finish(tab: string, message?: string, keep?: Record<string, string | undefined>): never {
   revalidatePath("/admin/configuracion/precios");
-  redirect(`/admin/configuracion/precios?tab=${encodeURIComponent(tab)}${message ? `&pricingMessage=${encodeURIComponent(message)}` : ""}`);
+  const params = new URLSearchParams({ tab });
+  if (message) {
+    params.set("pricingMessage", message);
+  }
+  for (const [key, value] of Object.entries(keep ?? {})) {
+    if (value) {
+      params.set(key, value);
+    }
+  }
+  redirect(`/admin/configuracion/precios?${params.toString()}`);
 }
 
 function mutationMessage(result: Awaited<ReturnType<typeof mutatePricing>>, success: string) {
@@ -243,25 +252,34 @@ export async function deletePricingRuleAction(formData: FormData) {
 
 export async function upsertFixedPriceAction(formData: FormData) {
   const context = await getAdminContext();
+  const productId = asString(formData.get("productId"));
   const itemId = asString(formData.get("itemId"));
   const priceTableId = asString(formData.get("priceTableId"));
+  const fixedPriceMinor = asNumber(formData.get("fixedPriceMinor"));
+  const keep = { productId, itemId, priceTableId };
 
-  if (!itemId || !priceTableId) {
-    finish("fixed", "Falta itemId o priceTableId.");
+  if (!productId || !itemId || !priceTableId) {
+    finish("fixed", "Falta productId, variantId o priceTableId.", keep);
+  }
+  if (!Number.isInteger(fixedPriceMinor)) {
+    finish("fixed", "Falta fixedPriceMinor entero.", keep);
   }
 
   const payload = {
+    productId,
     itemId,
     priceTableId,
-    basePriceMinor: asNumber(formData.get("basePriceMinor")) ?? 0,
+    fixedPriceMinor,
+    basePriceMinor: asNumber(formData.get("basePriceMinor")) ?? fixedPriceMinor,
     listPriceMinor: asNumber(formData.get("listPriceMinor")) ?? null,
     currency: asString(formData.get("currency")) ?? context.currency,
+    timezone: asString(formData.get("timezone")) ?? "Europe/Madrid",
     taxIncluded: asString(formData.get("taxIncluded")) === "true",
     active: true,
   };
   const path = scopedPath(`/admin/pricing/prices/${encodeURIComponent(itemId)}/fixed/${encodeURIComponent(priceTableId)}`, context.organizationId, context.shopId);
   const result = await mutatePricing(context, path, "PUT", payload);
-  finish("fixed", mutationMessage(result, "Fixed price guardado."));
+  finish("fixed", mutationMessage(result, "Fixed price guardado."), keep);
 }
 
 export async function deleteFixedPriceAction(formData: FormData) {
@@ -269,17 +287,18 @@ export async function deleteFixedPriceAction(formData: FormData) {
   const itemId = asString(formData.get("itemId"));
   const priceTableId = asString(formData.get("priceTableId"));
   const confirmed = asString(formData.get("confirmDelete")) === "DELETE";
+  const keep = { itemId, priceTableId };
 
   if (!confirmed) {
-    finish("fixed", "Confirma escribiendo DELETE antes de borrar fixed price.");
+    finish("fixed", "Confirma escribiendo DELETE antes de borrar fixed price.", keep);
   }
   if (!itemId || !priceTableId) {
-    finish("fixed", "Falta itemId o priceTableId.");
+    finish("fixed", "Falta variantId o priceTableId.", keep);
   }
 
   const path = scopedPath(`/admin/pricing/prices/${encodeURIComponent(itemId)}/fixed/${encodeURIComponent(priceTableId)}`, context.organizationId, context.shopId);
   const result = await mutatePricing(context, path, "DELETE");
-  finish("fixed", mutationMessage(result, "Fixed price borrado."));
+  finish("fixed", mutationMessage(result, "Fixed price borrado."), keep);
 }
 
 export async function updatePipelineCatalogAction(formData: FormData) {
