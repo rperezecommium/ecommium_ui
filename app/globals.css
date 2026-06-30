@@ -719,6 +719,31 @@ p {
   background: color-mix(in srgb, var(--admin-warning) 16%, var(--admin-surface));
 }
 
+.adminBannerDismissible {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.adminBannerClose {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--admin-warning);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  cursor: pointer;
+}
+
+.adminBannerClose:hover {
+  border-color: var(--admin-primary);
+  color: var(--admin-primary-pressed);
+}
+
 .adminBannerError {
   border-color: var(--admin-danger);
   background: color-mix(in srgb, var(--admin-danger) 10%, var(--admin-surface));
@@ -783,6 +808,38 @@ p {
 .adminFeatureListArea {
   display: grid;
   gap: 16px;
+}
+
+.adminFeatureModeNav {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.adminFeatureModeLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-right: 1px solid var(--admin-border-subtle);
+  color: var(--admin-text-muted);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.adminFeatureModeLink:last-child {
+  border-right: 0;
+}
+
+.adminFeatureModeLink:hover,
+.adminFeatureModeLinkActive {
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+  box-shadow: inset 0 -3px 0 var(--admin-border-strong);
 }
 
 .adminFeatureListHeader,
@@ -1661,6 +1718,10 @@ p {
   background: var(--admin-surface);
 }
 
+.productEditorPanel :is(button, input, select, textarea) {
+  scroll-margin-bottom: 120px;
+}
+
 .productEditorSidePanel {
   display: grid;
   gap: 16px;
@@ -1892,6 +1953,263 @@ p {
 }
 
 .productMetaList dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.productSpecificationSummary,
+.productSpecificationDrawerSection,
+.productOfferingSummary,
+.productOfferingDrawerSection,
+.productVariantAttributeDrawerSection {
+  display: grid;
+  gap: 12px;
+}
+
+.productSpecificationSelectedList,
+.productSpecificationChoiceList,
+.productSpecificationValueList,
+.productOfferingSelectedList,
+.productOfferingChoiceList,
+.productVariantAttributeSelectedList,
+.productVariantAttributeChoiceList,
+.productVariantAttributeValueList {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.productSpecificationSelectedList,
+.productOfferingSelectedList,
+.productVariantAttributeSelectedList {
+  width: min(100%, 680px);
+}
+
+.productSpecificationSelectedItem,
+.productOfferingSelectedItem,
+.productVariantAttributeSelectedItem {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 4px 0;
+}
+
+.productSpecificationSelectedItem > span:first-child,
+.productOfferingSelectedItem > span:first-child,
+.productVariantAttributeSelectedItem > span:first-child {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.productSpecificationSelectedItem > span:nth-child(2),
+.productOfferingSelectedItem > span:nth-child(2),
+.productVariantAttributeSelectedItem > span:nth-child(2) {
+  font-weight: 700;
+}
+
+.productSpecificationSelectedItem small,
+.productSpecificationChoice small,
+.productOfferingSelectedItem small,
+.productOfferingChoice small,
+.productVariantAttributeSelectedItem small,
+.productVariantAttributeChoice small {
+  display: inline;
+  color: var(--admin-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.productSpecificationSelectedItem strong,
+.productSpecificationChoice strong,
+.productOfferingSelectedItem strong,
+.productOfferingChoice strong,
+.productVariantAttributeSelectedItem strong,
+.productVariantAttributeChoice strong {
+  display: inline;
+  overflow-wrap: anywhere;
+}
+
+.productSpecificationSelectedItem .adminButtonRow,
+.productOfferingSelectedItem .adminButtonRow,
+.productVariantAttributeSelectedItem .adminButtonRow {
+  display: inline-flex;
+  gap: 10px;
+}
+
+.productSpecificationSelectedItem .adminButtonTiny,
+.productOfferingSelectedItem .adminButtonTiny,
+.productVariantAttributeSelectedItem .adminButtonTiny {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--admin-primary-pressed);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.productSpecificationSelectedItem .adminButtonTiny:hover,
+.productOfferingSelectedItem .adminButtonTiny:hover,
+.productVariantAttributeSelectedItem .adminButtonTiny:hover {
+  color: var(--admin-primary);
+}
+
+.productSpecificationOverlay,
+.productOfferingOverlay,
+.productVariantAttributeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 68;
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(15 23 42 / 0.3);
+  backdrop-filter: blur(2px);
+}
+
+.productSpecificationDrawer,
+.productOfferingDrawer,
+.productVariantAttributeDrawer {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(460px, calc(100vw - 24px));
+  height: 100%;
+  border-left: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  box-shadow: var(--admin-shadow-popover);
+}
+
+.productSpecificationDrawerHeader,
+.productOfferingDrawerHeader,
+.productVariantAttributeDrawerHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.productSpecificationDrawerHeader h2,
+.productOfferingDrawerHeader h2,
+.productVariantAttributeDrawerHeader h2 {
+  margin: 8px 0 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.productSpecificationDrawerBody,
+.productOfferingDrawerBody,
+.productVariantAttributeDrawerBody {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  min-height: 0;
+  padding: 18px 20px 24px;
+  overflow-y: auto;
+}
+
+.productSpecificationDrawerSectionHeader,
+.productOfferingDrawerSectionHeader,
+.productVariantAttributeDrawerSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.productSpecificationDrawerSection h3,
+.productOfferingDrawerSection h3,
+.productVariantAttributeDrawerSection h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.productSpecificationChoice,
+.productSpecificationValueChoice,
+.productOfferingChoice,
+.productVariantAttributeChoice,
+.productVariantAttributeValueChoice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font: inherit;
+  text-align: left;
+}
+
+.productSpecificationChoice:hover,
+.productSpecificationValueChoice:hover,
+.productOfferingChoice:hover,
+.productVariantAttributeChoice:hover,
+.productVariantAttributeValueChoice:hover {
+  border-color: var(--admin-primary);
+}
+
+.productSpecificationValueChoice,
+.productVariantAttributeValueChoice {
+  justify-content: flex-start;
+  min-height: 44px;
+  font-weight: 700;
+}
+
+.productSpecificationValueChoiceActive,
+.productVariantAttributeValueChoiceActive {
+  border-color: var(--admin-primary);
+  box-shadow: inset 0 0 0 1px var(--admin-primary);
+}
+
+.productOfferingChoice:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.productOfferingDrawer .adminBadge,
+.productOfferingSelectedItem .adminBadge,
+.productVariantAttributeDrawer .adminBadge,
+.productVariantAttributeSelectedItem .adminBadge {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--admin-text-muted);
+  font-weight: 700;
+}
+
+.productOfferingDetailList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.productOfferingDetailList div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.productOfferingDetailList dt {
+  color: var(--admin-text-muted);
+}
+
+.productOfferingDetailList dd {
   margin: 0;
   font-weight: 700;
 }
@@ -2197,6 +2515,125 @@ p {
   justify-self: start;
 }
 
+.adminDrawerBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(31 41 55 / 38%);
+}
+
+.adminSideDrawer {
+  display: grid;
+  width: min(560px, calc(100vw - 24px));
+  max-width: 100%;
+  height: 100%;
+  grid-template-rows: auto 1fr;
+  gap: 16px;
+  overflow: auto;
+  padding: 18px;
+  border-left: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: -18px 0 44px rgb(15 23 42 / 20%);
+}
+
+.adminSideDrawerHeader {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.adminSideDrawerHeader h2,
+.adminSideDrawerHeader p {
+  margin: 0;
+}
+
+.adminSideDrawerHeader h2 {
+  font-size: 18px;
+}
+
+.adminSideDrawerHeader p {
+  margin-top: 4px;
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}
+
+.adminSideDrawer .pricingDenseForm {
+  grid-template-columns: 1fr;
+  align-content: start;
+  align-items: stretch;
+}
+
+.adminSideDrawer .adminField span {
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.adminSideDrawer .adminField input,
+.adminSideDrawer .adminField select {
+  min-height: 40px;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  line-height: 1.35;
+}
+
+.adminSideDrawer .adminField input:focus,
+.adminSideDrawer .adminField select:focus {
+  border-color: var(--admin-primary);
+}
+
+.shippingAdminPage {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.shippingAdminPage .pricingPanel {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.shippingAdminPage .adminField span {
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.shippingAdminPage .adminTableScroller {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.shippingAdminPage .shippingTable {
+  width: max-content;
+  min-width: 100%;
+  table-layout: fixed;
+}
+
+.shippingAdminPage .shippingTable th,
+.shippingAdminPage .shippingTable td {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shippingAdminPage .shippingTable th:last-child,
+.shippingAdminPage .shippingTable td:last-child {
+  width: 190px;
+  max-width: 190px;
+}
+
 .pricingDangerForm {
   padding-top: 10px;
   border-top: 1px solid var(--admin-border-subtle);
@@ -2221,27 +2658,6 @@ p {
   width: fit-content;
 }
 
-.productVariantDetailGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
-  gap: 12px;
-}
-
-.productVariantDetailPanel {
-  display: grid;
-  gap: 10px;
-  align-content: start;
-  padding: 12px;
-  border: 1px solid var(--admin-border-subtle);
-  border-radius: 4px;
-  background: var(--admin-bg);
-}
-
-.productVariantDetailPanel h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
 .productEditorSectionHeaderCompact {
   gap: 10px;
 }
@@ -2252,6 +2668,26 @@ p {
 
 .productOptionTable input {
   min-width: 140px;
+}
+
+.productVariantAttributeSelectedItem input {
+  width: min(180px, 100%);
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+}
+
+.productVariantAttributeSelectedItem input:focus {
+  border-color: var(--admin-focus-ring);
+  outline: 2px solid var(--admin-focus-ring);
+  outline-offset: 0;
+}
+
+.productVariantAttributeManualButton {
+  justify-self: start;
 }
 
 .productMediaGrid {
@@ -2391,19 +2827,25 @@ p {
 }
 
 .productEditorFooter {
-  position: fixed;
+  position: static;
   right: 0;
   bottom: 0;
-  left: 248px;
+  left: auto;
   z-index: 20;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
+  margin-top: 16px;
   padding: 12px 24px;
   border-top: 1px solid var(--admin-border);
   background: var(--admin-surface);
-  box-shadow: var(--admin-shadow-popover);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.productEditorFooter :is(a, button, input, select, textarea) {
+  pointer-events: auto;
 }
 
 .productPreviewOverlay {
@@ -2944,8 +3386,7 @@ p {
   .adminSplit,
   .productEditorLayout,
   .adminFormGrid,
-  .productCombinationGenerator,
-  .productVariantDetailGrid {
+  .productCombinationGenerator {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -2996,7 +3437,29 @@ p {
     width: 100%;
   }
 
+  .productSpecificationDrawer,
+  .productOfferingDrawer,
+  .productVariantAttributeDrawer {
+    width: 100%;
+  }
+
+  .productSpecificationDrawerSectionHeader,
+  .productSpecificationChoice,
+  .productOfferingDrawerSectionHeader,
+  .productOfferingChoice,
+  .productVariantAttributeDrawerSectionHeader,
+  .productVariantAttributeChoice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .productPreviewHeader,
+  .productSpecificationDrawerHeader,
+  .productSpecificationDrawerBody,
+  .productOfferingDrawerHeader,
+  .productOfferingDrawerBody,
+  .productVariantAttributeDrawerHeader,
+  .productVariantAttributeDrawerBody,
   .productPreviewMediaPane,
   .productPreviewInfoPane {
     padding: 16px;
@@ -3048,7 +3511,6 @@ p {
   .productEditorHeader,
   .productEditorLayout,
   .productCombinationGenerator,
-  .productVariantDetailGrid,
   .productEntitySelectorRow,
   .productListFilterForm,
   .productEditorFooter {

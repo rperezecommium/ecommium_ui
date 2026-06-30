@@ -306,3 +306,19 @@ export async function mutateShipping(
     parse: normalizeRecord,
   });
 }
+
+export async function patchShippingActive(
+  context: AdminContext,
+  path: string,
+  active: boolean,
+) {
+  return requestBff(path, {
+    context,
+    init: {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ active }),
+    },
+    parse: normalizeRecord,
+  });
+}

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAdminContext } from "../../shared/config/admin-context";
-import { mutateShipping } from "./shipping-admin";
+import { mutateShipping, patchShippingActive } from "./shipping-admin";
 import type { ShippingAdminTab } from "./shipping-admin";
 
 function asString(value: FormDataEntryValue | null) {
@@ -21,6 +21,11 @@ function asNumber(value: FormDataEntryValue | null) {
 
 function asBoolean(value: FormDataEntryValue | null) {
   return asString(value) !== "false";
+}
+
+function asOptionalBoolean(value: FormDataEntryValue | null) {
+  const normalized = asString(value);
+  return normalized === "true" ? true : normalized === "false" ? false : undefined;
 }
 
 function asNullableString(value: FormDataEntryValue | null) {
@@ -42,9 +47,17 @@ function scopedPath(path: string, organizationId: string, shopId: string) {
   return `${path}?${new URLSearchParams({ organizationId, shopId }).toString()}`;
 }
 
-function finish(tab: ShippingAdminTab, message?: string): never {
-  revalidatePath("/admin/transporte");
-  redirect(`/admin/transporte?tab=${encodeURIComponent(tab)}${message ? `&shippingMessage=${encodeURIComponent(message)}` : ""}`);
+function finish(tab: ShippingAdminTab, message?: string, includeInactive?: boolean): never {
+  const params = new URLSearchParams({ tab });
+  if (includeInactive) {
+    params.set("includeInactive", "true");
+  }
+  if (message) {
+    params.set("shippingMessage", message);
+  }
+
+  revalidatePath("/admin/configuracion/transporte");
+  redirect(`/admin/configuracion/transporte?${params.toString()}`);
 }
 
 function mutationMessage(result: Awaited<ReturnType<typeof mutateShipping>>, success: string) {
@@ -176,4 +189,24 @@ export async function upsertShippingRateRuleAction(formData: FormData) {
     },
   );
   finish("rules", mutationMessage(result, "Regla tarifaria guardada."));
+}
+
+export async function setShippingResourceActiveAction(formData: FormData) {
+  const context = await getAdminContext();
+  const tab = asString(formData.get("tab")) as ShippingAdminTab | undefined;
+  const resource = asString(formData.get("resource"));
+  const id = asString(formData.get("id"));
+  const active = asOptionalBoolean(formData.get("active"));
+  const includeInactive = asString(formData.get("includeInactive")) === "true";
+
+  if (!tab || !resource || !id || typeof active !== "boolean") {
+    finish(tab ?? "summary", "Falta recurso, id o estado activo.", includeInactive);
+  }
+
+  const result = await patchShippingActive(
+    context,
+    scopedPath(`/admin/shipping/${resource}/${encodeURIComponent(id)}/active`, context.organizationId, context.shopId),
+    active,
+  );
+  finish(tab, mutationMessage(result, active ? "Recurso reactivado." : "Recurso desactivado."), includeInactive);
 }

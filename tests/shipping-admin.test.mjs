@@ -197,3 +197,23 @@ test("shipping admin mutations use PUT through scoped Admin BFF", async () => {
   assert.equal(JSON.parse(calls[0].body).carrier.carrierId, "carrier-standard");
   assert.equal(JSON.parse(calls[0].body).carrier.active, false);
 });
+
+test("shipping admin active updates use PATCH through scoped Admin BFF", async () => {
+  const calls = [];
+  const requestBff = async (pathValue, options = {}) => {
+    calls.push({ path: pathValue, method: options.init?.method, body: options.init?.body });
+    return ok({ carrierId: "carrier-standard", active: false }, options);
+  };
+  const { patchShippingActive } = loadShippingAdminModule(requestBff);
+
+  await patchShippingActive(
+    context,
+    "/admin/shipping/carriers/carrier-standard/active?organizationId=org-barcelona&shopId=shop-barcelona",
+    false,
+  );
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].method, "PATCH");
+  assertScopedPath(calls[0].path);
+  assert.equal(JSON.parse(calls[0].body).active, false);
+});

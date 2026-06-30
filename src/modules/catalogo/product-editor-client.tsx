@@ -8,7 +8,7 @@ import { Bold, ChevronRight, Eye, Italic, List, ListOrdered, Plus, Redo2, Remove
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { ChangeEvent, InputHTMLAttributes } from "react";
 import {
-  createAndAttachOfferingAction,
+  attachExistingOfferingToVariantAction,
   createProductBrandInlineAction,
   createProductCategoryInlineAction,
   detachOfferingFromVariantAction,
@@ -36,7 +36,9 @@ import type {
   ProductEditorLookups,
   ProductEditorVariantRow,
   ProductLookupOption,
+  ProductOfferingRecord,
   ProductSaveReport,
+  ProductSpecificationLookupField,
   ProductTaxLookupOption,
   SaveBlockStatus,
   SpecificPriceDraft,
@@ -112,13 +114,15 @@ type PricingPreviewFormState = {
   at: string;
 };
 
+type SpecificationPickerStep = "fields" | "values";
+type OfferingPickerStep = "list" | "details";
+type VariantAttributePickerStep = "fields" | "values";
+
 type TabId =
   | "basic"
   | "images"
   | "variants"
-  | "specifications"
   | "pricing"
-  | "offerings"
   | "inventory"
   | "shipping"
   | "seo"
@@ -128,9 +132,7 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: "basic", label: "Ajustes basicos" },
   { id: "images", label: "Imagenes" },
   { id: "variants", label: "Variantes" },
-  { id: "specifications", label: "Caracteristicas" },
   { id: "pricing", label: "Precio" },
-  { id: "offerings", label: "Offering" },
   { id: "inventory", label: "Inventario" },
   { id: "shipping", label: "Transporte" },
   { id: "seo", label: "SEO" },
@@ -150,7 +152,9 @@ const defaultProductEditorLookups: ProductEditorLookups = {
   tradePolicies: [],
   countries: [],
   carriers: [],
+  variantAttributeFields: [],
   specificationFields: [],
+  offerings: [],
   warnings: [],
 };
 
@@ -685,6 +689,28 @@ function optionLabel(variant: ProductDraftVariant) {
     : "Sin atributos";
 }
 
+function variantAttributeCode(field: ProductSpecificationLookupField) {
+  return slugifyProductValue(field.name || field.fieldId);
+}
+
+function variantAttributeValueCode(value: { fieldValueId: string; name: string }) {
+  return slugifyProductValue(value.name || value.fieldValueId);
+}
+
+function findVariantAttributeField(fields: ProductSpecificationLookupField[], attributeCode: string) {
+  return fields.find((field) =>
+    field.fieldId === attributeCode ||
+    variantAttributeCode(field) === attributeCode,
+  );
+}
+
+function findVariantAttributeValue(field: ProductSpecificationLookupField | undefined, valueCode: string) {
+  return field?.values.find((value) =>
+    value.fieldValueId === valueCode ||
+    variantAttributeValueCode(value) === valueCode,
+  );
+}
+
 function offeringName(
   offering: { name: string; localizedName: Array<{ locale: string; value: string }> },
   locale: string,
@@ -1115,14 +1141,21 @@ function ProductEditorClientInner({
   const [pendingGeneratedVariants, setPendingGeneratedVariants] = useState<ProductDraftVariant[] | null>(null);
   const [variantMessage, setVariantMessage] = useState<string | null>(null);
   const [brokenMediaPreviewIds, setBrokenMediaPreviewIds] = useState<Record<string, true>>({});
-  const [offeringForm, setOfferingForm] = useState({
-    variantKey: "default",
-    name: "",
-    type: "service",
-    price: "",
-    active: true,
-  });
   const [offeringMessage, setOfferingMessage] = useState<string | null>(null);
+  const [offeringPrerequisiteNoticeDismissed, setOfferingPrerequisiteNoticeDismissed] = useState(false);
+  const [offeringPickerOpen, setOfferingPickerOpen] = useState(false);
+  const [offeringPickerStep, setOfferingPickerStep] = useState<OfferingPickerStep>("list");
+  const [offeringPickerOfferingId, setOfferingPickerOfferingId] = useState<string | null>(null);
+  const [dismissedVariantAttributeNotices, setDismissedVariantAttributeNotices] = useState({
+    persisted: false,
+    guidance: false,
+  });
+  const [variantAttributePickerOpen, setVariantAttributePickerOpen] = useState(false);
+  const [variantAttributePickerStep, setVariantAttributePickerStep] = useState<VariantAttributePickerStep>("fields");
+  const [variantAttributePickerFieldId, setVariantAttributePickerFieldId] = useState<string | null>(null);
+  const [specificationPickerOpen, setSpecificationPickerOpen] = useState(false);
+  const [specificationPickerStep, setSpecificationPickerStep] = useState<SpecificationPickerStep>("fields");
+  const [specificationPickerFieldId, setSpecificationPickerFieldId] = useState<string | null>(null);
   const [report, setReport] = useState<ProductSaveReport | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -1141,6 +1174,9 @@ function ProductEditorClientInner({
       })
       .filter((item) => item.selection && item.value);
   }, [draft.specifications.selections, lookups.specificationFields]);
+  const specificationPickerField = specificationPickerFieldId
+    ? lookups.specificationFields.find((field) => field.fieldId === specificationPickerFieldId)
+    : undefined;
   const variantRowsById = useMemo(
     () => new Map(initialVariantRows.map((row) => [row.variantId, row])),
     [initialVariantRows],
@@ -1188,11 +1224,16 @@ function ProductEditorClientInner({
   const selectedVariant =
     allVariantRows.find((variant) => variant.localId === selectedVariantKey || variant.variantId === selectedVariantKey) ??
     allVariantRows[0];
-  const offeringTargetVariant =
-    allVariantRows.find((variant) => variant.localId === offeringForm.variantKey || variant.variantId === offeringForm.variantKey) ??
-    allVariantRows[0];
+  const offeringTargetVariant = selectedVariant;
   const offeringTargetKey = offeringTargetVariant?.localId ?? "default";
   const offeringsForTarget = draft.offerings.byVariant[offeringTargetKey] ?? [];
+  const offeringPickerOffering = offeringPickerOfferingId
+    ? lookups.offerings.find((offering) => offering.offeringId === offeringPickerOfferingId)
+    : undefined;
+  const activeSelectedVariantOptions = selectedVariant.options.filter((option) => !option.markedForDeletion && option.isActive !== false);
+  const variantAttributePickerField = variantAttributePickerFieldId
+    ? lookups.variantAttributeFields.find((field) => field.fieldId === variantAttributePickerFieldId)
+    : undefined;
   const productPrice = draft.pricing.productPrice;
   const selectedTax =
     productPrice?.tax ??
@@ -1525,6 +1566,33 @@ function ProductEditorClientInner({
         },
       };
     });
+  }
+
+  function openSpecificationPicker() {
+    setSpecificationPickerStep("fields");
+    setSpecificationPickerFieldId(null);
+    setSpecificationPickerOpen(true);
+  }
+
+  function openSpecificationValues(field: ProductSpecificationLookupField) {
+    setSpecificationPickerFieldId(field.fieldId);
+    setSpecificationPickerStep("values");
+    setSpecificationPickerOpen(true);
+  }
+
+  function closeSpecificationPicker() {
+    setSpecificationPickerOpen(false);
+    setSpecificationPickerStep("fields");
+    setSpecificationPickerFieldId(null);
+  }
+
+  function goBackToSpecificationFields() {
+    setSpecificationPickerStep("fields");
+    setSpecificationPickerFieldId(null);
+  }
+
+  function removeSpecificationSelection(fieldId: string) {
+    updateSpecificationSelection(fieldId, "");
   }
 
   function addFiles(fileList: FileList | null) {
@@ -1957,6 +2025,82 @@ function ProductEditorClientInner({
     }));
   }
 
+  function openVariantAttributePicker() {
+    if (selectedVariant.isDefault) {
+      return;
+    }
+
+    setVariantAttributePickerStep("fields");
+    setVariantAttributePickerFieldId(null);
+    setVariantAttributePickerOpen(true);
+  }
+
+  function closeVariantAttributePicker() {
+    setVariantAttributePickerOpen(false);
+    setVariantAttributePickerStep("fields");
+    setVariantAttributePickerFieldId(null);
+  }
+
+  function goBackToVariantAttributeFields() {
+    setVariantAttributePickerStep("fields");
+    setVariantAttributePickerFieldId(null);
+  }
+
+  function openVariantAttributeValues(field: ProductSpecificationLookupField) {
+    if (selectedVariant.isDefault) {
+      return;
+    }
+
+    setVariantAttributePickerFieldId(field.fieldId);
+    setVariantAttributePickerStep("values");
+    setVariantAttributePickerOpen(true);
+  }
+
+  function selectedVariantValueForAttribute(field: ProductSpecificationLookupField) {
+    const attributeCode = variantAttributeCode(field);
+    const selectedOption = activeSelectedVariantOptions.find((option) =>
+      option.attributeCode === attributeCode || option.attributeCode === field.fieldId,
+    );
+    return selectedOption ? findVariantAttributeValue(field, selectedOption.valueCode) : undefined;
+  }
+
+  function updateVariantAttributeSelection(field: ProductSpecificationLookupField, fieldValueId: string) {
+    if (selectedVariant.isDefault) {
+      return;
+    }
+
+    const value = field.values.find((item) => item.fieldValueId === fieldValueId);
+    if (!value) {
+      return;
+    }
+
+    const attributeCode = variantAttributeCode(field);
+    const valueCode = variantAttributeValueCode(value);
+    updateVariant(selectedVariant.localId, (variant) => {
+      let replaced = false;
+      const options = variant.options.flatMap((option) => {
+        const sameAttribute = option.attributeCode === attributeCode || option.attributeCode === field.fieldId;
+        if (!sameAttribute || option.markedForDeletion) {
+          return [option];
+        }
+        if (!replaced) {
+          replaced = true;
+          return [{ ...option, attributeCode, valueCode, isActive: true, markedForDeletion: false }];
+        }
+        return option.variantOptionId
+          ? [{ ...option, isActive: false, markedForDeletion: true }]
+          : [];
+      });
+
+      return {
+        ...variant,
+        options: replaced
+          ? options
+          : [...options, { attributeCode, valueCode, isActive: true, createdInDraft: true }],
+      };
+    });
+  }
+
   function removeVariantFromDraft(variant: ProductDraftVariant) {
     updateDraft((current) => {
       const nextAssignments = { ...current.media.assignments };
@@ -2003,9 +2147,6 @@ function ProductEditorClientInner({
 
     if (selectedVariantKey === variant.localId || selectedVariantKey === variant.variantId) {
       setSelectedVariantKey("default");
-    }
-    if (offeringForm.variantKey === variant.localId || offeringForm.variantKey === variant.variantId) {
-      setOfferingForm((current) => ({ ...current, variantKey: "default" }));
     }
   }
 
@@ -2805,12 +2946,10 @@ function ProductEditorClientInner({
     });
   }
 
-  function createOfferingForSelectedVariant() {
+  function assignExistingOfferingToSelectedVariant(offeringId: string) {
     const variantId = offeringTargetVariant?.variantId;
-    const name = offeringForm.name.trim();
-
-    if (!name) {
-      setOfferingMessage("El nombre del offering es obligatorio.");
+    if (!offeringId) {
+      setOfferingMessage("Selecciona un offering existente.");
       return;
     }
     if (!variantId) {
@@ -2819,22 +2958,42 @@ function ProductEditorClientInner({
     }
 
     startTransition(async () => {
-      const result = await createAndAttachOfferingAction({
+      const result = await attachExistingOfferingToVariantAction({
         variantId,
-        name,
-        type: offeringForm.type,
-        priceMinor: inputToCents(offeringForm.price),
-        currency,
-        active: offeringForm.active,
+        offeringId,
       });
-
       if (result.ok) {
         setOfferingsForVariant(offeringTargetKey, result.offerings);
-        setOfferingForm((current) => ({ ...current, name: "", price: "" }));
+        setOfferingPickerStep("list");
+        setOfferingPickerOfferingId(null);
       }
-
       setOfferingMessage(result.message ?? (result.ok ? "Offering asignado." : "No se pudo asignar el offering."));
     });
+  }
+
+  function openOfferingPicker() {
+    setOfferingPickerStep("list");
+    setOfferingPickerOfferingId(null);
+    setOfferingPickerOpen(true);
+    setOfferingMessage(null);
+  }
+
+  function openOfferingDetails(offering: ProductOfferingRecord) {
+    setOfferingPickerOfferingId(offering.offeringId);
+    setOfferingPickerStep("details");
+    setOfferingPickerOpen(true);
+    setOfferingMessage(null);
+  }
+
+  function closeOfferingPicker() {
+    setOfferingPickerOpen(false);
+    setOfferingPickerStep("list");
+    setOfferingPickerOfferingId(null);
+  }
+
+  function goBackToOfferingList() {
+    setOfferingPickerStep("list");
+    setOfferingPickerOfferingId(null);
   }
 
   function detachOffering(offeringId: string) {
@@ -3054,6 +3213,43 @@ function ProductEditorClientInner({
                     />
                   </label>
                 </div>
+                <section className="productSpecificationsBasic adminSection">
+                  <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
+                    <div>
+                      <h3>Caracteristicas y especificaciones</h3>
+                      <p>Agrega valores tecnicos propios del producto desde la lista maestra.</p>
+                    </div>
+                    <button className="adminButton adminButtonPrimary" type="button" onClick={openSpecificationPicker}>
+                      Caracteristicas
+                    </button>
+                  </div>
+
+                  <div className="productSpecificationSummary">
+                    {selectedSpecifications.length === 0 ? (
+                      <p className="adminContextHint">No hay caracteristicas seleccionadas para este producto.</p>
+                    ) : (
+                      <div className="productSpecificationSelectedList">
+                        {selectedSpecifications.map(({ field, value }) => (
+                          <div className="productSpecificationSelectedItem" key={field.fieldId}>
+                            <span>
+                              <small>{field.groupName}</small>
+                              <strong>{field.name}</strong>
+                            </span>
+                            <span>{value?.name}</span>
+                            <div className="adminButtonRow">
+                              <button className="adminButton adminButtonTiny" type="button" onClick={() => openSpecificationValues(field)}>
+                                Cambiar
+                              </button>
+                              <button className="adminButton adminButtonTiny" type="button" onClick={() => removeSpecificationSelection(field.fieldId)}>
+                                Quitar
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </section>
                 <section className="productBasicPricing adminSection">
                   <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
                     <div>
@@ -3278,6 +3474,7 @@ function ProductEditorClientInner({
           ) : null}
 
           {activeTab === "variants" ? (
+            <>
             <div className="productEditorPanel">
               <div className="productEditorSectionHeader">
                 <div>
@@ -3577,182 +3774,207 @@ function ProductEditorClientInner({
                         </tr>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
-              <div className="productVariantDetailGrid adminSection">
-                <section className="productVariantDetailPanel">
-                  <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
-                    <div>
-                      <h3>Atributos de combinacion</h3>
-                      <p>{selectedVariant.isDefault ? "La variante predeterminada se configura desde Ajustes basicos." : selectedVariant.name}</p>
-                    </div>
+		                  </tbody>
+		                </table>
+		              </div>
+            </div>
+              <section className="productEditorPanel productOfferingPositionPanel adminSection">
+                <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
+                  <div>
+                    <h2>Servicios adicionales</h2>
+                    <p>{offeringTargetVariant?.selectorLabel ?? "Selecciona una variante"}</p>
+                  </div>
+                  <button className="adminButton" type="button" onClick={openOfferingPicker}>
+                    Servicios adicionales
+                  </button>
+                </div>
+                {!offeringTargetVariant?.variantId && !offeringPrerequisiteNoticeDismissed ? (
+                  <div className="adminBanner adminBannerDismissible">
+                    <p>Guarda primero esta variante para asociar servicios adicionales.</p>
                     <button
-                      className="adminButton"
-                      disabled={selectedVariant.isDefault}
+                      aria-label="Cerrar aviso de servicios adicionales"
+                      className="adminBannerClose"
                       type="button"
-                      onClick={addSelectedVariantOption}
+                      onClick={() => setOfferingPrerequisiteNoticeDismissed(true)}
                     >
-                      Anadir atributo
+                      <X aria-hidden="true" size={14} />
                     </button>
                   </div>
-                  {selectedVariant.variantId ? (
-                    <div className="adminBanner">
+                ) : null}
+                {offeringMessage ? (
+                  <div className="adminBanner" aria-live="polite">
+                    <p>{offeringMessage}</p>
+                  </div>
+                ) : null}
+                <div className="productOfferingSummary">
+                  {offeringsForTarget.length === 0 ? (
+                    <p className="adminContextHint">No hay servicios adicionales asociados a esta variante.</p>
+                  ) : (
+                    <div className="productOfferingSelectedList">
+                      {offeringsForTarget.map((offering) => (
+                        <div className="productOfferingSelectedItem" key={offering.offeringId}>
+                          <span>
+                            <small>{offering.type}</small>
+                            <strong>{offeringName(offering, locale)}</strong>
+                          </span>
+                          <span>{formatMoney(offering.priceMinor, offering.currency || currency)}</span>
+                          <span className={offering.active ? "adminBadge adminBadgeOk" : "adminBadge adminBadgeWarn"}>
+                            {offering.active ? "Activo" : "Inactivo"}
+                          </span>
+                          <div className="adminButtonRow">
+                            <button
+                              className="adminButton adminButtonTiny"
+                              disabled={isPending}
+                              type="button"
+                              onClick={() => setOfferingActivation(offering.offeringId, !offering.active)}
+                            >
+                              {offering.active ? "Desactivar" : "Activar"}
+                            </button>
+                            <button
+                              className="adminButton adminButtonTiny"
+                              disabled={isPending}
+                              type="button"
+                              onClick={() => detachOffering(offering.offeringId)}
+                            >
+                              Quitar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+              <section className="productEditorPanel productVariantAttributePanel adminSection">
+                  <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
+                    <div>
+                      <h2>Atributos de combinacion</h2>
+                      <p>{selectedVariant.isDefault ? "La variante predeterminada se configura desde Ajustes basicos." : selectedVariant.name}</p>
+                    </div>
+                    <div className="adminButtonRow">
+                      <span className="adminBadge">
+                        {activeSelectedVariantOptions.length} asociado{activeSelectedVariantOptions.length === 1 ? "" : "s"}
+                      </span>
+                      <button
+                        className="adminButton"
+                        disabled={selectedVariant.isDefault}
+                        type="button"
+                        onClick={openVariantAttributePicker}
+                      >
+                        Atributos de combinacion
+                      </button>
+                    </div>
+                  </div>
+                  {selectedVariant.variantId && !dismissedVariantAttributeNotices.persisted ? (
+                    <div className="adminBanner adminBannerDismissible">
                       <p>Los atributos guardados se actualizaran al guardar la ficha. Quitar un atributo persistido lo desactiva de forma segura.</p>
+                      <button
+                        aria-label="Cerrar aviso de atributos guardados"
+                        className="adminBannerClose"
+                        type="button"
+                        onClick={() => setDismissedVariantAttributeNotices((current) => ({ ...current, persisted: true }))}
+                      >
+                        <X aria-hidden="true" size={14} />
+                      </button>
                     </div>
                   ) : null}
                   {variantOptionWarning(selectedVariant) ? (
                     <div className="adminBanner adminBannerError">
                       <p>{variantOptionWarning(selectedVariant)}</p>
                     </div>
-                  ) : (
-                    <div className="adminBanner">
+                  ) : !dismissedVariantAttributeNotices.guidance ? (
+                    <div className="adminBanner adminBannerDismissible">
                       <p>Estos atributos identifican esta variante vendible. Si un color o talla necesita stock o imagen propia, crea una variante separada.</p>
+                      <button
+                        aria-label="Cerrar ayuda de atributos de combinacion"
+                        className="adminBannerClose"
+                        type="button"
+                        onClick={() => setDismissedVariantAttributeNotices((current) => ({ ...current, guidance: true }))}
+                      >
+                        <X aria-hidden="true" size={14} />
+                      </button>
                     </div>
-                  )}
-                  {selectedVariant.options.filter((option) => !option.markedForDeletion).length === 0 ? (
-                    <p className="adminContextHint">Sin atributos de combinacion asignados.</p>
                   ) : (
-                    <div className="adminTableScroller">
-                      <table className="adminTable productOptionTable">
-                        <thead>
-                          <tr>
-                            <th>Atributo</th>
-                            <th>Valor</th>
-                            <th>Accion</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedVariant.options
-                            .map((option, optionIndex) => ({ option, optionIndex }))
-                            .filter(({ option }) => !option.markedForDeletion)
-                            .map(({ option, optionIndex }) => (
-                            <tr key={`${selectedVariant.localId}-${optionIndex}`}>
-                              <td>
-                                <input
-                                  aria-label={`Atributo de combinacion ${optionIndex + 1}`}
-                                  disabled={selectedVariant.isDefault}
-                                  placeholder="color"
-                                  value={option.attributeCode}
-                                  onChange={(event) => updateSelectedVariantOption(optionIndex, "attributeCode", event.target.value)}
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  aria-label={`Valor de combinacion ${optionIndex + 1}`}
-                                  disabled={selectedVariant.isDefault}
-                                  placeholder="negro"
-                                  value={option.valueCode}
-                                  onChange={(event) => updateSelectedVariantOption(optionIndex, "valueCode", event.target.value)}
-                                />
-                              </td>
-                              <td>
+                    null
+                  )}
+                  <div className="productVariantAttributeSummary">
+                    {activeSelectedVariantOptions.length === 0 ? (
+                      <p className="adminContextHint">No hay atributos de combinacion asociados a esta variante.</p>
+                  ) : (
+                    <div className="productVariantAttributeSelectedList">
+                      {selectedVariant.options
+                        .map((option, optionIndex) => ({ option, optionIndex }))
+                        .filter(({ option }) => !option.markedForDeletion && option.isActive !== false)
+                        .map(({ option, optionIndex }) => {
+                          const field = findVariantAttributeField(lookups.variantAttributeFields, option.attributeCode);
+                          const value = findVariantAttributeValue(field, option.valueCode);
+                          return (
+                            <div className="productVariantAttributeSelectedItem" key={`${selectedVariant.localId}-${optionIndex}`}>
+                              <span>
+                                <small>{field?.groupName ?? "Atributo"}</small>
+                                {field ? (
+                                  <strong>{field.name}</strong>
+                                ) : (
+                                  <input
+                                    aria-label={`Atributo de combinacion ${optionIndex + 1}`}
+                                    disabled={selectedVariant.isDefault}
+                                    placeholder="color"
+                                    value={option.attributeCode}
+                                    onChange={(event) => updateSelectedVariantOption(optionIndex, "attributeCode", event.target.value)}
+                                  />
+                                )}
+                              </span>
+                              <span>
+                                {field ? ((value?.name ?? option.valueCode) || "Sin valor") : (
+                                  <input
+                                    aria-label={`Valor de combinacion ${optionIndex + 1}`}
+                                    disabled={selectedVariant.isDefault}
+                                    placeholder="negro"
+                                    value={option.valueCode}
+                                    onChange={(event) => updateSelectedVariantOption(optionIndex, "valueCode", event.target.value)}
+                                  />
+                                )}
+                              </span>
+                              <span className="adminBadge">{option.variantOptionId ? "Guardado" : "Borrador"}</span>
+                              <div className="adminButtonRow">
+                                {field ? (
+                                  <button
+                                    className="adminButton adminButtonTiny"
+                                    disabled={selectedVariant.isDefault}
+                                    type="button"
+                                    onClick={() => openVariantAttributeValues(field)}
+                                  >
+                                    Cambiar
+                                  </button>
+                                ) : null}
                                 <button
-                                  className="adminButton"
+                                  className="adminButton adminButtonTiny"
                                   disabled={selectedVariant.isDefault}
                                   type="button"
                                   onClick={() => removeSelectedVariantOption(optionIndex)}
                                 >
                                   Quitar
                                 </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                              </div>
+                            </div>
+                          );
+                        })}
                     </div>
                   )}
+                  </div>
+                  <button
+                    className="adminButton adminButtonTiny productVariantAttributeManualButton"
+                    disabled={selectedVariant.isDefault}
+                    type="button"
+                    onClick={addSelectedVariantOption}
+                  >
+                    Anadir manual
+                  </button>
                   {report?.fieldErrors[`variant:${selectedVariant.localId}:options`] ? (
                     <small>{report.fieldErrors[`variant:${selectedVariant.localId}:options`]}</small>
                   ) : null}
-                </section>
-                <section className="productVariantDetailPanel">
-                  <h3>Especificaciones</h3>
-                  <p>Las caracteristicas tecnicas se editan en su pestana propia para no mezclarlas con opciones de variante.</p>
-                  <button className="adminButton" type="button" onClick={() => setActiveTab("specifications")}>
-                    Ir a caracteristicas
-                  </button>
-                  <dl className="productMetaList">
-                    <div><dt>Categoria</dt><dd>{draft.basic.categoryName || draft.basic.categoryId || "Sin categoria"}</dd></div>
-                    <div><dt>Seleccionadas</dt><dd>{draft.specifications.selections.length}</dd></div>
-                  </dl>
-                </section>
-              </div>
-            </div>
-          ) : null}
-
-          {activeTab === "specifications" ? (
-            <section className="productEditorPanel">
-              <div className="productEditorSectionHeader">
-                <div>
-                  <h2>Caracteristicas</h2>
-                  <p>Selecciona los valores tecnicos visibles en la ficha del producto.</p>
-                </div>
-                <Link className="adminButton" href="/admin/catalogo/atributos-caracteristicas?tab=features">
-                  Administrar valores
-                </Link>
-              </div>
-
-              {lookups.specificationFields.length === 0 ? (
-                <div className="adminEmptyState">
-                  <h2>Sin caracteristicas configuradas</h2>
-                  <p>Crea primero caracteristicas en Catalogo / Caracteristicas.</p>
-                </div>
-              ) : (
-                <div className="adminTableScroller">
-                  <table className="adminTable">
-                    <thead>
-                      <tr>
-                        <th>Grupo</th>
-                        <th>Caracteristica</th>
-                        <th>Valor</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lookups.specificationFields.map((field) => {
-                        const selected = draft.specifications.selections.find((selection) => selection.fieldId === field.fieldId);
-                        return (
-                          <tr key={field.fieldId}>
-                            <td>{field.groupName}</td>
-                            <td>{field.name}</td>
-                            <td>
-                              <select
-                                aria-label={`Valor ${field.name}`}
-                                value={selected?.fieldValueId ?? ""}
-                                onChange={(event) => updateSpecificationSelection(field.fieldId, event.target.value)}
-                              >
-                                <option value="">Sin valor</option>
-                                {field.values.map((value) => (
-                                  <option key={value.fieldValueId} value={value.fieldValueId}>
-                                    {value.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              <section className="productEditorSubsection">
-                <h3>Preview de ficha tecnica</h3>
-                {selectedSpecifications.length === 0 ? (
-                  <p className="adminContextHint">No hay caracteristicas seleccionadas para este producto.</p>
-                ) : (
-                  <dl className="productMetaList">
-                    {selectedSpecifications.map(({ field, value }) => (
-                      <div key={field.fieldId}>
-                        <dt>{field.name}</dt>
-                        <dd>{value?.name}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                )}
               </section>
-            </section>
+            </>
           ) : null}
 
           {activeTab === "pricing" ? (
@@ -4568,141 +4790,6 @@ function ProductEditorClientInner({
             </section>
           ) : null}
 
-          {activeTab === "offerings" ? (
-            <section className="productEditorPanel">
-              <div className="productEditorSectionHeader">
-                <div>
-                  <h2>Offering</h2>
-                  <p>Servicios vendibles asociados a una variante persistida.</p>
-                </div>
-              </div>
-              {!draft.productId ? (
-                <div className="adminBanner adminSection">
-                  <p>Guarda primero el producto para crear variantes reales antes de asignar offerings.</p>
-                </div>
-              ) : null}
-              <div className="adminFormGrid adminFormGridTwo">
-                <label className="adminField">
-                  <span>Variante</span>
-                  <select
-                    value={offeringForm.variantKey}
-                    onChange={(event) => {
-                      setOfferingForm((current) => ({ ...current, variantKey: event.target.value }));
-                      setOfferingMessage(null);
-                    }}
-                  >
-	                    {allVariantRows.map((variant) => (
-	                      <option key={variant.localId} value={variant.localId}>
-	                        {variant.selectorLabel}
-	                      </option>
-	                    ))}
-                  </select>
-                  {!offeringTargetVariant?.variantId ? <small>Esta variante todavia no tiene variantId.</small> : null}
-                </label>
-                <label className="adminField">
-                  <span>Nombre del offering</span>
-                  <input
-                    placeholder="Garantia extendida"
-                    value={offeringForm.name}
-                    onChange={(event) => setOfferingForm((current) => ({ ...current, name: event.target.value }))}
-                  />
-                </label>
-                <label className="adminField">
-                  <span>Tipo</span>
-                  <select
-                    value={offeringForm.type}
-                    onChange={(event) => setOfferingForm((current) => ({ ...current, type: event.target.value }))}
-                  >
-                    <option value="service">Servicio</option>
-                    <option value="warranty">Garantia</option>
-                    <option value="addon">Add-on</option>
-                  </select>
-                </label>
-                <label className="adminField">
-                  <span>Precio</span>
-                  <DecimalNumberInput
-                    min="0"
-                    value={offeringForm.price}
-                    onValueChange={(value) => setOfferingForm((current) => ({ ...current, price: value }))}
-                  />
-                </label>
-              </div>
-              <div className="adminButtonRow adminSection">
-                <label className="adminCheckbox">
-                  <input
-                    type="checkbox"
-                    checked={offeringForm.active}
-                    onChange={(event) => setOfferingForm((current) => ({ ...current, active: event.target.checked }))}
-                  />
-                  Activo
-                </label>
-                <button
-                  className="adminButton adminButtonPrimary"
-                  disabled={isPending || !offeringTargetVariant?.variantId}
-                  type="button"
-                  onClick={createOfferingForSelectedVariant}
-                >
-                  Crear y asignar
-                </button>
-              </div>
-              {offeringMessage ? (
-                <div className="adminBanner adminSection" aria-live="polite">
-                  <p>{offeringMessage}</p>
-                </div>
-              ) : null}
-              <div className="adminTableScroller adminSection">
-                <table className="adminTable productCombinationTable">
-                  <thead>
-                    <tr>
-                      <th>Offering</th>
-                      <th>Tipo</th>
-                      <th>Precio</th>
-                      <th>Estado</th>
-                      <th>Accion</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {offeringsForTarget.length === 0 ? (
-                      <tr>
-                        <td colSpan={5}>No hay offerings asociados a esta variante.</td>
-                      </tr>
-                    ) : offeringsForTarget.map((offering) => (
-                      <tr key={offering.offeringId}>
-                        <td>
-                          <strong>{offeringName(offering, locale)}</strong>
-                          <div className="adminContextHint">{offering.offeringId}</div>
-                        </td>
-                        <td>{offering.type}</td>
-                        <td>{formatMoney(offering.priceMinor, offering.currency || currency)}</td>
-                        <td>
-                          <label className="adminCheckbox">
-                            <input
-                              checked={offering.active}
-                              disabled={isPending}
-                              type="checkbox"
-                              onChange={(event) => setOfferingActivation(offering.offeringId, event.target.checked)}
-                            />
-                            {offering.active ? "Activo" : "Inactivo"}
-                          </label>
-                        </td>
-                        <td>
-                          <button
-                            className="adminButton"
-                            disabled={isPending}
-                            type="button"
-                            onClick={() => detachOffering(offering.offeringId)}
-                          >
-                            Desasignar
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          ) : null}
-
           {activeTab === "inventory" ? (
             <section className="productEditorPanel">
               <div className="productEditorSectionHeader">
@@ -5194,6 +5281,470 @@ function ProductEditorClientInner({
           ) : null}
         </aside>
       </div>
+
+      {variantAttributePickerOpen ? (
+        <div
+          className="productVariantAttributeOverlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && variantAttributePickerStep === "fields") {
+              closeVariantAttributePicker();
+            }
+          }}
+        >
+          <aside
+            aria-labelledby="product-variant-attribute-picker-title"
+            aria-modal="true"
+            className="productVariantAttributeDrawer"
+            role="dialog"
+          >
+            <header className="productVariantAttributeDrawerHeader">
+              <div>
+                <span className="adminBadge">
+                  {activeSelectedVariantOptions.length} asociado{activeSelectedVariantOptions.length === 1 ? "" : "s"}
+                </span>
+                <h2 id="product-variant-attribute-picker-title">
+                  {variantAttributePickerStep === "fields"
+                    ? activeSelectedVariantOptions.length > 0 ? "Agregar otro atributo" : "Atributos de combinacion"
+                    : variantAttributePickerField?.name ?? "Valores"}
+                </h2>
+              </div>
+              {variantAttributePickerStep === "fields" ? (
+                <button className="adminButton" type="button" onClick={closeVariantAttributePicker}>
+                  Cerrar
+                </button>
+              ) : (
+                <button className="adminButton" type="button" onClick={goBackToVariantAttributeFields}>
+                  Atras
+                </button>
+              )}
+            </header>
+
+            <div className="productVariantAttributeDrawerBody">
+              {variantAttributePickerStep === "fields" ? (
+                <>
+                  {activeSelectedVariantOptions.length > 0 ? (
+                    <section className="productVariantAttributeDrawerSection">
+                      <h3>Asociados</h3>
+                      <div className="productVariantAttributeSelectedList">
+                        {activeSelectedVariantOptions.map((option) => {
+                          const field = findVariantAttributeField(lookups.variantAttributeFields, option.attributeCode);
+                          const value = findVariantAttributeValue(field, option.valueCode);
+                          return (
+                            <div className="productVariantAttributeSelectedItem" key={`${option.attributeCode}:${option.valueCode}`}>
+                              <span>
+                                <small>{field?.groupName ?? "Atributo"}</small>
+                                <strong>{field?.name ?? option.attributeCode}</strong>
+                              </span>
+                              <span>{value?.name ?? option.valueCode}</span>
+                              <span className="adminBadge">{option.variantOptionId ? "Guardado" : "Borrador"}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ) : null}
+
+                  <section className="productVariantAttributeDrawerSection">
+                    <div className="productVariantAttributeDrawerSectionHeader">
+                      <h3>Todos los atributos</h3>
+                      <Link className="adminButton adminButtonTiny" href="/admin/catalogo/atributos-caracteristicas?tab=attributes">
+                        Gestionar atributos
+                      </Link>
+                    </div>
+                    {lookups.variantAttributeFields.length === 0 ? (
+                      <div className="adminEmptyState">
+                        <h2>Sin atributos configurados</h2>
+                        <p>Crea primero atributos en Catalogo / Atributos.</p>
+                        <button
+                          className="adminButton"
+                          type="button"
+                          onClick={() => {
+                            addSelectedVariantOption();
+                            closeVariantAttributePicker();
+                          }}
+                        >
+                          Anadir manual
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="productVariantAttributeChoiceList">
+                        {lookups.variantAttributeFields.map((field) => {
+                          const selectedValue = selectedVariantValueForAttribute(field);
+                          return (
+                            <button
+                              className="productVariantAttributeChoice"
+                              key={field.fieldId}
+                              type="button"
+                              onClick={() => openVariantAttributeValues(field)}
+                            >
+                              <span>
+                                <small>{field.groupName}</small>
+                                <strong>{field.name}</strong>
+                              </span>
+                              <span className={selectedValue ? "adminBadge adminBadgeOk" : "adminBadge"}>
+                                {selectedValue ? selectedValue.name : "Elegir valor"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                </>
+              ) : (
+                <section className="productVariantAttributeDrawerSection">
+                  <p className="adminContextHint">
+                    Selecciona un valor para {variantAttributePickerField?.name ?? "este atributo"}.
+                  </p>
+                  {variantAttributePickerField ? (
+                    <div className="productVariantAttributeValueList">
+                      {variantAttributePickerField.values.map((value) => {
+                        const selectedValue = selectedVariantValueForAttribute(variantAttributePickerField);
+                        const selected = selectedValue?.fieldValueId === value.fieldValueId;
+                        return (
+                          <button
+                            aria-pressed={selected}
+                            className={"productVariantAttributeValueChoice " + (selected ? "productVariantAttributeValueChoiceActive" : "")}
+                            key={value.fieldValueId}
+                            type="button"
+                            onClick={() => {
+                              updateVariantAttributeSelection(variantAttributePickerField, value.fieldValueId);
+                              goBackToVariantAttributeFields();
+                            }}
+                          >
+                            {value.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="adminEmptyState">
+                      <h2>Atributo no disponible</h2>
+                      <p>Vuelve atras y elige otro atributo.</p>
+                    </div>
+                  )}
+                </section>
+              )}
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {offeringPickerOpen ? (
+        <div
+          className="productOfferingOverlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && offeringPickerStep === "list") {
+              closeOfferingPicker();
+            }
+          }}
+        >
+          <aside
+            aria-labelledby="product-offering-picker-title"
+            aria-modal="true"
+            className="productOfferingDrawer"
+            role="dialog"
+          >
+            <header className="productOfferingDrawerHeader">
+              <div>
+                <span className="adminBadge">
+                  {offeringsForTarget.length} asociado{offeringsForTarget.length === 1 ? "" : "s"}
+                </span>
+                <h2 id="product-offering-picker-title">
+                  {offeringPickerStep === "list"
+                    ? offeringsForTarget.length > 0 ? "Agregar otro servicio" : "Servicios adicionales"
+                    : offeringPickerOffering ? offeringName(offeringPickerOffering, locale) : "Servicio"}
+                </h2>
+              </div>
+              {offeringPickerStep === "list" ? (
+                <button className="adminButton" type="button" onClick={closeOfferingPicker}>
+                  Cerrar
+                </button>
+              ) : (
+                <button className="adminButton" type="button" onClick={goBackToOfferingList}>
+                  Atras
+                </button>
+              )}
+            </header>
+
+            <div className="productOfferingDrawerBody">
+              {offeringMessage ? (
+                <div className="adminBanner" aria-live="polite">
+                  <p>{offeringMessage}</p>
+                </div>
+              ) : null}
+
+              {offeringPickerStep === "list" ? (
+                <>
+                  {offeringsForTarget.length > 0 ? (
+                    <section className="productOfferingDrawerSection">
+                      <h3>Asociados</h3>
+                      <div className="productOfferingSelectedList">
+                        {offeringsForTarget.map((offering) => (
+                          <div className="productOfferingSelectedItem" key={offering.offeringId}>
+                            <span>
+                              <small>{offering.type}</small>
+                              <strong>{offeringName(offering, locale)}</strong>
+                            </span>
+                            <span>{formatMoney(offering.priceMinor, offering.currency || currency)}</span>
+                            <span className={offering.active ? "adminBadge adminBadgeOk" : "adminBadge adminBadgeWarn"}>
+                              {offering.active ? "Activo" : "Inactivo"}
+                            </span>
+                            <div className="adminButtonRow">
+                              <button
+                                className="adminButton adminButtonTiny"
+                                disabled={isPending}
+                                type="button"
+                                onClick={() => setOfferingActivation(offering.offeringId, !offering.active)}
+                              >
+                                {offering.active ? "Desactivar" : "Activar"}
+                              </button>
+                              <button
+                                className="adminButton adminButtonTiny"
+                                disabled={isPending}
+                                type="button"
+                                onClick={() => detachOffering(offering.offeringId)}
+                              >
+                                Quitar
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+
+                  <section className="productOfferingDrawerSection">
+                    <div className="productOfferingDrawerSectionHeader">
+                      <h3>Todos los servicios</h3>
+                      <Link className="adminButton adminButtonTiny" href="/admin/catalogo/offerings">
+                        Gestionar servicios
+                      </Link>
+                    </div>
+                    {!offeringTargetVariant?.variantId ? (
+                      <div className="adminBanner">
+                        <p>Guarda primero esta variante para asociar servicios adicionales.</p>
+                      </div>
+                    ) : null}
+                    {lookups.offerings.length === 0 ? (
+                      <div className="adminEmptyState">
+                        <h2>Sin servicios configurados</h2>
+                        <p>Crea primero servicios en Catalogo / Offerings.</p>
+                      </div>
+                    ) : (
+                      <div className="productOfferingChoiceList">
+                        {lookups.offerings.map((offering) => {
+                          const associated = offeringsForTarget.some((item) => item.offeringId === offering.offeringId);
+                          return (
+                            <button
+                              className="productOfferingChoice"
+                              disabled={!offeringTargetVariant?.variantId}
+                              key={offering.offeringId}
+                              type="button"
+                              onClick={() => openOfferingDetails(offering)}
+                            >
+                              <span>
+                                <small>{offering.type}</small>
+                                <strong>{offeringName(offering, locale)}</strong>
+                              </span>
+                              <span>{formatMoney(offering.priceMinor, offering.currency || currency)}</span>
+                              <span className={associated ? "adminBadge adminBadgeOk" : "adminBadge"}>
+                                {associated ? "Asociado" : "Elegir"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                </>
+              ) : (
+                <section className="productOfferingDrawerSection">
+                  {offeringPickerOffering ? (
+                    <>
+                      <dl className="productOfferingDetailList">
+                        <div><dt>Servicio</dt><dd>{offeringName(offeringPickerOffering, locale)}</dd></div>
+                        <div><dt>Tipo</dt><dd>{offeringPickerOffering.type}</dd></div>
+                        <div><dt>Precio</dt><dd>{formatMoney(offeringPickerOffering.priceMinor, offeringPickerOffering.currency || currency)}</dd></div>
+                        <div><dt>Estado</dt><dd>{offeringPickerOffering.active ? "Activo" : "Inactivo"}</dd></div>
+                      </dl>
+                      <button
+                        className="adminButton"
+                        disabled={
+                          isPending ||
+                          !offeringTargetVariant?.variantId ||
+                          offeringsForTarget.some((item) => item.offeringId === offeringPickerOffering.offeringId)
+                        }
+                        type="button"
+                        onClick={() => assignExistingOfferingToSelectedVariant(offeringPickerOffering.offeringId)}
+                      >
+                        {offeringsForTarget.some((item) => item.offeringId === offeringPickerOffering.offeringId)
+                          ? "Ya asociado"
+                          : "Agregar servicio"}
+                      </button>
+                    </>
+                  ) : (
+                    <div className="adminEmptyState">
+                      <h2>Servicio no disponible</h2>
+                      <p>Vuelve atras y elige otro servicio.</p>
+                    </div>
+                  )}
+                </section>
+              )}
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {specificationPickerOpen ? (
+        <div
+          className="productSpecificationOverlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && specificationPickerStep === "fields") {
+              closeSpecificationPicker();
+            }
+          }}
+        >
+          <aside
+            aria-labelledby="product-specification-picker-title"
+            aria-modal="true"
+            className="productSpecificationDrawer"
+            role="dialog"
+          >
+            <header className="productSpecificationDrawerHeader">
+              <div>
+                <span className="adminBadge">
+                  {selectedSpecifications.length} seleccionada{selectedSpecifications.length === 1 ? "" : "s"}
+                </span>
+                <h2 id="product-specification-picker-title">
+                  {specificationPickerStep === "fields"
+                    ? selectedSpecifications.length > 0 ? "Agregar otra caracteristica" : "Caracteristicas"
+                    : specificationPickerField?.name ?? "Valores"}
+                </h2>
+              </div>
+              {specificationPickerStep === "fields" ? (
+                <button className="adminButton" type="button" onClick={closeSpecificationPicker}>
+                  Cerrar
+                </button>
+              ) : (
+                <button className="adminButton" type="button" onClick={goBackToSpecificationFields}>
+                  Atras
+                </button>
+              )}
+            </header>
+
+            <div className="productSpecificationDrawerBody">
+              {specificationPickerStep === "fields" ? (
+                <>
+                  {selectedSpecifications.length > 0 ? (
+                    <section className="productSpecificationDrawerSection">
+                      <h3>Seleccionadas</h3>
+                      <div className="productSpecificationSelectedList">
+                        {selectedSpecifications.map(({ field, value }) => (
+                          <div className="productSpecificationSelectedItem" key={field.fieldId}>
+                            <span>
+                              <small>{field.groupName}</small>
+                              <strong>{field.name}</strong>
+                            </span>
+                            <span>{value?.name}</span>
+                            <div className="adminButtonRow">
+                              <button className="adminButton adminButtonTiny" type="button" onClick={() => openSpecificationValues(field)}>
+                                Cambiar
+                              </button>
+                              <button className="adminButton adminButtonTiny" type="button" onClick={() => removeSpecificationSelection(field.fieldId)}>
+                                Quitar
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+
+                  <section className="productSpecificationDrawerSection">
+                    <div className="productSpecificationDrawerSectionHeader">
+                      <h3>Todas las caracteristicas</h3>
+                      <Link className="adminButton adminButtonTiny" href="/admin/catalogo/atributos-caracteristicas?tab=features">
+                        Administrar valores
+                      </Link>
+                    </div>
+                    {lookups.specificationFields.length === 0 ? (
+                      <div className="adminEmptyState">
+                        <h2>Sin caracteristicas configuradas</h2>
+                        <p>Crea primero caracteristicas en Catalogo / Caracteristicas.</p>
+                      </div>
+                    ) : (
+                      <div className="productSpecificationChoiceList">
+                        {lookups.specificationFields.map((field) => {
+                          const selected = draft.specifications.selections.find((selection) => selection.fieldId === field.fieldId);
+                          const selectedValue = selected
+                            ? field.values.find((value) => value.fieldValueId === selected.fieldValueId)
+                            : undefined;
+                          return (
+                            <button
+                              className="productSpecificationChoice"
+                              key={field.fieldId}
+                              type="button"
+                              onClick={() => openSpecificationValues(field)}
+                            >
+                              <span>
+                                <small>{field.groupName}</small>
+                                <strong>{field.name}</strong>
+                              </span>
+                              <span className={selectedValue ? "adminBadge adminBadgeOk" : "adminBadge"}>
+                                {selectedValue ? selectedValue.name : "Elegir valor"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                </>
+              ) : (
+                <section className="productSpecificationDrawerSection">
+                  <p className="adminContextHint">
+                    Selecciona un valor para {specificationPickerField?.name ?? "esta caracteristica"}.
+                  </p>
+                  {specificationPickerField ? (
+                    <div className="productSpecificationValueList">
+                      {specificationPickerField.values.map((value) => {
+                        const selected = draft.specifications.selections.some(
+                          (selection) =>
+                            selection.fieldId === specificationPickerField.fieldId &&
+                            selection.fieldValueId === value.fieldValueId,
+                        );
+                        return (
+                          <button
+                            aria-pressed={selected}
+                            className={"productSpecificationValueChoice " + (selected ? "productSpecificationValueChoiceActive" : "")}
+                            key={value.fieldValueId}
+                            type="button"
+                            onClick={() => {
+                              updateSpecificationSelection(specificationPickerField.fieldId, value.fieldValueId);
+                              goBackToSpecificationFields();
+                            }}
+                          >
+                            {value.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="adminEmptyState">
+                      <h2>Caracteristica no disponible</h2>
+                      <p>Vuelve atras y elige otra caracteristica.</p>
+                    </div>
+                  )}
+                </section>
+              )}
+            </div>
+          </aside>
+        </div>
+      ) : null}
 
       {previewOpen ? (
         <div

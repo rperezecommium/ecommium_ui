@@ -435,13 +435,9 @@ type OfferingActionResult = {
   correlationId?: string;
 };
 
-export async function createAndAttachOfferingAction(input: {
+export async function attachExistingOfferingToVariantAction(input: {
   variantId?: string;
-  name: string;
-  type: string;
-  priceMinor: number;
-  currency: string;
-  active: boolean;
+  offeringId: string;
 }): Promise<OfferingActionResult> {
   if (!input.variantId) {
     return {
@@ -451,35 +447,25 @@ export async function createAndAttachOfferingAction(input: {
     };
   }
 
-  const context = await getAdminContext();
-  const gateway = makeProductGateway(context);
-  const created = await gateway.createOffering({
-    type: input.type.trim() || "service",
-    priceMinor: input.priceMinor,
-    currency: input.currency,
-    localizedName: [{ locale: context.locale, value: input.name.trim() }],
-    active: input.active,
-  });
-
-  if (!created.ok) {
+  if (!input.offeringId) {
     return {
       ok: false,
       offerings: [],
-      message: created.error,
-      correlationId: created.correlationId,
+      message: "Selecciona un offering existente.",
     };
   }
 
+  const context = await getAdminContext();
+  const gateway = makeProductGateway(context);
   const attached = await gateway.attachOfferingToVariant({
-    offeringId: created.data.offering.offeringId,
+    offeringId: input.offeringId,
     variantId: input.variantId,
   });
 
   if (!attached.ok) {
     return {
       ok: false,
-      offerings: [created.data.offering],
-      offering: created.data.offering,
+      offerings: [],
       message: attached.error,
       correlationId: attached.correlationId,
     };
@@ -489,8 +475,7 @@ export async function createAndAttachOfferingAction(input: {
 
   return {
     ok: refreshed.ok,
-    offerings: refreshed.ok ? refreshed.data : [created.data.offering],
-    offering: created.data.offering,
+    offerings: refreshed.ok ? refreshed.data : [],
     message: refreshed.ok ? attached.data.message : refreshed.error,
     correlationId: refreshed.correlationId ?? attached.correlationId,
   };

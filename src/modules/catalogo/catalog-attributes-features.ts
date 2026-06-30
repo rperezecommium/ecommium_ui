@@ -241,7 +241,7 @@ export function filterAttributeFeatureFields(
   const status = filters.status ?? "active";
 
   return fields
-    .filter((field) => !field.isStockKeepingUnit)
+    .filter((field) => filters.tab === "attributes" ? field.isStockKeepingUnit : !field.isStockKeepingUnit)
     .filter((field) => !normalizedId || field.fieldId.toLowerCase().includes(normalizedId))
     .filter((field) => !normalizedQ || field.name.toLowerCase().includes(normalizedQ))
     .filter((field) => !normalizedGroup || field.groupName.toLowerCase().includes(normalizedGroup))
@@ -326,7 +326,7 @@ export async function createCatalogSpecificationField(
     isFilter: input.isFilter,
     isRequired: false,
     isOnProductDetails: input.isOnProductDetails,
-    isStockKeepingUnit: false,
+    isStockKeepingUnit: input.tab === "attributes",
     isActive: input.isActive,
     isTopMenuLinkActive: false,
     isSideMenuLinkActive: false,

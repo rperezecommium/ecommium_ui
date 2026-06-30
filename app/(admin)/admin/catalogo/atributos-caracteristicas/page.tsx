@@ -31,7 +31,7 @@ export default async function AtributosCaracteristicasPage({
   const context = await getAdminContext();
   const params = await searchParams;
   const filters: CatalogAttributeFeatureFilters = {
-    tab: "features" as const,
+    tab: params?.tab === "attributes" ? "attributes" : "features",
     id: params?.id ?? "",
     q: params?.q ?? "",
     group: params?.group ?? "",

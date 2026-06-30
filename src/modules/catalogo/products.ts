@@ -1291,12 +1291,13 @@ export async function getAdminProductEditorData(context: AdminContext, productId
 }
 
 export async function getProductEditorLookups(context: AdminContext): Promise<ProductEditorLookups> {
-  const [categoriesResult, brandsResult, pricingLookups, carriersResult, specificationsResult] = await Promise.all([
+  const [categoriesResult, brandsResult, pricingLookups, carriersResult, specificationsResult, offeringsResult] = await Promise.all([
     listCatalogEntities(context, "categories", { limit: 100, offset: 0, isActive: true }),
     listCatalogEntities(context, "brands", { limit: 100, offset: 0, isActive: true }),
     getPricingEditorLookups(context),
     getShippingCarrierLookups(context),
     listCatalogAttributeFeatureData(context),
+    makeProductGateway(context).listOfferings({ includeInactive: false }),
   ]);
   const warnings: string[] = [];
 
@@ -1309,6 +1310,9 @@ export async function getProductEditorLookups(context: AdminContext): Promise<Pr
   if (specificationsResult.source === "unavailable") {
     warnings.push(`Caracteristicas: contrato BFF no disponible o sin permisos (${specificationsResult.message}).`);
   }
+  if (!offeringsResult.ok) {
+    warnings.push(`Offerings: contrato BFF no disponible o sin permisos (${offeringsResult.error}).`);
+  }
 
   return {
     categories: toLookupOptions(categoriesResult),
@@ -1320,6 +1324,23 @@ export async function getProductEditorLookups(context: AdminContext): Promise<Pr
     tradePolicies: pricingLookups.tradePolicies ?? [],
     countries: pricingLookups.countries ?? [],
     carriers: carriersResult.carriers,
+    variantAttributeFields: specificationsResult.fields
+      .filter((field) => field.isStockKeepingUnit && field.isActive)
+      .map((field) => ({
+        fieldId: field.fieldId,
+        groupId: field.groupId,
+        groupName: field.groupName,
+        name: field.name,
+        isStockKeepingUnit: field.isStockKeepingUnit,
+        isActive: field.isActive,
+        values: field.values
+          .filter((value) => value.isActive)
+          .map((value) => ({
+            fieldValueId: value.fieldValueId,
+            name: value.name,
+            isActive: value.isActive,
+          })),
+      })),
     specificationFields: specificationsResult.fields
       .filter((field) => !field.isStockKeepingUnit && field.isActive)
       .map((field) => ({
@@ -1337,6 +1358,7 @@ export async function getProductEditorLookups(context: AdminContext): Promise<Pr
             isActive: value.isActive,
           })),
       })),
+    offerings: offeringsResult.ok ? offeringsResult.data : [],
     warnings: [...warnings, ...(pricingLookups.warnings ?? []), ...carriersResult.warnings],
   };
 }
@@ -1720,6 +1742,22 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
         parse: asAppliedPricePreview,
       });
     },
+    listOfferings(params = {}) {
+      const query: Record<string, string> = {
+        locale: context.locale,
+        includeInactive: params.includeInactive ? "true" : "false",
+      };
+      if (params.q) {
+        query.q = params.q;
+      }
+      if (params.type) {
+        query.type = params.type;
+      }
+      return requestBff(scopedPath("/admin/offerings", query), {
+        context,
+        parse: parseOfferingList,
+      });
+    },
     createOffering(payload: ProductOfferingCreatePayload) {
       return requestBff(scopedPath("/admin/offerings"), {
         context,
@@ -1729,6 +1767,40 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
             "content-type": "application/json",
           },
           body: JSON.stringify(payload),
+        },
+        parse: (value) => {
+          const record = asRecord(value);
+          return {
+            offering: parseOffering(record.offering),
+            message: asString(record.message),
+          };
+        },
+      });
+    },
+    updateOffering(input) {
+      return requestBff(scopedPath(`/admin/offerings/${encodeURIComponent(input.offeringId)}`), {
+        context,
+        init: {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(input.payload),
+        },
+        parse: (value) => {
+          const record = asRecord(value);
+          return {
+            offering: parseOffering(record.offering),
+            message: asString(record.message),
+          };
+        },
+      });
+    },
+    deactivateOffering(offeringId: string) {
+      return requestBff(scopedPath(`/admin/offerings/${encodeURIComponent(offeringId)}`), {
+        context,
+        init: {
+          method: "DELETE",
         },
         parse: (value) => {
           const record = asRecord(value);

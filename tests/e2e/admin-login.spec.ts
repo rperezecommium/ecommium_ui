@@ -33,6 +33,13 @@ const capturedEditorStateRequests: string[] = [];
 const capturedPricingPreviewRequests: string[] = [];
 const capturedPricingGovernanceRequests: string[] = [];
 const capturedCatalogSpecificationRequests: string[] = [];
+const capturedCatalogOfferingRequests: string[] = [];
+const capturedShippingAdminRequests: string[] = [];
+const capturedShippingActiveMutations: Array<{
+  method: string;
+  path: string;
+  body: Record<string, unknown>;
+}> = [];
 const capturedPricingMutations: Array<{
   method: string;
   path: string;
@@ -164,6 +171,69 @@ const catalogSpecificationGroups = [{
     }],
   }],
 }];
+const catalogOfferings = [{
+  id: "offering-installation",
+  offeringId: "offering-installation",
+  name: "Instalacion",
+  localizedName: [{ locale: "es-ES", value: "Instalacion" }],
+  priceMinor: 1999,
+  currency: "EUR",
+  type: "service",
+  active: true,
+  createdAt: "2026-06-29T00:00:00.000Z",
+  updatedAt: "2026-06-29T00:00:00.000Z",
+}];
+const catalogOfferingsByVariant: Record<string, string[]> = {};
+const shippingConfiguration = {
+  zones: [{
+    zoneId: "zone-es",
+    name: "Espana peninsular",
+    countries: ["ES"],
+    states: [],
+    postalCodePrefixes: ["28"],
+    active: true,
+  }],
+  carriers: [{
+    carrierId: "carrier-standard",
+    name: "Carrier Standard",
+    trackingUrlTemplate: "https://tracking.example.test/{{trackingNumber}}",
+    logoUrl: null,
+    active: true,
+  }],
+  carrierServices: [{
+    carrierServiceId: "service-standard",
+    carrierId: "carrier-standard",
+    name: "Entrega standard",
+    deliveryChannel: "delivery",
+    ratingBasis: "WEIGHT",
+    transitTimeLabel: "3-5bd",
+    estimateBusinessDays: 4,
+    handlingFeeMinor: 0,
+    maxWeightGrams: 30000,
+    maxWidthMm: null,
+    maxHeightMm: null,
+    maxDepthMm: null,
+    customerGroupIds: [],
+    active: true,
+  }],
+  rateRules: [{
+    shippingRateRuleId: "rate-standard",
+    carrierServiceId: "service-standard",
+    zoneId: "zone-es",
+    ratingBasis: "WEIGHT",
+    minWeightGrams: 0,
+    maxWeightGrams: 30000,
+    minOrderAmountMinor: null,
+    maxOrderAmountMinor: null,
+    priceMinor: 499,
+    currency: "EUR",
+    taxRateBasisPoints: 2100,
+    freeShippingThresholdMinor: null,
+    outOfRangeBehavior: "DISABLE_CARRIER",
+    priority: 100,
+    active: true,
+  }],
+};
 const uploadedDraftMediaByClientDraftId = new Map<string, Array<{
   localId: string;
   mediaAssetId: string;
@@ -275,6 +345,30 @@ function draftIdFromProductDraftPath(pathname: string) {
   const parts = pathname.split("/");
   const draftIndex = parts.indexOf("product-drafts");
   return draftIndex >= 0 ? decodeURIComponent(parts[draftIndex + 1] ?? "") : "";
+}
+
+function activeShippingItems<T extends { active?: boolean }>(items: T[], includeInactive: boolean) {
+  return includeInactive ? items : items.filter((item) => item.active !== false);
+}
+
+function shippingResourceState(resource: string): {
+  items: Array<Record<string, unknown> & { active?: boolean }>;
+  idKey: string;
+} | null {
+  if (resource === "zones") {
+    return { items: shippingConfiguration.zones, idKey: "zoneId" };
+  }
+  if (resource === "carriers") {
+    return { items: shippingConfiguration.carriers, idKey: "carrierId" };
+  }
+  if (resource === "carrier-services") {
+    return { items: shippingConfiguration.carrierServices, idKey: "carrierServiceId" };
+  }
+  if (resource === "rate-rules") {
+    return { items: shippingConfiguration.rateRules, idKey: "shippingRateRuleId" };
+  }
+
+  return null;
 }
 
 async function startBffMock() {
@@ -500,6 +594,129 @@ async function startBffMock() {
         catalogSpecificationGroups[groupIndex] = nextGroup as typeof catalogSpecificationGroups[number];
       }
       sendJson(response, 200, nextGroup);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/offerings") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      capturedCatalogOfferingRequests.push("GET /api/v1/admin/offerings");
+      const q = (url.searchParams.get("q") ?? "").toLowerCase();
+      const type = url.searchParams.get("type") ?? "";
+      const includeInactive = url.searchParams.get("includeInactive") === "true";
+      sendJson(response, 200, {
+        offerings: catalogOfferings.filter((offering) => {
+          if (!includeInactive && !offering.active) {
+            return false;
+          }
+          if (type && offering.type !== type) {
+            return false;
+          }
+          if (q && !offering.name.toLowerCase().includes(q) && !offering.offeringId.toLowerCase().includes(q)) {
+            return false;
+          }
+          return true;
+        }),
+      });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/v1/admin/offerings") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const body = await readJsonBody(request);
+      capturedCatalogOfferingRequests.push("POST /api/v1/admin/offerings");
+      const name = Array.isArray(body.localizedName)
+        ? String((body.localizedName[0] as Record<string, unknown>)?.value ?? "Servicio Playwright")
+        : "Servicio Playwright";
+      const offering = {
+        id: "offering-playwright",
+        offeringId: "offering-playwright",
+        name,
+        localizedName: [{ locale: "es-ES", value: name }],
+        priceMinor: Number(body.priceMinor ?? 0),
+        currency: String(body.currency ?? "EUR"),
+        type: String(body.type ?? "service"),
+        active: body.active !== false,
+        createdAt: "2026-06-29T01:00:00.000Z",
+        updatedAt: "2026-06-29T01:00:00.000Z",
+      };
+      const existingIndex = catalogOfferings.findIndex((item) => item.offeringId === offering.offeringId);
+      if (existingIndex >= 0) {
+        catalogOfferings[existingIndex] = offering;
+      } else {
+        catalogOfferings.push(offering);
+      }
+      sendJson(response, 200, { offering, message: "offering created" });
+      return;
+    }
+
+    const offeringMatch = url.pathname.match(/^\/api\/v1\/admin\/offerings\/([^/]+)$/);
+    if (offeringMatch && request.method === "PATCH") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const body = await readJsonBody(request);
+      const offeringId = decodeURIComponent(offeringMatch[1]);
+      capturedCatalogOfferingRequests.push(`PATCH /api/v1/admin/offerings/${offeringId}`);
+      const index = catalogOfferings.findIndex((item) => item.offeringId === offeringId);
+      const current = catalogOfferings[index] ?? catalogOfferings[0];
+      const name = Array.isArray(body.localizedName)
+        ? String((body.localizedName[0] as Record<string, unknown>)?.value ?? current.name)
+        : current.name;
+      const offering = {
+        ...current,
+        name,
+        localizedName: [{ locale: "es-ES", value: name }],
+        priceMinor: Number(body.priceMinor ?? current.priceMinor),
+        currency: String(body.currency ?? current.currency),
+        type: String(body.type ?? current.type),
+        active: typeof body.active === "boolean" ? body.active : current.active,
+        updatedAt: "2026-06-29T02:00:00.000Z",
+      };
+      catalogOfferings[index >= 0 ? index : 0] = offering;
+      sendJson(response, 200, { offering, message: "offering updated" });
+      return;
+    }
+
+    if (offeringMatch && request.method === "DELETE") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const offeringId = decodeURIComponent(offeringMatch[1]);
+      capturedCatalogOfferingRequests.push(`DELETE /api/v1/admin/offerings/${offeringId}`);
+      const index = catalogOfferings.findIndex((item) => item.offeringId === offeringId);
+      const current = catalogOfferings[index] ?? catalogOfferings[0];
+      const offering = { ...current, active: false };
+      catalogOfferings[index >= 0 ? index : 0] = offering;
+      sendJson(response, 200, { offering, message: "offering deactivated" });
+      return;
+    }
+
+    const offeringVariantMatch = url.pathname.match(/^\/api\/v1\/admin\/offerings\/([^/]+)\/variants\/([^/]+)$/);
+    if (offeringVariantMatch && request.method === "PUT") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const offeringId = decodeURIComponent(offeringVariantMatch[1]);
+      const variantId = decodeURIComponent(offeringVariantMatch[2]);
+      capturedCatalogOfferingRequests.push(`PUT /api/v1/admin/offerings/${offeringId}/variants/${variantId}`);
+      catalogOfferingsByVariant[variantId] = Array.from(new Set([
+        ...(catalogOfferingsByVariant[variantId] ?? []),
+        offeringId,
+      ]));
+      sendJson(response, 200, { offeringId, variantId, message: "offering attached to variant" });
+      return;
+    }
+
+    const offeringByVariantMatch = url.pathname.match(/^\/api\/v1\/admin\/offerings\/variants\/([^/]+)$/);
+    if (offeringByVariantMatch && request.method === "GET") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const variantId = decodeURIComponent(offeringByVariantMatch[1]);
+      capturedCatalogOfferingRequests.push(`GET /api/v1/admin/offerings/variants/${variantId}`);
+      const offeringIds = catalogOfferingsByVariant[variantId] ?? [];
+      sendJson(response, 200, {
+        variantId,
+        offerings: catalogOfferings.filter((offering) => offeringIds.includes(offering.offeringId)),
+      });
       return;
     }
 
@@ -740,15 +957,47 @@ async function startBffMock() {
     }
 
     if (request.method === "GET" && url.pathname === "/api/v1/admin/shipping/configuration") {
+      capturedShippingAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
       expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
       expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const includeInactive = url.searchParams.get("includeInactive") === "true";
       sendJson(response, 200, {
-        carriers: [{
-          carrierId: "carrier-standard",
-          name: "Carrier Standard",
-          active: true,
-        }],
+        organizationId: defaultOrganizationId,
+        shopId: barcelonaShopId,
+        zones: activeShippingItems(shippingConfiguration.zones, includeInactive),
+        carriers: activeShippingItems(shippingConfiguration.carriers, includeInactive),
+        carrierServices: activeShippingItems(shippingConfiguration.carrierServices, includeInactive),
+        rateRules: activeShippingItems(shippingConfiguration.rateRules, includeInactive),
       });
+      return;
+    }
+
+    const shippingActiveMatch = url.pathname.match(/^\/api\/v1\/admin\/shipping\/(zones|carriers|carrier-services|rate-rules)\/([^/]+)\/active$/);
+    if (request.method === "PATCH" && shippingActiveMatch) {
+      capturedShippingAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const [, resource, encodedId] = shippingActiveMatch;
+      const body = await readJsonBody(request);
+      const state = shippingResourceState(resource);
+      const id = decodeURIComponent(encodedId);
+      if (!state || typeof body.active !== "boolean") {
+        sendJson(response, 400, { message: "invalid shipping active update" });
+        return;
+      }
+      const item = state.items.find((candidate) => candidate[state.idKey] === id);
+      if (!item) {
+        sendJson(response, 404, { message: "shipping resource not found" });
+        return;
+      }
+
+      item.active = body.active;
+      capturedShippingActiveMutations.push({
+        method: request.method,
+        path: url.pathname,
+        body,
+      });
+      sendJson(response, 200, item);
       return;
     }
 
@@ -1390,7 +1639,9 @@ test("catalog attributes and features page filters and creates feature values th
   await page.goto(`http://127.0.0.1:${nextPort}/admin/catalogo/atributos-caracteristicas?tab=features`);
 
   await expect(page.getByRole("heading", { name: "Caracteristicas Tecnicas", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Atributos", exact: true })).toHaveCount(0);
+  const catalogDataModeNav = page.getByLabel("Tipo de dato catalogo");
+  await expect(catalogDataModeNav.getByRole("link", { name: "Atributos", exact: true })).toBeVisible();
+  await expect(catalogDataModeNav.getByRole("link", { name: "Caracteristicas", exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "ID" })).toBeVisible();
   await expect(page.getByLabel("Filtrar por ID superior")).toBeVisible();
   await expect(page.getByLabel("Filtrar por nombre superior")).toBeVisible();
@@ -1402,6 +1653,15 @@ test("catalog attributes and features page filters and creates feature values th
   const filterForm = page.getByRole("form", { name: "Filtros superiores" });
   await expect(filterForm).toHaveCSS("flex-direction", "row");
   await expect(filterForm).toHaveCSS("flex-wrap", "nowrap");
+  await catalogDataModeNav.getByRole("link", { name: "Atributos", exact: true }).click();
+  await expect(page).toHaveURL(/tab=attributes/);
+  await expect(page.locator("h1", { hasText: "Atributos de combinacion" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Atributo" })).toBeVisible();
+  const colorAttributeRow = page.getByRole("row", { name: /field-co.*Color.*Combinacion/ });
+  await expect(colorAttributeRow).toBeVisible();
+  await expect(colorAttributeRow.getByText("Rojo")).toBeVisible();
+  await catalogDataModeNav.getByRole("link", { name: "Caracteristicas", exact: true }).click();
+  await expect(page).toHaveURL(/tab=features/);
   await filterForm.getByLabel("Filtrar por nombre superior").fill("Composicion");
   await filterForm.getByRole("button", { name: "Buscar" }).click();
   await expect(page).toHaveURL(/q=Composicion/);
@@ -1440,7 +1700,7 @@ test("catalog attributes and features page filters and creates feature values th
   await expect(updatedRow.getByText("Aluminio")).toBeVisible();
   await updatedRow.getByRole("link", { name: "Editar Material Playwright" }).click();
   await expect(page).toHaveURL(/panel=edit/);
-  await expect(page.getByRole("dialog", { name: /Editar Caracteristica: field-pl/ })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: /Editar caracteristica: field-pl/i })).toBeVisible();
   await expect(page.getByRole("form", { name: "Editar Material Playwright" })).toBeVisible();
   await expect(page.getByRole("form", { name: "Anadir valor Material Playwright" })).toBeVisible();
   await expect(page.getByRole("form", { name: "Editar Material Playwright" }).locator('input[name="name"]')).toHaveCSS("height", "40px");
@@ -1451,6 +1711,54 @@ test("catalog attributes and features page filters and creates feature values th
   expect(capturedCatalogSpecificationRequests).toContain("GET /api/v1/admin/specifications/groups");
   expect(capturedCatalogSpecificationRequests).toContain("POST /api/v1/admin/specifications/groups");
   expect(browserExternalRequests).toEqual([]);
+});
+
+test("catalog offerings page manages services through BFF", async ({ page }) => {
+  capturedCatalogOfferingRequests.length = 0;
+  const existingIndex = catalogOfferings.findIndex((offering) => offering.offeringId === "offering-playwright");
+  if (existingIndex >= 0) {
+    catalogOfferings.splice(existingIndex, 1);
+  }
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/catalogo/offerings`);
+
+  await expect(page.getByRole("heading", { name: "Offerings / Servicios adicionales" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Offering" })).toBeVisible();
+  await expect(page.getByText("Instalacion")).toBeVisible();
+
+  const filterForm = page.getByRole("form", { name: "Filtros de offerings" });
+  await expect(filterForm).toHaveCSS("flex-direction", "row");
+  await filterForm.getByLabel("Filtrar offering por nombre").fill("Instalacion");
+  await filterForm.getByRole("button", { name: "Buscar" }).click();
+  await expect(page).toHaveURL(/q=Instalacion/);
+  await expect(page.getByText("Instalacion")).toBeVisible();
+
+  await page.getByRole("link", { name: "Crear offering" }).click();
+  await expect(page.getByRole("dialog", { name: "Crear offering" })).toBeVisible();
+  const createForm = page.getByRole("form", { name: "Crear offering" });
+  await createForm.locator('input[name="name"]').fill("Montaje Playwright");
+  await createForm.locator('select[name="type"]').selectOption("service");
+  await createForm.locator('input[name="price"]').fill("14.50");
+  await createForm.getByRole("button", { name: "Guardar cambios" }).click();
+  await expect(page.getByText("Montaje Playwright")).toBeVisible();
+
+  const createdRow = page.getByRole("row", { name: /Montaje Playwright.*service.*14,50/ });
+  await createdRow.getByRole("link", { name: "Editar Montaje Playwright" }).click();
+  await expect(page.getByRole("dialog", { name: /Editar offering: offering/ })).toBeVisible();
+  const editForm = page.getByRole("form", { name: "Editar Montaje Playwright" });
+  await editForm.locator('input[name="name"]').fill("Montaje Premium");
+  await editForm.locator('input[name="price"]').fill("19.99");
+  await editForm.getByRole("button", { name: "Guardar cambios" }).click();
+  await expect(page.getByText("Montaje Premium")).toBeVisible();
+
+  const updatedRow = page.getByRole("row", { name: /Montaje Premium.*service.*19,99/ });
+  await updatedRow.getByRole("button", { name: "Eliminar Montaje Premium" }).click();
+  await expect(page.getByText("Montaje Premium")).toHaveCount(0);
+  expect(capturedCatalogOfferingRequests).toContain("GET /api/v1/admin/offerings");
+  expect(capturedCatalogOfferingRequests).toContain("POST /api/v1/admin/offerings");
+  expect(capturedCatalogOfferingRequests).toContain("PATCH /api/v1/admin/offerings/offering-playwright");
+  expect(capturedCatalogOfferingRequests).toContain("DELETE /api/v1/admin/offerings/offering-playwright");
 });
 
 test("pricing configuration exposes master data and creates customer groups through BFF", async ({ page }) => {
@@ -1552,6 +1860,76 @@ test("pricing configuration resolves computed auto prices through BFF", async ({
   expect(browserExternalRequests).toEqual([]);
 });
 
+test("shipping configuration manages carriers with drawers and active actions through BFF", async ({ page }) => {
+  capturedShippingAdminRequests.length = 0;
+  capturedShippingActiveMutations.length = 0;
+  shippingConfiguration.carriers[0].active = true;
+  const browserExternalRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.hostname === "127.0.0.1" && url.port && Number(url.port) !== nextPort) {
+      browserExternalRequests.push(request.url());
+    }
+  });
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/configuracion/transporte?tab=carriers&includeInactive=true`);
+
+  await expect(page.getByRole("heading", { name: "Transporte" })).toBeVisible();
+  await expect(page.getByText("Admin / Configuracion / Transporte")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Transportistas" })).toHaveClass(/productEditorTabActive/);
+  await expect(page.getByLabel("Transporte").getByRole("link", { name: "Transportistas" })).toBeVisible();
+
+  await page.getByRole("link", { name: "Crear transportista" }).click();
+  await expect(page).toHaveURL(/drawer=create/);
+  await expect(page.locator(".adminSideDrawer")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Crear transportista" })).toBeVisible();
+  await page.locator(".adminSideDrawer").getByRole("link", { name: "Cerrar" }).click();
+  await expect(page.locator(".adminSideDrawer")).toHaveCount(0);
+
+  const carrierRow = page.getByRole("row", { name: /carrier-standard.*Carrier Standard/ });
+  await expect(carrierRow).toBeVisible();
+  await carrierRow.getByRole("link", { name: "Editar" }).click();
+  await expect(page).toHaveURL(/drawer=edit/);
+  await expect(page.getByRole("heading", { name: "Editar transportista" })).toBeVisible();
+  await expect(page.locator(".adminSideDrawer").locator('input[name="carrierId"]')).toHaveValue("carrier-standard");
+  await page.locator(".adminSideDrawer").getByRole("link", { name: "Cerrar" }).click();
+
+  await carrierRow.getByRole("button", { name: "Desactivar" }).click();
+  await expect(page.getByText("Recurso desactivado.")).toBeVisible();
+  await expect.poll(() => capturedShippingActiveMutations).toContainEqual({
+    method: "PATCH",
+    path: "/api/v1/admin/shipping/carriers/carrier-standard/active",
+    body: {
+      active: false,
+    },
+  });
+  await expect(page.getByRole("row", { name: /carrier-standard.*No.*Reactivar/ })).toBeVisible();
+
+  await page.getByRole("row", { name: /carrier-standard.*No.*Reactivar/ }).getByRole("button", { name: "Reactivar" }).click();
+  await expect(page.getByText("Recurso reactivado.")).toBeVisible();
+  await expect.poll(() => capturedShippingActiveMutations).toContainEqual({
+    method: "PATCH",
+    path: "/api/v1/admin/shipping/carriers/carrier-standard/active",
+    body: {
+      active: true,
+    },
+  });
+  await expect(page.getByRole("row", { name: /carrier-standard.*Si.*Desactivar/ })).toBeVisible();
+
+  await page.getByRole("link", { name: "Simulador" }).click();
+  await expect(page.getByRole("heading", { name: "Simular cotizacion" })).toBeVisible();
+  await expect(page.getByLabel("Codigo postal")).toHaveValue("28001");
+  await expect(page.getByLabel("Precio item minor")).toHaveValue("4000");
+  await expect(page.getByLabel("Subtotal minor")).toBeVisible();
+  await expect(page.getByLabel("Customer group")).toBeVisible();
+
+  expect(capturedShippingAdminRequests).toContain(
+    `GET /api/v1/admin/shipping/configuration?organizationId=${defaultOrganizationId}&shopId=${barcelonaShopId}&includeInactive=true`,
+  );
+  expect(browserExternalRequests).toEqual([]);
+});
+
 test("product editor rehydrates persisted draft media through BFF only", async ({ page }) => {
   capturedDraftStateRequests.length = 0;
   const browserExternalRequests: string[] = [];
@@ -1599,11 +1977,18 @@ test("product editor selects catalog feature values and renders them in preview"
   await page.goto(`http://127.0.0.1:${nextPort}/admin/products/new`);
 
   await page.getByLabel("Nombre del producto").fill("Producto con ficha tecnica");
-  await page.getByRole("button", { name: "Caracteristicas" }).click();
-  await expect(page.getByRole("heading", { name: "Caracteristicas" })).toBeVisible();
-  await expect(page.getByRole("row", { name: /Ficha tecnica Composicion/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ajustes basicos" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Caracteristicas y especificaciones" })).toBeVisible();
 
-  await page.getByLabel("Valor Composicion").selectOption("value-aluminium");
+  await page.getByRole("button", { name: "Caracteristicas", exact: true }).click();
+  const featureDialog = page.getByRole("dialog", { name: "Caracteristicas" });
+  await expect(featureDialog).toBeVisible();
+  await featureDialog.getByRole("button", { name: /Ficha tecnica Composicion/ }).click();
+  await expect(page.getByRole("dialog", { name: "Composicion" })).toBeVisible();
+  await page.getByRole("button", { name: "Aluminio" }).click();
+  await expect(page.getByRole("dialog", { name: "Agregar otra caracteristica" })).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar" }).click();
+  await expect(page.getByText("Aluminio")).toBeVisible();
   await page.getByRole("button", { name: "Vista previa" }).click();
 
   const previewDialog = page.getByRole("dialog", { name: "Vista previa PDP" });
@@ -1625,8 +2010,30 @@ test("product editor presents variant options as combination attributes", async 
   await page.getByRole("button", { name: "Anadir variante" }).click();
 
   await expect(page.getByRole("heading", { name: "Atributos de combinacion" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Anadir atributo" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Atributos de combinacion", exact: true })).toBeVisible();
+  await expect(page.getByText("0 asociados")).toBeVisible();
   await expect(page.getByText("Estos atributos identifican esta variante vendible.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cerrar ayuda de atributos de combinacion" })).toBeVisible();
+
+  const variantsTable = page.locator(".productCombinationTable");
+  const offeringsPanel = page.locator(".productOfferingPositionPanel");
+  const attributesPanel = page.locator(".productVariantAttributePanel");
+  await expect(page.getByText("Guarda primero esta variante para asociar servicios adicionales.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cerrar aviso de servicios adicionales" })).toBeVisible();
+  const [tableBox, offeringsBox, attributesBox] = await Promise.all([
+    variantsTable.boundingBox(),
+    offeringsPanel.boundingBox(),
+    attributesPanel.boundingBox(),
+  ]);
+  expect(tableBox).not.toBeNull();
+  expect(offeringsBox).not.toBeNull();
+  expect(attributesBox).not.toBeNull();
+  expect(offeringsBox!.y).toBeGreaterThan(tableBox!.y + tableBox!.height - 1);
+  expect(attributesBox!.y).toBeGreaterThan(offeringsBox!.y);
+  await page.getByRole("button", { name: "Cerrar aviso de servicios adicionales" }).click();
+  await expect(page.getByText("Guarda primero esta variante para asociar servicios adicionales.")).toHaveCount(0);
+  await page.getByRole("button", { name: "Cerrar ayuda de atributos de combinacion" }).click();
+  await expect(page.getByText("Estos atributos identifican esta variante vendible.")).toHaveCount(0);
 });
 
 test("product preview resolves attribute choices to sellable variants", async ({ page }) => {
@@ -2216,6 +2623,8 @@ test("product editor loads existing product state and saves through operation en
   capturedEditorStateRequests.length = 0;
   capturedDraftStateRequests.length = 0;
   capturedSaveOperationRequests.length = 0;
+  capturedCatalogOfferingRequests.length = 0;
+  catalogOfferingsByVariant["variant-edit-default"] = [];
   saveOperationMode = "success";
 
   await loginAdmin(page);
@@ -2227,7 +2636,20 @@ test("product editor loads existing product state and saves through operation en
   await page.getByRole("button", { name: "Imagenes" }).click();
   await expect(page.getByRole("button", { name: /Imagen producto existente Portada Subida/ })).toBeVisible();
 
-  await page.getByLabel("Nombre del producto").fill("Producto existente actualizado");
+  await page.getByRole("button", { name: "Variantes", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Servicios adicionales" })).toBeVisible();
+  await page.getByRole("button", { name: "Servicios adicionales", exact: true }).click();
+  const offeringDialog = page.getByRole("dialog", { name: "Servicios adicionales" });
+  await expect(offeringDialog).toBeVisible();
+  await expect(offeringDialog.getByRole("link", { name: "Gestionar servicios" })).toBeVisible();
+  await offeringDialog.getByRole("button", { name: /Instalacion/ }).click();
+  await expect(page.getByRole("dialog", { name: "Instalacion" })).toBeVisible();
+  await page.getByRole("button", { name: "Agregar servicio" }).click();
+  await expect(page.getByRole("dialog", { name: "Agregar otro servicio" })).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar" }).click();
+  await expect(page.getByText("Instalacion")).toBeVisible();
+
+  await page.getByPlaceholder("Nuevo producto").fill("Producto existente actualizado");
   await page.getByRole("button", { name: "Guardar producto" }).click();
 
   await expect(page.getByText("Producto guardado.")).toBeVisible();
@@ -2238,6 +2660,9 @@ test("product editor loads existing product state and saves through operation en
   expect(capturedSaveOperationRequests).toHaveLength(1);
   expect(capturedBffRequests).not.toContain("PATCH /api/v1/admin/products/product-edit-1");
   expect(capturedBffRequests).not.toContain("POST /api/v1/admin/prices");
+  expect(capturedCatalogOfferingRequests).toContain("GET /api/v1/admin/offerings");
+  expect(capturedCatalogOfferingRequests).toContain("PUT /api/v1/admin/offerings/offering-installation/variants/variant-edit-default");
+  expect(capturedCatalogOfferingRequests).toContain("GET /api/v1/admin/offerings/variants/variant-edit-default");
 });
 
 test("product editor applies the pricing preview simulator from the pricing tab", async ({ page }) => {

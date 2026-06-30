@@ -5,7 +5,6 @@ import {
   Home,
   Settings,
   ShoppingBasket,
-  Truck,
   UsersRound,
 } from "lucide-react";
 import type { AdminSession } from "../shared/auth/session";
@@ -22,7 +21,6 @@ const navItems = [
   { href: "/admin/catalogo", label: "Catalogo", description: "Productos y contenido comercial", permission: "admin:catalog:view" as const, icon: ShoppingBasket },
   { href: "/admin/pedidos", label: "Pedidos", description: "Operacion y fulfillment", permission: "admin:orders:view" as const, icon: Boxes },
   { href: "/admin/clientes", label: "Clientes", description: "Customer 360", permission: "admin:customers:view" as const, icon: UsersRound },
-  { href: "/admin/transporte", label: "Transporte", description: "Carriers, zonas y SLA", permission: "admin:shipping:view" as const, icon: Truck },
   { href: "/admin/pagos", label: "Pagos", description: "PSP y routing", permission: "admin:payments:view" as const, icon: CreditCard },
 ];
 
@@ -30,6 +28,7 @@ const configurationNavItems = [
   { href: "/admin/configuracion/contexto", label: "Contexto", description: "Organization y Shop", permission: "admin:configuration:view" as const },
   { href: "/admin/configuracion/equipo", label: "Equipo", description: "Empleados y permisos", permission: "admin:employees:view" as const },
   { href: "/admin/configuracion/precios", label: "Precios", description: "Impuestos, tablas y reglas", permission: "admin:catalog:view" as const },
+  { href: "/admin/configuracion/transporte", label: "Transporte", description: "Carriers, zonas y SLA", permission: "admin:shipping:view" as const },
 ];
 
 const catalogNavItems = [

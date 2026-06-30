@@ -402,7 +402,9 @@ export type ProductEditorLookups = {
   tradePolicies: ProductLookupOption[];
   countries: ProductLookupOption[];
   carriers: ProductLookupOption[];
+  variantAttributeFields: ProductSpecificationLookupField[];
   specificationFields: ProductSpecificationLookupField[];
+  offerings: ProductOfferingRecord[];
   warnings: string[];
 };
 
@@ -617,7 +619,17 @@ export type ProductGateway = {
     price: PriceDraft;
   }): Promise<BffResult<{ pricingId?: string }>>;
   previewAppliedPrice(input: ProductAppliedPricePreviewInput): Promise<BffResult<ProductAppliedPricePreview>>;
+  listOfferings(params?: {
+    q?: string;
+    type?: string;
+    includeInactive?: boolean;
+  }): Promise<BffResult<ProductOfferingRecord[]>>;
   createOffering(payload: ProductOfferingCreatePayload): Promise<BffResult<{ offering: ProductOfferingRecord; message?: string }>>;
+  updateOffering(input: {
+    offeringId: string;
+    payload: ProductOfferingCreatePayload;
+  }): Promise<BffResult<{ offering: ProductOfferingRecord; message?: string }>>;
+  deactivateOffering(offeringId: string): Promise<BffResult<{ offering: ProductOfferingRecord; message?: string }>>;
   attachOfferingToVariant(input: {
     offeringId: string;
     variantId: string;

@@ -24,7 +24,7 @@ type Props = {
 function featureHref(filters: CatalogAttributeFeatureFilters, overrides: Partial<CatalogAttributeFeatureFilters> = {}) {
   const next = { ...filters, ...overrides };
   const params = new URLSearchParams();
-  params.set("tab", "features");
+  params.set("tab", next.tab ?? "features");
   if (next.id) params.set("id", next.id);
   if (next.q) params.set("q", next.q);
   if (next.group) params.set("group", next.group);
@@ -103,18 +103,49 @@ export function CatalogAttributesFeaturesPage({
   const isCreatePanel = filters.panel === "create";
   const isEditPanel = filters.panel === "edit" && selectedField;
   const showDrawer = isCreatePanel || Boolean(isEditPanel);
-  const tab = "features" as const;
-  const emptyCopy = "Crea caracteristicas tecnicas visibles en la ficha, comparadores y filtros.";
+  const tab = filters.tab;
+  const isAttributesTab = tab === "attributes";
+  const copy = isAttributesTab
+    ? {
+        breadcrumb: "Admin / Catalogo / Atributos de combinacion",
+        title: "Atributos de combinacion",
+        intro: "Gestiona atributos vendibles como color, talla o formato para construir combinaciones.",
+        listTitle: "Atributos de combinacion",
+        create: "Crear atributo",
+        edit: "Editar atributo",
+        delete: "Eliminar atributo",
+        itemColumn: "Atributo",
+        empty: "Crea atributos SKU reutilizables para que las variantes mantengan combinaciones consistentes.",
+        values: "Valores de combinacion",
+        namePlaceholder: "color",
+        valuePlaceholder: "Rojo, Azul",
+        groupPlaceholder: "Variantes",
+      }
+    : {
+        breadcrumb: "Admin / Catalogo / Caracteristicas",
+        title: "Caracteristicas Tecnicas",
+        intro: "Gestiona la ficha tecnica reutilizable del producto sin mezclar atributos de combinacion.",
+        listTitle: "Caracteristicas tecnicas",
+        create: "Crear caracteristica",
+        edit: "Editar caracteristica",
+        delete: "Eliminar caracteristica",
+        itemColumn: "Caracteristica",
+        empty: "Crea caracteristicas tecnicas visibles en la ficha, comparadores y filtros.",
+        values: "Valores",
+        namePlaceholder: "durabilidad",
+        valuePlaceholder: "Algodon, Poliester",
+        groupPlaceholder: "Ficha tecnica",
+      };
   const closeDrawerHref = featureHref(filters, { panel: "", fieldId: "" });
 
   return (
     <main className={`adminPage adminFeaturePage ${showDrawer ? "adminFeaturePageWithDrawer" : ""}`}>
       <div className="adminFeatureContent">
-        <div className="adminBreadcrumb">Admin / Catalogo / Caracteristicas</div>
+        <div className="adminBreadcrumb">{copy.breadcrumb}</div>
         <div className="adminPageHeader">
           <div>
-            <h1 className="adminPageTitle">Caracteristicas Tecnicas</h1>
-            <p className="adminPageIntro">Gestiona la ficha tecnica reutilizable del producto sin mezclar atributos de combinacion.</p>
+            <h1 className="adminPageTitle">{copy.title}</h1>
+            <p className="adminPageIntro">{copy.intro}</p>
           </div>
           <div className="adminButtonRow">
             <Link className="adminButton" href="/admin/products">
@@ -122,22 +153,31 @@ export function CatalogAttributesFeaturesPage({
             </Link>
             <Link className="adminButton adminButtonPrimary" href={featureHref(filters, { panel: "create", fieldId: "" })}>
               <Plus aria-hidden="true" size={16} />
-              Crear caracteristica
+              {copy.create}
             </Link>
           </div>
         </div>
 
+        <nav aria-label="Tipo de dato catalogo" className="adminFeatureModeNav">
+          <Link className={`adminFeatureModeLink ${isAttributesTab ? "adminFeatureModeLinkActive" : ""}`} href={featureHref(filters, { tab: "attributes", panel: "", fieldId: "" })}>
+            Atributos
+          </Link>
+          <Link className={`adminFeatureModeLink ${!isAttributesTab ? "adminFeatureModeLinkActive" : ""}`} href={featureHref(filters, { tab: "features", panel: "", fieldId: "" })}>
+            Caracteristicas
+          </Link>
+        </nav>
+
         {data.source === "unavailable" ? (
           <div className="adminBanner adminBannerError">
-            <p>No se pudo conectar con el BFF para caracteristicas.</p>
+            <p>No se pudo conectar con el BFF para {isAttributesTab ? "atributos de combinacion" : "caracteristicas"}.</p>
             <p className="adminContextHint">{data.failedEndpoint}: {data.message}</p>
           </div>
         ) : null}
 
-        <section className="adminFeatureListArea" aria-label="Caracteristicas tecnicas">
+        <section className="adminFeatureListArea" aria-label={copy.listTitle}>
           <div className="adminFeatureListHeader">
             <div>
-              <h2>Caracteristicas tecnicas</h2>
+              <h2>{copy.listTitle}</h2>
               <p>{activeFields.length} registros encontrados.</p>
             </div>
             <div className="adminButtonRow">
@@ -158,7 +198,7 @@ export function CatalogAttributesFeaturesPage({
             </label>
             <label className="adminField adminFeatureFilterName">
               <span>Nombre</span>
-              <input aria-label="Filtrar por nombre superior" defaultValue={filters.q ?? ""} name="q" placeholder="Nombre" />
+              <input aria-label="Filtrar por nombre superior" defaultValue={filters.q ?? ""} name="q" placeholder={isAttributesTab ? "Color" : "Nombre"} />
             </label>
             <label className="adminField">
               <span>Grupo</span>
@@ -181,7 +221,7 @@ export function CatalogAttributesFeaturesPage({
           {activeFields.length === 0 ? (
             <div className="adminEmptyState">
               <h2>Sin registros</h2>
-              <p>{emptyCopy}</p>
+              <p>{copy.empty}</p>
             </div>
           ) : (
             <div className="adminFeatureTableShell">
@@ -189,7 +229,7 @@ export function CatalogAttributesFeaturesPage({
                 <thead>
                   <tr>
                     <th scope="col">ID</th>
-                    <th scope="col">Caracteristica</th>
+                    <th scope="col">{copy.itemColumn}</th>
                     <th scope="col">Grupo</th>
                     <th scope="col">Valores</th>
                     <th scope="col">Estado</th>
@@ -208,7 +248,12 @@ export function CatalogAttributesFeaturesPage({
                           <span>Pos. {field.position}</span>
                         </div>
                       </td>
-                      <td>{field.groupName}</td>
+                      <td>
+                        <div className="adminFeatureNameCell">
+                          <strong>{field.groupName}</strong>
+                          <span>{field.isStockKeepingUnit ? "Combinacion" : "Ficha tecnica"}</span>
+                        </div>
+                      </td>
                       <td>
                         <FieldValueChips field={field} removeValueAction={removeValueAction} />
                       </td>
@@ -254,7 +299,7 @@ export function CatalogAttributesFeaturesPage({
           <aside aria-labelledby="feature-drawer-title" aria-modal="true" className="adminFeatureDrawer" role="dialog">
             <div className="adminFeatureDrawerHeader">
               <h2 id="feature-drawer-title">
-                {isCreatePanel ? "Crear caracteristica" : `Editar Caracteristica: ${selectedField?.fieldId.slice(0, 8)}`}
+                {isCreatePanel ? copy.create : `${copy.edit}: ${selectedField?.fieldId.slice(0, 8)}`}
               </h2>
               <Link aria-label="Cerrar panel" className="adminIconButton" href={closeDrawerHref}>
                 <X aria-hidden="true" size={18} />
@@ -262,7 +307,7 @@ export function CatalogAttributesFeaturesPage({
             </div>
 
             {isCreatePanel ? (
-              <form action={createAction} aria-label="Crear caracteristica" className="adminFeatureDrawerBody">
+              <form action={createAction} aria-label={copy.create} className="adminFeatureDrawerBody">
                 <input name="tab" type="hidden" value={tab} />
                 <div className="adminFeatureReadOnlyLine">
                   <span>ID</span>
@@ -270,7 +315,7 @@ export function CatalogAttributesFeaturesPage({
                 </div>
                 <label className="adminField">
                   <span>Nombre</span>
-                  <input name="name" placeholder="durabilidad" required />
+                  <input name="name" placeholder={copy.namePlaceholder} required />
                 </label>
                 <label className="adminField">
                   <span>Grupo</span>
@@ -285,7 +330,7 @@ export function CatalogAttributesFeaturesPage({
                 </label>
                 <label className="adminField">
                   <span>Grupo nuevo</span>
-                  <input name="groupName" placeholder="Ficha tecnica" />
+                  <input name="groupName" placeholder={copy.groupPlaceholder} />
                 </label>
                 <label className="adminField">
                   <span>Categoria</span>
@@ -299,8 +344,8 @@ export function CatalogAttributesFeaturesPage({
                   </select>
                 </label>
                 <label className="adminField">
-                  <span>Valores</span>
-                  <input name="values" placeholder="Algodon, Poliester" />
+                  <span>{copy.values}</span>
+                  <input name="values" placeholder={copy.valuePlaceholder} />
                 </label>
                 <FeatureToggles />
                 <button className="adminButton adminButtonPrimary" type="submit">
@@ -340,8 +385,8 @@ export function CatalogAttributesFeaturesPage({
                   </button>
                 </form>
 
-                <section className="adminFeatureDrawerStack" aria-label={`Valores de ${selectedField.name}`}>
-                  <span className="adminFeatureDrawerLabel">Valores</span>
+                <section className="adminFeatureDrawerStack" aria-label={`${copy.values} de ${selectedField.name}`}>
+                  <span className="adminFeatureDrawerLabel">{copy.values}</span>
                   <FieldValueChips field={selectedField} removeValueAction={removeValueAction} />
                   <form action={addValueAction} aria-label={`Anadir valor ${selectedField.name}`} className="adminFeatureAddValueForm">
                     <input name="groupId" type="hidden" value={selectedField.groupId} />
@@ -360,7 +405,7 @@ export function CatalogAttributesFeaturesPage({
                   <input name="isFilter" type="hidden" value={String(selectedField.isFilter)} />
                   <input name="isOnProductDetails" type="hidden" value={String(selectedField.isOnProductDetails)} />
                   <button className="adminButton adminButtonDanger" type="submit">
-                    Eliminar caracteristica
+                    {copy.delete}
                   </button>
                 </form>
               </div>
