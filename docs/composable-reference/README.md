@@ -299,6 +299,35 @@ Los valores legacy se muestran como opcion actual si todavia no existen en
 - `PATCH /api/v1/admin/media/collections/:mediaCollectionId`
 - `DELETE /api/v1/admin/media/collections/:mediaCollectionId?mode=soft|hard`
 - `GET /api/v1/admin/media/assets/:mediaAssetId/content?variant=original|small_default|medium_default|large_default`
+
+`Admin > Catalogo > Media` lista colecciones por BFF con scope
+`organizationId/shopId/locale`, permite revisar detalle de assets, alt/title,
+estado y preview por el proxy server-side `/api/admin/media-assets/:mediaAssetId/content`.
+La UI solo expone baja segura de coleccion con `DELETE ...?mode=soft`; no expone
+borrado hard ni subida libre fuera del flujo de producto hasta tener contrato
+Admin de metadata y ownership suficientemente cerrado.
+
+`Admin > Catalogo > Stock` no usa un listado global inventado de Inventory. Lee
+productos por `GET /admin/products`, abre `GET /admin/products/:productId/editor-state`
+para obtener variantes y disponibilidad, y actualiza cada fila con
+`PUT /admin/inventory/stock-levels`. La pantalla no crea reservas, no edita
+warehouses globales y no mezcla reglas de Shipping/Logistics con disponibilidad
+comercial.
+
+`Admin > Promociones` es el punto de entrada para cupones y reglas de carrito
+gobernadas por `Promotions`. La UI no debe llamar directo a `services/promotions`;
+consume la fachada BFF Admin estable para CRUD de cupones:
+
+- `GET /api/v1/admin/promotions/coupons?organizationId=:org&shopId=:shop&includeInactive=:bool`
+- `POST /api/v1/admin/promotions/coupons?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/promotions/coupons/:couponCode?organizationId=:org&shopId=:shop`
+- `PATCH /api/v1/admin/promotions/coupons/:couponCode?organizationId=:org&shopId=:shop`
+- `DELETE /api/v1/admin/promotions/coupons/:couponCode?organizationId=:org&shopId=:shop&mode=soft`
+
+Las reglas de precio de catalogo, price tables, fixed prices y computed-auto no
+son cupones. Viven en `Admin > Configuracion > Precios`, consumen
+`/api/v1/admin/pricing/*` y pertenecen a `Pricing`.
+
 - `GET /api/v1/admin/shipping/warehouses?organizationId=:org&shopId=:shop&includeInactive=false`
 - `GET /api/v1/admin/shipping/configuration?organizationId=:org&shopId=:shop&includeInactive=false`
 - `POST /api/v1/shipping/options/resolve?organizationId=:org&shopId=:shop`
@@ -336,7 +365,21 @@ Guardado Admin de producto:
 - Al abrir o restaurar un borrador con `clientDraftId`, la UI consulta `GET /admin/product-drafts/:clientDraftId` y rehidrata `productId`, `defaultVariantId`, `mediaCollectionId` y `mediaItems[]` persistidos.
 - El guardado general usa una sola operacion `POST /admin/product-save-operations` con `draft` JSON, archivos locales pendientes y `idempotency-key`.
 - La respuesta BFF incluye `blocks.catalog|variants|media|variantMedia|pricing|inventory|shipping|publish`, `fieldErrors`, `retryable`, `draftPatch`, `correlationIds` y `recoveryActions`.
+- Las `recoveryActions` se muestran como acciones reales: las de revision navegan al tab del bloque afectado y las de reintento vuelven a ejecutar el guardado canonico. La UI no crea endpoints de reintento paralelos ni borra bloques exitosos.
+- Las especificaciones tecnicas se gestionan dentro del draft: la UI lee grupos/valores desde `GET /admin/specifications/groups`, rehidrata selecciones desde `editor-state`, normaliza un valor por caracteristica y envia `draft.specifications.selections` al guardado general.
 - Si `publish` queda `blocked`, la UI debe mantener el producto como borrador/guardado sin publicar y mostrar las acciones de recuperacion devueltas por BFF. La UI puede anticipar validaciones, pero el BFF decide el estado final.
+- La publicacion desde UI se prepara en el draft con una accion explicita. La UI solo marca `isActive=true` e `isVisible=true` si el checklist local de portada, precio base y stock esta completo; la persistencia ocurre siempre al guardar por `POST /admin/product-save-operations` y el BFF conserva la validacion final.
+- Las variantes se filtran y se operan masivamente solo dentro del draft de la ficha. Activar/desactivar/mostrar/ocultar variantes filtradas no llama a endpoints propios: se persiste despues con `POST /admin/product-save-operations`, que actualiza variantes persistidas por `PATCH` y no por `DELETE`.
+- La pestana `Auditoria` de producto es solo lectura: muestra `productId`, `defaultVariantId`, `mediaCollectionId`, `clientDraftId`, bloques, `operationId`, mensajes, errores, acciones de recuperacion y `correlationIds` ya devueltos por BFF o presentes en el draft.
+
+Listado Admin de productos:
+
+- Las acciones reales disponibles en el listado son editar, previsualizar en el editor local y abrir preview Storefront real. La previsualizacion local usa `/admin/products/:productId?preview=1` y abre el drawer PDP del editor con datos Admin ya hidratados por BFF.
+- La preview Storefront usa `/admin/products/:productId/storefront-preview`: es una pantalla Admin `noindex,nofollow`, consulta `GET /storefront/pdp/:productSlug` por BFF desde servidor con `withAuth=false`, y no crea una URL publica indexable de preview. Si Storefront no devuelve PDP, la UI debe mostrar el fallo real y no rellenar con datos Admin como sustituto.
+- La seleccion de columnas y los ajustes de tamano de pagina se expresan por query string (`columns`, `limit`, `offset`) para que la vista sea reproducible sin estado cliente paralelo.
+- Duplicar producto usa `/admin/products/new?duplicateFrom=:productId`: la UI lee `editor-state` por BFF y abre un borrador nuevo que se guardara por `POST /admin/product-save-operations`. La copia se genera fuera de linea, no visible, sin sitemap, sin aliases, sin media compartida, sin EANs, sin stock vendible, sin ofertas y sin specific prices para evitar duplicidad publica o venta accidental.
+- Desactivar producto es la unica accion destructiva disponible mientras `apps/bff` no exponga borrado de producto. La UI exige confirmacion, llama `PATCH /admin/products/:productId` por BFF con `isActive=false` e `isVisible=false`, y despues intenta inactivar canonical y aliases en Routing/SEO con `includeInSitemap=false`.
+- Las acciones agrupadas del listado quedan limitadas a desactivacion segura de productos seleccionados. La UI exige confirmacion, reutiliza el mismo flujo BFF de desactivacion individual y no expone borrado masivo, publicacion masiva ni llamadas directas a Catalog.
 
 ## UX PrestaShop-like aplicable
 

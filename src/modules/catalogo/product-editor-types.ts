@@ -216,6 +216,55 @@ export type ProductAppliedPricePreview = {
   correlationIds?: string[];
 };
 
+export type ProductRoutingSeoRouteStatus = "ACTIVE" | "INACTIVE";
+
+export type ProductRoutingSeoRoute = {
+  routeId?: string;
+  path: string;
+  routeKind?: "CANONICAL" | "ALIAS";
+  canonicalRouteId?: string | null;
+  status: ProductRoutingSeoRouteStatus;
+  includeInSitemap: boolean;
+  updatedAt?: string | null;
+  markedForDeletion?: boolean;
+};
+
+export type ProductRoutingSeoResolve = {
+  kind: "ROUTE" | "REDIRECT";
+  requestedPath: string;
+  canonicalPath?: string;
+  isCanonical?: boolean;
+  entityType?: string;
+  entityId?: string;
+  routeId?: string;
+  canonicalRouteId?: string | null;
+  toPath?: string;
+  statusCode?: number;
+};
+
+export type ProductRoutingSeoDraft = {
+  canonicalRouteId?: string | null;
+  canonicalPath: string;
+  status: ProductRoutingSeoRouteStatus;
+  includeInSitemap: boolean;
+  createRedirectFromPreviousPath: boolean;
+  aliases: ProductRoutingSeoRoute[];
+  resolvedCanonical?: ProductRoutingSeoResolve | null;
+  updatedAt?: string | null;
+};
+
+export type ProductEditorRoutingSeoState = {
+  routes: {
+    total: number;
+    limit: number;
+    offset: number;
+    items: ProductRoutingSeoRoute[];
+  };
+  canonicalRoute: ProductRoutingSeoRoute | null;
+  aliases: ProductRoutingSeoRoute[];
+  resolvedCanonical: ProductRoutingSeoResolve | null;
+};
+
 export type ProductDraft = {
   clientDraftId: string;
   productId?: string;
@@ -268,6 +317,7 @@ export type ProductDraft = {
     stockByVariant: Record<string, StockDraft>;
   };
   shipping: ProductShippingDraft;
+  routingSeo: ProductRoutingSeoDraft;
   saveState: Record<string, SaveBlockStatus>;
 };
 
@@ -320,6 +370,7 @@ export type ProductListFilters = {
   isActive?: boolean;
   limit?: number;
   offset?: number;
+  columns?: string[];
 };
 
 export type ProductVariantRecord = {
@@ -369,6 +420,7 @@ export type ProductEditorData = {
   offeringsByVariant: Record<string, ProductOfferingRecord[]>;
   stockByVariant: Record<string, StockDraft>;
   shipping?: ProductShippingDraft;
+  routingSeo?: ProductEditorRoutingSeoState | null;
   warnings: string[];
   correlationIds: string[];
 };
@@ -417,6 +469,7 @@ export type ProductSaveBlocks = {
   pricing: SaveBlockStatus;
   inventory: SaveBlockStatus;
   shipping: SaveBlockStatus;
+  routingSeo: SaveBlockStatus;
   publish: SaveBlockStatus;
 };
 

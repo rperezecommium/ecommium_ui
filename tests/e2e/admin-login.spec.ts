@@ -40,6 +40,23 @@ const capturedShippingActiveMutations: Array<{
   path: string;
   body: Record<string, unknown>;
 }> = [];
+const capturedSeoAdminRequests: string[] = [];
+const capturedSeoMutations: Array<{
+  method: string;
+  path: string;
+  body: Record<string, unknown>;
+}> = [];
+const capturedMediaAdminRequests: string[] = [];
+const capturedMediaAdminMutations: Array<{
+  method: string;
+  path: string;
+}> = [];
+const capturedStockAdminRequests: string[] = [];
+const capturedStockMutations: Array<{
+  method: string;
+  path: string;
+  body: Record<string, unknown>;
+}> = [];
 const capturedPricingMutations: Array<{
   method: string;
   path: string;
@@ -79,6 +96,56 @@ const pricingPriceTables = [{
   name: "VIP table",
   active: true,
   currency: "EUR",
+}];
+const pricingRulesByTable: Record<string, Array<{
+  ruleId: string;
+  active: boolean;
+  priority: number;
+  source: string;
+  tradePolicy: string;
+  channel: string;
+  customerGroup: string | null;
+  country: string;
+}>> = {
+  "vip-table": [{
+    ruleId: "rule-vip",
+    active: true,
+    priority: 10,
+    source: "MANUAL",
+    tradePolicy: "default",
+    channel: "web",
+    customerGroup: "vip",
+    country: "ES",
+  }],
+};
+const pricingFixedPrices: Array<{
+  productId: string;
+  variantId: string;
+  itemId: string;
+  priceTableId: string;
+  fixedPrice: { amountMinor: number; currency: string };
+  basePrice: { amountMinor: number; currency: string };
+  listPrice: { amountMinor: number; currency: string } | null;
+  fixedPriceMinor: number;
+  basePriceMinor: number;
+  listPriceMinor: number | null;
+  currency: string;
+  taxIncluded: boolean;
+  active: boolean;
+}> = [{
+  productId: "product-computed-auto",
+  variantId: "variant-computed-auto",
+  itemId: "variant-computed-auto",
+  priceTableId: "vip-table",
+  fixedPrice: { amountMinor: 9300, currency: "EUR" },
+  basePrice: { amountMinor: 9300, currency: "EUR" },
+  listPrice: { amountMinor: 10900, currency: "EUR" },
+  fixedPriceMinor: 9300,
+  basePriceMinor: 9300,
+  listPriceMinor: 10900,
+  currency: "EUR",
+  taxIncluded: true,
+  active: true,
 }];
 const pricingReferenceState: Record<string, Array<{
   code: string;
@@ -234,6 +301,61 @@ const shippingConfiguration = {
     active: true,
   }],
 };
+const seoRoutes = [{
+  routeId: "route-product",
+  organizationId: defaultOrganizationId,
+  shopId: barcelonaShopId,
+  locale: "es-ES",
+  path: "/producto-demo/p",
+  entityType: "PRODUCT",
+  entityId: "product-demo",
+  routeKind: "CANONICAL",
+  canonicalRouteId: null,
+  status: "ACTIVE",
+  includeInSitemap: true,
+  createdAt: "2026-06-30T00:00:00.000Z",
+  updatedAt: "2026-06-30T00:00:00.000Z",
+}];
+const seoRedirects = [{
+  redirectId: "redirect-product-old",
+  organizationId: defaultOrganizationId,
+  shopId: barcelonaShopId,
+  locale: "es-ES",
+  fromPath: "/producto-antiguo/p",
+  toPath: "/producto-demo/p",
+  statusCode: 301,
+  status: "ACTIVE",
+  reason: "slug change",
+  expiresAt: null,
+  createdAt: "2026-06-30T00:00:00.000Z",
+  updatedAt: "2026-06-30T00:00:00.000Z",
+}];
+const mediaCollections = [{
+  mediaCollectionId: "collection-admin-1",
+  organizationId: defaultOrganizationId,
+  shopId: barcelonaShopId,
+  productId: "product-edit-1",
+  title: { "es-ES": "Galeria producto existente" },
+  defaultLocale: "es-ES",
+  active: true,
+  itemCount: 1,
+  mediaAssetIds: ["asset-admin-1"],
+  items: [{
+    mediaAssetId: "asset-admin-1",
+    fileName: "admin-cover.png",
+    mimeType: "image/png",
+    fileSize: 68,
+    position: 1,
+    active: true,
+    isMain: true,
+    alt: { "es-ES": "Alt admin media" },
+    title: { "es-ES": "Title admin media" },
+    createdAt: "2026-06-30T00:00:00.000Z",
+    updatedAt: "2026-06-30T00:00:00.000Z",
+  }],
+  createdAt: "2026-06-30T00:00:00.000Z",
+  updatedAt: "2026-06-30T00:00:00.000Z",
+}];
 const uploadedDraftMediaByClientDraftId = new Map<string, Array<{
   localId: string;
   mediaAssetId: string;
@@ -781,6 +903,88 @@ async function startBffMock() {
       return;
     }
 
+    const priceTableActivationMatch = url.pathname.match(/^\/api\/v1\/admin\/pricing\/price-tables\/([^/]+)\/activation$/);
+    if (priceTableActivationMatch && request.method === "PATCH") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const priceTableId = decodeURIComponent(priceTableActivationMatch[1]);
+      const body = await readJsonBody(request);
+      capturedPricingMutations.push({ method: "PATCH", path: url.pathname, body });
+      const table = pricingPriceTables.find((item) => item.priceTableId === priceTableId) ?? pricingPriceTables[0];
+      table.active = body.active !== false;
+      sendJson(response, 200, table);
+      return;
+    }
+
+    const priceTableRulesMatch = url.pathname.match(/^\/api\/v1\/admin\/pricing\/price-tables\/([^/]+)\/rules$/);
+    if (priceTableRulesMatch && request.method === "GET") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const priceTableId = decodeURIComponent(priceTableRulesMatch[1]);
+      sendJson(response, 200, { items: pricingRulesByTable[priceTableId] ?? [] });
+      return;
+    }
+
+    const priceTableRuleMatch = url.pathname.match(/^\/api\/v1\/admin\/pricing\/price-tables\/([^/]+)\/rules\/([^/]+)$/);
+    if (priceTableRuleMatch && request.method === "PATCH") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const priceTableId = decodeURIComponent(priceTableRuleMatch[1]);
+      const ruleId = decodeURIComponent(priceTableRuleMatch[2]);
+      const body = await readJsonBody(request);
+      capturedPricingMutations.push({ method: "PATCH", path: url.pathname, body });
+      const rules = pricingRulesByTable[priceTableId] ?? [];
+      const index = rules.findIndex((rule) => rule.ruleId === ruleId);
+      const current = rules[index] ?? {
+        ruleId,
+        active: true,
+        priority: 100,
+        source: "MANUAL",
+        tradePolicy: "default",
+        channel: "web",
+        customerGroup: null,
+        country: "ES",
+      };
+      const next = {
+        ...current,
+        active: typeof body.active === "boolean" ? body.active : current.active,
+        priority: typeof body.priority === "number" ? body.priority : current.priority,
+        source: typeof body.source === "string" ? body.source : current.source,
+        tradePolicy: typeof body.tradePolicy === "string" ? body.tradePolicy : current.tradePolicy,
+        channel: typeof body.channel === "string" ? body.channel : current.channel,
+        customerGroup: typeof body.customerGroup === "string" ? body.customerGroup : current.customerGroup,
+        country: typeof body.country === "string" ? body.country : current.country,
+      };
+      if (index >= 0) {
+        rules[index] = next;
+      } else {
+        rules.push(next);
+      }
+      pricingRulesByTable[priceTableId] = rules;
+      sendJson(response, 200, next);
+      return;
+    }
+
+    if (priceTableRuleMatch && request.method === "DELETE") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const priceTableId = decodeURIComponent(priceTableRuleMatch[1]);
+      const ruleId = decodeURIComponent(priceTableRuleMatch[2]);
+      capturedPricingMutations.push({ method: "DELETE", path: url.pathname, body: {} });
+      pricingRulesByTable[priceTableId] = (pricingRulesByTable[priceTableId] ?? []).filter((rule) => rule.ruleId !== ruleId);
+      sendJson(response, 200, { ruleId, active: false });
+      return;
+    }
+
+    const priceTableDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/pricing\/price-tables\/([^/]+)$/);
+    if (priceTableDetailMatch && request.method === "GET") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const priceTableId = decodeURIComponent(priceTableDetailMatch[1]);
+      sendJson(response, 200, pricingPriceTables.find((item) => item.priceTableId === priceTableId) ?? { priceTableId, name: priceTableId, active: true, currency: "EUR" });
+      return;
+    }
+
     if (request.method === "GET" && url.pathname === "/api/v1/admin/pricing/config") {
       capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
       assertPricingTenant(url);
@@ -817,19 +1021,59 @@ async function startBffMock() {
       assertPricingTenant(url);
       const itemId = decodeURIComponent(fixedPriceMatch[1]);
       sendJson(response, 200, {
-        items: itemId === "variant-computed-auto"
-          ? [{
-              productId: "product-computed-auto",
-              variantId: "variant-computed-auto",
-              priceTableId: "vip-table",
-              fixedPrice: { amountMinor: 9300, currency: "EUR" },
-              basePrice: { amountMinor: 9300, currency: "EUR" },
-              listPrice: { amountMinor: 10900, currency: "EUR" },
-              taxIncluded: true,
-              active: true,
-            }]
-          : [],
+        items: pricingFixedPrices.filter((price) => price.itemId === itemId || price.variantId === itemId),
       });
+      return;
+    }
+
+    const fixedPriceTableMatch = url.pathname.match(/^\/api\/v1\/admin\/pricing\/prices\/([^/]+)\/fixed\/([^/]+)$/);
+    if (fixedPriceTableMatch && request.method === "PUT") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const itemId = decodeURIComponent(fixedPriceTableMatch[1]);
+      const priceTableId = decodeURIComponent(fixedPriceTableMatch[2]);
+      const body = await readJsonBody(request);
+      capturedPricingMutations.push({ method: "PUT", path: url.pathname, body });
+      const currency = typeof body.currency === "string" ? body.currency : "EUR";
+      const fixedPriceMinor = Number(body.fixedPriceMinor ?? 0);
+      const basePriceMinor = Number(body.basePriceMinor ?? fixedPriceMinor);
+      const listPriceMinor = typeof body.listPriceMinor === "number" ? body.listPriceMinor : null;
+      const next = {
+        productId: String(body.productId ?? "product-discount"),
+        variantId: itemId,
+        itemId,
+        priceTableId,
+        fixedPrice: { amountMinor: fixedPriceMinor, currency },
+        basePrice: { amountMinor: basePriceMinor, currency },
+        listPrice: listPriceMinor === null ? null : { amountMinor: listPriceMinor, currency },
+        fixedPriceMinor,
+        basePriceMinor,
+        listPriceMinor,
+        currency,
+        taxIncluded: body.taxIncluded !== false,
+        active: true,
+      };
+      const index = pricingFixedPrices.findIndex((price) => price.itemId === itemId && price.priceTableId === priceTableId);
+      if (index >= 0) {
+        pricingFixedPrices[index] = next;
+      } else {
+        pricingFixedPrices.push(next);
+      }
+      sendJson(response, 200, next);
+      return;
+    }
+
+    if (fixedPriceTableMatch && request.method === "DELETE") {
+      capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
+      assertPricingTenant(url);
+      const itemId = decodeURIComponent(fixedPriceTableMatch[1]);
+      const priceTableId = decodeURIComponent(fixedPriceTableMatch[2]);
+      capturedPricingMutations.push({ method: "DELETE", path: url.pathname, body: {} });
+      const index = pricingFixedPrices.findIndex((price) => price.itemId === itemId && price.priceTableId === priceTableId);
+      if (index >= 0) {
+        pricingFixedPrices.splice(index, 1);
+      }
+      sendJson(response, 200, { itemId, priceTableId, deleted: true });
       return;
     }
 
@@ -838,14 +1082,15 @@ async function startBffMock() {
       capturedPricingGovernanceRequests.push(`${request.method} ${url.pathname}`);
       assertPricingTenant(url);
       const itemId = decodeURIComponent(computedAutoMatch[1]);
-      expect(itemId).toBe("variant-computed-auto");
+      const fixed = pricingFixedPrices.find((price) => price.itemId === itemId || price.variantId === itemId);
+      const grossMinor = fixed?.fixedPriceMinor ?? 9300;
       sendJson(response, 200, {
         itemId,
-        priceTableId: "vip-table",
-        netMinor: 7686,
-        taxMinor: 1614,
-        grossMinor: 9300,
-        currency: "EUR",
+        priceTableId: fixed?.priceTableId ?? "vip-table",
+        netMinor: Math.round(grossMinor / 1.21),
+        taxMinor: grossMinor - Math.round(grossMinor / 1.21),
+        grossMinor,
+        currency: fixed?.currency ?? "EUR",
         source: "FIXED_PRICE",
       });
       return;
@@ -856,15 +1101,17 @@ async function startBffMock() {
       assertPricingTenant(url);
       const body = await readJsonBody(request);
       capturedPricingMutations.push({ method: "POST", path: url.pathname, body });
-      expect(body).toEqual({ itemIds: ["variant-computed-auto"] });
+      const itemId = Array.isArray(body.itemIds) ? String(body.itemIds[0]) : "variant-computed-auto";
+      const fixed = pricingFixedPrices.find((price) => price.itemId === itemId || price.variantId === itemId);
+      const grossMinor = fixed?.fixedPriceMinor ?? 9300;
       sendJson(response, 200, {
         items: [{
-          itemId: "variant-computed-auto",
-          priceTableId: "vip-table",
-          netMinor: 7686,
-          taxMinor: 1614,
-          grossMinor: 9300,
-          currency: "EUR",
+          itemId,
+          priceTableId: fixed?.priceTableId ?? "vip-table",
+          netMinor: Math.round(grossMinor / 1.21),
+          taxMinor: grossMinor - Math.round(grossMinor / 1.21),
+          grossMinor,
+          currency: fixed?.currency ?? "EUR",
           source: "FIXED_PRICE",
         }],
       });
@@ -998,6 +1245,251 @@ async function startBffMock() {
         body,
       });
       sendJson(response, 200, item);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/routing-seo/routes") {
+      capturedSeoAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("locale")).toBe("es-ES");
+      const status = url.searchParams.get("status");
+      const entityType = url.searchParams.get("entityType");
+      const entityId = url.searchParams.get("entityId");
+      const items = seoRoutes.filter((route) =>
+        (!status || route.status === status) &&
+        (!entityType || route.entityType === entityType) &&
+        (!entityId || route.entityId === entityId),
+      );
+      sendJson(response, 200, {
+        total: items.length,
+        limit: Number(url.searchParams.get("limit") ?? 50),
+        offset: Number(url.searchParams.get("offset") ?? 0),
+        items,
+      });
+      return;
+    }
+
+    if (request.method === "PATCH" && url.pathname.startsWith("/api/v1/admin/routing-seo/routes/")) {
+      capturedSeoAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("locale")).toBe("es-ES");
+      const routeId = decodeURIComponent(url.pathname.split("/").pop() ?? "");
+      const route = seoRoutes.find((candidate) => candidate.routeId === routeId);
+      const body = await readJsonBody(request);
+      if (!route) {
+        sendJson(response, 404, { message: "seo route not found" });
+        return;
+      }
+      if (typeof body.path === "string") {
+        route.path = body.path;
+      }
+      if (typeof body.status === "string") {
+        route.status = body.status;
+      }
+      if (typeof body.includeInSitemap === "boolean") {
+        route.includeInSitemap = body.includeInSitemap;
+      }
+      route.updatedAt = "2026-06-30T01:00:00.000Z";
+      capturedSeoMutations.push({
+        method: request.method,
+        path: url.pathname,
+        body,
+      });
+      sendJson(response, 200, route);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/routing-seo/redirects") {
+      capturedSeoAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("locale")).toBe("es-ES");
+      const status = url.searchParams.get("status");
+      const items = status ? seoRedirects.filter((redirect) => redirect.status === status) : seoRedirects;
+      sendJson(response, 200, {
+        total: items.length,
+        limit: Number(url.searchParams.get("limit") ?? 50),
+        offset: Number(url.searchParams.get("offset") ?? 0),
+        items,
+      });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/v1/admin/routing-seo/redirects") {
+      capturedSeoAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("locale")).toBe("es-ES");
+      const body = await readJsonBody(request);
+      const redirect = {
+        redirectId: `redirect-${seoRedirects.length + 1}`,
+        organizationId: defaultOrganizationId,
+        shopId: barcelonaShopId,
+        locale: "es-ES",
+        fromPath: typeof body.fromPath === "string" ? body.fromPath : "",
+        toPath: typeof body.toPath === "string" ? body.toPath : "",
+        statusCode: typeof body.statusCode === "number" ? body.statusCode : 301,
+        status: "ACTIVE",
+        reason: typeof body.reason === "string" ? body.reason : null,
+        expiresAt: typeof body.expiresAt === "string" ? body.expiresAt : null,
+        createdAt: "2026-06-30T01:00:00.000Z",
+        updatedAt: "2026-06-30T01:00:00.000Z",
+      };
+      seoRedirects.push(redirect);
+      capturedSeoMutations.push({
+        method: request.method,
+        path: url.pathname,
+        body,
+      });
+      sendJson(response, 200, redirect);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/routing-seo/resolve") {
+      capturedSeoAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("locale")).toBe("es-ES");
+      sendJson(response, 200, {
+        kind: "ROUTE",
+        requestedPath: url.searchParams.get("path") ?? "/producto-demo/p",
+        canonicalPath: "/producto-demo/p",
+        isCanonical: true,
+        entityType: "PRODUCT",
+        entityId: "product-demo",
+        routeId: "route-product",
+        canonicalRouteId: "route-product",
+        organizationId: defaultOrganizationId,
+        shopId: barcelonaShopId,
+        locale: "es-ES",
+      });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/routing-seo/sitemap") {
+      capturedSeoAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("locale")).toBe("es-ES");
+      sendJson(response, 200, {
+        organizationId: defaultOrganizationId,
+        shopId: barcelonaShopId,
+        locale: "es-ES",
+        entries: seoRoutes
+          .filter((route) => route.status === "ACTIVE" && route.includeInSitemap)
+          .map((route) => ({
+            path: route.path,
+            entityType: route.entityType,
+            entityId: route.entityId,
+            routeId: route.routeId,
+            updatedAt: route.updatedAt,
+          })),
+      });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/media/collections") {
+      capturedMediaAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("locale")).toBe("es-ES");
+      const includeInactive = url.searchParams.get("includeInactive") === "true";
+      const items = includeInactive ? mediaCollections : mediaCollections.filter((collection) => collection.active);
+      sendJson(response, 200, {
+        total: items.length,
+        limit: Number(url.searchParams.get("limit") ?? 50),
+        offset: Number(url.searchParams.get("offset") ?? 0),
+        items,
+      });
+      return;
+    }
+
+    const mediaCollectionMatch = url.pathname.match(/^\/api\/v1\/admin\/media\/collections\/([^/]+)$/);
+    if (mediaCollectionMatch && request.method === "GET") {
+      capturedMediaAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("locale")).toBe("es-ES");
+      const mediaCollectionId = decodeURIComponent(mediaCollectionMatch[1]);
+      const collection = mediaCollections.find((item) => item.mediaCollectionId === mediaCollectionId);
+      if (!collection) {
+        sendJson(response, 404, { message: "media collection not found" });
+        return;
+      }
+      sendJson(response, 200, collection);
+      return;
+    }
+
+    if (mediaCollectionMatch && request.method === "DELETE") {
+      capturedMediaAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      capturedMediaAdminMutations.push({ method: request.method, path: `${url.pathname}?${url.searchParams.toString()}` });
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("locale")).toBe("es-ES");
+      expect(url.searchParams.get("mode")).toBe("soft");
+      const mediaCollectionId = decodeURIComponent(mediaCollectionMatch[1]);
+      const collection = mediaCollections.find((item) => item.mediaCollectionId === mediaCollectionId);
+      if (collection) {
+        collection.active = false;
+      }
+      sendJson(response, 200, { deleted: true, status: "INACTIVE" });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/products") {
+      capturedStockAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      sendJson(response, 200, {
+        total: 1,
+        limit: Number(url.searchParams.get("limit") ?? 25),
+        offset: Number(url.searchParams.get("offset") ?? 0),
+        items: [{
+          productId: "product-edit-1",
+          name: { "es-ES": "Producto existente Playwright" },
+          slug: "producto-existente-playwright",
+          refId: "PEP-001",
+          reference: "PEP-001",
+          isActive: true,
+          isVisible: true,
+          defaultVariantId: "variant-edit-default",
+          quantity: 9,
+        }],
+      });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/v1/admin/inventory/availability/resolve-batch") {
+      capturedStockAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      sendJson(response, 200, {
+        items: [{
+          variantId: "variant-edit-default",
+          warehouseId: "main-warehouse",
+          onHandQuantity: 12,
+          reservedQuantity: 2,
+          safetyStockQuantity: 1,
+          availableQuantity: 9,
+          available: true,
+        }],
+      });
+      return;
+    }
+
+    if (request.method === "PUT" && url.pathname === "/api/v1/admin/inventory/stock-levels") {
+      capturedStockAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const body = await readJsonBody(request);
+      capturedStockMutations.push({ method: request.method, path: url.pathname, body });
+      sendJson(response, 200, {
+        ...body,
+        availableQuantity: Number(body.onHandQuantity ?? 0) - Number(body.reservedQuantity ?? 0) - Number(body.safetyStockQuantity ?? 0),
+        updatedAt: "2026-07-01T00:00:00.000Z",
+      });
       return;
     }
 
@@ -1346,7 +1838,7 @@ async function startBffMock() {
       capturedMediaAssetContentRequests.push(`${url.pathname}?${url.searchParams.toString()}`);
       expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
       expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
-      expect(url.searchParams.get("variant")).toBe("medium_default");
+      expect(["small_default", "medium_default", "original"]).toContain(url.searchParams.get("variant"));
       const imageBuffer = Buffer.from(onePixelPngDataUrl.split(",")[1], "base64");
       response.writeHead(200, {
         "content-type": "image/png",
@@ -1860,6 +2352,64 @@ test("pricing configuration resolves computed auto prices through BFF", async ({
   expect(browserExternalRequests).toEqual([]);
 });
 
+test("pricing governance page manages campaign fixed prices through Pricing BFF", async ({ page }) => {
+  capturedPricingGovernanceRequests.length = 0;
+  capturedPricingMutations.length = 0;
+  const itemId = "variant-discount-playwright";
+  const productId = "product-discount-playwright";
+  const existingIndex = pricingFixedPrices.findIndex((price) => price.itemId === itemId && price.priceTableId === "vip-table");
+  if (existingIndex >= 0) {
+    pricingFixedPrices.splice(existingIndex, 1);
+  }
+  const browserExternalRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.hostname === "127.0.0.1" && url.port && Number(url.port) !== nextPort) {
+      browserExternalRequests.push(request.url());
+    }
+  });
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/configuracion/precios?tab=fixed&priceTableId=vip-table&itemId=${itemId}&productId=${productId}&customerGroup=vip&channel=web&tradePolicy=default&country=ES&quantity=2`);
+
+  await expect(page.getByRole("heading", { name: "Configuracion de precios" })).toBeVisible();
+  await expect(page.getByText("Admin / Configuracion / Precios")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Fixed prices" })).toHaveClass(/productEditorTabActive/);
+  await expect(page.getByText("No hay fixed prices para la variante.")).toBeVisible();
+
+  const fixedForm = page.locator("form").filter({
+    has: page.getByRole("button", { name: "Guardar fixed price" }),
+  });
+  await fixedForm.locator('input[name="fixedPriceMinor"]').fill("8799");
+  await fixedForm.locator('input[name="basePriceMinor"]').fill("9999");
+  await fixedForm.locator('input[name="listPriceMinor"]').fill("12999");
+  await fixedForm.getByRole("button", { name: "Guardar fixed price" }).click();
+
+  await expect(page.getByText("Fixed price guardado.")).toBeVisible();
+  await expect(page.getByRole("row", { name: /variant-discount-playwright.*product-discount-playwright.*vip-table.*8799.*9999.*12999/ })).toBeVisible();
+
+  expect(capturedPricingGovernanceRequests).toContain("GET /api/v1/admin/pricing/price-tables");
+  expect(capturedPricingGovernanceRequests).toContain("GET /api/v1/admin/pricing/price-tables/vip-table/rules");
+  expect(capturedPricingGovernanceRequests).toContain("PUT /api/v1/admin/pricing/prices/variant-discount-playwright/fixed/vip-table");
+  expect(capturedPricingMutations).toContainEqual({
+    method: "PUT",
+    path: "/api/v1/admin/pricing/prices/variant-discount-playwright/fixed/vip-table",
+    body: {
+      productId,
+      itemId,
+      priceTableId: "vip-table",
+      fixedPriceMinor: 8799,
+      basePriceMinor: 9999,
+      listPriceMinor: 12999,
+      currency: "EUR",
+      timezone: "Europe/Madrid",
+      taxIncluded: true,
+      active: true,
+    },
+  });
+  expect(browserExternalRequests).toEqual([]);
+});
+
 test("shipping configuration manages carriers with drawers and active actions through BFF", async ({ page }) => {
   capturedShippingAdminRequests.length = 0;
   capturedShippingActiveMutations.length = 0;
@@ -1930,6 +2480,162 @@ test("shipping configuration manages carriers with drawers and active actions th
   expect(browserExternalRequests).toEqual([]);
 });
 
+test("seo configuration manages routes and redirects through BFF drawers", async ({ page }) => {
+  capturedSeoAdminRequests.length = 0;
+  capturedSeoMutations.length = 0;
+  seoRoutes[0].path = "/producto-demo/p";
+  seoRoutes[0].status = "ACTIVE";
+  seoRoutes[0].includeInSitemap = true;
+  const browserExternalRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.hostname === "127.0.0.1" && url.port && Number(url.port) !== nextPort) {
+      browserExternalRequests.push(request.url());
+    }
+  });
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/configuracion/seo?tab=routes&locale=es-ES&status=ACTIVE`);
+
+  await expect(page.getByRole("heading", { name: "SEO" })).toBeVisible();
+  await expect(page.getByText("Admin / Configuracion / SEO")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Rutas" })).toHaveClass(/productEditorTabActive/);
+  await expect(page.getByLabel("SEO").getByRole("link", { name: "Rutas" })).toBeVisible();
+
+  await page.getByRole("link", { name: "Crear ruta" }).click();
+  await expect(page).toHaveURL(/drawer=create/);
+  await expect(page.locator(".adminSideDrawer")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Crear ruta SEO" })).toBeVisible();
+  await expect(page.locator(".adminSideDrawer").getByLabel("Path")).toBeVisible();
+  await page.locator(".adminSideDrawer").getByRole("link", { name: "Cerrar" }).click();
+  await expect(page.locator(".adminSideDrawer")).toHaveCount(0);
+
+  const routeRow = page.getByRole("row", { name: /route-product.*\/producto-demo\/p.*PRODUCT.*product-demo/ });
+  await expect(routeRow).toBeVisible();
+  await routeRow.getByRole("link", { name: "Editar" }).click();
+  await expect(page).toHaveURL(/drawer=edit/);
+  await expect(page.getByRole("heading", { name: "Editar ruta SEO" })).toBeVisible();
+  const drawer = page.locator(".adminSideDrawer");
+  await expect(drawer.locator('input[name="path"]')).toHaveValue("/producto-demo/p");
+  await drawer.locator('input[name="path"]').fill("/producto-demo-editado/p");
+  await drawer.locator('select[name="createRedirectFromPreviousPath"]').selectOption("true");
+  await drawer.getByRole("button", { name: "Guardar ruta" }).click();
+  await expect(page.getByText("Ruta SEO actualizada.")).toBeVisible();
+  await expect.poll(() => capturedSeoMutations).toContainEqual({
+    method: "PATCH",
+    path: "/api/v1/admin/routing-seo/routes/route-product",
+    body: {
+      path: "/producto-demo-editado/p",
+      status: "ACTIVE",
+      includeInSitemap: true,
+      createRedirectFromPreviousPath: true,
+    },
+  });
+  expect(capturedSeoMutations.at(-1)?.body).not.toHaveProperty("canonicalRouteId");
+  await expect(page.getByRole("row", { name: /route-product.*\/producto-demo-editado\/p/ })).toBeVisible();
+
+  await page.getByRole("link", { name: "Redirecciones" }).click();
+  await expect(page.getByRole("link", { name: "Redirecciones" })).toHaveClass(/productEditorTabActive/);
+  await page.getByRole("link", { name: "Crear redirect" }).click();
+  await expect(page.getByRole("heading", { name: "Crear redirect SEO" })).toBeVisible();
+  await page.locator(".adminSideDrawer").locator('input[name="fromPath"]').fill("/producto-demo-viejo/p");
+  await page.locator(".adminSideDrawer").locator('input[name="toPath"]').fill("/producto-demo-editado/p");
+  await page.locator(".adminSideDrawer").getByRole("button", { name: "Crear redirect" }).click();
+  await expect(page.getByText("Redirect SEO creado.")).toBeVisible();
+  await expect.poll(() => capturedSeoMutations).toContainEqual({
+    method: "POST",
+    path: "/api/v1/admin/routing-seo/redirects",
+    body: {
+      fromPath: "/producto-demo-viejo/p",
+      toPath: "/producto-demo-editado/p",
+      statusCode: 301,
+      reason: null,
+      expiresAt: null,
+    },
+  });
+
+  await page.getByRole("link", { name: "Resolver" }).click();
+  await expect(page.getByRole("heading", { name: "Resolver path" })).toBeVisible();
+  await expect(page.getByLabel("Path")).toHaveValue("/");
+
+  expect(capturedSeoAdminRequests).toContain(
+    `GET /api/v1/admin/routing-seo/routes?organizationId=${defaultOrganizationId}&shopId=${barcelonaShopId}&locale=es-ES&status=ACTIVE&limit=50&offset=0`,
+  );
+  expect(browserExternalRequests).toEqual([]);
+});
+
+test("media catalog page lists collections and soft-deletes through BFF", async ({ page }) => {
+  capturedMediaAdminRequests.length = 0;
+  capturedMediaAdminMutations.length = 0;
+  capturedMediaAssetContentRequests.length = 0;
+  mediaCollections[0].active = true;
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/catalogo/media?status=all`);
+
+  await expect(page.getByRole("heading", { name: "Media / Archivos" })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Galeria producto existente.*product-edit-1/ })).toBeVisible();
+  await page.getByRole("link", { name: "Revisar" }).click();
+
+  await expect(page).toHaveURL(/collectionId=collection-admin-1/);
+  await expect(page.getByRole("heading", { name: "Galeria producto existente" })).toBeVisible();
+  await expect(page.getByText("Alt admin media")).toBeVisible();
+  await expect(page.getByText("Title admin media")).toBeVisible();
+  await expect.poll(() => capturedMediaAssetContentRequests.some((item) =>
+    item.includes("/api/v1/admin/media/assets/asset-admin-1/content") &&
+      item.includes("variant=small_default")
+  )).toBe(true);
+
+  await page.getByLabel("Confirmo la baja segura").check();
+  await page.getByRole("button", { name: "Desactivar coleccion" }).click();
+
+  await expect(page.getByText("Coleccion media desactivada.")).toBeVisible();
+  await expect.poll(() => capturedMediaAdminMutations).toContainEqual({
+    method: "DELETE",
+    path: `/api/v1/admin/media/collections/collection-admin-1?mode=soft&organizationId=${defaultOrganizationId}&shopId=${barcelonaShopId}&locale=es-ES`,
+  });
+  expect(capturedMediaAdminRequests.some((item) => item.includes("mode=hard"))).toBe(false);
+});
+
+test("stock catalog page edits variant stock through Inventory BFF", async ({ page }) => {
+  capturedStockAdminRequests.length = 0;
+  capturedStockMutations.length = 0;
+  capturedEditorStateRequests.length = 0;
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/catalogo/stock?status=all`);
+
+  await expect(page.getByRole("heading", { name: "Stock" })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Producto existente Playwright.*PEP-001/ })).toBeVisible();
+  await page.getByRole("link", { name: "Gestionar" }).click();
+
+  await expect(page).toHaveURL(/productId=product-edit-1/);
+  await expect(page.getByRole("heading", { name: "Producto existente Playwright" })).toBeVisible();
+  await expect(page.getByText("Disponible total")).toBeVisible();
+
+  const defaultRow = page.locator(".stockAdminRowForm").filter({ hasText: "PEP-001" });
+  await expect(defaultRow.getByLabel("On hand")).toHaveValue("12");
+  await defaultRow.getByLabel("On hand").fill("15");
+  await defaultRow.getByRole("button", { name: "Guardar" }).click();
+
+  await expect(page.getByText("Stock actualizado.")).toBeVisible();
+  await expect.poll(() => capturedStockMutations).toContainEqual({
+    method: "PUT",
+    path: "/api/v1/admin/inventory/stock-levels",
+    body: {
+      organizationId: defaultOrganizationId,
+      shopId: barcelonaShopId,
+      variantId: "variant-edit-default",
+      warehouseId: "main-warehouse",
+      onHandQuantity: 15,
+      reservedQuantity: 2,
+      safetyStockQuantity: 1,
+    },
+  });
+  expect(capturedEditorStateRequests).toContain("/api/v1/admin/products/product-edit-1/editor-state");
+  expect(capturedStockAdminRequests.some((item) => item.startsWith("PUT /api/v1/inventory/"))).toBe(false);
+});
+
 test("product editor rehydrates persisted draft media through BFF only", async ({ page }) => {
   capturedDraftStateRequests.length = 0;
   const browserExternalRequests: string[] = [];
@@ -1972,6 +2678,10 @@ test("product preview renders rich product summary below the title", async ({ pa
 
 test("product editor selects catalog feature values and renders them in preview", async ({ page }) => {
   capturedCatalogSpecificationRequests.length = 0;
+  const generatedGroupIndex = catalogSpecificationGroups.findIndex((group) => group.specificationGroupId === "spec-group-playwright");
+  if (generatedGroupIndex >= 0) {
+    catalogSpecificationGroups.splice(generatedGroupIndex, 1);
+  }
 
   await loginAdmin(page);
   await page.goto(`http://127.0.0.1:${nextPort}/admin/products/new`);
@@ -1983,11 +2693,11 @@ test("product editor selects catalog feature values and renders them in preview"
   await page.getByRole("button", { name: "Caracteristicas", exact: true }).click();
   const featureDialog = page.getByRole("dialog", { name: "Caracteristicas" });
   await expect(featureDialog).toBeVisible();
-  await featureDialog.getByRole("button", { name: /Ficha tecnica Composicion/ }).click();
+  await featureDialog.locator(".productSpecificationChoice", { hasText: "Composicion" }).click();
   await expect(page.getByRole("dialog", { name: "Composicion" })).toBeVisible();
   await page.getByRole("button", { name: "Aluminio" }).click();
   await expect(page.getByRole("dialog", { name: "Agregar otra caracteristica" })).toBeVisible();
-  await page.getByRole("button", { name: "Cerrar" }).click();
+  await page.getByRole("dialog", { name: "Agregar otra caracteristica" }).getByRole("button", { name: "Cerrar", exact: true }).click();
   await expect(page.getByText("Aluminio")).toBeVisible();
   await page.getByRole("button", { name: "Vista previa" }).click();
 
@@ -2619,6 +3329,39 @@ test("product editor applies successful save patch and clears local draft", asyn
   expect(capturedSaveOperationRequests).toHaveLength(1);
 });
 
+test("product editor audit tab exposes BFF save traceability without extra endpoints", async ({ page }) => {
+  capturedSaveOperationRequests.length = 0;
+  capturedBffRequests.length = 0;
+  saveOperationMode = "success";
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/products/new`);
+
+  await page.getByLabel("Nombre del producto").fill("Producto Auditoria");
+  await page.getByLabel("Categoria principal", { exact: true }).selectOption("category-bikes");
+  await page.getByRole("button", { name: "Guardar producto" }).click();
+
+  await expect(page.getByText("Producto guardado.")).toBeVisible();
+  await expect.poll(() => capturedSaveOperationRequests.length).toBe(1);
+
+  const requestsBeforeAudit = [...capturedBffRequests];
+  await page.getByRole("button", { name: "Auditoria" }).click();
+
+  const auditPanel = page.locator(".productAuditPanel");
+  await expect(auditPanel.getByRole("heading", { name: "Auditoria" })).toBeVisible();
+  await expect(auditPanel.getByText("product-draft-remote")).toBeVisible();
+  await expect(auditPanel.getByText("variant-default-remote")).toBeVisible();
+  await expect(auditPanel.getByText("collection-remote")).toBeVisible();
+  await expect(auditPanel.getByText("pso-playwright-success")).toBeVisible();
+  await expect(auditPanel.getByText("bff-save-success")).toBeVisible();
+  await expect(auditPanel.getByText("catalog: Correcto")).toBeVisible();
+  await expect(auditPanel.getByText("pricing: Sin cambios")).toBeVisible();
+  await expect(auditPanel.getByText("Sin errores de campo en el ultimo reporte.")).toBeVisible();
+
+  expect(capturedBffRequests).toEqual(requestsBeforeAudit);
+  expect(capturedBffRequests.some((item) => item.includes("/audit"))).toBe(false);
+});
+
 test("product editor loads existing product state and saves through operation endpoint", async ({ page }) => {
   capturedEditorStateRequests.length = 0;
   capturedDraftStateRequests.length = 0;
@@ -2646,7 +3389,7 @@ test("product editor loads existing product state and saves through operation en
   await expect(page.getByRole("dialog", { name: "Instalacion" })).toBeVisible();
   await page.getByRole("button", { name: "Agregar servicio" }).click();
   await expect(page.getByRole("dialog", { name: "Agregar otro servicio" })).toBeVisible();
-  await page.getByRole("button", { name: "Cerrar" }).click();
+  await page.getByRole("dialog", { name: "Agregar otro servicio" }).getByRole("button", { name: "Cerrar", exact: true }).click();
   await expect(page.getByText("Instalacion")).toBeVisible();
 
   await page.getByPlaceholder("Nuevo producto").fill("Producto existente actualizado");

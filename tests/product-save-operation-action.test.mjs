@@ -20,7 +20,18 @@ const context = {
   channel: "web",
 };
 
-function loadProductActionsModule({ requestBff, getAdminContext, makeProductGateway = () => ({}) }) {
+function loadProductActionsModule({
+  requestBff,
+  getAdminContext,
+  makeProductGateway = () => ({}),
+  getAdminProductEditorData = async () => ({ ok: false, error: "not mocked" }),
+  revalidatePath = () => {},
+  redirect = (url) => {
+    const error = new Error("NEXT_REDIRECT");
+    error.url = url;
+    throw error;
+  },
+}) {
   const source = readFileSync(path.resolve(root, "src/modules/catalogo/product-actions.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -39,6 +50,12 @@ function loadProductActionsModule({ requestBff, getAdminContext, makeProductGate
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
+      if (specifier === "next/cache") {
+        return { revalidatePath };
+      }
+      if (specifier === "next/navigation") {
+        return { redirect };
+      }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return { getAdminContext };
       }
@@ -54,6 +71,7 @@ function loadProductActionsModule({ requestBff, getAdminContext, makeProductGate
       }
       if (specifier === "./products") {
         return {
+          getAdminProductEditorData,
           makeProductGateway,
         };
       }
@@ -201,6 +219,137 @@ test("saveProductDraftAction sends one idempotent product save operation to BFF"
   assert.deepEqual([...result.correlationIds], ["bff-corr", "ui-corr"]);
 });
 
+test("saveProductDraftAction strips read-only routing SEO fields before BFF", async () => {
+  const calls = [];
+  const dirtyDraft = productDraft();
+  dirtyDraft.routingSeo = {
+    canonicalRouteId: "route-canonical",
+    canonicalPath: "/producto-ui/p",
+    status: "ACTIVE",
+    includeInSitemap: true,
+    createRedirectFromPreviousPath: true,
+    resolvedCanonical: {
+      kind: "ROUTE",
+      requestedPath: "/producto-ui/p",
+      canonicalPath: "/producto-ui/p",
+    },
+    updatedAt: "2026-07-01T00:00:00.000Z",
+    aliases: [
+      {
+        routeId: "route-alias",
+        path: "/producto-ui",
+        routeKind: "ALIAS",
+        canonicalRouteId: "route-canonical",
+        status: "ACTIVE",
+        includeInSitemap: true,
+        updatedAt: "2026-07-01T00:00:00.000Z",
+      },
+    ],
+  };
+  const requestBff = async (_pathValue, options = {}) => {
+    const sentDraft = JSON.parse(options.init.body.get("draft"));
+    calls.push(sentDraft);
+
+    assert.equal("canonicalRouteId" in sentDraft.routingSeo, false);
+    assert.equal("resolvedCanonical" in sentDraft.routingSeo, false);
+    assert.equal("updatedAt" in sentDraft.routingSeo, false);
+    assert.equal(sentDraft.routingSeo.aliases[0].includeInSitemap, false);
+    assert.equal("canonicalRouteId" in sentDraft.routingSeo.aliases[0], false);
+    assert.equal("updatedAt" in sentDraft.routingSeo.aliases[0], false);
+
+    const raw = {
+      ok: true,
+      operationId: "pso-seo",
+      productId: "product-1",
+      defaultVariantId: "variant-default",
+      mediaCollectionId: null,
+      status: "saved_unpublished",
+      retryable: false,
+      blocks: { catalog: "success", routingSeo: "success" },
+      messages: ["Producto actualizado."],
+      fieldErrors: {},
+      recoveryActions: [],
+      correlationIds: [],
+    };
+
+    return {
+      ok: true,
+      data: options.parse ? options.parse(raw) : raw,
+      status: 200,
+      correlationId: "ui-corr",
+    };
+  };
+  const { saveProductDraftAction } = loadProductActionsModule({
+    requestBff,
+    getAdminContext: async () => context,
+  });
+  const formData = new FormData();
+  formData.set("draft", JSON.stringify(dirtyDraft));
+  formData.set("idempotencyKey", "ui-save-key-seo");
+
+  const result = await saveProductDraftAction(formData);
+
+  assert.equal(calls.length, 1);
+  assert.equal(result.ok, true);
+});
+
+test("saveProductDraftAction forwards product specification selections to BFF", async () => {
+  const calls = [];
+  const draft = productDraft();
+  draft.specifications = {
+    productId: "product-1",
+    selections: [
+      {
+        fieldId: "field-material",
+        fieldValueId: "value-carbon",
+        groupId: "group-technical",
+        fieldName: "Material",
+        valueName: "Carbono",
+      },
+    ],
+  };
+  const requestBff = async (_pathValue, options = {}) => {
+    calls.push({ body: options.init.body });
+    const sentDraft = JSON.parse(options.init.body.get("draft"));
+
+    assert.deepEqual(sentDraft.specifications, draft.specifications);
+
+    const raw = {
+      ok: true,
+      operationId: "pso-specifications",
+      productId: "product-1",
+      status: "saved_unpublished",
+      retryable: false,
+      blocks: { catalog: "success", specifications: "success" },
+      messages: ["Caracteristicas guardadas."],
+      fieldErrors: {},
+      recoveryActions: [],
+      correlationIds: ["bff-specifications"],
+    };
+
+    return {
+      ok: true,
+      data: options.parse ? options.parse(raw) : raw,
+      status: 200,
+      correlationId: "ui-specifications",
+    };
+  };
+  const { saveProductDraftAction } = loadProductActionsModule({
+    requestBff,
+    getAdminContext: async () => context,
+  });
+  const formData = new FormData();
+  formData.set("draft", JSON.stringify(draft));
+  formData.set("idempotencyKey", "ui-save-specifications");
+
+  const result = await saveProductDraftAction(formData);
+
+  assert.equal(calls.length, 1);
+  assert.equal(result.ok, true);
+  assert.equal(result.blocks.specifications, "success");
+  assert.deepEqual([...result.correlationIds], ["bff-specifications", "ui-specifications"]);
+});
+
 test("previewAppliedProductPriceAction delegates to product gateway with Admin context", async () => {
   const calls = [];
   const makeProductGateway = (gatewayContext) => ({
@@ -295,6 +444,209 @@ test("previewAppliedProductPriceAction delegates to product gateway with Admin c
   assert.equal(result.ok, true);
   assert.equal(result.resolution.source, "PRODUCT_FALLBACK");
   assert.deepEqual([...result.correlationIds], ["corr-preview"]);
+});
+
+test("deactivateProductAction hides product through BFF and inactivates SEO routes", async () => {
+  const gatewayCalls = [];
+  const routeCalls = [];
+  const revalidated = [];
+  const requestBff = async (pathValue, options = {}) => {
+    routeCalls.push({ path: pathValue, options });
+    assert.match(pathValue, /^\/admin\/routing-seo\/routes\/route-/);
+    assert.equal(options.init?.method, "PATCH");
+    assert.deepEqual(JSON.parse(options.init.body), {
+      status: "INACTIVE",
+      includeInSitemap: false,
+    });
+
+    return {
+      ok: true,
+      data: {},
+      status: 200,
+      correlationId: "corr-route",
+    };
+  };
+  const makeProductGateway = (gatewayContext) => {
+    assert.equal(gatewayContext.organizationId, context.organizationId);
+
+    return {
+      updateProduct: async (productId, payload) => {
+        gatewayCalls.push({ productId, payload });
+        return {
+          ok: true,
+          data: {
+            productId,
+            name: payload.name,
+            slug: payload.slug,
+            isActive: payload.isActive,
+            isVisible: payload.isVisible,
+          },
+          status: 200,
+          correlationId: "corr-product",
+        };
+      },
+    };
+  };
+  const getAdminProductEditorData = async (editorContext, productId) => {
+    assert.equal(editorContext.shopId, context.shopId);
+    assert.equal(productId, "product-1");
+
+    return {
+      ok: true,
+      data: {
+        product: {
+          productId,
+          name: "Producto a retirar",
+          slug: "producto-a-retirar",
+          reference: "SKU-RETIRAR",
+          categoryId: "category-1",
+          brandId: "brand-1",
+          isActive: true,
+          isVisible: true,
+          metaTitle: "Producto a retirar",
+          metaDescription: "Descripcion",
+          taxCode: "standard",
+        },
+        routingSeo: {
+          canonicalRoute: {
+            routeId: "route-canonical",
+            path: "/producto-a-retirar/p",
+            status: "ACTIVE",
+            includeInSitemap: true,
+          },
+          aliases: [{
+            routeId: "route-alias",
+            path: "/producto-a-retirar",
+            status: "ACTIVE",
+            includeInSitemap: false,
+          }],
+        },
+      },
+    };
+  };
+  const { deactivateProductAction } = loadProductActionsModule({
+    requestBff,
+    getAdminContext: async () => context,
+    getAdminProductEditorData,
+    makeProductGateway,
+    revalidatePath: (pathValue) => revalidated.push(pathValue),
+  });
+  const formData = new FormData();
+  formData.set("productId", "product-1");
+  formData.set("confirmDeactivate", "yes");
+  formData.set("returnTo", "/admin/products?limit=20&offset=0");
+
+  await assert.rejects(() => deactivateProductAction(formData), (error) => {
+    assert.equal(error.url.startsWith("/admin/products?"), true);
+    assert.match(error.url, /productMessage=Producto\+desactivado/);
+    return true;
+  });
+
+  assert.equal(gatewayCalls.length, 1);
+  assert.equal(gatewayCalls[0].productId, "product-1");
+  assert.equal(gatewayCalls[0].payload.isActive, false);
+  assert.equal(gatewayCalls[0].payload.isVisible, false);
+  assert.equal(gatewayCalls[0].payload.name, "Producto a retirar");
+  assert.equal(routeCalls.length, 2);
+  assert.deepEqual(revalidated, ["/admin/products"]);
+});
+
+test("bulkDeactivateProductsAction hides selected products through BFF", async () => {
+  const gatewayCalls = [];
+  const routeCalls = [];
+  const productsById = {
+    "product-1": {
+      productId: "product-1",
+      name: "Producto uno",
+      slug: "producto-uno",
+      reference: "SKU-UNO",
+      categoryId: "category-1",
+      brandId: "brand-1",
+      isActive: true,
+      isVisible: true,
+      metaTitle: "Producto uno",
+      metaDescription: "Descripcion uno",
+      taxCode: "standard",
+    },
+    "product-2": {
+      productId: "product-2",
+      name: "Producto dos",
+      slug: "producto-dos",
+      reference: "SKU-DOS",
+      categoryId: "category-1",
+      brandId: "brand-1",
+      isActive: true,
+      isVisible: true,
+      metaTitle: "Producto dos",
+      metaDescription: "Descripcion dos",
+      taxCode: "standard",
+    },
+  };
+  const requestBff = async (pathValue, options = {}) => {
+    routeCalls.push({ path: pathValue, options });
+    assert.match(pathValue, /^\/admin\/routing-seo\/routes\/route-product-/);
+    assert.equal(options.init?.method, "PATCH");
+
+    return {
+      ok: true,
+      data: {},
+      status: 200,
+      correlationId: "corr-route",
+    };
+  };
+  const makeProductGateway = () => ({
+    updateProduct: async (productId, payload) => {
+      gatewayCalls.push({ productId, payload });
+      return {
+        ok: true,
+        data: {
+          productId,
+          name: payload.name,
+          slug: payload.slug,
+          isActive: payload.isActive,
+          isVisible: payload.isVisible,
+        },
+        status: 200,
+        correlationId: "corr-product",
+      };
+    },
+  });
+  const getAdminProductEditorData = async (_editorContext, productId) => ({
+    ok: true,
+    data: {
+      product: productsById[productId],
+      routingSeo: {
+        canonicalRoute: {
+          routeId: `route-${productId}`,
+          path: `/${productsById[productId].slug}/p`,
+          status: "ACTIVE",
+          includeInSitemap: true,
+        },
+        aliases: [],
+      },
+    },
+  });
+  const { bulkDeactivateProductsAction } = loadProductActionsModule({
+    requestBff,
+    getAdminContext: async () => context,
+    getAdminProductEditorData,
+    makeProductGateway,
+  });
+  const formData = new FormData();
+  formData.append("productIds", "product-1");
+  formData.append("productIds", "product-2");
+  formData.set("confirmBulkDeactivate", "yes");
+  formData.set("returnTo", "/admin/products?limit=20&offset=0");
+
+  await assert.rejects(() => bulkDeactivateProductsAction(formData), (error) => {
+    assert.equal(error.url.startsWith("/admin/products?"), true);
+    assert.match(error.url, /productMessage=2\+productos\+desactivados\+y\+ocultos/);
+    return true;
+  });
+
+  assert.deepEqual(gatewayCalls.map((call) => call.productId), ["product-1", "product-2"]);
+  assert.equal(gatewayCalls.every((call) => call.payload.isActive === false && call.payload.isVisible === false), true);
+  assert.equal(routeCalls.length, 2);
 });
 
 test("saveProductDraftAction forwards product-centric specific prices to BFF", async () => {

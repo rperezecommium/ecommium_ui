@@ -1120,7 +1120,7 @@ No se puede publicar todavia
 - Para variantes nuevas, las opciones se pueden agregar/quitar antes de guardar y se persisten con `POST /api/v1/admin/variants/:variantId/options`.
 - Para variantes persistidas, el draft conserva `variantOptionId` cuando BFF lo entrega y el guardado sincroniza cambios con `PATCH /api/v1/admin/variants/:variantId/options/:variantOptionId`.
 - Quitar una opcion persistida desde la ficha ejecuta desactivacion segura con `DELETE /api/v1/admin/variants/:variantId/options/:variantOptionId?mode=soft`; agregar una opcion nueva en variante persistida usa `POST /api/v1/admin/variants/:variantId/options`.
-- Se agrega un bloque visible de `Especificaciones` como pendiente operativo: la ficha aun no consume grupos de especificaciones ni selecciones de producto desde BFF.
+- El bloque `Especificaciones` queda operativo: la ficha consume grupos de especificaciones desde BFF, rehidrata selecciones persistidas de producto, permite seleccionar un valor por caracteristica y envia `draft.specifications.selections` en `POST /api/v1/admin/product-save-operations`.
 
 ## Proceso 14: manejo de errores y recuperacion
 
@@ -1198,6 +1198,12 @@ No borrar automaticamente datos exitosos por fallos posteriores. Compensaciones 
 - No duplicar media en relaciones de variante sin reconciliar.
 - No publicar producto incompleto.
 - No exponer llamadas directas desde UI externa a servicios internos cuando exista o deba existir fachada BFF.
+
+### Cierre implementado
+
+- La suite e2e cubre borrador nuevo, guardado simple inactivo, subida de imagen, cambio/uso de portada, variantes, precios, inventario, fallo parcial, reintento, edicion existente, publicacion bloqueada y publicacion exitosa.
+- La pestana `Auditoria` queda cubierta con una prueba e2e que valida `operationId`, `correlationIds`, bloques, IDs tecnicos y que abrir la pestana no ejecuta endpoints adicionales ni rutas `/audit`.
+- La cobertura de contrato mantiene pruebas unitarias para scope Admin BFF, ausencia de llamadas directas a servicios internos, idempotencia de guardado y normalizacion de draft.
 
 ## Resumen de endpoints por capacidad
 
@@ -1297,6 +1303,7 @@ ProductEditorPage
     ProductInventoryTab
     ProductShippingTab
     ProductSeoTab
+    ProductAuditTab
 ```
 
 El orquestador no debe vivir dentro de un componente visual puntual. Debe ser una pieza testeable que reciba un `ProductDraft`, ejecute pasos idempotentes cuando sea posible y devuelva un reporte de estado por bloque.

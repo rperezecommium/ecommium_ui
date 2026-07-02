@@ -294,4 +294,47 @@ test("product editor local drafts are keyed by active Admin context", () => {
   assert.match(source, /Inventory no expone borrado de stock persistido todavia/);
   assert.match(source, /Variantes heredando/);
   assert.match(source, /disabled=\{!hasOwnStock\}/);
+  assert.match(source, /\{ id: "audit", label: "Auditoria" \}/);
+  assert.match(source, /activeTab === "audit"/);
+  assert.match(source, /draft\.clientDraftId/);
+  assert.match(source, /report\?\.operationId/);
+  assert.match(source, /report\.correlationIds\.map/);
+  assert.match(source, /fieldErrorSummary\(report\.fieldErrors\)/);
+  assert.doesNotMatch(source, /auditProductAction/);
+  assert.doesNotMatch(source, /\/admin\/products\/\$\{[^}]+}\}\/audit/);
+});
+
+test("product list exposes only backed actions and opens local preview through editor", () => {
+  const listSource = readFileSync(path.resolve(root, "src/modules/catalogo/product-list-page.tsx"), "utf8");
+  const routeSource = readFileSync(path.resolve(root, "app/(admin)/admin/products/[productId]/page.tsx"), "utf8");
+  const pageSource = readFileSync(path.resolve(root, "src/modules/catalogo/product-editor-page.tsx"), "utf8");
+  const editorSource = readFileSync(path.resolve(root, "src/modules/catalogo/product-editor-client.tsx"), "utf8");
+
+  assert.match(listSource, /export function normalizeProductListColumns/);
+  assert.match(listSource, /href=\{`\/admin\/products\/\$\{product\.productId\}\?preview=1`\}/);
+  assert.match(listSource, /href=\{`\/admin\/products\/new\?duplicateFrom=\$\{encodeURIComponent\(product\.productId\)\}`\}/);
+  assert.match(listSource, /action=\{deactivateProductAction\}/);
+  assert.match(listSource, /action=\{bulkDeactivateProductsAction\}/);
+  assert.match(listSource, /name="productIds"/);
+  assert.match(listSource, /confirmBulkDeactivate/);
+  assert.match(listSource, /Confirmo la desactivacion/);
+  assert.match(listSource, /Confirmo la desactivacion agrupada/);
+  assert.match(listSource, /Desactivar de forma segura/);
+  assert.doesNotMatch(listSource, /Proceso UI Productos 3\.2/);
+  assert.doesNotMatch(listSource, /MoreVertical/);
+  assert.match(routeSource, /initialPreviewOpen=\{query\?\.preview === "1"\}/);
+  assert.match(pageSource, /initialPreviewOpen = false/);
+  assert.match(editorSource, /const \[previewOpen, setPreviewOpen\] = useState\(initialPreviewOpen\)/);
+  assert.match(editorSource, /function prepareProductPublication/);
+  assert.match(editorSource, /validateProductPublicationReadiness\(draft\)/);
+  assert.match(editorSource, /Guarda producto para persistir la activacion por BFF/);
+  assert.match(editorSource, /Quitar solicitud de publicacion/);
+  assert.match(editorSource, /variantFilterQuery/);
+  assert.match(editorSource, /function applyVariantBulkAction/);
+  assert.match(editorSource, /filteredDraftVariants\.map/);
+  assert.match(editorSource, /Guarda el producto para persistir el cambio/);
+  assert.match(editorSource, /function handleRecoveryAction/);
+  assert.match(editorSource, /recoveryActionShouldRetry/);
+  assert.match(editorSource, /Continuar editando/);
+  assert.doesNotMatch(editorSource, /<span className="adminBadge adminBadgeWarn" key=\{`\$\{action\.code\}/);
 });

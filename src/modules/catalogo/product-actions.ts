@@ -1,9 +1,11 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getAdminContext } from "../../shared/config/admin-context";
 import { requestBff } from "../../shared/bff/client";
 import { createCatalogEntity, listCatalogEntities, toLookupOptions, type CatalogEntityKind } from "./catalog-taxonomy";
-import { makeProductGateway } from "./products";
+import { getAdminProductEditorData, makeProductGateway } from "./products";
 import type {
   ProductAppliedPricePreview,
   ProductAppliedPricePreviewInput,
@@ -16,6 +18,116 @@ import type {
   ProductSaveReport,
 } from "./product-editor-types";
 
+function asString(value: FormDataEntryValue | null) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function productListReturnUrl(value: FormDataEntryValue | null) {
+  const fallback = "/admin/products";
+  const raw = asString(value);
+  if (!raw || !raw.startsWith("/admin/products")) {
+    return fallback;
+  }
+
+  return raw.startsWith("/admin/products/new") ? fallback : raw;
+}
+
+function redirectWithProductMessage(returnTo: string, message: string): never {
+  const [path, query = ""] = returnTo.split("?");
+  const params = new URLSearchParams(query);
+  params.set("productMessage", message);
+
+  revalidatePath("/admin/products");
+  redirect(`${path}?${params.toString()}`);
+}
+
+async function patchProductRouteInactive(
+  context: Awaited<ReturnType<typeof getAdminContext>>,
+  routeId: string,
+  locale: string,
+) {
+  const params = new URLSearchParams({
+    organizationId: context.organizationId,
+    shopId: context.shopId,
+    locale,
+  });
+
+  return requestBff(`/admin/routing-seo/routes/${encodeURIComponent(routeId)}?${params.toString()}`, {
+    context,
+    init: {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        status: "INACTIVE",
+        includeInSitemap: false,
+      }),
+    },
+    parse: (value) => value as Record<string, unknown>,
+  });
+}
+
+type ProductDeactivationResult = {
+  ok: boolean;
+  message: string;
+  routeFailures: number;
+};
+
+async function deactivateProductById(
+  context: Awaited<ReturnType<typeof getAdminContext>>,
+  productId: string,
+): Promise<ProductDeactivationResult> {
+  const editorState = await getAdminProductEditorData(context, productId);
+  if (!editorState.ok) {
+    return {
+      ok: false,
+      message: `No se pudo cargar el producto antes de desactivarlo. ${editorState.error}`,
+      routeFailures: 0,
+    };
+  }
+
+  const product = editorState.data.product;
+  const result = await makeProductGateway(context).updateProduct(productId, {
+    name: product.name,
+    refId: product.reference ?? product.defaultVariantId,
+    slug: product.slug,
+    shortDescription: product.shortDescription,
+    description: product.description,
+    categoryId: product.categoryId,
+    brandId: product.brandId,
+    isVisible: false,
+    isActive: false,
+    keywords: product.keywords,
+    title: product.metaTitle || product.name,
+    taxCode: product.taxCode,
+    metaTagDescription: product.metaDescription,
+  });
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      message: result.status === 403 ? "Falta permiso catalog.products.write." : result.error,
+      routeFailures: 0,
+    };
+  }
+
+  const locale = context.locale ?? "es-ES";
+  const routes = [
+    editorState.data.routingSeo?.canonicalRoute,
+    ...(editorState.data.routingSeo?.aliases ?? []),
+  ].filter((route): route is NonNullable<typeof route> => Boolean(route?.routeId));
+  const routeResults = await Promise.all(routes.map((route) => patchProductRouteInactive(context, route.routeId as string, locale)));
+  const routeFailures = routeResults.filter((routeResult) => !routeResult.ok).length;
+  const routeMessage = routeFailures > 0
+    ? " Producto desactivado; revisa Routing/SEO porque alguna ruta no se pudo inactivar."
+    : " Rutas SEO inactivadas fuera de sitemap.";
+
+  return {
+    ok: true,
+    message: `Producto desactivado y oculto.${routes.length > 0 ? routeMessage : ""}`,
+    routeFailures,
+  };
+}
+
 const defaultProductSaveBlocks: ProductSaveBlocks = {
   catalog: "pending",
   variants: "pending",
@@ -25,6 +137,7 @@ const defaultProductSaveBlocks: ProductSaveBlocks = {
   pricing: "pending",
   inventory: "pending",
   shipping: "pending",
+  routingSeo: "pending",
   publish: "pending",
 };
 
@@ -38,6 +151,31 @@ function parseDraft(value: FormDataEntryValue | null): ProductDraft | null {
   } catch {
     return null;
   }
+}
+
+function sanitizeDraftForBff(draft: ProductDraft): ProductDraft {
+  const routingSeo = draft.routingSeo;
+  if (!routingSeo) {
+    return draft;
+  }
+
+  return {
+    ...draft,
+    routingSeo: {
+      canonicalPath: routingSeo.canonicalPath,
+      status: routingSeo.status,
+      includeInSitemap: routingSeo.includeInSitemap,
+      createRedirectFromPreviousPath: routingSeo.createRedirectFromPreviousPath,
+      aliases: routingSeo.aliases.map((alias) => ({
+        routeId: alias.routeId,
+        path: alias.path,
+        routeKind: "ALIAS",
+        status: alias.status,
+        includeInSitemap: false,
+        markedForDeletion: alias.markedForDeletion,
+      })),
+    },
+  };
 }
 
 export async function uploadProductDraftMediaAction(
@@ -244,6 +382,65 @@ export async function previewAppliedProductPriceAction(
   };
 }
 
+export async function deactivateProductAction(formData: FormData) {
+  const context = await getAdminContext();
+  const productId = asString(formData.get("productId"));
+  const returnTo = productListReturnUrl(formData.get("returnTo"));
+  const confirmed = formData.get("confirmDeactivate") === "yes";
+
+  if (!context.organizationId || !context.shopId) {
+    redirectWithProductMessage(returnTo, "Selecciona Organization y Shop antes de desactivar productos.");
+  }
+  if (!productId) {
+    redirectWithProductMessage(returnTo, "No se pudo identificar el producto.");
+  }
+  if (!confirmed) {
+    redirectWithProductMessage(returnTo, "Marca la confirmacion antes de desactivar el producto.");
+  }
+
+  const result = await deactivateProductById(context, productId);
+  redirectWithProductMessage(returnTo, result.message);
+}
+
+export async function bulkDeactivateProductsAction(formData: FormData) {
+  const context = await getAdminContext();
+  const returnTo = productListReturnUrl(formData.get("returnTo"));
+  const confirmed = formData.get("confirmBulkDeactivate") === "yes";
+  const productIds = Array.from(new Set(
+    formData.getAll("productIds")
+      .map((value) => (typeof value === "string" ? value.trim() : ""))
+      .filter(Boolean),
+  ));
+
+  if (!context.organizationId || !context.shopId) {
+    redirectWithProductMessage(returnTo, "Selecciona Organization y Shop antes de desactivar productos.");
+  }
+  if (productIds.length === 0) {
+    redirectWithProductMessage(returnTo, "Selecciona al menos un producto.");
+  }
+  if (!confirmed) {
+    redirectWithProductMessage(returnTo, "Marca la confirmacion antes de desactivar productos seleccionados.");
+  }
+
+  const results: ProductDeactivationResult[] = [];
+  for (const productId of productIds) {
+    results.push(await deactivateProductById(context, productId));
+  }
+
+  const okCount = results.filter((result) => result.ok).length;
+  const failedCount = results.length - okCount;
+  const routeFailureCount = results.reduce((total, result) => total + result.routeFailures, 0);
+  const okLabel = okCount === 1 ? "1 producto desactivado y oculto" : `${okCount} productos desactivados y ocultos`;
+  const failedLabel = failedCount === 1 ? "1 no se pudo desactivar" : `${failedCount} no se pudieron desactivar`;
+  const messageParts = [
+    okCount > 0 ? okLabel : "No se pudo desactivar ningun producto",
+    failedCount > 0 ? failedLabel : undefined,
+    routeFailureCount > 0 ? "Revisa Routing/SEO: alguna ruta no se pudo inactivar." : undefined,
+  ].filter(Boolean);
+
+  redirectWithProductMessage(returnTo, messageParts.join(". "));
+}
+
 export async function saveProductDraftAction(formData: FormData): Promise<ProductSaveReport> {
   const draft = parseDraft(formData.get("draft"));
 
@@ -291,6 +488,7 @@ export async function saveProductDraftAction(formData: FormData): Promise<Produc
     typeof idempotencyKeyEntry === "string" && idempotencyKeyEntry.trim()
       ? idempotencyKeyEntry.trim()
       : crypto.randomUUID();
+  formData.set("draft", JSON.stringify(sanitizeDraftForBff(draft)));
 
   const result = await requestBff<ProductSaveReport>(`/admin/product-save-operations?${params.toString()}`, {
     context,

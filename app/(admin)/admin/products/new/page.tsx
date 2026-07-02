@@ -1,8 +1,15 @@
 import { getAdminContext } from "../../../../../src/shared/config/admin-context";
 import { ProductEditorPage } from "../../../../../src/modules/catalogo/product-editor-page";
 
-export default async function NewAdminProductPage() {
-  const context = await getAdminContext();
+type NewAdminProductPageProps = {
+  searchParams?: Promise<{
+    duplicateFrom?: string;
+  }>;
+};
 
-  return <ProductEditorPage context={context} />;
+export default async function NewAdminProductPage({ searchParams }: NewAdminProductPageProps) {
+  const context = await getAdminContext();
+  const params = await searchParams;
+
+  return <ProductEditorPage context={context} duplicateFromProductId={params?.duplicateFrom} />;
 }

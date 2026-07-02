@@ -2,6 +2,7 @@ import type {
   ProductEditorData,
   ProductDraft,
   ProductDraftMediaItem,
+  ProductRoutingSeoDraft,
   ProductShippingDraft,
   ProductSummary,
   ProductVariantRecord,
@@ -16,6 +17,62 @@ export function slugifyProductValue(value: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 120);
+}
+
+export function canonicalPathFromSlug(slug: string) {
+  const normalized = slugifyProductValue(slug);
+  return normalized ? `/${normalized}/p` : "";
+}
+
+function createEmptyRoutingSeoDraft(slug = ""): ProductRoutingSeoDraft {
+  return {
+    canonicalRouteId: null,
+    canonicalPath: canonicalPathFromSlug(slug),
+    status: "ACTIVE",
+    includeInSitemap: true,
+    createRedirectFromPreviousPath: false,
+    aliases: [],
+    resolvedCanonical: null,
+  };
+}
+
+function routingSeoDraftFromEditorData(data: ProductEditorData): ProductRoutingSeoDraft {
+  const empty = createEmptyRoutingSeoDraft(data.product.slug);
+  const state = data.routingSeo;
+  const canonical = state?.canonicalRoute ?? null;
+
+  return {
+    ...empty,
+    canonicalRouteId: canonical?.routeId ?? null,
+    canonicalPath: canonical?.path ?? empty.canonicalPath,
+    status: canonical?.status ?? empty.status,
+    includeInSitemap: canonical?.includeInSitemap ?? empty.includeInSitemap,
+    aliases: (state?.aliases ?? []).map((alias) => ({
+      routeId: alias.routeId,
+      path: alias.path,
+      routeKind: "ALIAS",
+      status: alias.status,
+      includeInSitemap: false,
+      updatedAt: alias.updatedAt ?? null,
+    })),
+    resolvedCanonical: state?.resolvedCanonical ?? null,
+    updatedAt: canonical?.updatedAt ?? null,
+  };
+}
+
+function sanitizeRoutingSeoDraftForUi(routingSeo: ProductRoutingSeoDraft): ProductRoutingSeoDraft {
+  return {
+    ...routingSeo,
+    aliases: routingSeo.aliases.map((alias) => ({
+      routeId: alias.routeId,
+      path: alias.path,
+      routeKind: "ALIAS",
+      status: alias.status,
+      includeInSitemap: false,
+      updatedAt: alias.updatedAt,
+      markedForDeletion: alias.markedForDeletion,
+    })),
+  };
 }
 
 export function plainProductText(value: string) {
@@ -40,6 +97,46 @@ export function makeRefIdFromName(value: string) {
 
 function createClientDraftId() {
   return globalThis.crypto?.randomUUID?.() ?? `client-draft-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function copiedProductName(name: string) {
+  const normalized = plainProductText(name);
+  return normalized ? `Copia de ${normalized}` : "Copia de producto";
+}
+
+function copiedProductSlug(product: ProductSummary) {
+  const source = product.slug || product.name || product.productId;
+  const suffix = product.productId ? `copia-${product.productId.slice(0, 8)}` : "copia";
+  return slugifyProductValue(`${source}-${suffix}`) || slugifyProductValue(`${copiedProductName(product.name)}-${suffix}`);
+}
+
+function copiedRefId(value: string | undefined, fallbackName: string, index?: number) {
+  const suffix = typeof index === "number" ? `COPY_${index + 1}` : "COPY";
+  const base = (value?.trim() || makeRefIdFromName(fallbackName) || "PRODUCT")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toUpperCase();
+  const maxBaseLength = Math.max(1, 64 - suffix.length - 1);
+
+  return `${base.slice(0, maxBaseLength)}_${suffix}`;
+}
+
+function copyPriceDraft<T extends { pricingId?: string }>(price: T): T {
+  const copied = { ...price };
+  delete copied.pricingId;
+
+  return copied;
+}
+
+function resetStockDraft(stock: ProductDraft["inventory"]["stockByVariant"][string] | undefined) {
+  return {
+    warehouseId: stock?.warehouseId ?? "main-warehouse",
+    onHandQuantity: 0,
+    reservedQuantity: 0,
+    safetyStockQuantity: stock?.safetyStockQuantity ?? 0,
+  };
 }
 
 export function createEmptyProductShippingDraft(): ProductShippingDraft {
@@ -128,6 +225,7 @@ export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): Pro
       },
     },
     shipping: createEmptyProductShippingDraft(),
+    routingSeo: createEmptyRoutingSeoDraft(),
     saveState: {
       catalog: "pending",
       variants: "pending",
@@ -137,6 +235,7 @@ export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): Pro
       pricing: "pending",
       inventory: "pending",
       shipping: "pending",
+      routingSeo: "pending",
       publish: "pending",
     },
   };
@@ -233,6 +332,7 @@ export function draftFromProduct(
         isActive: variant.isActive,
         isVisible: variant.isVisible,
       })),
+    routingSeo: createEmptyRoutingSeoDraft(product.slug),
   };
 }
 
@@ -290,6 +390,115 @@ export function draftFromEditorData(
       },
     },
     shipping: data.shipping ?? draft.shipping,
+    routingSeo: routingSeoDraftFromEditorData(data),
+  };
+}
+
+export function duplicateDraftFromEditorData(
+  data: ProductEditorData,
+  locale = "es-ES",
+  currency = "EUR",
+): ProductDraft {
+  const source = draftFromEditorData(data, locale, currency);
+  const empty = createEmptyProductDraft(locale, currency);
+  const name = copiedProductName(source.basic.name);
+  const slug = copiedProductSlug(data.product);
+  const oldToNewVariantKey = new Map<string, string>();
+  const variants = source.variants.map((variant, index) => {
+    const localId = `variant-copy-${index + 1}`;
+    if (variant.variantId) {
+      oldToNewVariantKey.set(variant.variantId, localId);
+    }
+    oldToNewVariantKey.set(variant.localId, localId);
+
+    return {
+      ...variant,
+      localId,
+      variantId: undefined,
+      refId: copiedRefId(variant.refId, variant.name || name, index),
+      ean: null,
+      options: variant.options
+        .filter((option) => !option.markedForDeletion)
+        .map((option) => ({
+          attributeCode: option.attributeCode,
+          valueCode: option.valueCode,
+          isActive: option.isActive ?? true,
+          createdInDraft: true,
+        })),
+    };
+  });
+  const variantPrices = Object.fromEntries(
+    Object.entries(source.pricing.variantPrices)
+      .map(([variantKey, price]) => {
+        const nextKey = oldToNewVariantKey.get(variantKey);
+        return nextKey ? [nextKey, copyPriceDraft(price)] as const : null;
+      })
+      .filter((item): item is readonly [string, ProductDraft["pricing"]["variantPrices"][string]] => Boolean(item)),
+  );
+  const stockByVariant = Object.fromEntries([
+    ["default", resetStockDraft(source.inventory.stockByVariant.default)],
+    ...variants.map((variant) => [
+      variant.localId,
+      resetStockDraft(
+        source.inventory.stockByVariant[oldToNewVariantKey.get(variant.localId) ?? ""] ??
+          source.inventory.stockByVariant[variant.localId],
+      ),
+    ] as const),
+  ]);
+
+  return {
+    ...source,
+    clientDraftId: empty.clientDraftId,
+    productId: undefined,
+    defaultVariantId: undefined,
+    mediaCollectionId: null,
+    basic: {
+      ...source.basic,
+      name,
+      slug,
+      isActive: false,
+      isVisible: false,
+      metaTitle: name,
+      metaDescription: source.basic.metaDescription,
+    },
+    defaultVariant: {
+      ...source.defaultVariant,
+      refId: copiedRefId(source.defaultVariant.refId, name),
+      name,
+      ean: null,
+    },
+    media: empty.media,
+    variants,
+    pricing: {
+      productPrice: source.pricing.productPrice ? copyPriceDraft(source.pricing.productPrice) : undefined,
+      variantPrices,
+      specificPrices: [],
+    },
+    specifications: {
+      selections: source.specifications.selections
+        .filter((selection) => !selection.markedForDeletion)
+        .map((selection) => ({
+          fieldId: selection.fieldId,
+          fieldValueId: selection.fieldValueId,
+          groupId: selection.groupId,
+          fieldName: selection.fieldName,
+          valueName: selection.valueName,
+        })),
+    },
+    offerings: empty.offerings,
+    inventory: {
+      stockByVariant,
+    },
+    routingSeo: {
+      canonicalRouteId: null,
+      canonicalPath: canonicalPathFromSlug(slug),
+      status: "INACTIVE",
+      includeInSitemap: false,
+      createRedirectFromPreviousPath: false,
+      aliases: [],
+      resolvedCanonical: null,
+    },
+    saveState: empty.saveState,
   };
 }
 
@@ -304,6 +513,9 @@ export function sanitizeDraftForStorage(draft: ProductDraft): ProductDraft {
       })),
     },
     shipping: draft.shipping ?? createEmptyProductShippingDraft(),
+    routingSeo: sanitizeRoutingSeoDraftForUi(
+      draft.routingSeo ?? createEmptyRoutingSeoDraft(draft.basic.slug),
+    ),
   };
 }
 
@@ -385,6 +597,7 @@ export function mergeStoredProductDraft(
     offerings: storedDraft.offerings ?? initialDraft.offerings,
     specifications: storedDraft.specifications ?? initialDraft.specifications,
     shipping: storedDraft.shipping ?? initialDraft.shipping,
+    routingSeo: storedDraft.routingSeo ?? initialDraft.routingSeo,
     saveState: {
       ...initialDraft.saveState,
       ...storedDraft.saveState,

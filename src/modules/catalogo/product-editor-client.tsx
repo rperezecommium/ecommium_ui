@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Bold, ChevronRight, Eye, Italic, List, ListOrdered, Plus, Redo2, RemoveFormatting, Strikethrough, Trash2, Undo2, X } from "lucide-react";
+import { Bold, ChevronRight, Copy, ExternalLink, Eye, Italic, List, ListOrdered, Plus, Redo2, RemoveFormatting, Strikethrough, Trash2, Undo2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { ChangeEvent, InputHTMLAttributes } from "react";
 import {
@@ -12,6 +12,7 @@ import {
   createProductBrandInlineAction,
   createProductCategoryInlineAction,
   detachOfferingFromVariantAction,
+  deactivateProductAction,
   previewAppliedProductPriceAction,
   readProductDraftMediaStateAction,
   saveProductDraftAction,
@@ -19,6 +20,7 @@ import {
   uploadProductDraftMediaAction,
 } from "./product-actions";
 import {
+  canonicalPathFromSlug,
   ensureSingleMainImage,
   makeProductMediaItem,
   makeRefIdFromName,
@@ -57,6 +59,9 @@ type ProductEditorClientProps = {
   locale: string;
   currency: string;
   lookups?: ProductEditorLookups;
+  initialPreviewOpen?: boolean;
+  initialNotice?: string;
+  storageScope?: string;
 };
 
 type ProductEditorClientInnerProps = Omit<ProductEditorClientProps, "contextIdentity"> & {
@@ -117,6 +122,9 @@ type PricingPreviewFormState = {
 type SpecificationPickerStep = "fields" | "values";
 type OfferingPickerStep = "list" | "details";
 type VariantAttributePickerStep = "fields" | "values";
+type VariantLifecycleFilter = "all" | "active" | "inactive";
+type VariantVisibilityFilter = "all" | "visible" | "hidden";
+type VariantBulkAction = "activate" | "deactivate" | "show" | "hide";
 
 type TabId =
   | "basic"
@@ -126,7 +134,8 @@ type TabId =
   | "inventory"
   | "shipping"
   | "seo"
-  | "options";
+  | "options"
+  | "audit";
 
 const tabs: Array<{ id: TabId; label: string }> = [
   { id: "basic", label: "Ajustes basicos" },
@@ -137,7 +146,58 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: "shipping", label: "Transporte" },
   { id: "seo", label: "SEO" },
   { id: "options", label: "Opciones" },
+  { id: "audit", label: "Auditoria" },
 ];
+
+function tabForPublicationItem(itemId: string | undefined): TabId {
+  if (itemId === "media") {
+    return "images";
+  }
+  if (itemId === "price") {
+    return "pricing";
+  }
+  if (itemId === "stock") {
+    return "inventory";
+  }
+
+  return "basic";
+}
+
+function tabForRecoveryBlock(block: string | undefined): TabId {
+  if (block === "media" || block === "variantMedia") {
+    return "images";
+  }
+  if (block === "variants") {
+    return "variants";
+  }
+  if (block === "pricing") {
+    return "pricing";
+  }
+  if (block === "inventory") {
+    return "inventory";
+  }
+  if (block === "shipping") {
+    return "shipping";
+  }
+  if (block === "routingSeo") {
+    return "seo";
+  }
+  if (block === "specifications") {
+    return "options";
+  }
+
+  return "basic";
+}
+
+function recoveryActionShouldRetry(action: ProductSaveReport["recoveryActions"][number]) {
+  return Boolean(
+    action.retryable &&
+      (
+        action.code.startsWith("retry") ||
+        action.label.toLowerCase().startsWith("reintentar")
+      ),
+  );
+}
 
 const remoteMediaConfirmationAttempts = 3;
 const remoteMediaConfirmationDelayMs = 450;
@@ -324,14 +384,35 @@ function stockWithAvailability(stock: StockDraft): StockDraft {
   };
 }
 
+function nextRoutingSeoForSlug(
+  current: ProductDraft,
+  previousSlug: string,
+  nextSlug: string,
+): ProductDraft["routingSeo"] {
+  const previousAutoPath = canonicalPathFromSlug(previousSlug);
+  const currentPath = current.routingSeo?.canonicalPath ?? "";
+  const shouldUpdate =
+    !currentPath ||
+    currentPath === previousAutoPath ||
+    (!current.routingSeo?.canonicalRouteId && currentPath === canonicalPathFromSlug(current.basic.slug));
+
+  return shouldUpdate
+    ? {
+        ...current.routingSeo,
+        canonicalPath: canonicalPathFromSlug(nextSlug),
+      }
+    : current.routingSeo;
+}
+
 export function localStorageKey(
   draft: ProductDraft,
   locale: string,
   currency: string,
   contextIdentity: string,
+  storageScope?: string,
 ) {
   const mode = draft.productId ? "edit" : "new";
-  return `ecommium-product-draft:v4:${contextIdentity}:${mode}:${draft.productId ?? "new"}:${locale}:${currency}`;
+  return `ecommium-product-draft:v4:${contextIdentity}:${mode}:${storageScope ?? draft.productId ?? "new"}:${locale}:${currency}`;
 }
 
 function statusLabel(status: SaveBlockStatus) {
@@ -506,6 +587,24 @@ function fieldErrorSummary(fieldErrors: ProductSaveReport["fieldErrors"]) {
       label: fieldErrorLabel(key),
       message,
     }));
+}
+
+function productSaveBlocksFromState(
+  saveState: ProductDraft["saveState"],
+  publish: SaveBlockStatus = saveState.publish ?? "pending",
+): ProductSaveReport["blocks"] {
+  return {
+    catalog: saveState.catalog ?? "pending",
+    variants: saveState.variants ?? "pending",
+    media: saveState.media ?? "pending",
+    variantMedia: saveState.variantMedia ?? "pending",
+    specifications: saveState.specifications ?? "pending",
+    pricing: saveState.pricing ?? "pending",
+    inventory: saveState.inventory ?? "pending",
+    shipping: saveState.shipping ?? "pending",
+    routingSeo: saveState.routingSeo ?? "pending",
+    publish,
+  };
 }
 
 function statusClass(status: SaveBlockStatus) {
@@ -1086,12 +1185,15 @@ export function ProductEditorClient({
   locale,
   currency,
   lookups = defaultProductEditorLookups,
+  initialPreviewOpen = false,
+  initialNotice,
+  storageScope,
 }: ProductEditorClientProps) {
   const storageKey = useMemo(
-    () => localStorageKey(initialDraft, locale, currency, contextIdentity),
-    [contextIdentity, currency, initialDraft, locale],
+    () => localStorageKey(initialDraft, locale, currency, contextIdentity, storageScope),
+    [contextIdentity, currency, initialDraft, locale, storageScope],
   );
-  const editorInstanceKey = `${contextIdentity}:${initialDraft.productId ?? "new"}:${locale}:${currency}`;
+  const editorInstanceKey = `${contextIdentity}:${storageScope ?? initialDraft.productId ?? "new"}:${locale}:${currency}`;
 
   return (
 	    <ProductEditorClientInner
@@ -1102,6 +1204,8 @@ export function ProductEditorClient({
       currency={currency}
       lookups={lookups}
       storageKey={storageKey}
+      initialPreviewOpen={initialPreviewOpen}
+      initialNotice={initialNotice}
     />
   );
 }
@@ -1113,6 +1217,8 @@ function ProductEditorClientInner({
   currency,
   lookups = defaultProductEditorLookups,
   storageKey,
+  initialPreviewOpen = false,
+  initialNotice,
 }: ProductEditorClientInnerProps) {
   const router = useRouter();
   const [draft, setDraft] = useState<ProductDraft>(initialDraft);
@@ -1130,7 +1236,7 @@ function ProductEditorClientInner({
   );
   const [pricingPreviewResult, setPricingPreviewResult] = useState<ProductAppliedPricePreview | null>(null);
   const [pricingPreviewBusy, setPricingPreviewBusy] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(initialPreviewOpen);
   const [previewVariantKey, setPreviewVariantKey] = useState<string>("default");
   const [filesByLocalId, setFilesByLocalId] = useState<Record<string, File>>({});
   const mediaFileInputRef = useRef<HTMLInputElement>(null);
@@ -1138,6 +1244,9 @@ function ProductEditorClientInner({
   const [mediaPickerMessage, setMediaPickerMessage] = useState<string | null>(null);
   const [variantColors, setVariantColors] = useState("");
   const [variantSizes, setVariantSizes] = useState("");
+  const [variantFilterQuery, setVariantFilterQuery] = useState("");
+  const [variantLifecycleFilter, setVariantLifecycleFilter] = useState<VariantLifecycleFilter>("all");
+  const [variantVisibilityFilter, setVariantVisibilityFilter] = useState<VariantVisibilityFilter>("all");
   const [pendingGeneratedVariants, setPendingGeneratedVariants] = useState<ProductDraftVariant[] | null>(null);
   const [variantMessage, setVariantMessage] = useState<string | null>(null);
   const [brokenMediaPreviewIds, setBrokenMediaPreviewIds] = useState<Record<string, true>>({});
@@ -1165,14 +1274,26 @@ function ProductEditorClientInner({
   const selectedMedia = draft.media.items.find((item) => item.localId === selectedMediaId) ?? draft.media.items[0];
   const productStatus = draft.basic.isActive ? "Activo" : "Fuera de linea";
   const selectedSpecifications = useMemo(() => {
-    const byFieldId = new Map(draft.specifications.selections.map((selection) => [selection.fieldId, selection]));
-    return lookups.specificationFields
-      .map((field) => {
-        const selection = byFieldId.get(field.fieldId);
-        const value = selection ? field.values.find((item) => item.fieldValueId === selection.fieldValueId) : undefined;
+    return draft.specifications.selections
+      .filter((selection) => !selection.markedForDeletion)
+      .map((selection) => {
+        const field = lookups.specificationFields.find((item) => item.fieldId === selection.fieldId) ?? {
+          fieldId: selection.fieldId,
+          groupId: selection.groupId ?? "",
+          groupName: selection.groupId ?? "Caracteristica",
+          name: selection.fieldName ?? selection.fieldId,
+          isStockKeepingUnit: false,
+          isActive: false,
+          values: [],
+        };
+        const value = field.values.find((item) => item.fieldValueId === selection.fieldValueId) ?? {
+          fieldValueId: selection.fieldValueId,
+          name: selection.valueName ?? selection.fieldValueId,
+          isActive: false,
+        };
         return { field, selection, value };
       })
-      .filter((item) => item.selection && item.value);
+      .filter((item) => item.selection.fieldId && item.selection.fieldValueId);
   }, [draft.specifications.selections, lookups.specificationFields]);
   const specificationPickerField = specificationPickerFieldId
     ? lookups.specificationFields.find((field) => field.fieldId === specificationPickerFieldId)
@@ -1221,6 +1342,33 @@ function ProductEditorClientInner({
       }),
     ];
   }, [draft, variantRowsById]);
+  const filteredDraftVariants = useMemo(() => {
+    const query = variantFilterQuery.trim().toLowerCase();
+
+    return draft.variants.filter((variant) => {
+      const matchesQuery = !query || [
+        variant.name,
+        variant.refId,
+        variant.ean ?? "",
+        optionLabel(variant),
+      ].some((value) => value.toLowerCase().includes(query));
+      const matchesLifecycle =
+        variantLifecycleFilter === "all" ||
+        (variantLifecycleFilter === "active" && variant.isActive) ||
+        (variantLifecycleFilter === "inactive" && !variant.isActive);
+      const matchesVisibility =
+        variantVisibilityFilter === "all" ||
+        (variantVisibilityFilter === "visible" && variant.isVisible) ||
+        (variantVisibilityFilter === "hidden" && !variant.isVisible);
+
+      return matchesQuery && matchesLifecycle && matchesVisibility;
+    });
+  }, [draft.variants, variantFilterQuery, variantLifecycleFilter, variantVisibilityFilter]);
+  const hasVariantFilters = Boolean(
+    variantFilterQuery.trim() ||
+    variantLifecycleFilter !== "all" ||
+    variantVisibilityFilter !== "all",
+  );
   const selectedVariant =
     allVariantRows.find((variant) => variant.localId === selectedVariantKey || variant.variantId === selectedVariantKey) ??
     allVariantRows[0];
@@ -1499,6 +1647,7 @@ function ProductEditorClientInner({
 
   function updateBasic(field: keyof ProductDraft["basic"], value: string | boolean) {
     updateDraft((current) => {
+      const previousSlug = current.basic.slug;
       const nextBasic = {
         ...current.basic,
         [field]: value,
@@ -1513,6 +1662,7 @@ function ProductEditorClientInner({
           return {
             ...current,
             basic: nextBasic,
+            routingSeo: nextRoutingSeoForSlug(current, previousSlug, nextBasic.slug),
             defaultVariant: {
               ...current.defaultVariant,
               name: value,
@@ -1525,6 +1675,9 @@ function ProductEditorClientInner({
       return {
         ...current,
         basic: nextBasic,
+        routingSeo: field === "slug" && typeof value === "string"
+          ? nextRoutingSeoForSlug(current, previousSlug, value)
+          : current.routingSeo,
         ...(field === "name" && typeof value === "string"
           ? {
               defaultVariant: {
@@ -1535,6 +1688,62 @@ function ProductEditorClientInner({
           : {}),
       };
     });
+  }
+
+  function updateRoutingSeo(updater: (routingSeo: ProductDraft["routingSeo"]) => ProductDraft["routingSeo"]) {
+    updateDraft((current) => ({
+      ...current,
+      routingSeo: updater(current.routingSeo),
+    }));
+  }
+
+  function updateRoutingSeoAlias(index: number, updater: (alias: ProductDraft["routingSeo"]["aliases"][number]) => ProductDraft["routingSeo"]["aliases"][number]) {
+    updateRoutingSeo((routingSeo) => ({
+      ...routingSeo,
+      aliases: routingSeo.aliases.map((alias, aliasIndex) => {
+        if (aliasIndex !== index) {
+          return alias;
+        }
+        const updatedAlias = updater(alias);
+        return {
+          routeId: updatedAlias.routeId,
+          path: updatedAlias.path,
+          routeKind: "ALIAS",
+          status: updatedAlias.status,
+          includeInSitemap: false,
+          updatedAt: updatedAlias.updatedAt,
+          markedForDeletion: updatedAlias.markedForDeletion,
+        };
+      }),
+    }));
+  }
+
+  function addRoutingSeoAlias() {
+    updateRoutingSeo((routingSeo) => ({
+      ...routingSeo,
+      aliases: [
+        ...routingSeo.aliases,
+        {
+          path: "",
+          routeKind: "ALIAS",
+          status: "ACTIVE",
+          includeInSitemap: false,
+        },
+      ],
+    }));
+  }
+
+  function removeRoutingSeoAlias(index: number) {
+    updateRoutingSeo((routingSeo) => ({
+      ...routingSeo,
+      aliases: routingSeo.aliases
+        .map((alias, aliasIndex) => aliasIndex === index
+          ? alias.routeId
+            ? { ...alias, status: "INACTIVE", includeInSitemap: false, markedForDeletion: true }
+            : null
+          : alias)
+        .filter((alias): alias is ProductDraft["routingSeo"]["aliases"][number] => Boolean(alias)),
+    }));
   }
 
   function updateSpecificationSelection(fieldId: string, fieldValueId: string) {
@@ -2166,6 +2375,43 @@ function ProductEditorClientInner({
     );
   }
 
+  function applyVariantBulkAction(action: VariantBulkAction) {
+    const targetVariantIds = new Set(filteredDraftVariants.map((variant) => variant.localId));
+    if (targetVariantIds.size === 0) {
+      setVariantMessage("No hay variantes filtradas para aplicar la accion.");
+      return;
+    }
+
+    updateDraft((current) => ({
+      ...current,
+      variants: current.variants.map((variant) => {
+        if (!targetVariantIds.has(variant.localId)) {
+          return variant;
+        }
+
+        if (action === "activate") {
+          return { ...variant, isActive: true };
+        }
+        if (action === "deactivate") {
+          return { ...variant, isActive: false };
+        }
+        if (action === "show") {
+          return { ...variant, isVisible: true };
+        }
+
+        return { ...variant, isVisible: false };
+      }),
+    }));
+
+    const actionLabel = {
+      activate: "activar",
+      deactivate: "desactivar",
+      show: "mostrar",
+      hide: "ocultar",
+    }[action];
+    setVariantMessage(`${targetVariantIds.size} variante(s) marcada(s) para ${actionLabel}. Guarda el producto para persistir el cambio.`);
+  }
+
   function updateVariantPrice(variantKey: string, value: string) {
     updateVariantPriceField(variantKey, (price) => ({
       ...price,
@@ -2783,6 +3029,91 @@ function ProductEditorClientInner({
     applyGeneratedCombinations(rows, "replace");
   }
 
+  function prepareProductPublication() {
+    const publicationValidation = validateProductPublicationReadiness(draft);
+    if (!publicationValidation.ok) {
+      const errors = fieldErrorSummary(publicationValidation.fieldErrors);
+      const firstMissing = publicationChecklist.find((item) => !item.ok);
+      setReport({
+        ok: false,
+        blocks: productSaveBlocksFromState(draft.saveState, "blocked"),
+        messages: [
+          errors.length
+            ? `No se puede preparar la publicacion. Revisa: ${errors.map((error) => error.label).join(", ")}.`
+            : "No se puede preparar la publicacion todavia.",
+        ],
+        fieldErrors: publicationValidation.fieldErrors,
+        recoveryActions: [{
+          code: "review_publication",
+          label: "Revisar publicacion",
+          targetBlock: "publish",
+          retryable: false,
+        }],
+        correlationIds: [],
+      });
+      setDraft((current) => ({
+        ...current,
+        saveState: {
+          ...current.saveState,
+          publish: "blocked",
+        },
+      }));
+      setActiveTab(tabForPublicationItem(firstMissing?.id));
+      return;
+    }
+
+    updateDraft((current) => ({
+      ...current,
+      basic: {
+        ...current.basic,
+        isVisible: true,
+        isActive: true,
+      },
+      saveState: {
+        ...current.saveState,
+        publish: "pending",
+      },
+    }));
+    setReport({
+      ok: true,
+      blocks: productSaveBlocksFromState(draft.saveState, "pending"),
+      messages: ["Producto preparado para publicar. Guarda producto para persistir la activacion por BFF."],
+      fieldErrors: {},
+      recoveryActions: [],
+      correlationIds: [],
+    });
+    setActiveTab("basic");
+  }
+
+  function keepProductOfflineInDraft() {
+    updateDraft((current) => ({
+      ...current,
+      basic: {
+        ...current.basic,
+        isActive: false,
+      },
+      saveState: {
+        ...current.saveState,
+        publish: "pending",
+      },
+    }));
+    setReport({
+      ok: true,
+      blocks: productSaveBlocksFromState(draft.saveState, "pending"),
+      messages: ["Solicitud de publicacion retirada del borrador. Guarda producto para persistirlo."],
+      fieldErrors: {},
+      recoveryActions: [],
+      correlationIds: [],
+    });
+  }
+
+  function handleRecoveryAction(action: ProductSaveReport["recoveryActions"][number]) {
+    setActiveTab(tabForRecoveryBlock(action.targetBlock));
+    if (recoveryActionShouldRetry(action)) {
+      saveDraft();
+    }
+  }
+
   function saveDraft() {
     const validation = validateProductDraft(draft);
     if (!validation.ok) {
@@ -2798,6 +3129,7 @@ function ProductEditorClientInner({
           pricing: draft.saveState.pricing ?? "pending",
           inventory: draft.saveState.inventory ?? "pending",
           shipping: draft.saveState.shipping ?? "pending",
+          routingSeo: draft.saveState.routingSeo ?? "pending",
           publish: draft.saveState.publish ?? "pending",
         },
         messages: [
@@ -2839,6 +3171,7 @@ function ProductEditorClientInner({
             pricing: draft.saveState.pricing ?? "pending",
             inventory: draft.saveState.inventory ?? "pending",
             shipping: draft.saveState.shipping ?? "pending",
+            routingSeo: draft.saveState.routingSeo ?? "pending",
             publish: "blocked",
           },
           messages: [
@@ -2928,6 +3261,7 @@ function ProductEditorClientInner({
             pricing: "pending",
             inventory: "pending",
             shipping: "pending",
+            routingSeo: "pending",
             publish: "pending",
           },
           messages: [error instanceof Error ? error.message : "No se pudo completar el guardado."],
@@ -3062,6 +3396,12 @@ function ProductEditorClientInner({
         </div>
       </div>
 
+      {initialNotice ? (
+        <section className="adminBanner" aria-live="polite">
+          <p>{initialNotice}</p>
+        </section>
+      ) : null}
+
       {report ? (
         <section className={`adminBanner ${report.ok ? "" : "adminBannerError"}`} aria-live="polite">
           {report.messages.map((message) => <p key={message}>{message}</p>)}
@@ -3075,12 +3415,20 @@ function ProductEditorClientInner({
             </ul>
           ) : null}
           {report.recoveryActions.length > 0 ? (
-            <div className="adminButtonRow" aria-label="Acciones de recuperacion recomendadas">
+            <div className="adminButtonRow productRecoveryActions" aria-label="Acciones de recuperacion recomendadas">
               {report.recoveryActions.map((action) => (
-                <span className="adminBadge adminBadgeWarn" key={`${action.code}:${action.targetBlock ?? "operation"}`}>
+                <button
+                  className="adminButton"
+                  key={`${action.code}:${action.targetBlock ?? "operation"}`}
+                  type="button"
+                  onClick={() => handleRecoveryAction(action)}
+                >
                   {action.label}
-                </span>
+                </button>
               ))}
+              <button className="adminButton" type="button" onClick={() => setReport(null)}>
+                Continuar editando
+              </button>
             </div>
           ) : null}
           {report.correlationIds.length > 0 ? (
@@ -3356,6 +3704,20 @@ function ProductEditorClientInner({
                   {publicationChecklist.filter((item) => !item.ok).map((item) => (
                     <small key={item.id}>{item.message}</small>
                   ))}
+                  <div className="productPublicationActions">
+                    {!draft.basic.isActive ? (
+                      <button className="adminButton adminButtonPrimary" type="button" onClick={prepareProductPublication}>
+                        {publicationReady ? "Preparar publicacion" : "Revisar para publicar"}
+                      </button>
+                    ) : (
+                      <button className="adminButton" type="button" onClick={keepProductOfflineInDraft}>
+                        Quitar solicitud de publicacion
+                      </button>
+                    )}
+                    <p className="adminContextHint">
+                      Preparar publicacion marca el draft como activo y visible. Guardar producto persiste el cambio y el BFF conserva la validacion final.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3482,8 +3844,72 @@ function ProductEditorClientInner({
 	                  <p>Gestiona producto y variantes vendibles con SKU, EAN, precio, stock, imagenes y estado propios.</p>
                 </div>
                 <div className="adminButtonRow">
-                  <button className="adminButton" type="button">Filtros</button>
-                  <button className="adminButton" type="button">Acciones masivas</button>
+                  <details className="productListToolbarMenu productVariantToolbarMenu">
+                    <summary className="adminButton">Filtros</summary>
+                    <div className="productListToolbarPanel productVariantToolbarPanel">
+                      <label className="adminField">
+                        <span>Buscar variante</span>
+                        <input
+                          value={variantFilterQuery}
+                          onChange={(event) => setVariantFilterQuery(event.target.value)}
+                        />
+                      </label>
+                      <label className="adminField">
+                        <span>Estado</span>
+                        <select
+                          value={variantLifecycleFilter}
+                          onChange={(event) => setVariantLifecycleFilter(event.target.value as VariantLifecycleFilter)}
+                        >
+                          <option value="all">Todas</option>
+                          <option value="active">Activas</option>
+                          <option value="inactive">Inactivas</option>
+                        </select>
+                      </label>
+                      <label className="adminField">
+                        <span>Visibilidad</span>
+                        <select
+                          value={variantVisibilityFilter}
+                          onChange={(event) => setVariantVisibilityFilter(event.target.value as VariantVisibilityFilter)}
+                        >
+                          <option value="all">Todas</option>
+                          <option value="visible">Visibles</option>
+                          <option value="hidden">Ocultas</option>
+                        </select>
+                      </label>
+                      {hasVariantFilters ? (
+                        <button
+                          className="adminButton"
+                          type="button"
+                          onClick={() => {
+                            setVariantFilterQuery("");
+                            setVariantLifecycleFilter("all");
+                            setVariantVisibilityFilter("all");
+                          }}
+                        >
+                          Limpiar filtros
+                        </button>
+                      ) : null}
+                    </div>
+                  </details>
+                  <details className="productListToolbarMenu productVariantToolbarMenu">
+                    <summary className="adminButton">Acciones masivas</summary>
+                    <div className="productListToolbarPanel productVariantToolbarPanel productVariantBulkPanel">
+                      <strong>{filteredDraftVariants.length} variante(s) filtrada(s)</strong>
+                      <button className="adminButton" disabled={filteredDraftVariants.length === 0} type="button" onClick={() => applyVariantBulkAction("activate")}>
+                        Activar filtradas
+                      </button>
+                      <button className="adminButton" disabled={filteredDraftVariants.length === 0} type="button" onClick={() => applyVariantBulkAction("deactivate")}>
+                        Desactivar filtradas
+                      </button>
+                      <button className="adminButton" disabled={filteredDraftVariants.length === 0} type="button" onClick={() => applyVariantBulkAction("show")}>
+                        Mostrar filtradas
+                      </button>
+                      <button className="adminButton" disabled={filteredDraftVariants.length === 0} type="button" onClick={() => applyVariantBulkAction("hide")}>
+                        Ocultar filtradas
+                      </button>
+                      <p className="adminContextHint">Los cambios quedan en el borrador hasta guardar producto.</p>
+                    </div>
+                  </details>
                   <button className="adminButton adminButtonPrimary" type="button" onClick={addManualVariant}>
                     Anadir variante
                   </button>
@@ -3639,7 +4065,11 @@ function ProductEditorClientInner({
                       <tr>
                         <td colSpan={9}>Sin variantes adicionales. El producto usa solo la variante predeterminada.</td>
                       </tr>
-                    ) : draft.variants.map((variant, index) => {
+                    ) : filteredDraftVariants.length === 0 ? (
+                      <tr>
+                        <td colSpan={9}>Sin variantes que coincidan con los filtros actuales.</td>
+                      </tr>
+                    ) : filteredDraftVariants.map((variant, index) => {
                       const rowError =
                         report?.fieldErrors[`variant:${variant.localId}`] ??
                         report?.fieldErrors[`variant:${variant.localId}:options`] ??
@@ -5169,9 +5599,27 @@ function ProductEditorClientInner({
           {activeTab === "seo" ? (
             <section className="productEditorPanel">
               <h2>SEO</h2>
+              <div className="adminSummaryGrid">
+                <div>
+                  <span>Canonical</span>
+                  <strong>{draft.routingSeo.canonicalPath || "Pendiente"}</strong>
+                </div>
+                <div>
+                  <span>Estado</span>
+                  <strong>{draft.routingSeo.status === "ACTIVE" ? "Activo" : "Inactivo"}</strong>
+                </div>
+                <div>
+                  <span>Sitemap</span>
+                  <strong>{draft.routingSeo.includeInSitemap ? "Incluido" : "Excluido"}</strong>
+                </div>
+                <div>
+                  <span>Aliases</span>
+                  <strong>{draft.routingSeo.aliases.filter((alias) => !alias.markedForDeletion).length}</strong>
+                </div>
+              </div>
               <div className="adminFormGrid adminFormGridTwo">
                 <label className="adminField">
-                  <span>Title</span>
+                  <span>Titulo SEO</span>
                   <input value={draft.basic.metaTitle} onChange={(event) => updateBasic("metaTitle", event.target.value)} />
                 </label>
                 <label className="adminField">
@@ -5183,6 +5631,120 @@ function ProductEditorClientInner({
                 <span>Meta description</span>
                 <textarea className="adminTextarea" value={draft.basic.metaDescription} onChange={(event) => updateBasic("metaDescription", event.target.value)} />
               </label>
+              <div className="adminFormGrid adminFormGridTwo adminSection">
+                <label className="adminField">
+                  <span>Canonical path</span>
+                  <input
+                    value={draft.routingSeo.canonicalPath}
+                    onChange={(event) => updateRoutingSeo((routingSeo) => ({
+                      ...routingSeo,
+                      canonicalPath: event.target.value,
+                    }))}
+                    placeholder="/producto-demo/p"
+                  />
+                </label>
+                <label className="adminField">
+                  <span>Estado ruta</span>
+                  <select
+                    value={draft.routingSeo.status}
+                    onChange={(event) => updateRoutingSeo((routingSeo) => ({
+                      ...routingSeo,
+                      status: event.target.value === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+                    }))}
+                  >
+                    <option value="ACTIVE">Activo</option>
+                    <option value="INACTIVE">Inactivo</option>
+                  </select>
+                </label>
+                <label className="adminField">
+                  <span>Sitemap</span>
+                  <select
+                    value={draft.routingSeo.includeInSitemap ? "true" : "false"}
+                    onChange={(event) => updateRoutingSeo((routingSeo) => ({
+                      ...routingSeo,
+                      includeInSitemap: event.target.value === "true",
+                    }))}
+                  >
+                    <option value="true">Incluir</option>
+                    <option value="false">Excluir</option>
+                  </select>
+                </label>
+                <label className="adminField">
+                  <span>Redirect al cambiar path</span>
+                  <select
+                    value={draft.routingSeo.createRedirectFromPreviousPath ? "true" : "false"}
+                    onChange={(event) => updateRoutingSeo((routingSeo) => ({
+                      ...routingSeo,
+                      createRedirectFromPreviousPath: event.target.value === "true",
+                    }))}
+                  >
+                    <option value="false">No crear</option>
+                    <option value="true">Crear 301</option>
+                  </select>
+                </label>
+              </div>
+              <div className="adminSection">
+                <div className="productEditorToolbar">
+                  <div>
+                    <h3>Aliases</h3>
+                    <p>Rutas alternativas del mismo producto.</p>
+                  </div>
+                  <button type="button" className="adminButton adminButtonSecondary" onClick={addRoutingSeoAlias}>
+                    <Plus size={16} aria-hidden="true" />
+                    Anadir alias
+                  </button>
+                </div>
+                {draft.routingSeo.aliases.filter((alias) => !alias.markedForDeletion).length > 0 ? (
+                  <div className="adminStack">
+                    {draft.routingSeo.aliases.map((alias, index) => alias.markedForDeletion ? null : (
+                      <div className="adminFormGrid adminFormGridThree" key={alias.routeId ?? `alias-${index}`}>
+                        <label className="adminField">
+                          <span>Path alias</span>
+                          <input
+                            value={alias.path}
+                            onChange={(event) => updateRoutingSeoAlias(index, (currentAlias) => ({
+                              ...currentAlias,
+                              path: event.target.value,
+                            }))}
+                            placeholder="/producto-demo"
+                          />
+                        </label>
+                        <label className="adminField">
+                          <span>Estado</span>
+                          <select
+                            value={alias.status}
+                            onChange={(event) => updateRoutingSeoAlias(index, (currentAlias) => ({
+                              ...currentAlias,
+                              status: event.target.value === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+                            }))}
+                          >
+                            <option value="ACTIVE">Activo</option>
+                            <option value="INACTIVE">Inactivo</option>
+                          </select>
+                        </label>
+                        <div className="adminField">
+                          <span>Acciones</span>
+                          <button type="button" className="adminIconButton" onClick={() => removeRoutingSeoAlias(index)} aria-label="Eliminar alias">
+                            <Trash2 size={16} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="adminBanner">
+                    <p>Sin aliases configurados.</p>
+                  </div>
+                )}
+              </div>
+              {draft.routingSeo.resolvedCanonical ? (
+                <div className="adminBanner adminSection">
+                  <p>
+                    Resolucion: {draft.routingSeo.resolvedCanonical.kind}
+                    {draft.routingSeo.resolvedCanonical.canonicalPath ? ` -> ${draft.routingSeo.resolvedCanonical.canonicalPath}` : ""}
+                  </p>
+                </div>
+              ) : null}
             </section>
           ) : null}
 
@@ -5193,6 +5755,108 @@ function ProductEditorClientInner({
                 <span>Tax code</span>
                 <input value={draft.basic.taxCode} onChange={(event) => updateBasic("taxCode", event.target.value)} />
               </label>
+            </section>
+          ) : null}
+
+          {activeTab === "audit" ? (
+            <section className="productEditorPanel productAuditPanel">
+              <div className="productEditorSectionHeader">
+                <div>
+                  <h2>Auditoria</h2>
+                  <p>Trazabilidad tecnica del borrador y del ultimo guardado ejecutado por BFF.</p>
+                </div>
+                <span className={`adminBadge ${dirty ? "adminBadgeWarn" : "adminBadgeOk"}`}>
+                  {dirty ? "Cambios locales" : "Sin cambios locales"}
+                </span>
+              </div>
+
+              <div className="adminSummaryGrid">
+                <div>
+                  <span>Producto</span>
+                  <strong>{draft.productId ?? "Pendiente de guardar"}</strong>
+                </div>
+                <div>
+                  <span>Variante default</span>
+                  <strong>{draft.defaultVariantId ?? "Pendiente de guardar"}</strong>
+                </div>
+                <div>
+                  <span>Coleccion media</span>
+                  <strong>{draft.mediaCollectionId ?? "Sin coleccion"}</strong>
+                </div>
+                <div>
+                  <span>Draft cliente</span>
+                  <strong>{draft.clientDraftId}</strong>
+                </div>
+              </div>
+
+              <section className="productAuditSection">
+                <h3>Operacion de guardado</h3>
+                <dl className="productPreviewMetaGrid">
+                  <div><dt>Operation ID</dt><dd>{report?.operationId ?? "Sin guardado en esta sesion"}</dd></div>
+                  <div><dt>Estado</dt><dd>{report?.status ?? (report ? report.ok ? "ok" : "failed" : "Sin reporte")}</dd></div>
+                  <div><dt>Reintento</dt><dd>{report ? report.retryable ? "Permitido por BFF" : "No indicado" : "Sin reporte"}</dd></div>
+                  <div><dt>Mensajes</dt><dd>{report?.messages.length ?? 0}</dd></div>
+                </dl>
+              </section>
+
+              <section className="productAuditSection">
+                <h3>Bloques persistidos</h3>
+                <div className="productSaveBlocks">
+                  {Object.entries(draft.saveState).map(([block, status]) => (
+                    <span className={`adminBadge ${statusClass(status)}`} key={block}>
+                      {block}: {statusLabel(status)}
+                    </span>
+                  ))}
+                </div>
+              </section>
+
+              <section className="productAuditSection">
+                <h3>Errores y recuperacion</h3>
+                {report && fieldErrorSummary(report.fieldErrors).length > 0 ? (
+                  <ul className="productAuditList">
+                    {fieldErrorSummary(report.fieldErrors).map((error) => (
+                      <li key={error.key}>
+                        <strong>{error.label}</strong>
+                        <span>{error.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="adminContextHint">Sin errores de campo en el ultimo reporte.</p>
+                )}
+                {report?.recoveryActions.length ? (
+                  <div className="productSaveBlocks">
+                    {report.recoveryActions.map((action) => (
+                      <span className="adminBadge" key={`${action.code}:${action.targetBlock ?? "operation"}`}>
+                        {action.label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+
+              <section className="productAuditSection">
+                <h3>Correlacion BFF</h3>
+                {report?.correlationIds.length ? (
+                  <ul className="productAuditCodeList">
+                    {report.correlationIds.map((correlationId) => (
+                      <li key={correlationId}><code>{correlationId}</code></li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="adminContextHint">Sin correlation IDs en esta sesion.</p>
+                )}
+              </section>
+
+              <section className="productAuditSection">
+                <h3>Routing/SEO</h3>
+                <dl className="productPreviewMetaGrid">
+                  <div><dt>Canonical</dt><dd>{draft.routingSeo.canonicalPath || "Pendiente"}</dd></div>
+                  <div><dt>Estado ruta</dt><dd>{draft.routingSeo.status}</dd></div>
+                  <div><dt>Sitemap</dt><dd>{draft.routingSeo.includeInSitemap ? "Incluido" : "Excluido"}</dd></div>
+                  <div><dt>Aliases activos</dt><dd>{draft.routingSeo.aliases.filter((alias) => !alias.markedForDeletion).length}</dd></div>
+                </dl>
+              </section>
             </section>
           ) : null}
         </section>
@@ -6021,12 +6685,58 @@ function ProductEditorClientInner({
             <Eye aria-hidden="true" size={16} />
             Vista previa
           </button>
+          {draft.productId ? (
+            <Link className="adminButton" href={`/admin/products/${encodeURIComponent(draft.productId)}/storefront-preview`}>
+              <ExternalLink aria-hidden="true" size={16} />
+              Preview Storefront
+            </Link>
+          ) : (
+            <button className="adminButton" disabled title="Guarda el producto antes de consultar Storefront" type="button">
+              <ExternalLink aria-hidden="true" size={16} />
+              Preview Storefront
+            </button>
+          )}
           <span className={`adminBadge ${draft.basic.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>{productStatus}</span>
           <button className="adminButton adminButtonPrimary" type="button" disabled={savingActive} onClick={saveDraft}>
             {savingActive ? <span className="adminSpinner adminSpinnerInline" aria-hidden="true" /> : null}
             {savingActive ? "Guardando producto" : "Guardar producto"}
           </button>
-          <button className="adminButton" type="button">Duplicar</button>
+          {draft.productId ? (
+            <Link className="adminButton" href={`/admin/products/new?duplicateFrom=${encodeURIComponent(draft.productId)}`}>
+              <Copy aria-hidden="true" size={16} />
+              Duplicar
+            </Link>
+          ) : (
+            <button className="adminButton" disabled title="Guarda el producto antes de duplicarlo" type="button">
+              <Copy aria-hidden="true" size={16} />
+              Duplicar
+            </button>
+          )}
+          {draft.productId ? (
+            <details className="productDangerMenu productEditorDangerMenu">
+              <summary className="adminButton adminButtonDanger">
+                <Trash2 aria-hidden="true" size={16} />
+                Desactivar
+              </summary>
+              <div className="productDangerPanel">
+                <strong>Desactivar producto</strong>
+                <p>Lo ocultara, lo dejara fuera de linea e intentara sacar sus rutas SEO del sitemap.</p>
+                <label>
+                  <input form="product-editor-deactivate-form" name="confirmDeactivate" type="checkbox" value="yes" />
+                  Confirmo la desactivacion
+                </label>
+                <button className="adminButton adminButtonDanger" form="product-editor-deactivate-form" type="submit">
+                  Desactivar
+                </button>
+              </div>
+            </details>
+          ) : null}
+          {draft.productId ? (
+            <form action={deactivateProductAction} id="product-editor-deactivate-form">
+              <input name="productId" type="hidden" value={draft.productId} />
+              <input name="returnTo" type="hidden" value="/admin/products" />
+            </form>
+          ) : null}
           <Link className="adminButton" href="/admin/products">Ir al catalogo</Link>
           <Link className="adminButton" href="/admin/products/new">Anadir nuevo producto</Link>
         </div>

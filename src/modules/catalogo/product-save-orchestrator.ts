@@ -36,6 +36,7 @@ function initialBlocks(): ProductSaveBlocks {
     pricing: "pending",
     inventory: "pending",
     shipping: "pending",
+    routingSeo: "pending",
     publish: "pending",
   };
 }
@@ -847,6 +848,7 @@ export async function saveProductDraft({
         stockByVariant: nextStockByVariant,
       },
       shipping: normalizedDraft.shipping,
+      routingSeo: normalizedDraft.routingSeo,
       saveState: blocks,
     },
   };

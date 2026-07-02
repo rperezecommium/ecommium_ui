@@ -1,13 +1,15 @@
 import Link from "next/link";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
-import { createEmptyProductDraft, draftFromEditorData } from "./product-editor-draft";
+import { createEmptyProductDraft, draftFromEditorData, duplicateDraftFromEditorData } from "./product-editor-draft";
 import { ProductEditorClient } from "./product-editor-client";
 import { getAdminProductEditorData, getProductEditorLookups } from "./products";
 
 type ProductEditorPageProps = {
   context: AdminContext;
   productId?: string;
+  duplicateFromProductId?: string;
+  initialPreviewOpen?: boolean;
 };
 
 function productEditorContextIdentity(context: AdminContext) {
@@ -21,7 +23,12 @@ function productEditorContextIdentity(context: AdminContext) {
   ].join(":");
 }
 
-export async function ProductEditorPage({ context, productId }: ProductEditorPageProps) {
+export async function ProductEditorPage({
+  context,
+  productId,
+  duplicateFromProductId,
+  initialPreviewOpen = false,
+}: ProductEditorPageProps) {
   if (!hasRequiredAdminContext(context)) {
     return (
       <main className="adminPage">
@@ -36,6 +43,41 @@ export async function ProductEditorPage({ context, productId }: ProductEditorPag
     );
   }
 
+  if (!productId && duplicateFromProductId) {
+    const [result, lookups] = await Promise.all([
+      getAdminProductEditorData(context, duplicateFromProductId),
+      getProductEditorLookups(context),
+    ]);
+
+    if (!result.ok) {
+      return (
+        <main className="adminPage">
+          <div className="adminBreadcrumb">Admin / Catalogo / Productos / Duplicar</div>
+          <div className="adminBanner adminBannerError">
+            <p>No se pudo preparar la copia del producto.</p>
+            <p className="adminContextHint">{result.error}</p>
+            {result.correlationId ? <p className="adminContextHint">Correlation: {result.correlationId}</p> : null}
+          </div>
+          <Link className="adminButton" href="/admin/products">
+            Volver al catalogo
+          </Link>
+        </main>
+      );
+    }
+
+    return (
+      <ProductEditorClient
+        contextIdentity={productEditorContextIdentity(context)}
+        initialDraft={duplicateDraftFromEditorData(result.data, context.locale, context.currency)}
+        locale={context.locale}
+        currency={context.currency}
+        lookups={lookups}
+        storageScope={`duplicate:${duplicateFromProductId}`}
+        initialNotice={`Copia creada desde ${result.data.product.name}. Se mantiene fuera de linea, sin sitemap, sin stock vendible y sin media compartida hasta que la revises.`}
+      />
+    );
+  }
+
   if (!productId) {
     const lookups = await getProductEditorLookups(context);
 
@@ -46,6 +88,7 @@ export async function ProductEditorPage({ context, productId }: ProductEditorPag
         locale={context.locale}
         currency={context.currency}
         lookups={lookups}
+        initialPreviewOpen={initialPreviewOpen}
       />
     );
   }
@@ -85,6 +128,7 @@ export async function ProductEditorPage({ context, productId }: ProductEditorPag
         locale={context.locale}
         currency={context.currency}
         lookups={lookups}
+        initialPreviewOpen={initialPreviewOpen}
       />
     </>
   );

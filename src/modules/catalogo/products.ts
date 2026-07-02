@@ -14,11 +14,14 @@ import type {
   ProductCatalogUpdatePayload,
   ProductEditorData,
   ProductEditorLookups,
+  ProductEditorRoutingSeoState,
   ProductEditorVariantRow,
   ProductGateway,
   ProductListFilters,
   ProductListResult,
   ProductLookupOption,
+  ProductRoutingSeoResolve,
+  ProductRoutingSeoRoute,
   ProductShippingDraft,
   ProductSpecificationSelectionDraft,
   ProductTaxLookupOption,
@@ -676,6 +679,79 @@ function parseProductShipping(value: unknown): ProductShippingDraft | undefined 
   };
 }
 
+function parseRoutingSeoRoute(value: unknown): ProductRoutingSeoRoute | null {
+  const record = asRecord(value);
+  const path = asString(record.path);
+  if (!path) {
+    return null;
+  }
+
+  const status = asString(record.status) === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+  const routeKind = asString(record.routeKind);
+  const normalizedRouteKind = routeKind === "ALIAS" ? "ALIAS" : "CANONICAL";
+  return {
+    routeId: asString(record.routeId),
+    path,
+    routeKind: normalizedRouteKind,
+    canonicalRouteId: asString(record.canonicalRouteId) ?? null,
+    status,
+    includeInSitemap: normalizedRouteKind === "ALIAS"
+      ? false
+      : asBoolean(record.includeInSitemap, status === "ACTIVE"),
+    updatedAt: asString(record.updatedAt) ?? null,
+  };
+}
+
+function parseRoutingSeoResolve(value: unknown): ProductRoutingSeoResolve | null {
+  const record = asRecord(value);
+  const kind = asString(record.kind);
+  const requestedPath = asString(record.requestedPath);
+  if ((kind !== "ROUTE" && kind !== "REDIRECT") || !requestedPath) {
+    return null;
+  }
+
+  return {
+    kind,
+    requestedPath,
+    canonicalPath: asString(record.canonicalPath),
+    isCanonical: typeof record.isCanonical === "boolean" ? record.isCanonical : undefined,
+    entityType: asString(record.entityType),
+    entityId: asString(record.entityId),
+    routeId: asString(record.routeId),
+    canonicalRouteId: asString(record.canonicalRouteId) ?? null,
+    toPath: asString(record.toPath),
+    statusCode: typeof record.statusCode === "number" ? record.statusCode : undefined,
+  };
+}
+
+function parseRoutingSeoState(value: unknown): ProductEditorRoutingSeoState | null {
+  const record = asRecord(value);
+  if (Object.keys(record).length === 0) {
+    return null;
+  }
+
+  const routesRecord = asRecord(record.routes);
+  const items = listItems(routesRecord.items)
+    .map(parseRoutingSeoRoute)
+    .filter((route): route is ProductRoutingSeoRoute => Boolean(route));
+  const canonicalRoute = parseRoutingSeoRoute(record.canonicalRoute);
+  const aliases = listItems(record.aliases)
+    .map(parseRoutingSeoRoute)
+    .filter((route): route is ProductRoutingSeoRoute => Boolean(route));
+
+  return {
+    routes: {
+      total: asNumber(routesRecord.total, items.length),
+      limit: asNumber(routesRecord.limit, 50),
+      offset: asNumber(routesRecord.offset, 0),
+      items,
+    },
+    canonicalRoute,
+    aliases,
+    resolvedCanonical: parseRoutingSeoResolve(record.resolvedCanonical),
+  };
+}
+
 function parseShippingCarrier(value: unknown): ProductLookupOption | undefined {
   const record = asRecord(value);
   const id = asString(record.carrierId) ?? asString(record.id);
@@ -876,9 +952,15 @@ function parseSpecificationSelections(value: unknown): ProductSpecificationSelec
       if (!fieldId || !fieldValueId) {
         return null;
       }
+      const groupId = asString(record.groupId) ?? asString(record.specificationGroupId);
+      const fieldName = localizedText(record.fieldName ?? record.name ?? record.label);
+      const valueName = localizedText(record.valueName ?? record.value ?? record.fieldValueName);
       return {
         fieldId,
         fieldValueId,
+        ...(groupId ? { groupId } : {}),
+        ...(fieldName ? { fieldName } : {}),
+        ...(valueName ? { valueName } : {}),
       };
     })
     .filter((item): item is ProductSpecificationSelectionDraft => Boolean(item));
@@ -1004,6 +1086,7 @@ function parseEditorState(value: unknown, locale: string, currency: string): Pro
     offeringsByVariant: {},
     stockByVariant,
     shipping: parseProductShipping(asRecord(record.product).shipping ?? record.shipping),
+    routingSeo: parseRoutingSeoState(record.routingSeo),
     warnings: listItems(record.warnings).map(String),
     correlationIds: [],
   };

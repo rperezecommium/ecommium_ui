@@ -11,6 +11,8 @@ type AdminProductsPageProps = {
     limit?: string;
     offset?: string;
     isActive?: string;
+    columns?: string;
+    productMessage?: string;
   }>;
 };
 
@@ -28,11 +30,19 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     limit: numberParam(params?.limit, 20),
     offset: numberParam(params?.offset, 0),
     isActive: params?.isActive === "true" ? true : undefined,
+    columns: params?.columns?.split(",").map((column) => column.trim()).filter(Boolean),
   };
   const [products, categoriesResult] = await Promise.all([
     getAdminProducts(context, filters),
     listCatalogEntities(context, "categories", { limit: 100, offset: 0, isActive: true }),
   ]);
 
-  return <ProductListPage context={context} products={products} categories={toLookupOptions(categoriesResult)} />;
+  return (
+    <ProductListPage
+      context={context}
+      products={products}
+      categories={toLookupOptions(categoriesResult)}
+      productMessage={params?.productMessage}
+    />
+  );
 }

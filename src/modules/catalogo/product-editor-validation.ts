@@ -160,6 +160,28 @@ function normalizeShippingDraft(shipping: ProductShippingDraft | undefined): Pro
   };
 }
 
+function normalizeSpecificationSelections(selections: ProductDraft["specifications"]["selections"]) {
+  const byFieldId = new Map<string, ProductDraft["specifications"]["selections"][number]>();
+
+  for (const selection of selections ?? []) {
+    const fieldId = selection.fieldId.trim();
+    const fieldValueId = selection.fieldValueId.trim();
+    if (!fieldId || !fieldValueId || selection.markedForDeletion) {
+      continue;
+    }
+
+    byFieldId.set(fieldId, {
+      fieldId,
+      fieldValueId,
+      groupId: selection.groupId?.trim(),
+      fieldName: selection.fieldName?.trim(),
+      valueName: selection.valueName?.trim(),
+    });
+  }
+
+  return Array.from(byFieldId.values());
+}
+
 function hasPublishableStock(draft: ProductDraft) {
   const defaultStockAvailable = stockAvailableQuantity(draft.inventory.stockByVariant.default) > 0;
 
@@ -288,6 +310,10 @@ export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
       variantPrices,
       specificPrices,
     },
+    specifications: {
+      productId: draft.specifications.productId,
+      selections: normalizeSpecificationSelections(draft.specifications.selections),
+    },
     shipping: normalizeShippingDraft(draft.shipping),
   };
 }
@@ -384,6 +410,19 @@ export function validateProductDraft(draft: ProductDraft): ProductDraftValidatio
     if (!price.fixedPriceMinor || price.fixedPriceMinor <= 0) {
       fieldErrors[`pricing.specificPrices:${index}:fixedPriceMinor`] = "El precio especifico debe ser mayor que cero.";
     }
+  });
+
+  const seenSpecificationFields = new Set<string>();
+  normalized.specifications.selections.forEach((selection, index) => {
+    if (!selection.fieldId || !selection.fieldValueId) {
+      fieldErrors[`specifications:${index}`] = "Selecciona caracteristica y valor.";
+      return;
+    }
+    if (seenSpecificationFields.has(selection.fieldId)) {
+      fieldErrors[`specifications:${selection.fieldId}`] = "Cada caracteristica solo puede tener un valor seleccionado.";
+      return;
+    }
+    seenSpecificationFields.add(selection.fieldId);
   });
 
   return {

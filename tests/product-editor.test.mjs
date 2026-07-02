@@ -104,6 +104,139 @@ test("hydrates the default variant name from the product base name", () => {
   assert.equal(draft.defaultVariant.name, "Lata de aceite morgan blue");
 });
 
+test("duplicates product editor data as a new offline draft without persisted identities", () => {
+  const duplicate = draftModule.duplicateDraftFromEditorData(
+    {
+      product: {
+        productId: "product-demo",
+        name: "Casco urbano",
+        slug: "casco-urbano",
+        isActive: true,
+        isVisible: true,
+        defaultVariantId: "variant-default",
+        categoryId: "category-1",
+        metaTitle: "Casco urbano",
+        metaDescription: "Casco urbano original",
+      },
+      variants: [
+        {
+          variantId: "variant-default",
+          name: "Casco urbano",
+          refId: "CASCO-URBANO",
+          ean: "8430000000000",
+          isActive: true,
+          isVisible: true,
+          isDefault: true,
+          options: [],
+        },
+        {
+          variantId: "variant-red",
+          name: "Casco urbano rojo",
+          refId: "CASCO-URBANO-ROJO",
+          ean: "8430000000001",
+          isActive: true,
+          isVisible: true,
+          options: [{ variantOptionId: "option-red", attributeCode: "color", valueCode: "red", isActive: true }],
+        },
+      ],
+      variantRows: [],
+      mediaItems: [{
+        localId: "media-1",
+        mediaAssetId: "asset-1",
+        fileName: "casco.jpg",
+        fileSize: 1024,
+        mimeType: "image/jpeg",
+        previewUrl: "/media/casco.jpg",
+        isMain: true,
+        active: true,
+        alt: { "es-ES": "Casco urbano" },
+        title: { "es-ES": "Casco urbano" },
+        persisted: true,
+      }],
+      mediaAssignments: { "variant-red": ["media-1"] },
+      mediaMainByVariant: { "variant-red": "media-1" },
+      productPrice: {
+        pricingId: "price-product",
+        basePriceMinor: 5999,
+        currency: "EUR",
+        taxIncluded: true,
+        taxCode: "BIKE_STANDARD",
+      },
+      variantPrices: {
+        "variant-red": {
+          pricingId: "price-red",
+          basePriceMinor: 6499,
+          currency: "EUR",
+          taxIncluded: true,
+          taxCode: "BIKE_STANDARD",
+        },
+      },
+      specificPrices: [{
+        pricingId: "specific-1",
+        targetType: "PRODUCT",
+        productId: "product-demo",
+        minQuantity: 1,
+        impactType: "FIXED_PRICE",
+        fixedPriceMinor: 4999,
+        active: true,
+      }],
+      specifications: {
+        productId: "product-demo",
+        selections: [{ fieldId: "field-material", fieldValueId: "value-abs", markedForDeletion: false }],
+      },
+      offeringsByVariant: { "variant-default": [{ offeringId: "offering-1", name: "Oferta", localizedName: [], priceMinor: 1, currency: "EUR", type: "main", active: true }] },
+      stockByVariant: {
+        default: { warehouseId: "main", onHandQuantity: 5, reservedQuantity: 0, safetyStockQuantity: 1 },
+        "variant-red": { warehouseId: "main", onHandQuantity: 7, reservedQuantity: 0, safetyStockQuantity: 1 },
+      },
+      shipping: undefined,
+      routingSeo: {
+        routes: { total: 1, limit: 50, offset: 0, items: [] },
+        canonicalRoute: {
+          routeId: "route-product",
+          path: "/casco-urbano/p",
+          routeKind: "CANONICAL",
+          status: "ACTIVE",
+          includeInSitemap: true,
+        },
+        aliases: [{
+          routeId: "route-alias",
+          path: "/casco/p",
+          routeKind: "ALIAS",
+          status: "ACTIVE",
+          includeInSitemap: false,
+        }],
+        resolvedCanonical: null,
+      },
+      warnings: [],
+      correlationIds: [],
+    },
+    "es-ES",
+    "EUR",
+  );
+
+  assert.equal(duplicate.productId, undefined);
+  assert.equal(duplicate.defaultVariantId, undefined);
+  assert.equal(duplicate.mediaCollectionId, null);
+  assert.equal(duplicate.basic.name, "Copia de Casco urbano");
+  assert.equal(duplicate.basic.isActive, false);
+  assert.equal(duplicate.basic.isVisible, false);
+  assert.equal(duplicate.defaultVariant.ean, null);
+  assert.equal(duplicate.media.items.length, 0);
+  assert.equal(duplicate.routingSeo.status, "INACTIVE");
+  assert.equal(duplicate.routingSeo.includeInSitemap, false);
+  assert.equal(duplicate.routingSeo.aliases.length, 0);
+  assert.equal(duplicate.variants[0].variantId, undefined);
+  assert.equal(duplicate.variants[0].ean, null);
+  assert.equal(duplicate.variants[0].options[0].variantOptionId, undefined);
+  assert.equal(duplicate.pricing.productPrice.pricingId, undefined);
+  assert.equal(duplicate.pricing.variantPrices["variant-copy-1"].pricingId, undefined);
+  assert.equal(duplicate.pricing.specificPrices.length, 0);
+  assert.equal(duplicate.specifications.productId, undefined);
+  assert.equal(duplicate.offerings.byVariant["variant-default"], undefined);
+  assert.equal(duplicate.inventory.stockByVariant.default.onHandQuantity, 0);
+});
+
 test("normalizes the default variant name to the product base name before save", () => {
   const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
   draft.basic.name = "Lata de aceite morgan blue";
@@ -436,6 +569,41 @@ test("specific prices inherit product pricing context before validation and save
   assert.equal(specificPrice.tax.taxCode, "BIKE_STANDARD");
 });
 
+test("normalizes product specification selections before save", () => {
+  const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
+  draft.specifications.selections = [
+    {
+      fieldId: " field-material ",
+      fieldValueId: " value-carbon ",
+      groupId: " group-tech ",
+      fieldName: " Material ",
+      valueName: " Carbono ",
+    },
+    {
+      fieldId: "field-empty",
+      fieldValueId: "",
+    },
+    {
+      fieldId: "field-material",
+      fieldValueId: "value-aluminum",
+    },
+    {
+      fieldId: "field-hidden",
+      fieldValueId: "value-hidden",
+      markedForDeletion: true,
+    },
+  ];
+
+  const normalized = validationModule.normalizeProductDraft(draft);
+
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.specifications.selections)), [
+    {
+      fieldId: "field-material",
+      fieldValueId: "value-aluminum",
+    },
+  ]);
+});
+
 test("draftFromEditorData preserves specific prices from editor-state", () => {
   const draft = draftModule.draftFromEditorData({
     product: {
@@ -524,6 +692,62 @@ test("draftFromEditorData preserves specific prices from editor-state", () => {
   assert.equal(draft.pricing.specificPrices[0].pricingId, "specific-red");
   assert.equal(draft.pricing.specificPrices[0].variantKey, "variant-red");
   assert.equal(draft.variants[0].variantId, "variant-red");
+});
+
+test("routing SEO aliases are hydrated as non-indexable read-only canonical links", () => {
+  const draft = draftModule.draftFromEditorData({
+    product: {
+      productId: "product-1",
+      name: "Urban Runner",
+      slug: "urban-runner",
+      isActive: false,
+      isVisible: true,
+      defaultVariantId: "variant-default",
+    },
+    variants: [],
+    variantRows: [],
+    mediaItems: [],
+    mediaAssignments: {},
+    mediaMainByVariant: {},
+    productPrice: null,
+    variantPrices: {},
+    specificPrices: [],
+    offeringsByVariant: {},
+    stockByVariant: {},
+    routingSeo: {
+      routes: { total: 2, limit: 50, offset: 0, items: [] },
+      canonicalRoute: {
+        routeId: "route-canonical",
+        path: "/urban-runner/p",
+        routeKind: "CANONICAL",
+        canonicalRouteId: null,
+        status: "ACTIVE",
+        includeInSitemap: true,
+      },
+      aliases: [
+        {
+          routeId: "route-alias",
+          path: "/urban-runner",
+          routeKind: "ALIAS",
+          canonicalRouteId: "route-canonical",
+          status: "ACTIVE",
+          includeInSitemap: true,
+        },
+      ],
+      resolvedCanonical: null,
+    },
+    warnings: [],
+    correlationIds: [],
+  }, "es-ES", "EUR");
+
+  assert.equal(draft.routingSeo.canonicalRouteId, "route-canonical");
+  assert.equal(draft.routingSeo.aliases[0].includeInSitemap, false);
+  assert.equal("canonicalRouteId" in draft.routingSeo.aliases[0], false);
+
+  const stored = draftModule.sanitizeDraftForStorage(draft);
+
+  assert.equal(stored.routingSeo.aliases[0].includeInSitemap, false);
+  assert.equal("canonicalRouteId" in stored.routingSeo.aliases[0], false);
 });
 
 test("restores persisted variant media preview from fresh editor state after reload", () => {
