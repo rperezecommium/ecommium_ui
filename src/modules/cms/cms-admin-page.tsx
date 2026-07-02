@@ -12,6 +12,7 @@ import {
   blocksToJson,
   createCmsBlockFromPreset,
   getCmsBlockPresets,
+  summarizePlpComposition,
   summarizePlacements,
   type CmsAdminData,
   type CmsAdminFilters,
@@ -30,6 +31,7 @@ type CmsAdminPageProps = {
 const tabs = [
   { id: "page", label: "Pagina" },
   { id: "blocks", label: "Bloques" },
+  { id: "plp", label: "PLP" },
   { id: "seo", label: "SEO" },
   { id: "preview", label: "Preview" },
 ] as const;
@@ -309,10 +311,13 @@ function PageEditor({
 
         {tab === "page" ? <PageMetadataFields page={page} version={version} /> : null}
         {tab === "blocks" ? <CmsBlockEditorClient initialBlocks={blocks} /> : null}
+        {tab === "plp" ? <PlpBasePanel version={version} /> : null}
         {tab === "seo" ? <SeoFields page={page} version={version} /> : null}
         {tab === "preview" ? <PreviewPanel version={version} /> : null}
 
-        {tab !== "blocks" ? <input type="hidden" name="blocksJson" value={blocksToJson(blocks)} /> : null}
+        {tab !== "blocks" && tab !== "plp" && tab !== "preview" ? (
+          <input type="hidden" name="blocksJson" value={blocksToJson(blocks)} />
+        ) : null}
         <div className="cmsEditorFooter">
           <div className="adminContextHint">
             Bloques: {blocks.length} · Main {placementSummary.main} · Antes PLP {placementSummary.beforeList} · Despues PLP {placementSummary.afterList}
@@ -391,6 +396,42 @@ function SeoFields({ page, version }: { page: CmsPageDetail; version: CmsPageVer
       <div className="adminBanner adminBannerInfo">
         <p>El cambio de path publicado usa la accion dedicada para que CMS solicite redirect 301 a Routing/SEO.</p>
       </div>
+    </section>
+  );
+}
+
+function PlpBasePanel({ version }: { version: CmsPageVersion | null }) {
+  const blocks = version?.blocks ?? [];
+  const summary = summarizePlpComposition(blocks);
+  const targets = summary.targets.length > 0 ? summary.targets.join(", ") : "Sin target PLP";
+
+  return (
+    <section className="pricingPanel cmsEditorPanel">
+      <div className="pricingPanelHeader">
+        <div>
+          <h2>Base PLP</h2>
+          <p>Define zonas CMS para listing; el grid, filtros y cards se pintaran en una fase posterior.</p>
+        </div>
+        <span className="adminBadge">storefront/plp</span>
+      </div>
+      <div className="cmsPlpSummaryGrid">
+        <article>
+          <span>Total bloques PLP</span>
+          <strong>{summary.total}</strong>
+        </article>
+        <article>
+          <span>Antes de lista</span>
+          <strong>{summary.beforeList}</strong>
+        </article>
+        <article>
+          <span>Despues de lista</span>
+          <strong>{summary.afterList}</strong>
+        </article>
+      </div>
+      <div className="adminBanner adminBannerInfo">
+        <p>Targets declarados: {targets}. Añade bloques desde la biblioteca PLP, completa URL o slug de categoria y guarda el draft.</p>
+      </div>
+      <CmsBlockEditorClient initialBlocks={blocks} mode="plp" />
     </section>
   );
 }

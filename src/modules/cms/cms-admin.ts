@@ -9,11 +9,18 @@ export {
   blocksFromJson,
   blocksToJson,
   createCmsBlockFromPreset,
+  getCmsBlockPlacement,
+  getCmsBlockPlpTarget,
   getCmsBlockPresets,
+  getCmsBlockSurface,
+  summarizePlpComposition,
   summarizePlacements,
   type CmsBlock,
   type CmsBlockType,
   type CmsPlacement,
+  type CmsPlpListingKind,
+  type CmsPlpTarget,
+  type CmsSurface,
 } from "./cms-blocks";
 
 export type CmsPageStatus = "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
@@ -78,7 +85,7 @@ export type CmsAdminFilters = {
   locale?: string;
   pageId?: string;
   mode?: "list" | "editor";
-  tab?: "page" | "blocks" | "seo" | "preview";
+  tab?: "page" | "blocks" | "plp" | "seo" | "preview";
   drawer?: "create" | "path";
   cmsMessage?: string;
 };

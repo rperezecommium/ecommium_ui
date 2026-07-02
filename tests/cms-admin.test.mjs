@@ -134,11 +134,21 @@ test("cms admin data uses scoped BFF endpoints and maps permissions", async () =
 });
 
 test("cms block presets provide PLP-ready placements and JSON serialization", () => {
-  const { createCmsBlockFromPreset, blocksToJson, blocksFromJson, summarizePlacements } =
+  const {
+    blocksFromJson,
+    blocksToJson,
+    createCmsBlockFromPreset,
+    getCmsBlockPlpTarget,
+    getCmsBlockSurface,
+    summarizePlacements,
+    summarizePlpComposition,
+  } =
     loadCmsAdminModule(async () => ({ ok: true, data: {} }));
 
   const blocks = [
     createCmsBlockFromPreset("banner.hero"),
+    createCmsBlockFromPreset("plp.categoryIntro"),
+    createCmsBlockFromPreset("plp.subcategoryTiles"),
     createCmsBlockFromPreset("carousel"),
     createCmsBlockFromPreset("accordion"),
   ];
@@ -146,11 +156,24 @@ test("cms block presets provide PLP-ready placements and JSON serialization", ()
   const summary = summarizePlacements(parsed);
 
   assert.equal(parsed[0].type, "banner.hero");
-  assert.equal(parsed[1].type, "carousel");
-  assert.equal(parsed[2].type, "accordion");
+  assert.equal(parsed[1].type, "plp.categoryIntro");
+  assert.equal(parsed[2].type, "plp.subcategoryTiles");
+  assert.equal(parsed[3].type, "carousel");
+  assert.equal(parsed[4].type, "accordion");
   assert.equal(summary.main, 1);
-  assert.equal(summary.beforeList, 1);
+  assert.equal(summary.beforeList, 3);
   assert.equal(summary.afterList, 1);
+  assert.equal(getCmsBlockSurface(parsed[0]), "page");
+  assert.equal(getCmsBlockSurface(parsed[1]), "plp");
+  const target = getCmsBlockPlpTarget(parsed[1]);
+  assert.equal(target.listingKind, "CATEGORY");
+  assert.equal(target.routePath, "");
+  assert.equal(target.categorySlug, "");
+
+  const plpSummary = summarizePlpComposition(parsed);
+  assert.equal(plpSummary.total, 4);
+  assert.equal(plpSummary.beforeList, 3);
+  assert.equal(plpSummary.afterList, 1);
 });
 
 test("cms page UI documents the Routing SEO and builder strategy", () => {
@@ -159,7 +182,12 @@ test("cms page UI documents the Routing SEO and builder strategy", () => {
 
   assert.match(pageSource, /Routing\/SEO/);
   assert.match(pageSource, /Antes PLP/);
+  assert.match(pageSource, /Base PLP/);
   assert.match(pageSource, /Plantillas de bloques/);
   assert.match(editorSource, /Biblioteca de bloques/);
+  assert.match(editorSource, /Bloques PLP/);
+  assert.match(editorSource, /Ordenar por: Relevancia/);
+  assert.match(editorSource, /Hummingbird printed t-shirt/);
   assert.match(editorSource, /Preview draft/);
+  assert.match(editorSource, /Target PLP/);
 });

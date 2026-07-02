@@ -5,14 +5,20 @@ import { ArrowDown, ArrowUp, CopyPlus, Trash2 } from "lucide-react";
 import {
   blocksToJson,
   createCmsBlockFromPreset,
+  getCmsBlockPlacement,
+  getCmsBlockPlpTarget,
   getCmsBlockPresets,
+  getCmsBlockSurface,
   summarizePlacements,
   type CmsBlock,
   type CmsPlacement,
+  type CmsPlpListingKind,
+  type CmsSurface,
 } from "./cms-blocks";
 
 type CmsBlockEditorClientProps = {
   initialBlocks: CmsBlock[];
+  mode?: "all" | "plp";
 };
 
 function textProp(block: CmsBlock, key: string, fallback = "") {
@@ -30,11 +36,11 @@ function arrayProp(block: CmsBlock, key: string) {
 }
 
 function placementProp(block: CmsBlock): CmsPlacement {
-  const value = block.props.placement;
-  if (value === "beforeList" || value === "afterList") {
-    return value;
-  }
-  return "main";
+  return getCmsBlockPlacement(block);
+}
+
+function surfaceProp(block: CmsBlock): CmsSurface {
+  return getCmsBlockSurface(block);
 }
 
 function blockLabel(block: CmsBlock) {
@@ -42,10 +48,35 @@ function blockLabel(block: CmsBlock) {
   return preset?.label ?? block.type;
 }
 
-export function CmsBlockEditorClient({ initialBlocks }: CmsBlockEditorClientProps) {
+function plpTargetLabel(block: CmsBlock) {
+  const target = getCmsBlockPlpTarget(block);
+  return target.routePath || target.categorySlug || "sin target";
+}
+
+function withPlpDefaults(block: CmsBlock): CmsBlock {
+  const placement = getCmsBlockPlacement(block) === "main" ? "beforeList" : getCmsBlockPlacement(block);
+  return {
+    ...block,
+    props: {
+      ...block.props,
+      surface: "plp",
+      placement,
+      target: getCmsBlockPlpTarget(block),
+    },
+  };
+}
+
+export function CmsBlockEditorClient({ initialBlocks, mode = "all" }: CmsBlockEditorClientProps) {
   const [blocks, setBlocks] = useState<CmsBlock[]>(initialBlocks);
   const serialized = useMemo(() => blocksToJson(blocks), [blocks]);
   const summary = useMemo(() => summarizePlacements(blocks), [blocks]);
+  const visibleBlocks = useMemo(() => blocks
+    .map((block, index) => ({ block, index }))
+    .filter(({ block }) => mode !== "plp" || getCmsBlockSurface(block) === "plp"), [blocks, mode]);
+  const presets = useMemo(() => {
+    const all = getCmsBlockPresets();
+    return mode === "plp" ? all.filter((preset) => preset.surface === "plp") : all;
+  }, [mode]);
 
   function updateBlock(index: number, updater: (block: CmsBlock) => CmsBlock) {
     setBlocks((current) => current.map((block, currentIndex) =>
@@ -61,6 +92,23 @@ export function CmsBlockEditorClient({ initialBlocks }: CmsBlockEditorClientProp
         [key]: value,
       },
     }));
+  }
+
+  function updateTargetProp(index: number, key: string, value: string) {
+    updateBlock(index, (block) => {
+      const target = getCmsBlockPlpTarget(block);
+      return {
+        ...block,
+        props: {
+          ...block.props,
+          surface: "plp",
+          target: {
+            ...target,
+            [key]: value,
+          },
+        },
+      };
+    });
   }
 
   function moveBlock(index: number, direction: -1 | 1) {
@@ -81,7 +129,8 @@ export function CmsBlockEditorClient({ initialBlocks }: CmsBlockEditorClientProp
   }
 
   function addBlock(type: string) {
-    setBlocks((current) => [...current, createCmsBlockFromPreset(type)]);
+    const nextBlock = createCmsBlockFromPreset(type);
+    setBlocks((current) => [...current, mode === "plp" ? withPlpDefaults(nextBlock) : nextBlock]);
   }
 
   return (
@@ -90,12 +139,12 @@ export function CmsBlockEditorClient({ initialBlocks }: CmsBlockEditorClientProp
       <div className="cmsBuilderLibrary" aria-label="Biblioteca de bloques">
         <div className="pricingPanelHeader">
           <div>
-            <h2>Bloques</h2>
-            <p>Prefabricados y listos para extender.</p>
+            <h2>{mode === "plp" ? "Bloques PLP" : "Bloques"}</h2>
+            <p>{mode === "plp" ? "Añade zonas antes o despues de la lista." : "Prefabricados y listos para extender."}</p>
           </div>
         </div>
         <div className="cmsPresetList">
-          {getCmsBlockPresets().map((preset) => (
+          {presets.map((preset) => (
             <button
               className="adminButton adminButtonSecondary"
               key={preset.type}
@@ -107,6 +156,11 @@ export function CmsBlockEditorClient({ initialBlocks }: CmsBlockEditorClientProp
             </button>
           ))}
         </div>
+        {mode === "plp" ? (
+          <div className="cmsBuilderHint">
+            Elige un bloque, completa `URL PLP` o `Slug categoria`, ajusta la ubicacion y guarda el draft.
+          </div>
+        ) : null}
         <dl className="pricingDefinitionGrid cmsPlacementSummary">
           <div>
             <dt>Main</dt>
@@ -124,14 +178,14 @@ export function CmsBlockEditorClient({ initialBlocks }: CmsBlockEditorClientProp
       </div>
 
       <div className="cmsBuilderCanvas">
-        {blocks.length === 0 ? (
-          <div className="adminEmptyState">Agrega un bloque para empezar la composicion.</div>
-        ) : blocks.map((block, index) => (
+        {visibleBlocks.length === 0 ? (
+          <div className="adminEmptyState">{mode === "plp" ? "Añade un bloque PLP desde la biblioteca de la izquierda." : "Agrega un bloque para empezar la composicion."}</div>
+        ) : visibleBlocks.map(({ block, index }, visibleIndex) => (
           <article className="cmsBlockCard" key={block.blockId}>
             <header className="cmsBlockHeader">
               <div>
-                <strong>{index + 1}. {blockLabel(block)}</strong>
-                <span>{block.blockId}</span>
+                <strong>{visibleIndex + 1}. {blockLabel(block)}</strong>
+                <span>{block.blockId} · {getCmsBlockSurface(block)} · {plpTargetLabel(block)}</span>
               </div>
               <div className="adminButtonRow">
                 <button className="adminIconButton" type="button" onClick={() => moveBlock(index, -1)} aria-label="Subir bloque">
@@ -148,6 +202,7 @@ export function CmsBlockEditorClient({ initialBlocks }: CmsBlockEditorClientProp
             <BlockFields
               block={block}
               onPropChange={(key, value) => updateProp(index, key, value)}
+              onTargetChange={(key, value) => updateTargetProp(index, key, value)}
             />
           </article>
         ))}
@@ -161,7 +216,7 @@ export function CmsBlockEditorClient({ initialBlocks }: CmsBlockEditorClientProp
           </div>
         </div>
         <div className="cmsPreviewFrame">
-          {blocks.map((block) => (
+          {mode === "plp" ? <CmsPlpStorefrontPreview blocks={blocks} /> : blocks.map((block) => (
             <CmsBlockPreview block={block} key={block.blockId} />
           ))}
         </div>
@@ -173,12 +228,26 @@ export function CmsBlockEditorClient({ initialBlocks }: CmsBlockEditorClientProp
 function BlockFields({
   block,
   onPropChange,
+  onTargetChange,
 }: {
   block: CmsBlock;
   onPropChange: (key: string, value: unknown) => void;
+  onTargetChange: (key: keyof ReturnType<typeof getCmsBlockPlpTarget>, value: string) => void;
 }) {
+  const surface = surfaceProp(block);
+  const target = getCmsBlockPlpTarget(block);
   return (
     <div className="cmsBlockFields">
+      <label className="adminField">
+        <span>Superficie</span>
+        <select
+          value={surface}
+          onChange={(event) => onPropChange("surface", event.target.value)}
+        >
+          <option value="page">Pagina CMS</option>
+          <option value="plp">PLP / listing</option>
+        </select>
+      </label>
       <label className="adminField">
         <span>Ubicacion</span>
         <select
@@ -190,6 +259,32 @@ function BlockFields({
           <option value="afterList">Despues de lista PLP</option>
         </select>
       </label>
+      {surface === "plp" ? (
+        <fieldset className="cmsBlockFieldset">
+          <legend>Target PLP</legend>
+          <label className="adminField">
+            <span>Tipo listing</span>
+            <select
+              value={target.listingKind}
+              onChange={(event) => onTargetChange("listingKind", event.target.value as CmsPlpListingKind)}
+            >
+              <option value="CATEGORY">Categoria</option>
+              <option value="SEARCH">Busqueda</option>
+              <option value="COLLECTION">Coleccion</option>
+            </select>
+          </label>
+          <TextField
+            label="URL PLP"
+            value={target.routePath}
+            onChange={(value) => onTargetChange("routePath", value)}
+          />
+          <TextField
+            label="Slug categoria"
+            value={target.categorySlug}
+            onChange={(value) => onTargetChange("categorySlug", value)}
+          />
+        </fieldset>
+      ) : null}
       {block.type === "banner.hero" ? (
         <>
           <TextField label="Eyebrow" value={textProp(block, "eyebrow")} onChange={(value) => onPropChange("eyebrow", value)} />
@@ -216,6 +311,23 @@ function BlockFields({
             label="Slides JSON"
             value={arrayProp(block, "slides")}
             onChange={(value) => onPropChange("slides", value)}
+          />
+        </>
+      ) : null}
+      {block.type === "plp.categoryIntro" ? (
+        <>
+          <TextField label="Titulo categoria" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
+          <TextAreaField label="Descripcion" value={textProp(block, "body")} onChange={(value) => onPropChange("body", value)} />
+          <TextField label="Imagen URL" value={textProp(block, "imageUrl")} onChange={(value) => onPropChange("imageUrl", value)} />
+        </>
+      ) : null}
+      {block.type === "plp.subcategoryTiles" ? (
+        <>
+          <TextField label="Titulo" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
+          <CollectionTextarea
+            label="Subcategorias JSON"
+            value={arrayProp(block, "items")}
+            onChange={(value) => onPropChange("items", value)}
           />
         </>
       ) : null}
@@ -314,9 +426,18 @@ function CollectionTextarea({
 }
 
 function CmsBlockPreview({ block }: { block: CmsBlock }) {
+  const surface = getCmsBlockSurface(block);
+  const placement = getCmsBlockPlacement(block);
+  const target = getCmsBlockPlpTarget(block);
+  const wrapperClass = surface === "plp" ? "cmsPreviewBlock cmsPreviewBlockPlp" : "cmsPreviewBlock";
+  const wrapperLabel = surface === "plp"
+    ? `${placement === "beforeList" ? "Antes PLP" : "Despues PLP"} · ${target.routePath || target.categorySlug || "sin target"}`
+    : "Pagina CMS";
+
   if (block.type === "banner.hero") {
     return (
-      <section className="cmsPreviewHero">
+      <section className={`${wrapperClass} cmsPreviewHero`}>
+        <small>{wrapperLabel}</small>
         <div>
           <span>{textProp(block, "eyebrow", "Hero")}</span>
           <h3>{textProp(block, "heading", "Titulo hero")}</h3>
@@ -331,7 +452,8 @@ function CmsBlockPreview({ block }: { block: CmsBlock }) {
   if (block.type === "slider.fullWidth") {
     const slides = arrayProp(block, "slides");
     return (
-      <section className="cmsPreviewSlider">
+      <section className={`${wrapperClass} cmsPreviewSlider`}>
+        <small>{wrapperLabel}</small>
         {slides.map((slide, index) => {
           const record = typeof slide === "object" && slide !== null ? slide as Record<string, unknown> : {};
           return (
@@ -345,10 +467,45 @@ function CmsBlockPreview({ block }: { block: CmsBlock }) {
     );
   }
 
+  if (block.type === "plp.categoryIntro") {
+    return (
+      <section className={`${wrapperClass} cmsPreviewCategoryIntro`}>
+        <small>{wrapperLabel}</small>
+        <div>
+          <h3>{textProp(block, "heading", "Categoria")}</h3>
+          <p>{textProp(block, "body", "Descripcion de categoria")}</p>
+        </div>
+        <PreviewMedia label="Category image" value={textProp(block, "imageUrl")} />
+      </section>
+    );
+  }
+
+  if (block.type === "plp.subcategoryTiles") {
+    const items = arrayProp(block, "items");
+    return (
+      <section className={`${wrapperClass} cmsPreviewSubcategories`}>
+        <small>{wrapperLabel}</small>
+        <h3>{textProp(block, "heading", "Subcategorias")}</h3>
+        <div>
+          {items.map((item, index) => {
+            const record = typeof item === "object" && item !== null ? item as Record<string, unknown> : {};
+            return (
+              <article key={index}>
+                <PreviewMedia label="Subcategory image" value={String(record.imageUrl ?? "")} />
+                <strong>{String(record.title ?? `Subcategoria ${index + 1}`)}</strong>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
+
   if (block.type === "accordion") {
     const items = arrayProp(block, "items");
     return (
-      <section className="cmsPreviewAccordion">
+      <section className={`${wrapperClass} cmsPreviewAccordion`}>
+        <small>{wrapperLabel}</small>
         <h3>{textProp(block, "heading", "Acordeon")}</h3>
         {items.map((item, index) => {
           const record = typeof item === "object" && item !== null ? item as Record<string, unknown> : {};
@@ -365,7 +522,8 @@ function CmsBlockPreview({ block }: { block: CmsBlock }) {
 
   const items = arrayProp(block, "items");
   return (
-    <section className="cmsPreviewCarousel">
+    <section className={`${wrapperClass} cmsPreviewCarousel`}>
+      <small>{wrapperLabel}</small>
       <h3>{textProp(block, "heading", "Carousel")}</h3>
       <div>
         {items.map((item, index) => {
@@ -380,6 +538,87 @@ function CmsBlockPreview({ block }: { block: CmsBlock }) {
         })}
       </div>
     </section>
+  );
+}
+
+function CmsPlpStorefrontPreview({ blocks }: { blocks: CmsBlock[] }) {
+  const plpBlocks = blocks.filter((block) => getCmsBlockSurface(block) === "plp");
+  const beforeList = plpBlocks.filter((block) => getCmsBlockPlacement(block) !== "afterList");
+  const afterList = plpBlocks.filter((block) => getCmsBlockPlacement(block) === "afterList");
+
+  return (
+    <div className="cmsPlpPrestashopPreview">
+      <nav className="cmsPlpBreadcrumb">Inicio / Clothes</nav>
+      <div className="cmsPlpPrestashopLayout">
+        <aside className="cmsPlpFacetSidebar">
+          <section>
+            <strong>Clothes</strong>
+            <span>Men</span>
+            <span>Women</span>
+          </section>
+          <section>
+            <strong>Filtrar por</strong>
+            {["Disponibilidad", "Selecciones", "Precio", "Categorias", "Tamaño", "Color"].map((facet) => (
+              <label key={facet}>
+                <input type="checkbox" readOnly />
+                <span>{facet}</span>
+              </label>
+            ))}
+          </section>
+        </aside>
+        <section className="cmsPlpListingPane">
+          {beforeList.length > 0 ? beforeList.map((block) => (
+            <CmsBlockPreview block={block} key={block.blockId} />
+          )) : <DefaultCategoryIntro />}
+          <div className="cmsPlpProductsTopbar">
+            <span>Hay 2 productos.</span>
+            <button type="button">Ordenar por: Relevancia</button>
+          </div>
+          <div className="cmsPlpProductGrid">
+            <PreviewProductCard
+              name="Hummingbird printed t-shirt"
+              oldPrice="28,92 €"
+              price="23,14 €"
+            />
+            <PreviewProductCard
+              name="Hummingbird printed sweater"
+              oldPrice="43,44 €"
+              price="34,75 €"
+            />
+          </div>
+          <div className="cmsPlpPagination">Mostrando 1-2 de 2 articulo(s)</div>
+          {afterList.map((block) => (
+            <CmsBlockPreview block={block} key={block.blockId} />
+          ))}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function DefaultCategoryIntro() {
+  return (
+    <section className="cmsPreviewCategoryIntro">
+      <div>
+        <h3>Clothes</h3>
+        <p>Discover our favorites fashionable discoveries, a selection of cool items to integrate in your wardrobe.</p>
+      </div>
+      <PreviewMedia label="Category image" value="" />
+    </section>
+  );
+}
+
+function PreviewProductCard({ name, oldPrice, price }: { name: string; oldPrice: string; price: string }) {
+  return (
+    <article className="cmsPlpProductCard">
+      <div className="cmsPlpProductImage">Vista rapida</div>
+      <strong>{name}</strong>
+      <div>
+        <s>{oldPrice}</s>
+        <span>{price}</span>
+      </div>
+      <small>-20% · Nuevo</small>
+    </article>
   );
 }
 
