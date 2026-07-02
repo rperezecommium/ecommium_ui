@@ -428,6 +428,11 @@ p {
   font-weight: 700;
 }
 
+.adminButtonSecondary {
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+}
+
 .adminButtonPrimary:hover {
   border-color: var(--admin-primary-hover);
   background: var(--admin-primary-hover);
@@ -1501,6 +1506,75 @@ p {
   font-size: 12px;
 }
 
+.productListToolbarMenu {
+  position: relative;
+}
+
+.productListToolbarMenu summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.productListToolbarMenu summary::-webkit-details-marker {
+  display: none;
+}
+
+.productListToolbarPanel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  min-width: 210px;
+  padding: 6px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-popover);
+}
+
+.productListToolbarOption {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 8px;
+  border-radius: 4px;
+  color: var(--admin-text);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.productListToolbarOption:hover {
+  background: var(--admin-bg);
+  color: var(--admin-primary-pressed);
+}
+
+.productListToolbarOptionDisabled {
+  color: var(--admin-text-muted);
+}
+
+.productListBulkPanel {
+  gap: 8px;
+  min-width: 280px;
+  padding: 10px;
+}
+
+.productListBulkPanel p {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.productListBulkPanel label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .productListTableScroller {
   border-top: 0;
 }
@@ -1609,6 +1683,54 @@ p {
   white-space: nowrap;
 }
 
+.productDangerMenu {
+  position: relative;
+}
+
+.productDangerMenu summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.productDangerMenu summary::-webkit-details-marker {
+  display: none;
+}
+
+.productDangerPanel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  gap: 8px;
+  width: 260px;
+  padding: 10px;
+  border: 1px solid var(--admin-danger);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-popover);
+  color: var(--admin-text);
+  white-space: normal;
+}
+
+.productDangerPanel p {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.productDangerPanel label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.productEditorDangerMenu .productDangerPanel {
+  bottom: calc(100% + 6px);
+  top: auto;
+}
+
 .productListPagination {
   display: grid;
   justify-items: center;
@@ -1713,6 +1835,52 @@ p {
   font-size: 12px;
 }
 
+.productAuditPanel {
+  display: grid;
+  gap: 16px;
+}
+
+.productAuditSection {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.productAuditSection h3 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 14px;
+}
+
+.productAuditList,
+.productAuditCodeList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.productAuditList li,
+.productAuditCodeList li {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-bg);
+}
+
+.productAuditList li {
+  display: grid;
+  gap: 4px;
+}
+
+.productAuditList span,
+.productAuditCodeList code {
+  overflow-wrap: anywhere;
+}
+
 .productEditorTabs {
   display: flex;
   align-items: end;
@@ -1795,6 +1963,304 @@ p {
 .productEditorSectionHeader p,
 .productEditorPanel p {
   color: var(--admin-text-muted);
+}
+
+.productStorefrontPreviewPage {
+  max-width: 1320px;
+}
+
+.productStorefrontPreviewSummary strong {
+  white-space: normal;
+}
+
+.productStorefrontPreviewCard .adminCardHeader p {
+  overflow-wrap: anywhere;
+}
+
+.productStorefrontPreviewLayout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.42fr) minmax(360px, 1fr);
+  gap: 18px;
+  padding: 16px;
+}
+
+.productStorefrontPreviewMedia {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.productStorefrontPreviewMedia img,
+.productStorefrontPreviewMedia > div {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface-muted);
+}
+
+.productStorefrontPreviewMedia img {
+  object-fit: cover;
+}
+
+.productStorefrontPreviewMedia > div {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  color: var(--admin-text-muted);
+  font-weight: 700;
+  text-align: center;
+}
+
+.productStorefrontPreviewInfo {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.productStorefrontPreviewInfo h2 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.productStorefrontPreviewBreadcrumb,
+.productStorefrontPreviewLead {
+  margin: 0;
+  color: var(--admin-text-muted);
+}
+
+.productStorefrontPreviewEmpty {
+  margin: 16px;
+}
+
+.productPublicationActions {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.productPublicationActions .adminButton {
+  justify-self: start;
+}
+
+.productVariantToolbarMenu {
+  position: relative;
+}
+
+.productVariantToolbarPanel {
+  gap: 8px;
+  min-width: 260px;
+  padding: 10px;
+}
+
+.productVariantToolbarPanel .adminField {
+  margin: 0;
+}
+
+.productVariantToolbarPanel input,
+.productVariantToolbarPanel select {
+  min-height: 34px;
+}
+
+.productVariantBulkPanel .adminButton {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.productRecoveryActions {
+  margin-top: 10px;
+}
+
+.productRecoveryActions .adminButton {
+  min-height: 30px;
+}
+
+.productEditorToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.productEditorToolbar h3 {
+  margin-bottom: 2px;
+  font-size: 15px;
+}
+
+.adminButtonDisabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.mediaAdminLayout {
+  display: grid;
+  grid-template-columns: minmax(420px, 0.95fr) minmax(360px, 1.05fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.mediaAdminTable td {
+  vertical-align: top;
+}
+
+.mediaAdminDetail {
+  min-width: 0;
+}
+
+.mediaAdminAssetGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.mediaAdminAssetCard {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
+}
+
+.mediaAdminAssetPreview {
+  display: grid;
+  place-items: center;
+  width: 132px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface-muted);
+}
+
+.mediaAdminAssetPreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mediaAdminAssetBody {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mediaAdminAssetBody h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--admin-text);
+  font-size: 14px;
+}
+
+.mediaAdminAssetText {
+  display: grid;
+  gap: 3px;
+}
+
+.mediaAdminAssetText span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mediaAdminAssetText strong {
+  overflow-wrap: anywhere;
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.mediaAdminDangerPanel {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--admin-danger);
+  border-radius: 6px;
+  background: var(--admin-surface);
+}
+
+.mediaAdminDangerPanel label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stockAdminLayout {
+  display: grid;
+  grid-template-columns: minmax(420px, 0.9fr) minmax(460px, 1.1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.stockAdminProductTable td {
+  vertical-align: top;
+}
+
+.stockAdminDetail {
+  min-width: 0;
+}
+
+.stockAdminRows {
+  display: grid;
+  gap: 10px;
+}
+
+.stockAdminRowForm {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.2fr) minmax(120px, 0.8fr) repeat(3, minmax(92px, 0.55fr)) minmax(98px, 0.5fr) auto;
+  gap: 10px;
+  align-items: end;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
+}
+
+.stockAdminRowForm .adminField {
+  margin: 0;
+}
+
+.stockAdminRowForm input {
+  min-width: 0;
+}
+
+.stockAdminVariantCell {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.stockAdminVariantCell strong,
+.stockAdminVariantCell span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stockAdminVariantCell span,
+.stockAdminVariantCell small {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.stockAdminAvailability {
+  display: grid;
+  gap: 4px;
+}
+
+.stockAdminAvailability strong {
+  color: var(--admin-text);
+  font-size: 18px;
 }
 
 .productCombinationGenerator {
@@ -3593,6 +4059,23 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .adminFormGridThree {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .productStorefrontPreviewLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mediaAdminLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stockAdminLayout,
+  .stockAdminRowForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .productCombinationGenerator {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3632,6 +4115,24 @@ p {
 }
 
 @media (max-width: 680px) {
+  .adminSummaryGrid,
+  .adminFormGridTwo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .productEditorToolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mediaAdminAssetCard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mediaAdminAssetPreview {
+    width: 100%;
+  }
+
   .productPreviewOverlay {
     padding: 0;
   }
