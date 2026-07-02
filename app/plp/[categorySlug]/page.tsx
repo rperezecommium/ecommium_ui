@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
-import { StorefrontPlpPage } from "../src/modules/storefront/plp-page";
-import { getStorefrontPlp } from "../src/modules/storefront/plp";
+import { StorefrontPlpPage } from "../../../src/modules/storefront/plp-page";
+import { getStorefrontPlp } from "../../../src/modules/storefront/plp";
 
 type PageProps = {
+  params: Promise<{
+    categorySlug: string;
+  }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const homeCategorySlug = "bike-brakes";
 const hiddenStorefrontParams = new Set([
   "organizationId",
   "shopId",
@@ -18,19 +20,20 @@ const hiddenStorefrontParams = new Set([
   "routePath",
 ]);
 
-export default async function Home({ searchParams }: PageProps) {
+export default async function PlpRoute({ params, searchParams }: PageProps) {
+  const { categorySlug } = await params;
   const query = await searchParams;
+  const pathname = `/plp/${encodeURIComponent(categorySlug)}`;
   if (hasHiddenStorefrontParams(query)) {
-    redirect(cleanHref("/", query));
+    redirect(cleanHref(pathname, query));
   }
 
-  const result = await getStorefrontPlp(homeCategorySlug, {
-    routePath: "/",
+  const result = await getStorefrontPlp(categorySlug, {
     page: first(query?.page),
     limit: first(query?.limit),
   });
 
-  return <StorefrontPlpPage result={result} categorySlug={homeCategorySlug} />;
+  return <StorefrontPlpPage result={result} categorySlug={categorySlug} />;
 }
 
 function first(value: string | string[] | undefined): string | undefined {

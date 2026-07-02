@@ -1,0 +1,388 @@
+import Link from "next/link";
+import Image from "next/image";
+import type { ReactNode } from "react";
+import type { StorefrontCategoryLink, StorefrontPlpBlock, StorefrontPlpData, StorefrontPlpProduct, StorefrontPlpResult } from "./plp";
+
+type Props = {
+  result: StorefrontPlpResult;
+  categorySlug: string;
+};
+
+const titleFromSlug = (slug: string) =>
+  slug
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || "Categoria";
+
+export function StorefrontPlpPage({ result, categorySlug }: Props) {
+  const title = result.data ? titleFromSlug(result.data.categorySlug) : titleFromSlug(categorySlug);
+
+  return (
+    <main className="storefrontPage">
+      <StorefrontHeader />
+      <div className="storefrontShell">
+        <nav className="storefrontBreadcrumb">
+          <Link href="/">Inicio</Link>
+          <span>/</span>
+          <span>{title}</span>
+        </nav>
+        <div className="storefrontPlpLayout">
+          <StorefrontFacets
+            categories={result.data?.categories ?? []}
+            currentCategorySlug={result.data?.categorySlug ?? categorySlug}
+          />
+          {result.ok && result.data ? (
+            <StorefrontListing data={result.data} title={title} />
+          ) : (
+            <section className="storefrontListing">
+              <CategoryIntro title={title} />
+              <div className="storefrontUnavailable">
+                <span>PLP</span>
+                <h1>No se pudo cargar el listado</h1>
+                <p>{result.error ?? "BFF no disponible para Storefront."}</p>
+                <code>{categorySlug === "bike-brakes" ? "/" : `/plp/${categorySlug}`}</code>
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function StorefrontHeader() {
+  return (
+    <header className="storefrontHeader">
+      <div className="storefrontHeaderTop">
+        <span>Contactenos</span>
+        <span>Iniciar sesion</span>
+      </div>
+      <div className="storefrontHeaderMain">
+        <Link className="storefrontLogo" href="/">Ecommium</Link>
+        <label className="storefrontSearch">
+          <span>Buscar</span>
+          <input placeholder="Buscar en nuestra tienda" />
+        </label>
+        <nav>
+          <Link href="/plp/bike-drivetrain">Catalogo</Link>
+          <Link href="/plp/clothes">Clothes</Link>
+          <Link href="/plp/accessories">Accessories</Link>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+function StorefrontListing({ data, title }: { data: StorefrontPlpData; title: string }) {
+  return (
+    <section className="storefrontListing">
+      <CategoryIntro title={title} />
+      <BlockStack blocks={data.cmsBlocks.beforeList} />
+      <div className="storefrontProductsTopbar">
+        <span>{data.total} productos.</span>
+        <label>
+          Ordenar por:
+          <select defaultValue="relevance">
+            <option value="relevance">Relevancia</option>
+            <option value="price-asc">Precio: menor a mayor</option>
+            <option value="price-desc">Precio: mayor a menor</option>
+          </select>
+        </label>
+      </div>
+      {data.products.length > 0 ? (
+        <div className="storefrontProductGrid">
+          {data.products.map((product) => (
+            <ProductCard
+              key={product.productId}
+              product={product}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="storefrontUnavailable">
+          <span>Categoria</span>
+          <h1>No hay productos visibles</h1>
+          <p>El BFF respondio correctamente, pero el listado no contiene items para esta categoria.</p>
+        </div>
+      )}
+      <StorefrontPagination data={data} />
+      <BlockStack blocks={data.cmsBlocks.afterList} />
+    </section>
+  );
+}
+
+function CategoryIntro({ title }: { title: string }) {
+  return (
+    <section className="storefrontCategoryIntro">
+      <div>
+        <h1>{title}</h1>
+        <p>Descubre una seleccion preparada para navegar categorias, filtros y bloques editoriales.</p>
+      </div>
+      <div className="storefrontCategoryImage" />
+    </section>
+  );
+}
+
+function StorefrontFacets({
+  categories,
+  currentCategorySlug,
+}: {
+  categories: StorefrontCategoryLink[];
+  currentCategorySlug: string;
+}) {
+  return (
+    <aside className="storefrontFacets">
+      <section>
+        <strong>Categorias</strong>
+        {categories.length > 0 ? categories.map((category) => (
+          <Link
+            aria-current={category.active ? "page" : undefined}
+            className={category.active ? "storefrontFacetActive" : undefined}
+            href={category.href}
+            key={category.id}
+            style={{ paddingLeft: `${category.depth * 12}px` }}
+          >
+            {category.name}
+          </Link>
+        )) : <Link className="storefrontFacetActive" href={`/plp/${currentCategorySlug}`}>{titleFromSlug(currentCategorySlug)}</Link>}
+      </section>
+      <section>
+        <strong>Filtrar por</strong>
+        <label><input type="checkbox" /> Disponible</label>
+        <label><input type="checkbox" /> En oferta</label>
+        <label><input type="checkbox" /> Nuevo</label>
+      </section>
+      <section>
+        <strong>Precio</strong>
+        <label><input type="checkbox" /> 0,00 EUR - 25,00 EUR</label>
+        <label><input type="checkbox" /> 25,00 EUR - 50,00 EUR</label>
+      </section>
+    </aside>
+  );
+}
+
+function ProductCard({
+  product,
+}: {
+  product: StorefrontPlpProduct;
+}) {
+  const productHref = `/pdp/${encodeURIComponent(product.slug)}`;
+
+  return (
+    <article className="storefrontProductCard">
+      <Link className="storefrontProductImage" href={productHref}>
+        {product.imageUrl ? (
+          <Image
+            src={product.imageUrl}
+            alt={product.imageAlt ?? product.name}
+            fill
+            sizes="(max-width: 680px) 100vw, (max-width: 1100px) 50vw, 255px"
+            unoptimized
+          />
+        ) : <span>Vista rapida</span>}
+        <span className="storefrontQuickView">Vista rapida</span>
+      </Link>
+      <div className="storefrontProductInfo">
+        {product.brand ? <span>{product.brand}</span> : null}
+        <Link href={productHref}>{product.name}</Link>
+        <div>
+          {product.previousPriceDisplay ? <s>{product.previousPriceDisplay}</s> : null}
+          <b>{product.priceDisplay ?? "Precio pendiente"}</b>
+        </div>
+        <small>{product.available ? "Disponible" : "No disponible"}</small>
+      </div>
+    </article>
+  );
+}
+
+function StorefrontPagination({ data }: { data: StorefrontPlpData }) {
+  const firstItem = data.products.length > 0 ? data.offset + 1 : 0;
+  const lastItem = Math.min(data.offset + data.products.length, data.total);
+  const pages = visiblePages(data.currentPage, data.totalPages);
+
+  return (
+    <nav className="storefrontPagination" aria-label="Paginacion">
+      <span>Mostrando {firstItem}-{lastItem} de {data.total} articulo(s)</span>
+      <div>
+        <PaginationLink data={data} page={Math.max(1, data.currentPage - 1)} disabled={data.currentPage <= 1}>
+          Anterior
+        </PaginationLink>
+        {pages.map((page) => (
+          <PaginationLink active={page === data.currentPage} data={data} key={page} page={page}>
+            {page}
+          </PaginationLink>
+        ))}
+        <PaginationLink data={data} page={Math.min(data.totalPages, data.currentPage + 1)} disabled={data.currentPage >= data.totalPages}>
+          Siguiente
+        </PaginationLink>
+      </div>
+    </nav>
+  );
+}
+
+function PaginationLink({
+  active,
+  children,
+  data,
+  disabled,
+  page,
+}: {
+  active?: boolean;
+  children: ReactNode;
+  data: StorefrontPlpData;
+  disabled?: boolean;
+  page: number;
+}) {
+  const params = new URLSearchParams();
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+
+  if (data.limit !== 16) {
+    params.set("limit", String(data.limit));
+  }
+
+  const queryString = params.toString();
+  const href = queryString ? `${data.publicPath}?${queryString}` : data.publicPath;
+
+  if (disabled) {
+    return <span className="storefrontPageDisabled">{children}</span>;
+  }
+
+  return (
+    <Link aria-current={active ? "page" : undefined} className={active ? "storefrontPageActive" : undefined} href={href}>
+      {children}
+    </Link>
+  );
+}
+
+function visiblePages(currentPage: number, totalPages: number) {
+  const start = Math.max(1, currentPage - 2);
+  const end = Math.min(totalPages, start + 4);
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+}
+
+function BlockStack({ blocks }: { blocks: StorefrontPlpBlock[] }) {
+  if (blocks.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="storefrontBlockStack">
+      {blocks.map((block) => <StorefrontBlock key={block.blockId} block={block} />)}
+    </div>
+  );
+}
+
+function StorefrontBlock({ block }: { block: StorefrontPlpBlock }) {
+  if (block.type === "banner.hero") {
+    return <HeroBlock block={block} />;
+  }
+
+  if (block.type === "slider.fullWidth") {
+    return <SliderBlock block={block} />;
+  }
+
+  if (block.type === "plp.categoryIntro") {
+    return <CategoryIntroBlock block={block} />;
+  }
+
+  if (block.type === "plp.subcategoryTiles") {
+    return <SubcategoryTilesBlock block={block} />;
+  }
+
+  if (block.type === "accordion") {
+    return <AccordionBlock block={block} />;
+  }
+
+  return <CarouselBlock block={block} />;
+}
+
+function HeroBlock({ block }: { block: StorefrontPlpBlock }) {
+  return (
+    <section className="storefrontCmsHero">
+      <span>{asText(block.props.eyebrow) ?? "Destacado"}</span>
+      <h2>{asText(block.props.title) ?? asText(block.props.heading) ?? "Bloque editorial"}</h2>
+      <p>{asText(block.props.subtitle) ?? asText(block.props.description) ?? "Contenido CMS publicado para esta PLP."}</p>
+    </section>
+  );
+}
+
+function SliderBlock({ block }: { block: StorefrontPlpBlock }) {
+  const slides = asItems(block.props.slides);
+  const first = slides[0] ?? {};
+
+  return (
+    <section className="storefrontCmsSlider">
+      <div>
+        <span>{asText(first.kicker) ?? "Coleccion"}</span>
+        <h2>{asText(first.title) ?? asText(block.props.title) ?? "Slider full width"}</h2>
+      </div>
+    </section>
+  );
+}
+
+function CategoryIntroBlock({ block }: { block: StorefrontPlpBlock }) {
+  return (
+    <section className="storefrontCmsIntro">
+      <h2>{asText(block.props.title) ?? "Categoria"}</h2>
+      <p>{asText(block.props.description) ?? "Texto editorial de categoria publicado desde CMS."}</p>
+    </section>
+  );
+}
+
+function SubcategoryTilesBlock({ block }: { block: StorefrontPlpBlock }) {
+  const items = asItems(block.props.items);
+
+  return (
+    <section className="storefrontCmsTiles">
+      {(items.length ? items : [{ title: "Subcategoria" }, { title: "Novedades" }, { title: "Ofertas" }]).map((item, index) => (
+        <article key={`${asText(item.title) ?? "tile"}-${index}`}>
+          <strong>{asText(item.title) ?? "Subcategoria"}</strong>
+          <span>{asText(item.subtitle) ?? "Ver productos"}</span>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function AccordionBlock({ block }: { block: StorefrontPlpBlock }) {
+  const items = asItems(block.props.items);
+
+  return (
+    <section className="storefrontCmsAccordion">
+      {(items.length ? items : [{ title: "Mas informacion", content: "Contenido editorial de apoyo." }]).map((item, index) => (
+        <details key={`${asText(item.title) ?? "faq"}-${index}`}>
+          <summary>{asText(item.title) ?? "Mas informacion"}</summary>
+          <p>{asText(item.content) ?? asText(item.text) ?? "Contenido editorial de apoyo."}</p>
+        </details>
+      ))}
+    </section>
+  );
+}
+
+function CarouselBlock({ block }: { block: StorefrontPlpBlock }) {
+  const items = asItems(block.props.items);
+
+  return (
+    <section className="storefrontCmsCarousel">
+      {(items.length ? items : [{ title: "Producto recomendado" }, { title: "Coleccion destacada" }]).map((item, index) => (
+        <article key={`${asText(item.title) ?? "item"}-${index}`}>
+          <span />
+          <strong>{asText(item.title) ?? "Elemento destacado"}</strong>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function asText(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function asItems(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null && !Array.isArray(item))
+    : [];
+}
