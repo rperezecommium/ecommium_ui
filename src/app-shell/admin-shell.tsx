@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Boxes,
   CreditCard,
+  FileText,
   Home,
   Megaphone,
   Settings,
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/admin", label: "Inicio", description: "Health y contexto", permission: "admin:view" as const, icon: Home },
   { href: "/admin/configuracion", label: "Configuracion", description: "Tenant, tiendas y equipo", permission: "admin:configuration:view" as const, icon: Settings },
   { href: "/admin/catalogo", label: "Catalogo", description: "Productos y contenido comercial", permission: "admin:catalog:view" as const, icon: ShoppingBasket },
+  { href: "/admin/cms", label: "CMS", description: "Paginas y bloques", permission: "admin:cms:view" as const, icon: FileText },
   { href: "/admin/promociones", label: "Promociones", description: "Cupones y reglas de carrito", permission: "admin:promotions:view" as const, icon: Megaphone },
   { href: "/admin/pedidos", label: "Pedidos", description: "Operacion y fulfillment", permission: "admin:orders:view" as const, icon: Boxes },
   { href: "/admin/clientes", label: "Clientes", description: "Customer 360", permission: "admin:customers:view" as const, icon: UsersRound },

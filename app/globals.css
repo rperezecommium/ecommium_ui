@@ -754,6 +754,16 @@ p {
   background: color-mix(in srgb, var(--admin-danger) 10%, var(--admin-surface));
 }
 
+.adminBannerInfo {
+  border-color: var(--admin-info);
+  background: color-mix(in srgb, var(--admin-info) 12%, var(--admin-surface));
+}
+
+.adminBannerWarning {
+  border-color: var(--admin-warning);
+  background: color-mix(in srgb, var(--admin-warning) 16%, var(--admin-surface));
+}
+
 .adminSection {
   margin-top: 16px;
 }
@@ -3251,28 +3261,32 @@ p {
 }
 
 .shippingAdminPage,
-.seoAdminPage {
+.seoAdminPage,
+.cmsAdminPage {
   min-width: 0;
   max-width: 100%;
   overflow-x: hidden;
 }
 
 .shippingAdminPage .pricingPanel,
-.seoAdminPage .pricingPanel {
+.seoAdminPage .pricingPanel,
+.cmsAdminPage .pricingPanel {
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
 }
 
 .shippingAdminPage .adminField span,
-.seoAdminPage .adminField span {
+.seoAdminPage .adminField span,
+.cmsAdminPage .adminField span {
   color: var(--admin-text);
   font-size: 13px;
   font-weight: 700;
 }
 
 .shippingAdminPage .adminTableScroller,
-.seoAdminPage .adminTableScroller {
+.seoAdminPage .adminTableScroller,
+.cmsAdminPage .adminTableScroller {
   max-width: 100%;
   min-width: 0;
 }
@@ -3300,6 +3314,312 @@ p {
 .seoAdminPage .seoTable td:last-child {
   width: 190px;
   max-width: 190px;
+}
+
+.cmsFilterBar {
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, 180px) minmax(150px, 180px) minmax(130px, 160px) auto;
+}
+
+.cmsPagesTable {
+  min-width: 980px;
+  table-layout: fixed;
+}
+
+.cmsPagesTable th,
+.cmsPagesTable td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmsPresetGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cmsPresetGrid article {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.cmsPresetGrid p,
+.cmsPresetGrid span {
+  margin: 0;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.cmsEditor {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cmsEditorHeader {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.cmsEditorHeader h2,
+.cmsEditorHeader p {
+  margin: 0;
+}
+
+.cmsEditorForm {
+  display: grid;
+  gap: 12px;
+}
+
+.cmsEditorPanel {
+  align-content: start;
+}
+
+.cmsFieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cmsFieldGrid output {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text-muted);
+}
+
+.cmsAdminPage textarea,
+.adminSideDrawer .adminField textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.cmsBuilder {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(320px, 1fr) minmax(280px, 0.8fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.cmsBuilderLibrary,
+.cmsBuilderCanvas,
+.cmsBuilderPreview {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
+}
+
+.cmsPresetList {
+  display: grid;
+  gap: 8px;
+}
+
+.cmsPresetList .adminButton {
+  justify-content: flex-start;
+}
+
+.cmsPlacementSummary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cmsBlockCard {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.cmsBlockHeader {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.cmsBlockHeader span {
+  display: block;
+  margin-top: 3px;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.cmsBlockFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cmsJsonField {
+  grid-column: 1 / -1;
+}
+
+.cmsJsonField textarea {
+  min-height: 132px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.cmsPreviewFrame {
+  display: grid;
+  gap: 12px;
+  min-height: 420px;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.cmsPreviewHero,
+.cmsPreviewSlider,
+.cmsPreviewAccordion,
+.cmsPreviewCarousel {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.cmsPreviewHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(180px, 0.8fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.cmsPreviewHero span {
+  color: var(--admin-primary-pressed);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.cmsPreviewHero h3,
+.cmsPreviewAccordion h3,
+.cmsPreviewCarousel h3 {
+  margin: 4px 0 8px;
+}
+
+.cmsPreviewMediaPlaceholder,
+.cmsPreviewMediaImage {
+  display: grid;
+  width: 100%;
+  min-height: 140px;
+  place-items: center;
+  border: 1px dashed var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text-muted);
+  background-position: center;
+  background-size: cover;
+}
+
+.cmsPreviewSlider {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(180px, 1fr);
+  gap: 10px;
+  overflow-x: auto;
+}
+
+.cmsPreviewSlider div,
+.cmsPreviewCarousel article {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.cmsPreviewAccordion {
+  display: grid;
+  gap: 8px;
+}
+
+.cmsPreviewAccordion details {
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+}
+
+.cmsPreviewCarousel > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cmsEditorFooter {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.cmsDangerMenu {
+  position: relative;
+}
+
+.cmsDangerMenu summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.cmsDangerMenu summary::-webkit-details-marker {
+  display: none;
+}
+
+.cmsDangerPanel {
+  position: absolute;
+  right: 0;
+  z-index: 12;
+  display: grid;
+  gap: 8px;
+  width: min(300px, calc(100vw - 32px));
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--admin-danger);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-popover);
+}
+
+.cmsDangerPanel p {
+  margin: 0;
+  color: var(--admin-text-muted);
+  font-size: 12px;
 }
 
 .pricingDangerForm {
@@ -4241,5 +4561,22 @@ p {
 
   .pricingDenseForm {
     grid-template-columns: 1fr;
+  }
+
+  .cmsFilterBar,
+  .cmsEditorHeader,
+  .cmsFieldGrid,
+  .cmsBuilder,
+  .cmsBlockFields,
+  .cmsPreviewHero,
+  .cmsPreviewCarousel > div,
+  .cmsPresetGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cmsEditorFooter {
+    position: static;
+    align-items: stretch;
+    flex-direction: column;
   }
 }
