@@ -28,6 +28,9 @@ export default function ConfiguracionPage() {
           <Link className="adminButton" href="/admin/configuracion/precios">
             Abrir precios
           </Link>
+          <Link className="adminButton" href="/admin/configuracion/seo">
+            Abrir SEO
+          </Link>
           <Link className="adminButton" href="/admin/configuracion/equipo">
             Abrir equipo y permisos
           </Link>

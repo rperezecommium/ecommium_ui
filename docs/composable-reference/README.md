@@ -174,6 +174,29 @@ Estados UI obligatorios para multistore:
 - `GET /api/v1/admin/routing-seo/resolve?organizationId=:org&shopId=:shop&locale=:locale&path=:path`
 - `GET /api/v1/admin/routing-seo/sitemap?organizationId=:org&shopId=:shop&locale=:locale`
 
+Reglas UI Routing/SEO vigentes para producto:
+
+- `canonicalRouteId` es solo lectura; la UI no debe enviarlo en `POST routes`,
+  `PATCH routes` ni en `draft.routingSeo`.
+- `includeInSitemap` solo aplica a rutas `CANONICAL`. Los aliases se muestran y
+  editan como rutas alternativas, pero siempre se envian con
+  `includeInSitemap=false`.
+- `createRedirectFromPreviousPath` solo aplica al cambio de canonical path.
+- Un alias eliminado se envia como baja logica (`status=INACTIVE`,
+  `includeInSitemap=false`) si ya tiene `routeId`.
+
+Reglas UI Routing/SEO vigentes para Admin SEO global:
+
+- La pantalla global puede mostrar `canonicalRouteId` como dato de lectura, pero
+  no debe enviarlo en creacion ni actualizacion de rutas.
+- Las rutas `ALIAS` se normalizan como no indexables al leer del BFF y antes de
+  mutar contra el BFF.
+- `PATCH routes/:routeId` no envia `routeKind`; si la UI lo usa para decidir
+  comportamiento local, debe eliminarlo antes del request.
+- Los redirects `302` manuales requieren `reason` y `expiresAt` futuro antes de
+  llamar al BFF. El backend conserva la validacion final de ruta activa destino
+  y evita cadenas de redirects.
+
 ### Admin: Search y Analytics
 
 - `GET /api/v1/admin/search/health?organizationId=:org&shopId=:shop&locale=:locale`

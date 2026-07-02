@@ -2784,37 +2784,44 @@ p {
   border-color: var(--admin-primary);
 }
 
-.shippingAdminPage {
+.shippingAdminPage,
+.seoAdminPage {
   min-width: 0;
   max-width: 100%;
   overflow-x: hidden;
 }
 
-.shippingAdminPage .pricingPanel {
+.shippingAdminPage .pricingPanel,
+.seoAdminPage .pricingPanel {
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
 }
 
-.shippingAdminPage .adminField span {
+.shippingAdminPage .adminField span,
+.seoAdminPage .adminField span {
   color: var(--admin-text);
   font-size: 13px;
   font-weight: 700;
 }
 
-.shippingAdminPage .adminTableScroller {
+.shippingAdminPage .adminTableScroller,
+.seoAdminPage .adminTableScroller {
   max-width: 100%;
   min-width: 0;
 }
 
-.shippingAdminPage .shippingTable {
+.shippingAdminPage .shippingTable,
+.seoAdminPage .seoTable {
   width: max-content;
   min-width: 100%;
   table-layout: fixed;
 }
 
 .shippingAdminPage .shippingTable th,
-.shippingAdminPage .shippingTable td {
+.shippingAdminPage .shippingTable td,
+.seoAdminPage .seoTable th,
+.seoAdminPage .seoTable td {
   max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2822,7 +2829,9 @@ p {
 }
 
 .shippingAdminPage .shippingTable th:last-child,
-.shippingAdminPage .shippingTable td:last-child {
+.shippingAdminPage .shippingTable td:last-child,
+.seoAdminPage .seoTable th:last-child,
+.seoAdminPage .seoTable td:last-child {
   width: 190px;
   max-width: 190px;
 }
