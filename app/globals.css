@@ -1374,6 +1374,51 @@ p {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.adminFormGridThree {
+  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto;
+  align-items: end;
+}
+
+.adminSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.adminSummaryGrid > div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.adminSummaryGrid span,
+.adminSummaryGrid strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adminSummaryGrid span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.adminSummaryGrid strong {
+  margin-top: 4px;
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.adminStack {
+  display: grid;
+  gap: 10px;
+}
+
 .adminPermissionGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2515,6 +2560,154 @@ p {
   justify-self: start;
 }
 
+.adminInlineActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.adminInlineForm {
+  display: inline-flex;
+  max-width: 100%;
+  gap: 6px;
+  align-items: center;
+}
+
+.adminInlineForm input {
+  width: 128px;
+  min-width: 0;
+}
+
+.promotionsFilterBar {
+  grid-template-columns: minmax(180px, 260px) minmax(160px, 220px) minmax(96px, 1fr) auto;
+}
+
+.promotionsCouponTable {
+  table-layout: fixed;
+  min-width: 1260px;
+}
+
+.promotionsCouponTable th,
+.promotionsCouponTable td {
+  vertical-align: middle;
+}
+
+.promotionsCouponCodeColumn {
+  width: 20%;
+}
+
+.promotionsCouponNameColumn {
+  width: 13%;
+}
+
+.promotionsCouponDiscountColumn {
+  width: 13%;
+}
+
+.promotionsCouponMinColumn {
+  width: 11%;
+}
+
+.promotionsCouponDateColumn {
+  width: 11%;
+}
+
+.promotionsCouponStatusColumn {
+  width: 7%;
+}
+
+.promotionsCouponActionsColumn {
+  width: 26%;
+}
+
+.promotionsCouponTable td {
+  overflow-wrap: anywhere;
+}
+
+.promotionsCouponTable .adminContextHint {
+  margin-top: 3px;
+}
+
+.promotionsCouponActionsCell {
+  min-width: 328px;
+}
+
+.promotionsCouponActionsCell .adminInlineActions {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.promotionsDeactivateMenu,
+.promotionsDeleteMenu {
+  position: relative;
+}
+
+.promotionsDeactivateMenu summary,
+.promotionsDeleteMenu summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.promotionsDeactivateMenu summary::-webkit-details-marker,
+.promotionsDeleteMenu summary::-webkit-details-marker {
+  display: none;
+}
+
+.promotionsDeactivateToggle {
+  border-color: var(--admin-warning);
+  background: var(--admin-surface);
+}
+
+.promotionsDeleteToggle {
+  border-color: var(--admin-danger);
+  background: var(--admin-surface);
+  color: var(--admin-danger);
+}
+
+.promotionsDeactivatePanel,
+.promotionsDeletePanel {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 280px);
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--admin-warning);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  white-space: normal;
+}
+
+.promotionsDeletePanel {
+  border-color: var(--admin-danger);
+}
+
+.promotionsDeactivatePanel p,
+.promotionsDeletePanel p {
+  margin: 0;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.promotionsDeactivateForm {
+  display: grid;
+  gap: 8px;
+}
+
+.promotionsDeactivateForm input {
+  width: 100%;
+}
+
+.promotionsConfirmDeactivateButton {
+  justify-self: start;
+  border-color: var(--admin-warning);
+  background: var(--admin-warning);
+  color: var(--admin-text);
+  font-weight: 700;
+}
+
 .adminDrawerBackdrop {
   position: fixed;
   inset: 0;
@@ -3386,6 +3579,7 @@ p {
   .adminSplit,
   .productEditorLayout,
   .adminFormGrid,
+  .adminSummaryGrid,
   .productCombinationGenerator {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

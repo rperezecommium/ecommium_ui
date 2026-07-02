@@ -9,7 +9,6 @@ export default function CatalogoPage() {
     { href: "/admin/catalogo/media", label: "Media / Archivos", description: "Imagenes, documentos y portadas." },
     { href: "/admin/catalogo/offerings", label: "Offerings / Servicios adicionales", description: "Servicios vendibles y add-ons." },
     { href: "/admin/catalogo/stock", label: "Stock", description: "Existencias por variante y almacen." },
-    { href: "/admin/catalogo/descuentos", label: "Descuentos", description: "Promociones y reducciones comerciales." },
   ];
 
   return (

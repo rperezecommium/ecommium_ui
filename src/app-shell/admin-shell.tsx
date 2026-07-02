@@ -3,6 +3,7 @@ import {
   Boxes,
   CreditCard,
   Home,
+  Megaphone,
   Settings,
   ShoppingBasket,
   UsersRound,
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/admin", label: "Inicio", description: "Health y contexto", permission: "admin:view" as const, icon: Home },
   { href: "/admin/configuracion", label: "Configuracion", description: "Tenant, tiendas y equipo", permission: "admin:configuration:view" as const, icon: Settings },
   { href: "/admin/catalogo", label: "Catalogo", description: "Productos y contenido comercial", permission: "admin:catalog:view" as const, icon: ShoppingBasket },
+  { href: "/admin/promociones", label: "Promociones", description: "Cupones y reglas de carrito", permission: "admin:promotions:view" as const, icon: Megaphone },
   { href: "/admin/pedidos", label: "Pedidos", description: "Operacion y fulfillment", permission: "admin:orders:view" as const, icon: Boxes },
   { href: "/admin/clientes", label: "Clientes", description: "Customer 360", permission: "admin:customers:view" as const, icon: UsersRound },
   { href: "/admin/pagos", label: "Pagos", description: "PSP y routing", permission: "admin:payments:view" as const, icon: CreditCard },
@@ -39,7 +41,6 @@ const catalogNavItems = [
   { href: "/admin/catalogo/media", label: "Media / Archivos", description: "Imagenes y documentos", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/offerings", label: "Offerings / Servicios adicionales", description: "Servicios vendibles asociados", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/stock", label: "Stock", description: "Existencias por variante", permission: "admin:catalog:view" as const },
-  { href: "/admin/catalogo/descuentos", label: "Descuentos", description: "Promociones y reducciones", permission: "admin:catalog:view" as const },
 ];
 
 type AdminShellProps = {
