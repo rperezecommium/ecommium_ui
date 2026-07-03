@@ -172,6 +172,9 @@ function ProductCard({
   return (
     <article className="storefrontProductCard">
       <Link className="storefrontProductImage" href={productHref}>
+        <span className={product.available ? "storefrontAvailabilityRibbon" : "storefrontAvailabilityRibbon storefrontAvailabilityRibbonMuted"}>
+          {product.available ? "Disponible" : "No disponible"}
+        </span>
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
@@ -190,7 +193,6 @@ function ProductCard({
           {product.previousPriceDisplay ? <s>{product.previousPriceDisplay}</s> : null}
           <b>{product.priceDisplay ?? "Precio pendiente"}</b>
         </div>
-        <small>{product.available ? "Disponible" : "No disponible"}</small>
       </div>
     </article>
   );

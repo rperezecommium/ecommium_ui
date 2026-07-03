@@ -4129,6 +4129,27 @@ p {
   text-decoration: none;
 }
 
+.storefrontAvailabilityRibbon {
+  position: absolute;
+  top: 13px;
+  left: -34px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 120px;
+  min-height: 27px;
+  background: #ffffff;
+  color: #232323;
+  font-size: 12px;
+  font-weight: 650;
+  box-shadow: 0 3px 10px rgba(35, 35, 35, 0.1);
+  transform: rotate(-32deg);
+}
+
+.storefrontAvailabilityRibbonMuted {
+  color: #7a7a7a;
+}
+
 .storefrontProductImage img {
   width: 100%;
   height: 100%;
@@ -4142,24 +4163,26 @@ p {
 
 .storefrontQuickView {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
-  left: 12px;
+  right: auto;
+  bottom: 74px;
+  left: 50%;
   display: grid;
   place-items: center;
-  min-height: 34px;
-  background: rgba(255, 255, 255, 0.94);
+  min-height: 48px;
+  padding: 0 26px;
+  border-radius: 27px;
+  background: rgb(229 229 229 / 94%);
   color: #232323;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   opacity: 0;
-  transform: translateY(8px);
+  transform: translate(-50%, 140%);
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
 .storefrontProductCard:hover .storefrontQuickView {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, 132%);
 }
 
 .storefrontProductInfo {
@@ -4196,7 +4219,8 @@ p {
 
 .storefrontProductInfo b {
   color: #232323;
-  font-size: 16px;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .storefrontProductInfo s,
@@ -4268,8 +4292,8 @@ p {
 
 .storefrontPdpLayout {
   display: grid;
-  grid-template-columns: minmax(420px, 560px) minmax(360px, 1fr);
-  gap: 40px;
+  grid-template-columns: minmax(420px, 0.92fr) minmax(440px, 1.08fr);
+  gap: 36px;
   align-items: start;
 }
 
@@ -4281,7 +4305,7 @@ p {
 }
 
 .storefrontPdpGallery {
-  padding: 22px;
+  padding: 18px;
 }
 
 .storefrontPdpImage {
@@ -4290,7 +4314,73 @@ p {
   place-items: center;
   aspect-ratio: 1 / 1;
   background: #f6f7f8;
+  cursor: zoom-in;
   overflow: hidden;
+}
+
+.storefrontPdpZoomButton {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e6e8ec;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #232323;
+  box-shadow: 0 6px 18px rgba(35, 35, 35, 0.12);
+  cursor: pointer;
+}
+
+.storefrontPdpZoomLens {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background-color: #ffffff;
+  background-repeat: no-repeat;
+  background-size: 220%;
+  pointer-events: none;
+}
+
+.storefrontPdpZoomModal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: rgba(35, 35, 35, 0.72);
+}
+
+.storefrontPdpZoomModalImage {
+  position: relative;
+  width: min(92vw, 1040px);
+  height: min(88vh, 780px);
+  background: #ffffff;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24);
+}
+
+.storefrontPdpZoomModalImage img {
+  object-fit: contain;
+}
+
+.storefrontPdpZoomModalClose {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #232323;
+  cursor: pointer;
 }
 
 .storefrontPdpImage img {
@@ -4318,7 +4408,7 @@ p {
 
 .storefrontPdpBuyBox {
   display: grid;
-  gap: 18px;
+  gap: 16px;
   padding: 28px;
 }
 
@@ -4338,7 +4428,7 @@ p {
 .storefrontPdpPrice {
   display: flex;
   gap: 12px;
-  align-items: baseline;
+  align-items: center;
 }
 
 .storefrontPdpSummary {
@@ -4353,6 +4443,17 @@ p {
 
 .storefrontPdpPrice s {
   color: #7a7a7a;
+}
+
+.storefrontPdpDiscount {
+  display: inline-grid;
+  place-items: center;
+  min-width: 42px;
+  height: 28px;
+  background: #24b9d7;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .storefrontPdpStockOk,
@@ -4371,64 +4472,322 @@ p {
 
 .storefrontPdpVariants {
   display: grid;
-  gap: 10px;
-}
-
-.storefrontPdpVariants > span {
-  color: #7a7a7a;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.storefrontPdpVariants div {
-  display: flex;
-  flex-wrap: wrap;
+  grid-template-columns: repeat(auto-fit, minmax(74px, 86px));
   gap: 8px;
+  margin-top: 16px;
+  padding: 8px;
+  background: #f6f7f9;
 }
 
 .storefrontPdpVariants button {
-  min-height: 36px;
+  position: relative;
+  min-height: 86px;
   border: 1px solid #d9dde3;
   background: #ffffff;
-  padding: 0 12px;
+  padding: 7px;
   color: #232323;
+}
+
+.storefrontPdpVariants button:hover,
+.storefrontPdpVariantActive {
+  box-shadow: inset 0 0 0 2px #24b9d7;
+  color: #24b9d7 !important;
+}
+
+.storefrontPdpVariantActive::after {
+  position: absolute;
+  right: 50%;
+  bottom: -1px;
+  width: 0;
+  height: 0;
+  border-right: 7px solid transparent;
+  border-bottom: 7px solid #24b9d7;
+  border-left: 7px solid transparent;
+  content: "";
+  transform: translateX(50%);
 }
 
 .storefrontPdpVariants button:disabled {
   color: #b0b5bd;
 }
 
-.storefrontPdpCart {
-  display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
-  gap: 12px;
+.storefrontPdpVariantButton {
+  cursor: pointer;
 }
 
-.storefrontPdpCart input,
-.storefrontPdpCart button {
+.storefrontPdpVariantImageButton {
+  display: grid;
+  min-height: 86px !important;
+  align-content: center;
+}
+
+.storefrontPdpVariantImage {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  background: #f6f7f9;
+}
+
+.storefrontPdpVariantImage img {
+  object-fit: contain;
+}
+
+.storefrontPdpVariantTextButton {
+  min-height: 36px;
+}
+
+.storefrontPdpVariantButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.storefrontPdpSelectedVariant {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid #d9dde3;
+}
+
+.storefrontPdpSelectedVariantImage {
+  position: relative;
+  display: block;
+  aspect-ratio: 1.45 / 1;
+  background: #f6f7f9;
+}
+
+.storefrontPdpSelectedVariantImage img {
+  object-fit: contain;
+}
+
+.storefrontPdpSelectedVariant strong {
+  display: block;
+  color: #232323;
+  font-size: 15px;
+}
+
+.storefrontPdpSelectedVariant small {
+  display: block;
+  margin-top: 6px;
+  color: #555f6d;
+  line-height: 1.4;
+}
+
+.storefrontPdpCart {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.storefrontPdpQuantity {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
   height: 48px;
   border: 1px solid #d9dde3;
+}
+
+.storefrontPdpQuantity button,
+.storefrontPdpQuantity input,
+.storefrontPdpCart > button {
+  height: 48px;
+  border: 0;
   font: inherit;
 }
 
-.storefrontPdpCart input {
-  padding: 0 10px;
+.storefrontPdpQuantity button {
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  color: #7a7a7a;
+  cursor: pointer;
 }
 
-.storefrontPdpCart button {
+.storefrontPdpQuantity input {
+  width: 100%;
+  padding: 0;
+  text-align: center;
+}
+
+.storefrontPdpCart > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   border-color: #24b9d7;
   background: #24b9d7;
   color: #ffffff;
   font-weight: 800;
   text-transform: uppercase;
+  cursor: pointer;
+}
+
+.storefrontPdpBenefits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid #e0e4ea;
+}
+
+.storefrontPdpBenefits div {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 78px;
+  padding: 16px;
+}
+
+.storefrontPdpBenefits div + div {
+  border-left: 1px solid #e0e4ea;
+}
+
+.storefrontPdpBenefits svg {
+  color: #7a7a7a;
+}
+
+.storefrontPdpBenefits strong,
+.storefrontPdpBenefits small {
+  display: block;
+}
+
+.storefrontPdpBenefits strong {
+  color: #232323;
+  font-size: 13px;
+}
+
+.storefrontPdpBenefits small {
+  color: #7a7a7a;
+  font-size: 12px;
+}
+
+.storefrontPdpProductFacts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.92fr);
+  gap: 22px;
+  padding: 16px;
+  border: 1px solid #e0e4ea;
+}
+
+.storefrontPdpShareBox {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.82fr) minmax(260px, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #e0e4ea;
+}
+
+.storefrontPdpShareIntro {
+  display: grid;
+  gap: 8px;
+}
+
+.storefrontPdpShareIntro h2 {
+  margin: 0;
+  color: #232323;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.storefrontPdpShareIntro button,
+.storefrontPdpShareCopy button,
+.storefrontPdpShareLinks a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d9dde3;
+  background: #ffffff;
+  color: #232323;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.storefrontPdpShareIntro button {
+  width: fit-content;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 10px;
+  color: #24b9d7;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.storefrontPdpShareCopy {
+  display: grid;
+  gap: 6px;
+}
+
+.storefrontPdpShareCopy label {
+  color: #7a7a7a;
+  font-size: 12px;
+}
+
+.storefrontPdpShareCopy div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.storefrontPdpShareCopy input {
+  min-width: 0;
+  height: 34px;
+  border: 1px solid #d9dde3;
+  border-right: 0;
+  padding: 0 10px;
+  color: #555f6d;
+  font: inherit;
+  font-size: 12px;
+}
+
+.storefrontPdpShareCopy button {
+  gap: 6px;
+  min-width: 86px;
+  height: 34px;
+  padding: 0 10px;
+  color: #24b9d7;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.storefrontPdpShareLinks {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.storefrontPdpShareLinks a {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.storefrontPdpShareLinks a:first-child {
+  color: #1f9d55;
+}
+
+.storefrontPdpShareLinks a:nth-child(2) {
+  color: #1877f2;
+}
+
+.storefrontPdpShareLinks a:nth-child(3) {
+  color: #232323;
+}
+
+.storefrontPdpShareLinks a:hover,
+.storefrontPdpShareIntro button:hover,
+.storefrontPdpShareCopy button:hover {
+  border-color: #24b9d7;
 }
 
 .storefrontPdpSummaryList {
   display: grid;
   gap: 8px;
   margin: 0;
-  padding-top: 16px;
-  border-top: 1px solid #e6e8ec;
+  padding: 0;
 }
 
 .storefrontPdpSummaryList div {
@@ -4445,6 +4804,53 @@ p {
   margin: 0;
   color: #232323;
   overflow-wrap: anywhere;
+}
+
+.storefrontPdpSpecsInline {
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.storefrontPdpSpecsInline h2 {
+  margin: 0;
+  color: #232323;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.storefrontPdpSpecsGrid {
+  display: grid;
+  margin: 0;
+  border: 1px solid #d9dde3;
+  border-bottom: 0;
+}
+
+.storefrontPdpSpecsGrid div {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.42fr) minmax(0, 1fr);
+  min-height: 28px;
+  border-bottom: 1px solid #d9dde3;
+}
+
+.storefrontPdpSpecsGrid dt,
+.storefrontPdpSpecsGrid dd {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 6px 10px;
+  overflow-wrap: anywhere;
+}
+
+.storefrontPdpSpecsGrid dt {
+  border-right: 1px solid #d9dde3;
+  color: #7a7a7a;
+  font-size: 13px;
+}
+
+.storefrontPdpSpecsGrid dd {
+  color: #232323;
 }
 
 .storefrontPdpTabs {
@@ -4512,6 +4918,10 @@ p {
   color: #7a7a7a;
   font-size: 12px;
   text-transform: uppercase;
+}
+
+.storefrontPdpSelectedRow td {
+  background: #f6fbfd;
 }
 
 .storefrontPdpSpecGroup {
@@ -5434,6 +5844,10 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .storefrontPdpZoomLens {
+    display: none;
+  }
+
 }
 
 @media (max-width: 680px) {
@@ -5613,9 +6027,26 @@ p {
   .storefrontCmsTiles,
   .storefrontCmsCarousel,
   .storefrontPdpCart,
+  .storefrontPdpBenefits,
+  .storefrontPdpProductFacts,
+  .storefrontPdpShareBox,
   .storefrontPdpSummaryList div,
-  .storefrontPdpTabs dl div {
+  .storefrontPdpTabs dl div,
+  .storefrontPdpSpecsGrid div {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefrontPdpShareLinks {
+    justify-content: flex-start;
+  }
+
+  .storefrontPdpBenefits div + div {
+    border-top: 1px solid #e0e4ea;
+    border-left: 0;
+  }
+
+  .storefrontPdpSpecsGrid dt {
+    border-right: 0;
   }
 
   .storefrontCategoryIntro,

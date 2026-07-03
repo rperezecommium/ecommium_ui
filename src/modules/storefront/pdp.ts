@@ -16,7 +16,11 @@ export type StorefrontPdpVariant = {
   name: string;
   refId?: string;
   ean?: string;
+  images: StorefrontPdpImage[];
+  priceAmountMinor?: number;
+  previousPriceAmountMinor?: number;
   priceDisplay?: string;
+  previousPriceDisplay?: string;
   available: boolean;
   availableQuantity?: number;
   isDefault: boolean;
@@ -51,6 +55,8 @@ export type StorefrontPdpData = {
   brandId?: string;
   category?: string;
   categoryId?: string;
+  categorySlug?: string;
+  categoryHref?: string;
   shortDescription?: string;
   description?: string;
   metaDescription?: string;
@@ -60,6 +66,8 @@ export type StorefrontPdpData = {
   imageUrl?: string;
   imageAlt?: string;
   images: StorefrontPdpImage[];
+  priceAmountMinor?: number;
+  previousPriceAmountMinor?: number;
   priceDisplay?: string;
   previousPriceDisplay?: string;
   available: boolean;
@@ -139,12 +147,20 @@ export async function getStorefrontPdp(
     };
   }
 
+  const mapped = mapPdpPayload(result.data, productSlug, context.currency, "");
+  const categoryMeta = mapped.category ? null : await resolvePdpCategoryMeta(context, mapped.categoryId);
+
   return {
     ok: true,
     requestedPath,
     status: result.status,
     correlationId: result.correlationId,
-    data: mapPdpPayload(result.data, productSlug, context.currency, ""),
+    data: {
+      ...mapped,
+      category: mapped.category ?? categoryMeta?.name,
+      categorySlug: mapped.categorySlug ?? categoryMeta?.slug,
+      categoryHref: mapped.categoryHref ?? categoryMeta?.href,
+    },
   };
 }
 
@@ -236,6 +252,57 @@ function categorySlug(category: Record<string, unknown>) {
   return url?.split("?")[0]?.split("/").filter(Boolean).at(-1);
 }
 
+async function resolvePdpCategoryMeta(
+  context: StorefrontContext,
+  categoryId: string | undefined,
+): Promise<{ name: string; slug: string; href: string } | null> {
+  if (!categoryId) {
+    return null;
+  }
+
+  const result = await requestBff<unknown>("/storefront/navigation/categories/tree/3", {
+    context: { locale: context.locale },
+    withAuth: false,
+  });
+
+  if (!result.ok) {
+    return null;
+  }
+
+  const category = findCategoryById(listItems(asRecord(result.data).categories), categoryId);
+  if (!category) {
+    return null;
+  }
+
+  const name = asString(category.name) ?? asString(category.title);
+  const slug = categorySlug(category);
+  if (!name || !slug) {
+    return null;
+  }
+
+  return {
+    name,
+    slug,
+    href: `/plp/${encodeURIComponent(slug)}`,
+  };
+}
+
+function findCategoryById(items: unknown[], categoryId: string): Record<string, unknown> | null {
+  for (const item of items) {
+    const category = asRecord(item);
+    if (asString(category.id) === categoryId || asString(category.categoryId) === categoryId) {
+      return category;
+    }
+
+    const child = findCategoryById(listItems(category.children), categoryId);
+    if (child) {
+      return child;
+    }
+  }
+
+  return null;
+}
+
 function mapPdpPayload(
   payload: unknown,
   fallbackSlug: string,
@@ -251,18 +318,19 @@ function mapPdpPayload(
     const variant = asRecord(item);
     const variantAvailability = asRecord(variant.availability);
     const variantPrice = asRecord(variant.price);
+    const variantPriceAmountMinor = amountMinor(variantPrice);
+    const variantPreviousPriceAmountMinor = previousAmountMinor(variantPrice);
 
     return {
       variantId: asString(variant.variantId) ?? asString(variant.id) ?? "variant",
       name: asString(variant.name) ?? asString(variant.refId) ?? "Variante",
       refId: asString(variant.refId),
       ean: asString(variant.ean),
-      priceDisplay: formatMoney(
-        asNumber(variantPrice.currentAmountMinor) ??
-          asNumber(variantPrice.grossAmountMinor) ??
-          asNumber(variantPrice.amountMinor),
-        asString(variantPrice.currency) ?? fallbackCurrency,
-      ),
+      images: normalizeImages(variant),
+      priceAmountMinor: variantPriceAmountMinor,
+      previousPriceAmountMinor: variantPreviousPriceAmountMinor,
+      priceDisplay: formatMoney(variantPriceAmountMinor, asString(variantPrice.currency) ?? fallbackCurrency),
+      previousPriceDisplay: formatMoney(variantPreviousPriceAmountMinor, asString(variantPrice.currency) ?? fallbackCurrency),
       available: asBoolean(variant.isAvailable) ?? asBoolean(variantAvailability.available) ?? true,
       availableQuantity: asNumber(variantAvailability.availableQuantity),
       isDefault: asBoolean(variant.isDefault) ?? false,
@@ -284,6 +352,8 @@ function mapPdpPayload(
     alt: asString(image.altText) ?? asString(image.title),
   };
   const defaultVariant = variants.find((variant) => variant.isDefault) ?? variants[0];
+  const priceAmountMinor = amountMinor(price);
+  const previousPriceAmountMinor = previousAmountMinor(price);
 
   return {
     productId: asString(product.productId),
@@ -296,6 +366,8 @@ function mapPdpPayload(
     brandId: asString(product.brandId),
     category: asString(product.categoryName),
     categoryId: asString(product.categoryId),
+    categorySlug: asString(product.categorySlug),
+    categoryHref: asString(product.categoryHref),
     shortDescription: cleanText(asString(product.shortDescription)),
     description: cleanText(asString(product.description) ?? asString(product.shortDescription)),
     metaDescription: cleanText(asString(product.metaTagDescription)),
@@ -305,14 +377,10 @@ function mapPdpPayload(
     imageUrl: mainImage.url || undefined,
     imageAlt: mainImage.alt,
     images,
-    priceDisplay: formatMoney(
-      asNumber(price.currentAmountMinor) ?? asNumber(price.grossAmountMinor) ?? asNumber(price.amountMinor),
-      asString(price.currency) ?? fallbackCurrency,
-    ),
-    previousPriceDisplay: formatMoney(
-      asNumber(price.previousAmountMinor) ?? asNumber(price.listAmountMinor),
-      asString(price.currency) ?? fallbackCurrency,
-    ),
+    priceAmountMinor,
+    previousPriceAmountMinor,
+    priceDisplay: formatMoney(priceAmountMinor, asString(price.currency) ?? fallbackCurrency),
+    previousPriceDisplay: formatMoney(previousPriceAmountMinor, asString(price.currency) ?? fallbackCurrency),
     available: asBoolean(product.isAvailable) ?? asBoolean(availability.available) ?? true,
     availableQuantity: asNumber(availability.availableQuantity),
     variants,
@@ -387,6 +455,14 @@ function compactContext<T extends Record<string, string | undefined>>(value: T):
   return Object.fromEntries(
     Object.entries(value).filter(([, item]) => typeof item === "string" && item.trim().length > 0),
   ) as Partial<T>;
+}
+
+function amountMinor(price: Record<string, unknown>) {
+  return asNumber(price.currentAmountMinor) ?? asNumber(price.grossAmountMinor) ?? asNumber(price.amountMinor);
+}
+
+function previousAmountMinor(price: Record<string, unknown>) {
+  return asNumber(price.previousAmountMinor) ?? asNumber(price.listAmountMinor);
 }
 
 function formatMoney(amountMinor: number | undefined, currency: string) {
