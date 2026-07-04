@@ -50,7 +50,7 @@ test("storefront PLP product cards expose availability ribbon and quick view", (
   assert.doesNotMatch(plpPageSource, /storefrontProductAvailability/);
   assert.match(plpPageSource, /Vista rapida/);
   assert.match(cssSource, /\.storefrontAvailabilityRibbon/);
-  assert.match(cssSource, /width: 120px/);
+  assert.match(cssSource, /width: 145px/);
   assert.match(cssSource, /font-size: 12px/);
   assert.match(cssSource, /transform: rotate\(-32deg\)/);
   assert.match(cssSource, /\.storefrontQuickView[\s\S]*border-radius: 27px/);
