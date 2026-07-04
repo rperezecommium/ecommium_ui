@@ -4437,6 +4437,16 @@ p {
   line-height: 1.55;
 }
 
+.storefrontPdpSummary p {
+  margin: 0;
+}
+
+.storefrontPdpSummary strong,
+.storefrontPdpDescription strong {
+  color: #394150;
+  font-weight: 800;
+}
+
 .storefrontPdpPrice strong {
   font-size: 24px;
 }
@@ -4872,6 +4882,36 @@ p {
   margin: 0 0 20px;
   color: #555f6d;
   line-height: 1.6;
+}
+
+.storefrontPdpDescription {
+  color: #555f6d;
+  line-height: 1.65;
+}
+
+.storefrontPdpDescription p {
+  margin: 0 0 14px;
+}
+
+.storefrontPdpDescription ul,
+.storefrontPdpDescription ol {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 20px 20px;
+  padding: 0;
+}
+
+.storefrontPdpDescription li {
+  padding-left: 4px;
+}
+
+.storefrontPdpDescription li p {
+  margin: 0;
+}
+
+.storefrontPdpDescription a {
+  color: #1389a2;
+  font-weight: 700;
 }
 
 .storefrontPdpTabs dl {

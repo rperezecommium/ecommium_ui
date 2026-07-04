@@ -233,8 +233,8 @@ test("storefront PDP maps product details, variants and specifications", async (
           brand: "Ecommium",
           brandId: "brand-1",
           categoryId: "cat-1",
-          shortDescription: "<p>Light shirt</p>",
-          description: "<p>Long description</p>",
+          shortDescription: "<p>Light <strong>shirt</strong></p>",
+          description: "<p>Long description</p><ul><li><p>First detail</p></li></ul>",
           metaTagDescription: "SEO description",
           keywords: "linen,shirt",
           taxCode: "standard",
@@ -288,6 +288,8 @@ test("storefront PDP maps product details, variants and specifications", async (
   assert.equal(result.data.ean, "1234567890123");
   assert.equal(result.data.images.length, 2);
   assert.equal(result.data.images[0].url, "https://cdn.example.test/linen.jpg");
+  assert.equal(result.data.shortDescription, "<p>Light <strong>shirt</strong></p>");
+  assert.equal(result.data.description, "<p>Long description</p><ul><li><p>First detail</p></li></ul>");
   assert.equal(result.data.priceAmountMinor, 1299);
   assert.equal(result.data.previousPriceAmountMinor, 1599);
   assert.equal(result.data.category, "Bike Brakes");

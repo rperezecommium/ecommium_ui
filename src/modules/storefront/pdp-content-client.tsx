@@ -105,7 +105,7 @@ export function StorefrontPdpContentClient({ data }: Props) {
     try {
       await navigator.share({
         title: data.title,
-        text: data.shortDescription ?? data.title,
+        text: richTextToPlainText(data.shortDescription) ?? data.title,
         url: shareUrl,
       });
     } catch {
@@ -180,7 +180,7 @@ export function StorefrontPdpContentClient({ data }: Props) {
         <aside className="storefrontPdpBuyBox">
           {data.brand ? <span className="storefrontPdpBrand">{data.brand}</span> : null}
           <h1>{data.title}</h1>
-          {data.shortDescription ? <p className="storefrontPdpSummary">{data.shortDescription}</p> : null}
+          <StorefrontRichText className="storefrontPdpSummary" html={data.shortDescription} />
           <div className="storefrontPdpPrice">
             {previousPriceDisplay ? <s>{previousPriceDisplay}</s> : null}
             <strong>{priceDisplay ?? "Precio pendiente"}</strong>
@@ -236,7 +236,11 @@ export function StorefrontPdpContentClient({ data }: Props) {
       <section className="storefrontPdpTabs">
         <details open>
           <summary>Descripcion</summary>
-          <p>{data.description ?? "Producto disponible en Storefront con datos reales desde BFF."}</p>
+          <StorefrontRichText
+            className="storefrontPdpDescription"
+            fallback="Producto disponible en Storefront con datos reales desde BFF."
+            html={data.description}
+          />
           {data.metaDescription ? <p>{data.metaDescription}</p> : null}
         </details>
       </section>
@@ -264,6 +268,128 @@ export function StorefrontPdpContentClient({ data }: Props) {
       ) : null}
     </>
   );
+}
+
+const allowedStorefrontRichTextTags = new Set([
+  "a",
+  "blockquote",
+  "br",
+  "code",
+  "em",
+  "h2",
+  "h3",
+  "i",
+  "li",
+  "ol",
+  "p",
+  "pre",
+  "s",
+  "strong",
+  "strike",
+  "ul",
+]);
+
+function StorefrontRichText({
+  className,
+  fallback,
+  html,
+}: {
+  className: string;
+  fallback?: string;
+  html?: string;
+}) {
+  const sanitizedHtml = useMemo(() => sanitizeStorefrontRichTextHtml(html), [html]);
+
+  if (!sanitizedHtml) {
+    return fallback ? <p className={className}>{fallback}</p> : null;
+  }
+
+  return (
+    <div
+      className={className}
+      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+    />
+  );
+}
+
+function sanitizeStorefrontRichTextHtml(html: string | undefined) {
+  if (!html?.trim()) {
+    return "";
+  }
+
+  return html
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+    .replace(/<\/?([a-z][a-z0-9]*)(\s[^>]*)?>/gi, (match, rawTagName, rawAttributes = "") => {
+      const tagName = String(rawTagName).toLowerCase();
+      if (!allowedStorefrontRichTextTags.has(tagName)) {
+        return "";
+      }
+
+      if (match.startsWith("</")) {
+        return `</${tagName}>`;
+      }
+
+      if (tagName === "br") {
+        return "<br>";
+      }
+
+      if (tagName !== "a") {
+        return `<${tagName}>`;
+      }
+
+      const href = attributeValue(rawAttributes, "href");
+      const safeHref = href && isSafeStorefrontRichTextHref(href) ? href.trim() : "";
+      const title = attributeValue(rawAttributes, "title")?.trim();
+      const attributes = [
+        safeHref ? `href="${escapeHtmlAttribute(safeHref)}"` : "",
+        title ? `title="${escapeHtmlAttribute(title)}"` : "",
+        safeHref ? 'rel="noopener noreferrer"' : "",
+      ].filter(Boolean).join(" ");
+
+      return attributes ? `<a ${attributes}>` : "<a>";
+    })
+    .trim();
+}
+
+function attributeValue(attributes: string, name: string) {
+  const pattern = new RegExp(`${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s"'>]+))`, "i");
+  const match = attributes.match(pattern);
+  return match?.[2] ?? match?.[3] ?? match?.[4] ?? "";
+}
+
+function isSafeStorefrontRichTextHref(value: string) {
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized.startsWith("/") ||
+    normalized.startsWith("#") ||
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://") ||
+    normalized.startsWith("mailto:") ||
+    normalized.startsWith("tel:")
+  );
+}
+
+function escapeHtmlAttribute(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function richTextToPlainText(html: string | undefined) {
+  return html
+    ?.replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim() || undefined;
 }
 
 function VariantSelector({

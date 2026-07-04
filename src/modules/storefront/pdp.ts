@@ -368,8 +368,8 @@ function mapPdpPayload(
     categoryId: asString(product.categoryId),
     categorySlug: asString(product.categorySlug),
     categoryHref: asString(product.categoryHref),
-    shortDescription: cleanText(asString(product.shortDescription)),
-    description: cleanText(asString(product.description) ?? asString(product.shortDescription)),
+    shortDescription: cleanRichText(asString(product.shortDescription)),
+    description: cleanRichText(asString(product.description) ?? asString(product.shortDescription)),
     metaDescription: cleanText(asString(product.metaTagDescription)),
     keywords: asString(product.keywords),
     releaseDate: asString(product.releaseDate),
@@ -508,5 +508,12 @@ function cleanText(value: string | undefined): string | undefined {
     .replace(/&quot;/gi, "\"")
     .replace(/&#39;/g, "'")
     .replace(/\s+/g, " ")
+    .trim() || undefined;
+}
+
+function cleanRichText(value: string | undefined): string | undefined {
+  return value
+    ?.replace(/\u0000/g, "")
+    .replace(/\s+$/g, "")
     .trim() || undefined;
 }
