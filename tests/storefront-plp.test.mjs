@@ -35,11 +35,26 @@ function loadTsModule(relativePath, extraRequire = () => ({})) {
 
 test("storefront PLP route exists outside admin", () => {
   const routeSource = readFileSync(path.resolve(root, "app/plp/[categorySlug]/page.tsx"), "utf8");
+  const searchRouteSource = readFileSync(path.resolve(root, "app/search/page.tsx"), "utf8");
+  const confirmationRouteSource = readFileSync(path.resolve(root, "app/checkout/confirmation/page.tsx"), "utf8");
+  const searchEventsRouteSource = readFileSync(path.resolve(root, "app/api/storefront/search/events/route.ts"), "utf8");
   const pdpRouteSource = readFileSync(path.resolve(root, "app/pdp/[productSlug]/page.tsx"), "utf8");
+  const visitorSource = readFileSync(path.resolve(root, "src/modules/storefront/visitor.ts"), "utf8");
   assert.match(routeSource, /getStorefrontPlp/);
   assert.match(routeSource, /StorefrontPlpPage/);
+  assert.match(searchRouteSource, /getStorefrontSearch/);
+  assert.match(searchRouteSource, /StorefrontPlpPage/);
+  assert.match(searchRouteSource, /storefrontVisitorCookieName/);
+  assert.match(confirmationRouteSource, /StorefrontPurchaseCompleteClient/);
+  assert.match(confirmationRouteSource, /transactionId/);
+  assert.match(confirmationRouteSource, /revenueMinor/);
+  assert.match(searchEventsRouteSource, /\/storefront\/search\/events/);
+  assert.match(searchEventsRouteSource, /withAuth: false/);
+  assert.match(searchEventsRouteSource, /visitorIdFromCookieHeader/);
   assert.match(pdpRouteSource, /getStorefrontPdp/);
   assert.match(pdpRouteSource, /StorefrontPdpPage/);
+  assert.match(pdpRouteSource, /storefrontVisitorCookieName/);
+  assert.match(visitorSource, /ecommium_storefront_visitor_id/);
 });
 
 test("storefront PLP product cards expose availability ribbon and quick view", () => {
@@ -47,6 +62,12 @@ test("storefront PLP product cards expose availability ribbon and quick view", (
   const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
 
   assert.match(plpPageSource, /storefrontAvailabilityRibbon/);
+  assert.match(plpPageSource, /action="\/search"/);
+  assert.match(plpPageSource, /name="q"/);
+  assert.match(plpPageSource, /StorefrontSearchEventsClient/);
+  assert.match(plpPageSource, /data-search-product-id/);
+  assert.match(plpPageSource, /product\.productUrlPath\?\.startsWith\("\/"\)/);
+  assert.match(plpPageSource, /encodeURIComponent\(product\.slug\)/);
   assert.doesNotMatch(plpPageSource, /storefrontProductAvailability/);
   assert.match(plpPageSource, /Vista rapida/);
   assert.match(cssSource, /\.storefrontAvailabilityRibbon/);
@@ -60,6 +81,53 @@ test("storefront PLP product cards expose availability ribbon and quick view", (
   assert.match(cssSource, /\.storefrontProductCard:hover \.storefrontQuickView[\s\S]*opacity: 1/);
   assert.match(cssSource, /\.storefrontProductCard:hover \.storefrontQuickView[\s\S]*transform: translate\(-50%, 132%\)/);
   assert.match(cssSource, /\.storefrontProductInfo b[\s\S]*font-size: 24px/);
+});
+
+test("storefront checkout confirmation records purchase complete events", () => {
+  const confirmationRouteSource = readFileSync(path.resolve(root, "app/checkout/confirmation/page.tsx"), "utf8");
+  const purchaseClientSource = readFileSync(path.resolve(root, "src/modules/storefront/purchase-complete-client.tsx"), "utf8");
+  const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
+
+  assert.match(purchaseClientSource, /eventType: "purchase-complete"/);
+  assert.match(purchaseClientSource, /purchaseTransaction/);
+  assert.match(purchaseClientSource, /currencyCode/);
+  assert.match(purchaseClientSource, /quantity: event\.quantity/);
+  assert.match(confirmationRouteSource, /productId/);
+  assert.match(confirmationRouteSource, /variantId/);
+  assert.match(confirmationRouteSource, /normalizeStorefrontVisitorId/);
+  assert.match(cssSource, /\.storefrontConfirmation/);
+});
+
+test("storefront search events client records search and detail page events", () => {
+  const eventsClientSource = readFileSync(path.resolve(root, "src/modules/storefront/search-events-client.tsx"), "utf8");
+
+  assert.match(eventsClientSource, /navigator\.sendBeacon/);
+  assert.match(eventsClientSource, /ensureStorefrontVisitorId/);
+  assert.match(eventsClientSource, /document\.cookie = `\$\{storefrontVisitorCookieName\}=/);
+  assert.match(eventsClientSource, /\/api\/storefront\/search\/events/);
+  assert.match(eventsClientSource, /eventType: "search"/);
+  assert.match(eventsClientSource, /eventType: "detail-page-view"/);
+  assert.match(eventsClientSource, /closest<HTMLAnchorElement>\("\[data-search-product-id\]"\)/);
+});
+
+test("storefront PDP add to cart records search add-to-cart event", () => {
+  const pdpPageSource = readFileSync(path.resolve(root, "src/modules/storefront/pdp-content-client.tsx"), "utf8");
+
+  assert.match(pdpPageSource, /sendStorefrontSearchEvent/);
+  assert.match(pdpPageSource, /eventType: "add-to-cart"/);
+  assert.match(pdpPageSource, /productDetails: \[\{/);
+  assert.match(pdpPageSource, /variantId: selectedVariant\?\.variantId/);
+  assert.match(pdpPageSource, /quantity,/);
+  assert.match(pdpPageSource, /onClick=\{addToCart\}/);
+});
+
+
+test("storefront PDP reuses the operative storefront search header", () => {
+  const pdpPageSource = readFileSync(path.resolve(root, "src/modules/storefront/pdp-page.tsx"), "utf8");
+
+  assert.match(pdpPageSource, /import \{ StorefrontHeader \} from "\.\/plp-page"/);
+  assert.match(pdpPageSource, /<StorefrontHeader \/>/);
+  assert.doesNotMatch(pdpPageSource, /<input placeholder="Buscar en nuestra tienda" \/>/);
 });
 
 test("storefront PDP renders specifications in the buy box grid", () => {
@@ -148,6 +216,7 @@ test("storefront PLP fetches public BFF listing with routePath for CMS targeting
         products: [{
           productId: "product-1",
           slug: "linen-shirt",
+          productUrlPath: "/pdp/linen-shirt-canonical",
           nombre: "Linen Shirt",
           brand: "Ecommium",
           image: { url: "https://cdn.example.test/linen.jpg", altText: "Linen Shirt" },
@@ -184,6 +253,7 @@ test("storefront PLP fetches public BFF listing with routePath for CMS targeting
 
   assert.equal(result.ok, true);
   assert.equal(result.data.products[0].name, "Linen Shirt");
+  assert.equal(result.data.products[0].productUrlPath, "/pdp/linen-shirt-canonical");
   assert.equal(result.data.cmsBlocks.beforeList[0].blockId, "intro");
   assert.equal(result.data.limit, 16);
   assert.equal(result.data.categories[0].href, "/plp/clothes");
@@ -195,6 +265,89 @@ test("storefront PLP fetches public BFF listing with routePath for CMS targeting
   assert.match(plpCall.path, /limit=16/);
   assert.match(plpCall.path, /routePath=%2Fclothes/);
   assert.equal(plpCall.options.withAuth, false);
+});
+
+test("storefront search fetches public BFF search with q and visitorId", async () => {
+  const calls = [];
+  const requestBff = async (pathValue, options = {}) => {
+    calls.push({ path: pathValue, options });
+
+    if (pathValue === "/storefront/navigation/categories/tree/3") {
+      return {
+        ok: true,
+        status: 200,
+        correlationId: "corr-nav",
+        data: { categories: [] },
+      };
+    }
+
+    return {
+      ok: true,
+      status: 200,
+      correlationId: "corr-search",
+      data: {
+        searchTotal: 1,
+        attributionToken: "token-1",
+        limit: 8,
+        offset: 8,
+        products: [{
+          productId: "product-search-1",
+          selectedVariantId: "variant-search-1",
+          slug: "pastillas-freno",
+          productUrlPath: "/pdp/pastillas-freno-canonical",
+          name: "Pastillas freno",
+          brand: "Northline",
+          image: { url: "https://cdn.example.test/brake.jpg" },
+          price: { currency: "EUR", currentAmountMinor: 956 },
+          isAvailable: true,
+        }],
+      },
+    };
+  };
+  const { getStorefrontSearch } = loadTsModule("src/modules/storefront/plp.ts", (specifier) => {
+    if (specifier.endsWith("/shared/bff/client")) {
+      return { requestBff };
+    }
+    if (specifier.endsWith("/shared/config/env")) {
+      return {
+        defaultAdminContext: {
+          organizationId: "org-1",
+          shopId: "shop-1",
+          shopAlias: "",
+          locale: "es-ES",
+          currency: "EUR",
+          country: "ES",
+        },
+      };
+    }
+    return {};
+  });
+
+  const result = await getStorefrontSearch("pastillas freno", {
+    page: "2",
+    limit: "8",
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.data.searchQuery, "pastillas freno");
+  assert.equal(result.data.searchEvent.attributionToken, "token-1");
+  assert.equal(result.data.searchEvent.visitorId, "storefront-anonymous");
+  assert.equal(result.data.searchEvent.organizationId, "org-1");
+  assert.equal(result.data.searchEvent.shopId, "shop-1");
+  assert.equal(result.data.publicPath, "/search");
+  assert.equal(result.data.products[0].name, "Pastillas freno");
+  assert.equal(result.data.products[0].productUrlPath, "/pdp/pastillas-freno-canonical");
+  assert.equal(result.data.products[0].variantId, "variant-search-1");
+  assert.equal(result.data.total, 1);
+  const searchCall = calls.find((call) => call.path.startsWith("/storefront/search?"));
+  assert.ok(searchCall);
+  assert.match(searchCall.path, /q=pastillas\+freno/);
+  assert.match(searchCall.path, /organizationId=org-1/);
+  assert.match(searchCall.path, /shopId=shop-1/);
+  assert.match(searchCall.path, /limit=8/);
+  assert.match(searchCall.path, /offset=8/);
+  assert.match(searchCall.path, /visitorId=storefront-anonymous/);
+  assert.equal(searchCall.options.withAuth, false);
 });
 
 test("storefront PDP maps product details, variants and specifications", async () => {
@@ -278,10 +431,17 @@ test("storefront PDP maps product details, variants and specifications", async (
         },
       };
     }
+    if (specifier.endsWith("./visitor")) {
+      return {
+        normalizeStorefrontVisitorId(value) {
+          return value?.trim() || "storefront-anonymous";
+        },
+      };
+    }
     return {};
   });
 
-  const result = await getStorefrontPdp("linen-shirt");
+  const result = await getStorefrontPdp("linen-shirt", { visitorId: "sf-visitor-1" });
 
   assert.equal(result.ok, true);
   assert.equal(result.data.refId, "LINEN-001");
@@ -298,6 +458,57 @@ test("storefront PDP maps product details, variants and specifications", async (
   assert.equal(result.data.variants[0].images[0].url, "https://cdn.example.test/linen-m.jpg");
   assert.equal(result.data.variants[0].options[0].valueCode, "m");
   assert.equal(result.data.specifications[0].fields[0].value, "Linen");
+  assert.equal(result.data.eventContext.organizationId, "org-1");
+  assert.equal(result.data.eventContext.shopId, "shop-1");
+  assert.equal(result.data.eventContext.visitorId, "sf-visitor-1");
   assert.match(calls[0].path, /^\/storefront\/pdp\/linen-shirt\?/);
   assert.equal(calls[0].options.withAuth, false);
+});
+
+test("storefront PDP does not fallback to PLP when public slug is missing", async () => {
+  const calls = [];
+  const requestBff = async (pathValue, options = {}) => {
+    calls.push({ path: pathValue, options });
+    return {
+      ok: false,
+      status: 404,
+      correlationId: "corr-missing",
+      error: "product not found",
+    };
+  };
+  const { getStorefrontPdp } = loadTsModule("src/modules/storefront/pdp.ts", (specifier) => {
+    if (specifier.endsWith("/shared/bff/client")) {
+      return { requestBff };
+    }
+    if (specifier.endsWith("/shared/config/env")) {
+      return {
+        defaultAdminContext: {
+          organizationId: "org-1",
+          shopId: "shop-1",
+          shopAlias: "",
+          locale: "es-ES",
+          currency: "EUR",
+          country: "ES",
+        },
+      };
+    }
+    if (specifier.endsWith("./visitor")) {
+      return {
+        normalizeStorefrontVisitorId(value) {
+          return value?.trim() || "storefront-anonymous";
+        },
+      };
+    }
+    return {};
+  });
+
+  const result = await getStorefrontPdp("stale-link-id", {
+    visitorId: "sf-visitor-1",
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 404);
+  assert.equal(result.error, "product not found");
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].path, /^\/storefront\/pdp\/stale-link-id\?/);
 });

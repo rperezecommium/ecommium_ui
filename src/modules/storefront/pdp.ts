@@ -1,5 +1,6 @@
 import { requestBff } from "../../shared/bff/client";
 import { defaultAdminContext } from "../../shared/config/env";
+import { normalizeStorefrontVisitorId } from "./visitor";
 
 type StorefrontContext = {
   organizationId: string;
@@ -44,6 +45,12 @@ export type StorefrontPdpSpecification = {
   }>;
 };
 
+export type StorefrontPdpEventContext = {
+  organizationId: string;
+  shopId: string;
+  visitorId: string;
+};
+
 export type StorefrontPdpData = {
   productId?: string;
   slug: string;
@@ -75,6 +82,7 @@ export type StorefrontPdpData = {
   variants: StorefrontPdpVariant[];
   specifications: StorefrontPdpSpecification[];
   contextQuery: string;
+  eventContext: StorefrontPdpEventContext;
 };
 
 export type StorefrontPdpResult = {
@@ -109,6 +117,7 @@ const storefrontContext: StorefrontContext = {
 type StorefrontPdpOverrides = Partial<StorefrontContext & {
   categorySlug: string;
   productId: string;
+  visitorId: string;
 }>;
 
 export async function getStorefrontPdp(
@@ -127,7 +136,9 @@ export async function getStorefrontPdp(
   });
 
   if (!result.ok) {
-    const fallback = await getPdpFromPlp(productSlug, context, contextParams, overrides);
+    const fallback = overrides.productId
+      ? await getPdpFromPlp(productSlug, context, contextParams, overrides)
+      : null;
     if (fallback) {
       return {
         ok: true,
@@ -147,7 +158,7 @@ export async function getStorefrontPdp(
     };
   }
 
-  const mapped = mapPdpPayload(result.data, productSlug, context.currency, "");
+  const mapped = mapPdpPayload(result.data, productSlug, context.currency, "", storefrontEventContext(context, overrides.visitorId));
   const categoryMeta = mapped.category ? null : await resolvePdpCategoryMeta(context, mapped.categoryId);
 
   return {
@@ -197,7 +208,7 @@ async function getPdpFromPlp(
       .find((item) => (productId ? asString(item.productId) === productId : false) || asString(item.slug) === productSlug);
 
     if (product) {
-      return mapPdpPayload({ product }, productSlug, context.currency, "");
+      return mapPdpPayload({ product }, productSlug, context.currency, "", storefrontEventContext(context, overrides.visitorId));
     }
   }
 
@@ -308,6 +319,7 @@ function mapPdpPayload(
   fallbackSlug: string,
   fallbackCurrency: string,
   contextQuery: string,
+  eventContext: StorefrontPdpEventContext,
 ): StorefrontPdpData {
   const root = asRecord(payload);
   const product = asRecord(root.product ?? root.data ?? payload);
@@ -386,6 +398,15 @@ function mapPdpPayload(
     variants,
     specifications: normalizeSpecifications(product),
     contextQuery,
+    eventContext,
+  };
+}
+
+function storefrontEventContext(context: StorefrontContext, visitorId: string | undefined): StorefrontPdpEventContext {
+  return {
+    organizationId: context.organizationId,
+    shopId: context.shopId,
+    visitorId: normalizeStorefrontVisitorId(visitorId),
   };
 }
 

@@ -2,10 +2,12 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { StorefrontCategoryLink, StorefrontPlpBlock, StorefrontPlpData, StorefrontPlpProduct, StorefrontPlpResult } from "./plp";
+import { StorefrontSearchEventsClient } from "./search-events-client";
 
 type Props = {
   result: StorefrontPlpResult;
   categorySlug: string;
+  searchQuery?: string;
 };
 
 const titleFromSlug = (slug: string) =>
@@ -15,17 +17,25 @@ const titleFromSlug = (slug: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ") || "Categoria";
 
-export function StorefrontPlpPage({ result, categorySlug }: Props) {
-  const title = result.data ? titleFromSlug(result.data.categorySlug) : titleFromSlug(categorySlug);
+export function StorefrontPlpPage({ result, categorySlug, searchQuery }: Props) {
+  const activeSearchQuery = searchQuery ?? result.data?.searchQuery;
+  const title = activeSearchQuery
+    ? "Resultados de busqueda"
+    : result.data
+      ? titleFromSlug(result.data.categorySlug)
+      : titleFromSlug(categorySlug);
+  const description = activeSearchQuery
+    ? `Resultados para "${activeSearchQuery}".`
+    : "Descubre una seleccion preparada para navegar categorias, filtros y bloques editoriales.";
 
   return (
     <main className="storefrontPage">
-      <StorefrontHeader />
+      <StorefrontHeader initialQuery={activeSearchQuery} />
       <div className="storefrontShell">
         <nav className="storefrontBreadcrumb">
           <Link href="/">Inicio</Link>
           <span>/</span>
-          <span>{title}</span>
+          <span>{activeSearchQuery ? "Busqueda" : title}</span>
         </nav>
         <div className="storefrontPlpLayout">
           <StorefrontFacets
@@ -36,7 +46,7 @@ export function StorefrontPlpPage({ result, categorySlug }: Props) {
             <StorefrontListing data={result.data} title={title} />
           ) : (
             <section className="storefrontListing">
-              <CategoryIntro title={title} />
+              <CategoryIntro description={description} title={title} />
               <div className="storefrontUnavailable">
                 <span>PLP</span>
                 <h1>No se pudo cargar el listado</h1>
@@ -51,7 +61,7 @@ export function StorefrontPlpPage({ result, categorySlug }: Props) {
   );
 }
 
-function StorefrontHeader() {
+export function StorefrontHeader({ initialQuery }: { initialQuery?: string }) {
   return (
     <header className="storefrontHeader">
       <div className="storefrontHeaderTop">
@@ -60,10 +70,11 @@ function StorefrontHeader() {
       </div>
       <div className="storefrontHeaderMain">
         <Link className="storefrontLogo" href="/">Ecommium</Link>
-        <label className="storefrontSearch">
+        <form className="storefrontSearch" action="/search" method="get" role="search">
           <span>Buscar</span>
-          <input placeholder="Buscar en nuestra tienda" />
-        </label>
+          <input name="q" defaultValue={initialQuery ?? ""} placeholder="Buscar en nuestra tienda" />
+          <button type="submit">Buscar</button>
+        </form>
         <nav>
           <Link href="/plp/bike-drivetrain">Catalogo</Link>
           <Link href="/plp/clothes">Clothes</Link>
@@ -75,10 +86,23 @@ function StorefrontHeader() {
 }
 
 function StorefrontListing({ data, title }: { data: StorefrontPlpData; title: string }) {
+  const description = data.searchQuery
+    ? `Resultados para "${data.searchQuery}".`
+    : "Descubre una seleccion preparada para navegar categorias, filtros y bloques editoriales.";
+
   return (
     <section className="storefrontListing">
-      <CategoryIntro title={title} />
+      <CategoryIntro description={description} title={title} />
       <BlockStack blocks={data.cmsBlocks.beforeList} />
+      {data.searchEvent ? (
+        <StorefrontSearchEventsClient
+          event={data.searchEvent}
+          products={data.products.map((product) => ({
+            productId: product.productId,
+            variantId: product.variantId,
+          }))}
+        />
+      ) : null}
       <div className="storefrontProductsTopbar">
         <span>{data.total} productos.</span>
         <label>
@@ -101,9 +125,13 @@ function StorefrontListing({ data, title }: { data: StorefrontPlpData; title: st
         </div>
       ) : (
         <div className="storefrontUnavailable">
-          <span>Categoria</span>
-          <h1>No hay productos visibles</h1>
-          <p>El BFF respondio correctamente, pero el listado no contiene items para esta categoria.</p>
+          <span>{data.searchQuery ? "Busqueda" : "Categoria"}</span>
+          <h1>{data.searchQuery ? "No encontramos resultados" : "No hay productos visibles"}</h1>
+          <p>
+            {data.searchQuery
+              ? "Prueba con otros terminos o revisa sinonimos desde Admin Search."
+              : "El BFF respondio correctamente, pero el listado no contiene items para esta categoria."}
+          </p>
         </div>
       )}
       <StorefrontPagination data={data} />
@@ -112,12 +140,12 @@ function StorefrontListing({ data, title }: { data: StorefrontPlpData; title: st
   );
 }
 
-function CategoryIntro({ title }: { title: string }) {
+function CategoryIntro({ description, title }: { description: string; title: string }) {
   return (
     <section className="storefrontCategoryIntro">
       <div>
         <h1>{title}</h1>
-        <p>Descubre una seleccion preparada para navegar categorias, filtros y bloques editoriales.</p>
+        <p>{description}</p>
       </div>
       <div className="storefrontCategoryImage" />
     </section>
@@ -167,11 +195,18 @@ function ProductCard({
 }: {
   product: StorefrontPlpProduct;
 }) {
-  const productHref = `/pdp/${encodeURIComponent(product.slug)}`;
+  const productHref = product.productUrlPath?.startsWith("/") && !product.productUrlPath.startsWith("//")
+    ? product.productUrlPath
+    : `/pdp/${encodeURIComponent(product.slug)}`;
 
   return (
     <article className="storefrontProductCard">
-      <Link className="storefrontProductImage" href={productHref}>
+      <Link
+        className="storefrontProductImage"
+        data-search-product-id={product.productId}
+        data-search-variant-id={product.variantId}
+        href={productHref}
+      >
         <span className={product.available ? "storefrontAvailabilityRibbon" : "storefrontAvailabilityRibbon storefrontAvailabilityRibbonMuted"}>
           {product.available ? "Disponible" : "No disponible"}
         </span>
@@ -188,7 +223,13 @@ function ProductCard({
       </Link>
       <div className="storefrontProductInfo">
         {product.brand ? <span>{product.brand}</span> : null}
-        <Link href={productHref}>{product.name}</Link>
+        <Link
+          data-search-product-id={product.productId}
+          data-search-variant-id={product.variantId}
+          href={productHref}
+        >
+          {product.name}
+        </Link>
         <div>
           {product.previousPriceDisplay ? <s>{product.previousPriceDisplay}</s> : null}
           <b>{product.priceDisplay ?? "Precio pendiente"}</b>
@@ -243,6 +284,9 @@ function PaginationLink({
 
   if (data.limit !== 16) {
     params.set("limit", String(data.limit));
+  }
+  if (data.searchQuery) {
+    params.set("q", data.searchQuery);
   }
 
   const queryString = params.toString();

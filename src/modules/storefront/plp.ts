@@ -10,7 +10,9 @@ export type StorefrontPlpBlock = {
 
 export type StorefrontPlpProduct = {
   productId: string;
+  variantId?: string;
   slug: string;
+  productUrlPath?: string;
   name: string;
   brand?: string;
   categoryName?: string;
@@ -19,6 +21,15 @@ export type StorefrontPlpProduct = {
   priceDisplay?: string;
   previousPriceDisplay?: string;
   available: boolean;
+};
+
+export type StorefrontSearchEventData = {
+  organizationId: string;
+  shopId: string;
+  visitorId: string;
+  query: string;
+  offset: number;
+  attributionToken?: string;
 };
 
 export type StorefrontCategoryLink = {
@@ -32,6 +43,7 @@ export type StorefrontCategoryLink = {
 
 export type StorefrontPlpData = {
   categorySlug: string;
+  searchQuery?: string;
   resolvedLocale?: string;
   total: number;
   limit: number;
@@ -40,6 +52,7 @@ export type StorefrontPlpData = {
   totalPages: number;
   contextQuery: string;
   publicPath: string;
+  searchEvent?: StorefrontSearchEventData;
   categories: StorefrontCategoryLink[];
   products: StorefrontPlpProduct[];
   cmsBlocks: {
@@ -71,6 +84,7 @@ type StorefrontPlpOverrides = Partial<StorefrontContext & {
   routePath: string;
   page: string;
   limit: string;
+  visitorId: string;
 }>;
 
 const localStorefrontDefaults: StorefrontContext = {
@@ -139,6 +153,64 @@ export async function getStorefrontPlp(
   };
 }
 
+export async function getStorefrontSearch(
+  query: string,
+  overrides: StorefrontPlpOverrides = {},
+): Promise<StorefrontPlpResult> {
+  const context = {
+    ...storefrontContext,
+    ...compactContext(overrides),
+  };
+  const searchQuery = query.trim();
+  const limit = positiveInt(overrides.limit, 16);
+  const currentPage = positiveInt(overrides.page, 1);
+  const offset = (currentPage - 1) * limit;
+  const publicPath = "/search";
+  const contextParams = buildContextParams(context);
+  const categoriesPromise = getStorefrontCategories(context, "search");
+
+  if (!searchQuery) {
+    const categories = await categoriesPromise;
+    return {
+      ok: true,
+      requestedPath: "/storefront/search",
+      data: emptySearchData(limit, currentPage, contextParams.toString(), publicPath, categories),
+    };
+  }
+
+  const params = new URLSearchParams(contextParams);
+  const visitorId = overrides.visitorId?.trim() || "storefront-anonymous";
+  params.set("q", searchQuery);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  params.set("visitorId", visitorId);
+
+  const requestedPath = `/storefront/search?${params.toString()}`;
+  const result = await requestBff<unknown>(requestedPath, {
+    context: { locale: context.locale },
+    withAuth: false,
+  });
+  const categories = await categoriesPromise;
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      requestedPath,
+      status: result.status,
+      correlationId: result.correlationId,
+      error: result.error,
+    };
+  }
+
+  return {
+    ok: true,
+    requestedPath,
+    status: result.status,
+    correlationId: result.correlationId,
+    data: mapSearchPayload(result.data, searchQuery, currentPage, contextParams.toString(), publicPath, categories, context, visitorId),
+  };
+}
+
 function compactContext<T extends Record<string, string | undefined>>(value: T): Partial<T> {
   return Object.fromEntries(
     Object.entries(value).filter(([, item]) => typeof item === "string" && item.trim().length > 0),
@@ -191,6 +263,75 @@ function mapPlpPayload(
     cmsBlocks: {
       beforeList: listItems(cmsBlocks.beforeList).map(mapBlock),
       afterList: listItems(cmsBlocks.afterList).map(mapBlock),
+    },
+  };
+}
+
+function emptySearchData(
+  limit: number,
+  currentPage: number,
+  contextQuery: string,
+  publicPath: string,
+  categories: StorefrontCategoryLink[],
+): StorefrontPlpData {
+  return {
+    categorySlug: "search",
+    total: 0,
+    limit,
+    offset: 0,
+    currentPage,
+    totalPages: 1,
+    contextQuery,
+    publicPath,
+    categories,
+    products: [],
+    cmsBlocks: {
+      beforeList: [],
+      afterList: [],
+    },
+  };
+}
+
+function mapSearchPayload(
+  payload: unknown,
+  searchQuery: string,
+  currentPage: number,
+  contextQuery: string,
+  publicPath: string,
+  categories: StorefrontCategoryLink[],
+  context: StorefrontContext,
+  visitorId: string,
+): StorefrontPlpData {
+  const root = asRecord(payload);
+  const products = searchItems(root).map(mapProduct);
+  const limit = asNumber(root.limit) ?? 16;
+  const total = asNumber(root.total) ?? asNumber(root.searchTotal) ?? products.length;
+  const offset = asNumber(root.offset) ?? 0;
+
+  return {
+    categorySlug: "search",
+    searchQuery,
+    resolvedLocale: asString(root.resolvedLocale),
+    total,
+    limit,
+    offset,
+    currentPage,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
+    contextQuery,
+    publicPath,
+    searchEvent: {
+      organizationId: context.organizationId,
+      shopId: context.shopId,
+      visitorId,
+      query: searchQuery,
+      offset,
+      attributionToken: asString(root.attributionToken),
+    },
+    categories,
+    products,
+    cmsBlocks: {
+      beforeList: [],
+      afterList: [],
     },
   };
 }
@@ -286,7 +427,9 @@ function mapProduct(value: unknown): StorefrontPlpProduct {
 
   return {
     productId: asString(product.productId) ?? asString(product.variantId) ?? "product",
+    variantId: asString(product.selectedVariantId) ?? asString(product.variantId),
     slug: asString(product.slug) ?? asString(product.productId) ?? "product",
+    productUrlPath: asString(product.productUrlPath),
     name: asString(product.nombre) ?? asString(product.name) ?? "Producto",
     brand: asString(product.brand),
     categoryName: asString(product.categoryName),
@@ -340,6 +483,17 @@ function asBoolean(value: unknown): boolean | undefined {
 
 function listItems(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
+}
+
+function searchItems(root: Record<string, unknown>) {
+  for (const key of ["products", "results", "items", "data"]) {
+    const value = root[key];
+    if (Array.isArray(value)) {
+      return value;
+    }
+  }
+
+  return [];
 }
 
 function positiveInt(value: string | undefined, fallback: number) {

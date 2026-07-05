@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { StorefrontPdpContentClient } from "./pdp-content-client";
 import type { StorefrontPdpData, StorefrontPdpResult } from "./pdp";
+import { StorefrontHeader } from "./plp-page";
 
 type Props = {
   result: StorefrontPdpResult;
@@ -10,24 +10,7 @@ type Props = {
 export function StorefrontPdpPage({ result, productSlug }: Props) {
   return (
     <main className="storefrontPage">
-      <header className="storefrontHeader">
-        <div className="storefrontHeaderTop">
-          <span>Contactenos</span>
-          <span>Iniciar sesion</span>
-        </div>
-        <div className="storefrontHeaderMain">
-          <Link className="storefrontLogo" href="/">Ecommium</Link>
-          <label className="storefrontSearch">
-            <span>Buscar</span>
-            <input placeholder="Buscar en nuestra tienda" />
-          </label>
-          <nav>
-            <Link href="/plp/bike-drivetrain">Catalogo</Link>
-            <Link href="/plp/clothes">Clothes</Link>
-            <Link href="/plp/accessories">Accessories</Link>
-          </nav>
-        </div>
-      </header>
+      <StorefrontHeader />
       <div className="storefrontShell">
         {result.ok && result.data ? (
           <PdpContent data={result.data} />

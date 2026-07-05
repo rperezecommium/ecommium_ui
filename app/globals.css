@@ -3262,7 +3262,8 @@ p {
 
 .shippingAdminPage,
 .seoAdminPage,
-.cmsAdminPage {
+.cmsAdminPage,
+.searchAdminPage {
   min-width: 0;
   max-width: 100%;
   overflow-x: hidden;
@@ -3270,7 +3271,8 @@ p {
 
 .shippingAdminPage .pricingPanel,
 .seoAdminPage .pricingPanel,
-.cmsAdminPage .pricingPanel {
+.cmsAdminPage .pricingPanel,
+.searchAdminPage .pricingPanel {
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -3278,7 +3280,8 @@ p {
 
 .shippingAdminPage .adminField span,
 .seoAdminPage .adminField span,
-.cmsAdminPage .adminField span {
+.cmsAdminPage .adminField span,
+.searchAdminPage .adminField span {
   color: var(--admin-text);
   font-size: 13px;
   font-weight: 700;
@@ -3286,9 +3289,71 @@ p {
 
 .shippingAdminPage .adminTableScroller,
 .seoAdminPage .adminTableScroller,
-.cmsAdminPage .adminTableScroller {
+.cmsAdminPage .adminTableScroller,
+.searchAdminPage .adminTableScroller {
   max-width: 100%;
   min-width: 0;
+}
+
+.searchActionBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.searchOperationGrid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.searchCompactGrid {
+  gap: 10px;
+}
+
+.searchSideDrawer {
+  width: min(680px, calc(100vw - 24px));
+}
+
+.searchJsonTextarea {
+  min-height: 220px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.searchAdvancedJson {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.searchAdvancedJson summary {
+  cursor: pointer;
+  color: var(--admin-text);
+  font-weight: 700;
+}
+
+.searchDangerForm {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.adminInlineActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.adminInlineActions form {
+  display: contents;
 }
 
 .shippingAdminPage .shippingTable,
@@ -3941,7 +4006,8 @@ p {
 
 .storefrontSearch {
   position: relative;
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .storefrontSearch span {
@@ -3961,6 +4027,22 @@ p {
   padding: 0 14px;
   color: #232323;
   font: inherit;
+}
+
+.storefrontSearch button {
+  min-width: 88px;
+  height: 42px;
+  border: 1px solid #25abc4;
+  background: #25abc4;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.storefrontSearch button:hover {
+  background: #1997ae;
+  border-color: #1997ae;
 }
 
 .storefrontHeaderMain nav {
@@ -4288,6 +4370,62 @@ p {
 .storefrontUnavailable code {
   width: 100%;
   overflow-wrap: anywhere;
+}
+
+.storefrontConfirmation {
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+  margin: 54px auto;
+  padding: 34px;
+  border: 1px solid #d9dde3;
+  background: #ffffff;
+}
+
+.storefrontConfirmation span {
+  color: #24b9d7;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.storefrontConfirmation h1,
+.storefrontConfirmation p {
+  margin: 0;
+}
+
+.storefrontConfirmation h1 {
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.storefrontConfirmation p {
+  color: #555f6d;
+}
+
+.storefrontConfirmation dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 12px 0 0;
+  border: 1px solid #d9dde3;
+  background: #d9dde3;
+}
+
+.storefrontConfirmation dl div {
+  padding: 12px;
+  background: #ffffff;
+}
+
+.storefrontConfirmation dt {
+  color: #7a7a7a;
+  font-size: 12px;
+}
+
+.storefrontConfirmation dd {
+  margin: 4px 0 0;
+  color: #232323;
+  font-weight: 800;
 }
 
 .storefrontPdpLayout {

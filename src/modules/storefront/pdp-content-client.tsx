@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Check, Copy, Mail, Minus, Plus, RotateCcw, Search, Share2, ShieldCheck, ShoppingCart, Truck, X } from "lucide-react";
 import type { StorefrontPdpData } from "./pdp";
+import { sendStorefrontSearchEvent } from "./search-events-client";
 
 type Props = {
   data: StorefrontPdpData;
@@ -20,6 +21,7 @@ export function StorefrontPdpContentClient({ data }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [shareUrl, setShareUrl] = useState(`/pdp/${data.slug}`);
   const [copiedShareUrl, setCopiedShareUrl] = useState(false);
+  const [cartFeedback, setCartFeedback] = useState(false);
   const [zoomModalOpen, setZoomModalOpen] = useState(false);
   const [zoomLens, setZoomLens] = useState({ active: false, x: 50, y: 50 });
   const selectedVariant = useMemo(
@@ -111,6 +113,24 @@ export function StorefrontPdpContentClient({ data }: Props) {
     } catch {
       // The user can cancel the native share sheet; no UI error is needed.
     }
+  }
+
+  function addToCart() {
+    sendStorefrontSearchEvent({
+      organizationId: data.eventContext.organizationId,
+      shopId: data.eventContext.shopId,
+      eventType: "add-to-cart",
+      visitorId: data.eventContext.visitorId,
+      productDetails: [{
+        productId: data.productId ?? data.slug,
+        variantId: selectedVariant?.variantId ?? null,
+        quantity,
+      }],
+      uri: window.location.href,
+      occurredAt: new Date().toISOString(),
+    });
+    setCartFeedback(true);
+    window.setTimeout(() => setCartFeedback(false), 1800);
   }
 
   return (
@@ -212,7 +232,9 @@ export function StorefrontPdpContentClient({ data }: Props) {
                 <Plus aria-hidden="true" size={16} />
               </button>
             </div>
-            <button type="button"><ShoppingCart aria-hidden="true" size={19} /> Añadir al carrito</button>
+            <button onClick={addToCart} type="button">
+              <ShoppingCart aria-hidden="true" size={19} /> {cartFeedback ? "Añadido" : "Añadir al carrito"}
+            </button>
           </div>
           <PdpServiceBenefits />
           <section className="storefrontPdpProductFacts">

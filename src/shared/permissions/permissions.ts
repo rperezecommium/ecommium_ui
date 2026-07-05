@@ -6,6 +6,7 @@ export type AdminPermission =
   | "admin:health:view"
   | "admin:employees:view"
   | "admin:catalog:view"
+  | "admin:search:view"
   | "admin:cms:view"
   | "admin:promotions:view"
   | "admin:orders:view"
@@ -32,6 +33,7 @@ const permissionAliases: Record<AdminPermission, string[]> = {
     "catalog.specifications.write",
     "media.assets.write",
   ],
+  "admin:search:view": ["admin:search:view", "search.admin.write"],
   "admin:cms:view": ["admin:cms:view", "cms.pages.read", "cms.pages.write", "cms.pages.publish"],
   "admin:promotions:view": ["admin:promotions:view", "promotions.admin.write"],
   "admin:orders:view": ["admin:orders:view", "orders.read", "checkout.configuration.write"],

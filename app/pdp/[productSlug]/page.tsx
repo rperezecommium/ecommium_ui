@@ -1,6 +1,8 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { StorefrontPdpPage } from "../../../src/modules/storefront/pdp-page";
 import { getStorefrontPdp } from "../../../src/modules/storefront/pdp";
+import { normalizeStorefrontVisitorId, storefrontVisitorCookieName } from "../../../src/modules/storefront/visitor";
 
 type PageProps = {
   params: Promise<{
@@ -24,11 +26,13 @@ const hiddenStorefrontParams = new Set([
 export default async function PdpRoute({ params, searchParams }: PageProps) {
   const { productSlug } = await params;
   const query = await searchParams;
+  const cookieStore = await cookies();
+  const visitorId = normalizeStorefrontVisitorId(cookieStore.get(storefrontVisitorCookieName)?.value);
   if (hasHiddenStorefrontParams(query)) {
     redirect(`/pdp/${encodeURIComponent(productSlug)}`);
   }
 
-  const result = await getStorefrontPdp(productSlug);
+  const result = await getStorefrontPdp(productSlug, { visitorId });
 
   return <StorefrontPdpPage result={result} productSlug={productSlug} />;
 }
