@@ -1,0 +1,150 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import test from "node:test";
+
+const root = path.resolve(new URL("..", import.meta.url).pathname);
+
+function source(relativePath) {
+  return readFileSync(path.resolve(root, relativePath), "utf8");
+}
+
+test("storefront account route uses BFF customer profile and avatar contracts", () => {
+  const routeSource = source("app/account/page.tsx");
+  const accountSource = source("src/modules/storefront/storefront-account.ts");
+  const actionsSource = source("src/modules/storefront/storefront-account-actions.ts");
+  const authActionsSource = source("src/modules/storefront/storefront-auth-actions.ts");
+  const sessionSource = source("src/modules/storefront/storefront-customer-session.ts");
+
+  assert.match(routeSource, /getStorefrontAccountData/);
+  assert.match(routeSource, /getStorefrontCustomerSession/);
+  assert.match(routeSource, /StorefrontAccountClient/);
+  assert.match(routeSource, /logoutStorefrontCustomer/);
+  assert.match(routeSource, /storefrontAuthPanelLogout/);
+  assert.match(accountSource, /\/storefront\/me\/profile/);
+  assert.match(accountSource, /\/storefront\/me\/avatar-options/);
+  assert.match(accountSource, /\/storefront\/me\/purchases/);
+  assert.match(accountSource, /\/storefront\/me\/invoices/);
+  assert.match(accountSource, /\/storefront\/me\/after-sales\/cases/);
+  assert.match(accountSource, /withAuth: false/);
+  assert.match(accountSource, /authorization/);
+  assert.match(actionsSource, /patchStorefrontCustomerProfile/);
+  assert.match(actionsSource, /submitStorefrontAfterSalesCase/);
+  assert.match(actionsSource, /createStorefrontAfterSalesCase/);
+  assert.match(actionsSource, /email/);
+  assert.match(actionsSource, /currentPassword/);
+  assert.match(actionsSource, /newPassword/);
+  assert.match(actionsSource, /logoutStorefrontCustomer/);
+  assert.match(authActionsSource, /scope: "storefront"/);
+  assert.match(authActionsSource, /redirect\("\/account"\)/);
+  assert.match(sessionSource, /httpOnly: true/);
+  assert.match(sessionSource, /ecommium_customer_session/);
+  assert.doesNotMatch(sessionSource, /localStorage/);
+});
+
+test("storefront account UI exposes editable profile, credentials and 10 avatars", () => {
+  const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
+  const cssSource = source("app/globals.css");
+
+  assert.match(clientSource, /Guardar perfil/);
+  assert.match(clientSource, /Actualizar credenciales/);
+  assert.match(clientSource, /Cerrar sesion/);
+  assert.match(clientSource, /AccountSideDrawer/);
+  assert.match(clientSource, /setDrawer\("profile"\)/);
+  assert.match(clientSource, /setDrawer\("credentials"\)/);
+  assert.match(clientSource, /name="avatarId"/);
+  assert.match(clientSource, /human-01/);
+  assert.match(clientSource, /\/storefront\/avatars\/human-01\.jpg/);
+  assert.match(clientSource, /\/storefront\/avatars\/animal-cat\.jpg/);
+  assert.match(clientSource, /human-05/);
+  assert.match(clientSource, /animal-cat/);
+  assert.match(clientSource, /animal-owl/);
+  assert.doesNotMatch(clientSource, /<b>\{option\.label\}<\/b>/);
+  assert.doesNotMatch(clientSource, /<small>\{option\.kind === "human"/);
+  assert.match(clientSource, /optinNewsLetter/);
+  assert.match(cssSource, /\.storefrontAccountLayout/);
+  assert.match(cssSource, /\.storefrontAccountIdentity/);
+  assert.match(cssSource, /\.storefrontAccountMenu button:hover[\s\S]*text-decoration: underline/);
+  assert.match(cssSource, /\.storefrontAccountSideDrawer/);
+  assert.match(cssSource, /\.storefrontAvatarOption input[\s\S]*clip: rect\(0, 0, 0, 0\)/);
+  assert.match(cssSource, /\.storefrontAvatarThumb img[\s\S]*object-fit: cover/);
+  assert.match(cssSource, /\.storefrontAvatarPicker > div[\s\S]*repeat\(5, minmax\(0, 20%\)\)/);
+  assert.match(cssSource, /\.storefrontAvatarOption:has\(input:checked\) \.storefrontAvatarThumb[\s\S]*border-color: #25abc4/);
+});
+
+test("storefront account UI renders purchase history snapshots without cart shortcuts", () => {
+  const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
+  const cssSource = source("app/globals.css");
+  const routeSource = source("app/account/page.tsx");
+
+  assert.match(routeSource, /purchasesLimit/);
+  assert.match(routeSource, /purchasesOffset/);
+  assert.match(clientSource, /Mis compras/);
+  assert.match(clientSource, /purchaseItemHref/);
+  assert.match(clientSource, /productUrlPath/);
+  assert.match(clientSource, /\/pdp\/\$\{encodeURIComponent\(item\.productSlug\)\}/);
+  assert.match(clientSource, /trackingUrl/);
+  assert.match(clientSource, /moneyText\(purchase\.totalAmountMinor/);
+  assert.match(clientSource, /moneyText\(item\.unitPriceMinor/);
+  assert.match(cssSource, /\.storefrontPurchaseCard/);
+  assert.match(cssSource, /\.storefrontPurchaseShipping/);
+  assert.doesNotMatch(clientSource, /add-items|addToCart|Añadir al carrito/);
+});
+
+test("storefront account UI renders invoices with authenticated document download", () => {
+  const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
+  const accountSource = source("src/modules/storefront/storefront-account.ts");
+  const routeSource = source("app/account/page.tsx");
+  const documentRouteSource = source("app/account/invoices/[invoiceId]/document/route.ts");
+  const cssSource = source("app/globals.css");
+
+  assert.match(routeSource, /invoicesLimit/);
+  assert.match(routeSource, /invoicesOffset/);
+  assert.match(accountSource, /StorefrontInvoicesData/);
+  assert.match(clientSource, /Mis facturas/);
+  assert.match(clientSource, /setDrawer\("invoices"\)/);
+  assert.match(clientSource, /InvoiceCard/);
+  assert.match(clientSource, /\/account\/invoices\/\$\{encodeURIComponent\(invoice\.invoiceId\)\}\/document/);
+  assert.match(documentRouteSource, /getStorefrontCustomerAuthorizationHeader/);
+  assert.match(documentRouteSource, /\/storefront\/me\/invoices\/.*\/document/);
+  assert.match(documentRouteSource, /cache-control", "private, no-store"/);
+  assert.match(documentRouteSource, /content-disposition/);
+  assert.doesNotMatch(documentRouteSource, /localStorage|NEXT_PUBLIC/);
+  assert.match(cssSource, /\.storefrontInvoiceCard/);
+  assert.match(cssSource, /\.storefrontInvoiceDownload/);
+});
+
+test("storefront account UI opens after-sales cases from authenticated purchases", () => {
+  const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
+  const actionsSource = source("src/modules/storefront/storefront-account-actions.ts");
+  const accountSource = source("src/modules/storefront/storefront-account.ts");
+  const cssSource = source("app/globals.css");
+
+  assert.match(clientSource, /Postventa/);
+  assert.match(clientSource, /setDrawer\("afterSales"\)/);
+  assert.match(clientSource, /AfterSalesPanel/);
+  assert.match(clientSource, /submitStorefrontAfterSalesCase/);
+  assert.match(clientSource, /name="orderId"/);
+  assert.match(clientSource, /name="reasonCode"/);
+  assert.match(clientSource, /name="requestedResolution"/);
+  assert.match(clientSource, /name="customerMessage"/);
+  assert.match(clientSource, /minLength=\{20\}/);
+  assert.match(actionsSource, /customerMessage\.length < 20/);
+  assert.match(actionsSource, /source: "storefront_account"/);
+  assert.match(accountSource, /method: "POST"/);
+  assert.match(accountSource, /content-type": "application\/json"/);
+  assert.match(cssSource, /\.storefrontAfterSalesPanel/);
+  assert.doesNotMatch(clientSource + actionsSource + accountSource, /app\/api\/storefront\/me\/after-sales/);
+});
+
+test("storefront header switches authenticated customers to account entry", () => {
+  const headerSource = source("src/modules/storefront/plp-page.tsx");
+  const authEntrySource = source("src/modules/storefront/storefront-auth-drawer.tsx");
+
+  assert.match(headerSource, /getStorefrontCustomerSession/);
+  assert.match(headerSource, /customerEmail=\{customerSession\?\.email\}/);
+  assert.match(authEntrySource, /href="\/account"/);
+  assert.match(authEntrySource, /Mi cuenta/);
+  assert.match(authEntrySource, /logoutStorefrontCustomer/);
+  assert.match(authEntrySource, /Cerrar sesion/);
+});

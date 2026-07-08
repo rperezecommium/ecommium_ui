@@ -1,5 +1,5 @@
 import { requestBff } from "../../shared/bff/client";
-import { defaultAdminContext } from "../../shared/config/env";
+import { getStorefrontContext, type StorefrontContext } from "./storefront-context";
 
 export type StorefrontPlpBlock = {
   blockId: string;
@@ -70,16 +70,6 @@ export type StorefrontPlpResult = {
   data?: StorefrontPlpData;
 };
 
-type StorefrontContext = {
-  organizationId: string;
-  shopId: string;
-  shopAlias: string;
-  locale: string;
-  currency: string;
-  country: string;
-  channel: string;
-};
-
 type StorefrontPlpOverrides = Partial<StorefrontContext & {
   routePath: string;
   page: string;
@@ -87,32 +77,12 @@ type StorefrontPlpOverrides = Partial<StorefrontContext & {
   visitorId: string;
 }>;
 
-const localStorefrontDefaults: StorefrontContext = {
-  organizationId: "11111111-1111-4111-8111-111111111111",
-  shopId: "22222222-2222-4222-8222-222222222222",
-  shopAlias: "tienda-barcelona",
-  locale: "es-ES",
-  currency: "EUR",
-  country: "ES",
-  channel: "web",
-};
-
-const storefrontContext: StorefrontContext = {
-  organizationId: process.env.ECOMMIUM_STOREFRONT_ORGANIZATION_ID || defaultAdminContext.organizationId || localStorefrontDefaults.organizationId,
-  shopId: process.env.ECOMMIUM_STOREFRONT_SHOP_ID || defaultAdminContext.shopId || localStorefrontDefaults.shopId,
-  shopAlias: process.env.ECOMMIUM_STOREFRONT_SHOP_ALIAS || defaultAdminContext.shopAlias || localStorefrontDefaults.shopAlias,
-  locale: process.env.ECOMMIUM_STOREFRONT_LOCALE || defaultAdminContext.locale || localStorefrontDefaults.locale,
-  currency: process.env.ECOMMIUM_STOREFRONT_CURRENCY || defaultAdminContext.currency || localStorefrontDefaults.currency,
-  country: process.env.ECOMMIUM_STOREFRONT_COUNTRY || defaultAdminContext.country || localStorefrontDefaults.country,
-  channel: process.env.ECOMMIUM_STOREFRONT_CHANNEL || localStorefrontDefaults.channel,
-};
-
 export async function getStorefrontPlp(
   categorySlug: string,
   overrides: StorefrontPlpOverrides = {},
 ): Promise<StorefrontPlpResult> {
   const context = {
-    ...storefrontContext,
+    ...getStorefrontContext(),
     ...compactContext(overrides),
   };
   const limit = positiveInt(overrides.limit, 16);
@@ -158,7 +128,7 @@ export async function getStorefrontSearch(
   overrides: StorefrontPlpOverrides = {},
 ): Promise<StorefrontPlpResult> {
   const context = {
-    ...storefrontContext,
+    ...getStorefrontContext(),
     ...compactContext(overrides),
   };
   const searchQuery = query.trim();
@@ -423,7 +393,7 @@ function mapProduct(value: unknown): StorefrontPlpProduct {
     asNumber(price.amountMinor);
   const previousAmountMinor =
     asNumber(price.previousAmountMinor) ?? asNumber(price.listAmountMinor);
-  const currency = asString(price.currency) ?? storefrontContext.currency;
+  const currency = asString(price.currency) ?? getStorefrontContext().currency;
 
   return {
     productId: asString(product.productId) ?? asString(product.variantId) ?? "product",

@@ -137,7 +137,8 @@ p {
   text-transform: uppercase;
 }
 
-.adminNav a {
+.adminNav a,
+.adminNav summary {
   display: grid;
   grid-template-columns: 26px minmax(0, 1fr);
   align-items: center;
@@ -150,15 +151,38 @@ p {
   text-decoration: none;
 }
 
+.adminNav summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.adminNav summary::-webkit-details-marker {
+  display: none;
+}
+
 .adminNav a strong,
-.adminNav a small {
+.adminNav summary strong,
+.adminNav a small,
+.adminNavLabel {
   display: block;
 }
 
 .adminNav a[aria-current="page"],
-.adminNav a:hover {
+.adminNav a.adminNavActive,
+.adminNav a:hover,
+.adminNav summary:hover {
   background: color-mix(in srgb, var(--admin-surface) 10%, transparent);
   color: var(--admin-surface);
+}
+
+.adminNav a.adminNavActive,
+.adminNav summary.adminNavParentActive {
+  background: color-mix(in srgb, var(--admin-surface) 14%, transparent);
+  color: var(--admin-surface);
+}
+
+.adminNavLabel {
+  min-width: 0;
 }
 
 .adminNavGroup {
@@ -169,7 +193,8 @@ p {
   background: color-mix(in srgb, black 22%, var(--admin-sidebar-bg));
 }
 
-.adminNavParent {
+.adminNav summary.adminNavParent {
+  display: grid;
   grid-template-columns: 26px minmax(0, 1fr) auto;
   align-items: center;
   border-radius: 0;
@@ -180,6 +205,11 @@ p {
   color: color-mix(in srgb, var(--admin-surface) 58%, transparent);
   font-size: 11px;
   font-weight: 800;
+  transition: transform 140ms ease-out;
+}
+
+.adminNavGroup:not([open]) .adminNavChevron {
+  transform: rotate(-90deg);
 }
 
 .adminNavIcon {
@@ -203,14 +233,23 @@ p {
   color: color-mix(in srgb, var(--admin-surface) 72%, transparent);
 }
 
-.adminNavSubmenu a strong {
+.adminNavSubmenu .adminNavLabel {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .adminNavSubmenu a:hover {
   background: transparent;
   color: var(--admin-surface);
+}
+
+.adminNavSubmenu a.adminNavActive {
+  background: transparent;
+  color: var(--admin-surface);
+}
+
+.adminNavSubmenu a.adminNavActive .adminNavLabel {
+  font-weight: 800;
 }
 
 .adminSidebarMeta {
@@ -3036,6 +3075,31 @@ p {
   justify-self: start;
 }
 
+.communicationsTestForm {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.6fr) minmax(220px, 1fr) minmax(96px, 0.45fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.communicationsTestForm .adminButton {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.ordersSearchToolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(180px, 1.2fr) minmax(150px, 0.9fr) minmax(96px, 0.45fr) auto auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.ordersSearchToolbar .adminButton {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
 .adminInlineActions {
   display: flex;
   flex-wrap: wrap;
@@ -3205,6 +3269,246 @@ p {
   border-left: 1px solid var(--admin-border);
   background: var(--admin-surface);
   box-shadow: -18px 0 44px rgb(15 23 42 / 20%);
+}
+
+.customersDrawerBackdrop {
+  align-items: stretch;
+  padding-left: 64px;
+  background: rgb(245 248 249 / 78%);
+}
+
+.customersDrawerBackdropLink {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.customersSideDrawer {
+  position: relative;
+  z-index: 1;
+  width: min(640px, calc(100vw - 16px));
+  gap: 0;
+  padding: 0;
+  border-left: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: -10px 0 24px rgb(54 58 65 / 14%);
+}
+
+.customersSideDrawer .adminSideDrawerHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--admin-surface);
+}
+
+.customersSideDrawer .adminSideDrawerHeader h2 {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.customersSideDrawerBody {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px 16px 20px;
+}
+
+.customersSideDrawerBody > .adminFormGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.customersSideDrawer .pricingPanel {
+  gap: 12px;
+  padding: 0 0 14px;
+  border: 0;
+  border-bottom: 1px solid var(--admin-border-subtle);
+  border-radius: 0;
+  background: transparent;
+}
+
+.customersSideDrawer .pricingPanel:last-child {
+  border-bottom: 0;
+}
+
+.customersSideDrawer .pricingPanelHeader {
+  padding-bottom: 8px;
+}
+
+.customersSideDrawer .adminSummaryGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.customersSideDrawer .adminSummaryGrid > div {
+  background: var(--admin-surface);
+}
+
+.customersSideDrawer .adminDefinitionList {
+  margin: 0;
+}
+
+.customersSideDrawer .adminTableScroller {
+  margin: 0;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+}
+
+.customersSideDrawer .adminTable th,
+.customersSideDrawer .adminTable td {
+  padding: 8px;
+}
+
+.customersOverviewSubsection {
+  display: grid;
+  gap: 8px;
+}
+
+.customersOverviewSubsection h4 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.customersOverviewList {
+  display: grid;
+  gap: 6px;
+}
+
+.customersOverviewListItem {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.customersOverviewListItem > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.customersOverviewListItem strong,
+.customersOverviewListItem span,
+.customersOverviewListItem small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.customersOverviewListItem small,
+.customersOverviewListItem span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.customersOverviewListMeta {
+  justify-items: end;
+}
+
+.customersTagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.customersActionGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.customersInlineAction {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.customersInlineForm {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.customersInlineForm input,
+.customersInlineForm select,
+.customersInlineForm textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font: inherit;
+}
+
+.customersInlineForm input,
+.customersInlineForm select {
+  min-height: 34px;
+  padding: 6px 8px;
+}
+
+.customersInlineForm textarea {
+  grid-column: 1 / -1;
+  padding: 8px;
+  resize: vertical;
+}
+
+.customersInlineForm button {
+  align-self: start;
+}
+
+.adminCodePreview {
+  max-height: 280px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 760px) {
+  .customersDrawerBackdrop {
+    padding-left: 0;
+  }
+
+  .customersSideDrawer {
+    width: 100%;
+  }
+
+  .customersSideDrawerBody {
+    padding: 12px;
+  }
+
+  .customersSideDrawerBody > .adminFormGrid,
+  .customersSideDrawer .adminSummaryGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customersOverviewListItem {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .customersOverviewListMeta {
+    justify-items: start;
+  }
+
+  .customersInlineForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .adminSideDrawerHeader {
@@ -3984,9 +4288,929 @@ p {
 .storefrontHeaderTop {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 16px;
   padding: 8px 0;
   color: #7a7a7a;
   font-size: 13px;
+}
+
+.storefrontAuthEntry {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-height: 36px;
+}
+
+.storefrontAuthEntry button,
+.storefrontAuthEntry a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  border-radius: 4px;
+  background: transparent;
+  color: #1688a3;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.storefrontAuthLoginButton {
+  border: 0;
+  padding: 0;
+}
+
+.storefrontAuthLogoutForm {
+  margin: 0;
+}
+
+.storefrontAuthLogoutButton {
+  border: 1px solid #d7dce2;
+  padding: 0 10px;
+}
+
+.storefrontAuthRegisterButton {
+  border: 1px solid #25abc4;
+  padding: 0 14px;
+}
+
+.storefrontAuthEntry button:hover,
+.storefrontAuthEntry a:hover {
+  color: #0f6f86;
+}
+
+.storefrontAuthRegisterButton:hover {
+  border-color: #1688a3;
+}
+
+.storefrontAuthLogoutButton:hover {
+  border-color: #1688a3;
+}
+
+.storefrontDrawerLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.storefrontDrawerLayerOpen {
+  pointer-events: auto;
+}
+
+.storefrontDrawerBackdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(35, 35, 35, 0);
+  transition: background 160ms ease-out;
+}
+
+.storefrontDrawerLayerOpen .storefrontDrawerBackdrop {
+  background: rgba(35, 35, 35, 0.34);
+}
+
+.storefrontAuthDrawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(430px, 100vw);
+  height: 100%;
+  padding: 22px;
+  border-left: 1px solid #d9dde3;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(54, 58, 65, 0.16);
+  transform: translateX(100%);
+  transition: transform 180ms ease-out;
+}
+
+.storefrontDrawerLayerOpen .storefrontAuthDrawer {
+  transform: translateX(0);
+}
+
+.storefrontAuthDrawerHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e6e8ec;
+}
+
+.storefrontAuthDrawerHeader span {
+  color: #1688a3;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.storefrontAuthDrawerHeader h2 {
+  margin: 4px 0 6px;
+  font-size: 24px;
+}
+
+.storefrontAuthDrawerHeader p {
+  margin: 0;
+  color: #7a7a7a;
+}
+
+.storefrontDrawerIconButton {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #d9dde3;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #232323;
+}
+
+.storefrontAuthTabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin: 18px 0;
+  border-bottom: 1px solid #d9dde3;
+}
+
+.storefrontAuthTabs button {
+  min-height: 42px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #7a7a7a;
+  font-weight: 800;
+}
+
+.storefrontAuthTabs button[aria-selected="true"] {
+  border-bottom-color: #25abc4;
+  color: #232323;
+}
+
+.storefrontAuthForm {
+  display: grid;
+  gap: 14px;
+}
+
+.storefrontAuthGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.storefrontAuthField {
+  display: grid;
+  gap: 6px;
+  color: #232323;
+  font-weight: 700;
+}
+
+.storefrontAuthField input,
+.storefrontAuthField select,
+.storefrontAuthField textarea {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #d9dde3;
+  border-radius: 4px;
+  background: #f6f7f8;
+  padding: 0 12px;
+}
+
+.storefrontAuthField textarea {
+  min-height: 112px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.storefrontAuthPasswordControl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+}
+
+.storefrontAuthPasswordControl input {
+  border-radius: 4px 0 0 4px;
+}
+
+.storefrontAuthPasswordControl button {
+  display: grid;
+  place-items: center;
+  border: 1px solid #d9dde3;
+  border-left: 0;
+  border-radius: 0 4px 4px 0;
+  background: #ffffff;
+  color: #1688a3;
+}
+
+.storefrontAuthTrap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.storefrontAuthSubmit {
+  min-height: 44px;
+  border: 1px solid #25abc4;
+  border-radius: 4px;
+  background: #25abc4;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.storefrontAuthSubmit:hover {
+  background: #1997ae;
+  border-color: #1997ae;
+}
+
+.storefrontAuthSubmit:disabled {
+  opacity: 0.68;
+}
+
+.storefrontAuthAuxLink,
+.storefrontAuthBackLink {
+  color: #1688a3;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.storefrontAuthAuxLink {
+  justify-self: start;
+}
+
+.storefrontAuthAuxLink:hover,
+.storefrontAuthBackLink:hover {
+  color: #0f6f86;
+}
+
+.storefrontAuthNotice {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.storefrontAuthNoticeError {
+  border: 1px solid #e74c3c;
+  background: #fff4f2;
+  color: #9d2f24;
+}
+
+.storefrontAuthNoticeSuccess {
+  border: 1px solid #72c279;
+  background: #f1fbf2;
+  color: #2f7c38;
+}
+
+.storefrontAuthPage {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+  background: #f1f2f4;
+}
+
+.storefrontAuthPanel {
+  display: grid;
+  gap: 16px;
+  width: min(100%, 460px);
+  padding: 28px;
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(54, 58, 65, 0.12);
+}
+
+.storefrontAuthPanel h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.storefrontAuthPanel p {
+  margin: 0;
+  color: #7a7a7a;
+}
+
+.storefrontAuthPanelLink {
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.storefrontAuthPanelLogoutForm {
+  margin: 0;
+}
+
+.storefrontAuthPanelLogout {
+  display: grid;
+  min-height: 38px;
+  width: 100%;
+  place-items: center;
+  border: 1px solid #d7dce2;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1688a3;
+  font-weight: 800;
+}
+
+.storefrontAuthPanelLogout:hover {
+  border-color: #1688a3;
+  color: #0f6f86;
+}
+
+.storefrontAccountLayout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 18px;
+  width: min(100%, 1060px);
+  align-items: start;
+}
+
+.storefrontAccountSummary,
+.storefrontAccountPanel {
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(54, 58, 65, 0.1);
+}
+
+.storefrontAccountSummary {
+  position: sticky;
+  top: 18px;
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 22px;
+  text-align: center;
+}
+
+.storefrontAccountIdentity {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.storefrontAccountSummary span {
+  color: #1688a3;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.storefrontAccountSummary h1 {
+  margin: 4px 0;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.storefrontAccountSummary p {
+  margin: 0;
+  color: #7a7a7a;
+  overflow-wrap: anywhere;
+}
+
+.storefrontAccountAvatar {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  overflow: hidden;
+  border: 2px solid #25abc4;
+  border-radius: 50%;
+  background: #eaf8fb;
+  color: #1688a3;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.storefrontAccountAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.storefrontAccountMenu {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 0 2px;
+}
+
+.storefrontAccountMenu button,
+.storefrontAccountLogoutLink {
+  border: 0;
+  background: transparent;
+  color: #1688a3;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.storefrontAccountMenu button:hover,
+.storefrontAccountLogoutLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.storefrontAccountLogoutForm {
+  display: grid;
+  justify-items: end;
+  width: 100%;
+  margin: 0;
+}
+
+.storefrontAccountGhostButton {
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  width: 100%;
+  border: 1px solid #d9dde3;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1688a3;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.storefrontAccountGhostButton:hover {
+  border-color: #25abc4;
+  color: #0f6f86;
+}
+
+.storefrontAccountGhostButtonDisabled {
+  pointer-events: none;
+  color: #9aa1aa;
+  opacity: 0.62;
+}
+
+.storefrontAccountPanel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.storefrontAccountDrawerLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  justify-items: end;
+}
+
+.storefrontAccountDrawerBackdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(35, 35, 35, 0.18);
+  animation: storefrontAccountBackdropIn 160ms ease-out both;
+}
+
+.storefrontAccountSideDrawer {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(440px, 100vw);
+  height: 100%;
+  border-left: 1px solid #d9dde3;
+  background: #ffffff;
+  box-shadow: -14px 0 34px rgba(54, 58, 65, 0.16);
+  animation: storefrontAccountDrawerIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes storefrontAccountBackdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes storefrontAccountDrawerIn {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefrontAccountDrawerBackdrop,
+  .storefrontAccountSideDrawer {
+    animation: none;
+  }
+}
+
+.storefrontAccountDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e6e8ec;
+}
+
+.storefrontAccountDrawerHeader span {
+  color: #1688a3;
+  font-weight: 900;
+}
+
+.storefrontAccountDrawerHeader button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #d9dde3;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #232323;
+}
+
+.storefrontAccountDrawerBody {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px;
+}
+
+.storefrontPurchasesPanel,
+.storefrontAfterSalesPanel,
+.storefrontInvoicesPanel {
+  align-self: start;
+}
+
+.storefrontAccountPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e6e8ec;
+  color: #1688a3;
+}
+
+.storefrontAccountPanelHeader h2 {
+  margin: 0 0 4px;
+  color: #232323;
+  font-size: 22px;
+}
+
+.storefrontAccountPanelHeader p {
+  margin: 0;
+  color: #7a7a7a;
+}
+
+.storefrontAccountForm {
+  display: grid;
+  gap: 14px;
+}
+
+.storefrontAccountToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  color: #232323;
+  font-weight: 700;
+}
+
+.storefrontAccountToggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: #25abc4;
+}
+
+.storefrontAvatarPicker {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.storefrontAvatarPicker legend {
+  padding: 0;
+  margin-bottom: 16px;
+  color: #232323;
+  font-weight: 800;
+}
+
+.storefrontAvatarPicker > div {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 20%));
+  gap: 8px;
+}
+
+.storefrontAvatarOption {
+  position: relative;
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.storefrontAvatarOption input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.storefrontAvatarThumb {
+  display: grid;
+  place-items: center;
+  width: min(100%, 86px);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid #d9dde3;
+  border-radius: 50%;
+  background: #eef1f4;
+  color: #1688a3;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.storefrontAvatarThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.storefrontAvatarOption:has(input:checked) .storefrontAvatarThumb {
+  border-color: #25abc4;
+  box-shadow: 0 0 0 2px #25abc4;
+}
+
+.storefrontAvatarOption:focus-within .storefrontAvatarThumb {
+  outline: 2px solid #1688a3;
+  outline-offset: 3px;
+}
+
+.storefrontAccountEmpty {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  background: #f6f7f8;
+}
+
+.storefrontAccountEmpty p {
+  margin: 0;
+  color: #7a7a7a;
+}
+
+.storefrontPurchasesList {
+  display: grid;
+  gap: 12px;
+}
+
+.storefrontInvoicesList {
+  display: grid;
+  gap: 12px;
+}
+
+.storefrontInvoiceCard {
+  display: grid;
+  gap: 18px;
+  padding: 14px;
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.storefrontInvoiceMain {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.storefrontInvoiceCard span {
+  color: #1688a3;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.storefrontInvoiceCard h3 {
+  margin: 4px 0 0;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.storefrontInvoiceCard p {
+  margin: 0;
+  color: #7a7a7a;
+}
+
+.storefrontInvoiceOrder {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.storefrontInvoiceFooter {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.storefrontInvoiceFooter > div {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+
+.storefrontInvoiceDownload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  border: 1px solid #25abc4;
+  border-radius: 4px;
+  background: #25abc4;
+  color: #ffffff;
+  font-weight: 800;
+  text-decoration: none;
+  padding: 0 10px;
+}
+
+.storefrontInvoiceDownload:hover {
+  background: #1688a3;
+}
+
+.storefrontPurchaseCard {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.storefrontPurchaseHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.storefrontPurchaseHeader span {
+  color: #1688a3;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.storefrontPurchaseHeader h3 {
+  margin: 4px 0;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.storefrontPurchaseHeader p {
+  margin: 0;
+  color: #7a7a7a;
+}
+
+.storefrontPurchaseHeader > div:last-child {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  min-width: 112px;
+}
+
+.storefrontPurchaseBadge {
+  display: inline-grid;
+  place-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid #d9dde3;
+  border-radius: 4px;
+  background: #f6f7f8;
+  color: #5d6470;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.storefrontPurchaseBadgeOk {
+  border-color: #72c279;
+  background: #f1fbf2;
+  color: #2f7c38;
+}
+
+.storefrontPurchaseItems {
+  display: grid;
+  gap: 8px;
+}
+
+.storefrontPurchaseItem {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 62px;
+  color: #232323;
+  text-decoration: none;
+}
+
+.storefrontPurchaseItem:hover strong {
+  color: #1688a3;
+}
+
+.storefrontPurchaseItem strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storefrontPurchaseItem small {
+  color: #7a7a7a;
+  font-size: 12px;
+}
+
+.storefrontPurchaseThumb {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #eef1f4;
+  color: #1688a3;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.storefrontPurchaseThumb img {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+}
+
+.storefrontPurchaseShipping {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e6e8ec;
+  color: #1688a3;
+}
+
+.storefrontPurchaseShipping p {
+  margin: 2px 0 0;
+  color: #7a7a7a;
+}
+
+.storefrontPurchaseShipping a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #1688a3;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.storefrontPurchasesPager {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) 112px;
+  align-items: center;
+  gap: 10px;
+}
+
+.storefrontPurchasesPager > span {
+  color: #7a7a7a;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
 }
 
 .storefrontHeaderMain {
@@ -5958,6 +7182,14 @@ p {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .communicationsTestForm {
+    grid-template-columns: minmax(240px, 1fr) minmax(180px, 1fr);
+  }
+
+  .ordersSearchToolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .productEditorLayout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -6157,6 +7389,22 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .communicationsTestForm {
+    grid-template-columns: 1fr;
+  }
+
+  .ordersSearchToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .communicationsTestForm .adminButton {
+    justify-self: stretch;
+  }
+
+  .ordersSearchToolbar .adminButton {
+    justify-self: stretch;
+  }
+
   .cmsFilterBar,
   .cmsEditorHeader,
   .cmsFieldGrid,
@@ -6193,6 +7441,59 @@ p {
 
   .storefrontHeaderTop {
     gap: 4px;
+  }
+
+  .storefrontAuthEntry {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .storefrontAuthDrawer {
+    width: 100vw;
+    padding: 18px;
+  }
+
+  .storefrontAuthGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefrontAuthPanel {
+    padding: 20px;
+  }
+
+  .storefrontAccountLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefrontAccountSummary {
+    position: static;
+  }
+
+  .storefrontAvatarPicker > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .storefrontPurchaseHeader,
+  .storefrontPurchaseShipping {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefrontPurchaseHeader {
+    display: grid;
+  }
+
+  .storefrontPurchaseHeader > div:last-child {
+    justify-items: start;
+  }
+
+  .storefrontInvoiceFooter {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .storefrontPurchasesPager {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .storefrontHeaderMain,

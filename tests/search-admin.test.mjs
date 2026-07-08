@@ -56,6 +56,8 @@ const context = {
 
 test("search admin is exposed under catalog navigation with search permission alias", () => {
   const shellSource = readFileSync(path.resolve(root, "src/app-shell/admin-shell.tsx"), "utf8");
+  const navigationSource = readFileSync(path.resolve(root, "src/app-shell/admin-navigation.tsx"), "utf8");
+  const globalsSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
   const permissionsSource = readFileSync(path.resolve(root, "src/shared/permissions/permissions.ts"), "utf8");
   const routeSource = readFileSync(path.resolve(root, "app/(admin)/admin/catalogo/search/page.tsx"), "utf8");
   const pageSource = readFileSync(path.resolve(root, "src/modules/search/search-admin-page.tsx"), "utf8");
@@ -64,6 +66,18 @@ test("search admin is exposed under catalog navigation with search permission al
   assert.match(shellSource, /href: "\/admin\/catalogo\/search"/);
   assert.match(shellSource, /label: "Busqueda"/);
   assert.match(shellSource, /permission: "admin:search:view"/);
+  assert.match(navigationSource, /usePathname/);
+  assert.match(navigationSource, /<details className=\{`adminNavGroup/);
+  assert.match(navigationSource, /<summary className=\{`adminNavParent/);
+  assert.match(navigationSource, /open=\{active && pathname !== "\/admin"\}/);
+  assert.match(navigationSource, /aria-current=\{active \? "page" : undefined\}/);
+  assert.match(navigationSource, /adminNavActive/);
+  assert.match(navigationSource, /<NavigationSubLink exact item=\{\{ \.\.\.item, label: "Resumen" \}\} \/>/);
+  assert.match(navigationSource, /const active = exact \? pathname === item\.href : isRouteActive\(pathname, item\.href\);/);
+  assert.match(navigationSource, /<span className="adminNavLabel">\{item\.label\}<\/span>/);
+  assert.match(globalsSource, /\.adminNavSubmenu \.adminNavLabel \{\s*font-size: 14px;\s*font-weight: 500;/);
+  assert.match(globalsSource, /\.adminNavSubmenu a\.adminNavActive \.adminNavLabel \{\s*font-weight: 800;/);
+  assert.doesNotMatch(navigationSource, /Actual/);
   assert.match(permissionsSource, /"admin:search:view"/);
   assert.match(permissionsSource, /"search\.admin\.write"/);
   assert.match(routeSource, /getSearchAdminData/);

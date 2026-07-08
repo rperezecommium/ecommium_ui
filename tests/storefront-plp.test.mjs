@@ -246,6 +246,19 @@ test("storefront PLP fetches public BFF listing with routePath for CMS targeting
         },
       };
     }
+    if (specifier === "./storefront-context") {
+      return {
+        getStorefrontContext: () => ({
+          organizationId: "org-1",
+          shopId: "shop-1",
+          shopAlias: "",
+          locale: "es-ES",
+          currency: "EUR",
+          country: "ES",
+          channel: "web",
+        }),
+      };
+    }
     return {};
   });
 
@@ -318,6 +331,19 @@ test("storefront search fetches public BFF search with q and visitorId", async (
           currency: "EUR",
           country: "ES",
         },
+      };
+    }
+    if (specifier === "./storefront-context") {
+      return {
+        getStorefrontContext: () => ({
+          organizationId: "org-1",
+          shopId: "shop-1",
+          shopAlias: "",
+          locale: "es-ES",
+          currency: "EUR",
+          country: "ES",
+          channel: "web",
+        }),
       };
     }
     return {};

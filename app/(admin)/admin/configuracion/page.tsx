@@ -34,6 +34,9 @@ export default function ConfiguracionPage() {
           <Link className="adminButton" href="/admin/configuracion/equipo">
             Abrir equipo y permisos
           </Link>
+          <Link className="adminButton" href="/admin/configuracion/comunicaciones">
+            Abrir comunicaciones
+          </Link>
         </div>
       </section>
     </main>

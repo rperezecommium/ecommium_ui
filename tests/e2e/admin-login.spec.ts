@@ -52,6 +52,8 @@ const capturedMediaAdminMutations: Array<{
   path: string;
 }> = [];
 const capturedStockAdminRequests: string[] = [];
+const capturedCustomersAdminRequests: string[] = [];
+const capturedCommunicationsAdminRequests: string[] = [];
 const capturedStockMutations: Array<{
   method: string;
   path: string;
@@ -62,7 +64,13 @@ const capturedPricingMutations: Array<{
   path: string;
   body: Record<string, unknown>;
 }> = [];
+const capturedCommunicationsMutations: Array<{
+  method: string;
+  path: string;
+  body: Record<string, unknown>;
+}> = [];
 const capturedMediaAssetContentRequests: string[] = [];
+let authPermissions = ["admin:*"];
 let saveOperationMode: "partial_failed" | "success" | "published" = "partial_failed";
 let draftMediaUploadMode: "success" | "failed" = "success";
 const pricingTaxes = [{
@@ -183,6 +191,33 @@ const pricingReferenceState: Record<string, Array<{
     active: true,
   }],
 };
+const emailProviderSettings = {
+  organizationId: defaultOrganizationId,
+  shopId: barcelonaShopId,
+  provider: "stub",
+  active: false,
+  fromEmail: null as string | null,
+  replyToEmail: null as string | null,
+  smtpHost: null as string | null,
+  smtpPort: null as number | null,
+  smtpSecure: false as boolean | null,
+  smtpUser: null as string | null,
+  secretConfigured: false,
+  secretUpdatedAt: null as string | null,
+  createdAt: "2026-07-01T10:00:00.000Z",
+  updatedAt: "2026-07-01T10:00:00.000Z",
+};
+let authEmailTemplates = [{
+  templateId: "template-activation",
+  templateKey: "customer.account.activation",
+  locale: "es-ES",
+  subjectTemplate: "Activa tu cuenta",
+  status: "ACTIVE",
+  requiredVariables: ["activationUrl"],
+  version: 1,
+  updatedAt: "2026-07-01T10:00:00.000Z",
+  activatedAt: "2026-07-01T10:00:00.000Z",
+}];
 const catalogSpecificationGroups = [{
   specificationGroupId: "spec-group-technical",
   categoryId: "category-bikes",
@@ -621,6 +656,129 @@ async function startBffMock() {
       return;
     }
 
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/customers") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      capturedCustomersAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      sendJson(response, 200, {
+        items: [{
+          customerId: "customer-playwright",
+          organizationId: defaultOrganizationId,
+          shopId: barcelonaShopId,
+          email: "ada@example.com",
+          firstName: "Ada",
+          lastName: "Lovelace",
+          documentNumber: "DOC-ADA",
+          phone: "+34910000000",
+          buyerType: "PRIVATE_BUYER",
+          clientPreferencesData: {
+            locale: "es-ES",
+            optinNewsLetter: true,
+          },
+          defaultShippingAddress: {
+            addressId: "address-playwright",
+            city: "Madrid",
+          },
+          defaultBillingAddress: {
+            addressId: "address-playwright",
+            city: "Madrid",
+          },
+          isGuest: false,
+          createdAt: "2026-07-01T10:00:00.000Z",
+        }],
+        total: 1,
+        limit: Number(url.searchParams.get("limit") ?? 20),
+        offset: Number(url.searchParams.get("offset") ?? 0),
+      });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/customers/customer-playwright") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      capturedCustomersAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      sendJson(response, 200, {
+        customerId: "customer-playwright",
+        organizationId: defaultOrganizationId,
+        shopId: barcelonaShopId,
+        email: "ada@example.com",
+        firstName: "Ada",
+        lastName: "Lovelace",
+        documentNumber: "DOC-ADA",
+        phone: "+34910000000",
+        buyerType: "PRIVATE_BUYER",
+        clientPreferencesData: {
+          locale: "es-ES",
+          optinNewsLetter: true,
+        },
+        isGuest: false,
+        createdAt: "2026-07-01T10:00:00.000Z",
+        updatedAt: "2026-07-02T10:00:00.000Z",
+      });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/customers/customer-playwright/addresses") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      capturedCustomersAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      sendJson(response, 200, {
+        customerId: "customer-playwright",
+        defaultShippingAddressId: "address-playwright",
+        defaultBillingAddressId: "address-playwright",
+        items: [{
+          addressId: "address-playwright",
+          addressType: "residential",
+          receiverName: "Ada Lovelace",
+          addressRole: "BOTH",
+          street: "Calle Mayor",
+          number: "1",
+          neighborhood: "Centro",
+          city: "Madrid",
+          state: "Madrid",
+          country: "ES",
+          postalCode: "28001",
+          reference: "Porteria",
+          isDefaultShipping: true,
+          isDefaultBilling: true,
+        }],
+      });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/customers/customer-playwright/purchases") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      capturedCustomersAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      sendJson(response, 200, {
+        customerId: "customer-playwright",
+        total: 1,
+        limit: Number(url.searchParams.get("limit") ?? 5),
+        offset: Number(url.searchParams.get("offset") ?? 0),
+        items: [{
+          purchaseId: "order-playwright",
+          orderId: "order-playwright",
+          customerId: "customer-playwright",
+          status: "PAID",
+          isPaid: true,
+          currency: "EUR",
+          totalAmountMinor: 12345,
+          itemsCount: 1,
+          placedAt: "2026-07-03T10:00:00.000Z",
+          items: [{
+            lineId: "line-playwright",
+            productId: "product-playwright",
+            productSlug: "pastillas-freno",
+            productUrlPath: "/pdp/pastillas-freno",
+            name: "Pastillas freno",
+            quantity: 2,
+            lineTotalMinor: 12345,
+          }],
+        }],
+      });
+      return;
+    }
+
     if (request.method === "GET" && url.pathname === "/api/v1/admin/specifications/groups") {
       expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
       expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
@@ -838,6 +996,122 @@ async function startBffMock() {
       sendJson(response, 200, {
         variantId,
         offerings: catalogOfferings.filter((offering) => offeringIds.includes(offering.offeringId)),
+      });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/communications/settings/email-provider") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      sendJson(response, 200, emailProviderSettings);
+      return;
+    }
+
+    if (request.method === "PATCH" && url.pathname === "/api/v1/admin/communications/settings/email-provider") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const body = await readJsonBody(request);
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      capturedCommunicationsMutations.push({ method: request.method, path: url.pathname, body });
+      emailProviderSettings.provider = String(body.provider ?? emailProviderSettings.provider);
+      emailProviderSettings.active = body.active === true;
+      emailProviderSettings.fromEmail = typeof body.fromEmail === "string" ? body.fromEmail : null;
+      emailProviderSettings.replyToEmail = typeof body.replyToEmail === "string" ? body.replyToEmail : null;
+      emailProviderSettings.smtpHost = typeof body.smtpHost === "string" ? body.smtpHost : null;
+      emailProviderSettings.smtpPort = typeof body.smtpPort === "number" ? body.smtpPort : null;
+      emailProviderSettings.smtpSecure = body.smtpSecure === true;
+      emailProviderSettings.smtpUser = typeof body.smtpUser === "string" ? body.smtpUser : null;
+      emailProviderSettings.secretConfigured = typeof body.secret === "string" && body.secret.length > 0
+        ? true
+        : body.clearSecret === true
+          ? false
+          : emailProviderSettings.secretConfigured;
+      emailProviderSettings.secretUpdatedAt = emailProviderSettings.secretConfigured ? "2026-07-07T10:00:00.000Z" : null;
+      emailProviderSettings.updatedAt = "2026-07-07T10:00:00.000Z";
+      sendJson(response, 200, emailProviderSettings);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/communications/templates/email") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      expect(url.searchParams.get("locale")).toBe("es-ES");
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      sendJson(response, 200, {
+        items: authEmailTemplates,
+        total: authEmailTemplates.length,
+        limit: Number(url.searchParams.get("limit") ?? 20),
+        offset: Number(url.searchParams.get("offset") ?? 0),
+      });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/v1/admin/communications/templates/email/auth-defaults") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const body = await readJsonBody(request);
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      capturedCommunicationsMutations.push({ method: request.method, path: url.pathname, body });
+      authEmailTemplates = [
+        "customer.account.activation",
+        "customer.account.activation.reminder",
+        "customer.account.activation.expiring",
+        "customer.account.password-reset",
+        "customer.account.password-changed",
+      ].map((templateKey, index) => ({
+        templateId: `template-auth-${index + 1}`,
+        templateKey,
+        locale: String(body.locale ?? "es-ES"),
+        subjectTemplate: `Auth ${index + 1}`,
+        status: "ACTIVE",
+        requiredVariables: [],
+        version: 1,
+        updatedAt: "2026-07-07T10:00:00.000Z",
+        activatedAt: "2026-07-07T10:00:00.000Z",
+      }));
+      sendJson(response, 200, { locale: body.locale ?? "es-ES", created: 4, updated: body.overwrite ? 1 : 0, existing: body.overwrite ? 0 : 1 });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/v1/admin/communications/email/send") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const body = await readJsonBody(request);
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      capturedCommunicationsMutations.push({ method: request.method, path: url.pathname, body });
+      sendJson(response, 200, {
+        deliveryId: "delivery-email-test",
+        organizationId: defaultOrganizationId,
+        shopId: barcelonaShopId,
+        templateKey: body.templateKey ?? "customer.account.activation",
+        templateId: "template-activation",
+        channel: "EMAIL",
+        locale: body.locale ?? "es-ES",
+        recipient: body.recipient ?? {},
+        data: body.data ?? {},
+        attachments: [],
+        idempotencyKey: body.idempotencyKey ?? "admin-communications-test",
+        sourceEventId: body.sourceEventId ?? null,
+        renderedSnapshot: {
+          subject: "Activa tu cuenta",
+          html: "<p>Prueba</p>",
+          text: "Prueba",
+        },
+        status: "SENT",
+        attempts: [{
+          attemptId: "attempt-email-test",
+          provider: emailProviderSettings.provider,
+          status: "SENT",
+          providerMessageId: "provider-email-test",
+          occurredAt: "2026-07-07T10:05:00.000Z",
+        }],
+        errorMessage: null,
+        createdAt: "2026-07-07T10:05:00.000Z",
+        updatedAt: "2026-07-07T10:05:00.000Z",
+        sentAt: "2026-07-07T10:05:00.000Z",
+        failedAt: null,
+        skippedAt: null,
       });
       return;
     }
@@ -2023,7 +2297,7 @@ async function startBffMock() {
           principalType: "EMPLOYEE",
           email: "admin@example.com",
           roles: ["admin"],
-          permissions: ["admin:*"],
+          permissions: authPermissions,
           tenantAccess: {
             level: "SHOP",
             shopScopes: [
@@ -2084,6 +2358,10 @@ test.beforeAll(async () => {
   await startNext();
 });
 
+test.beforeEach(() => {
+  authPermissions = ["admin:*"];
+});
+
 test.afterAll(async () => {
   nextProcess?.kill();
   bffServer?.close();
@@ -2111,6 +2389,234 @@ test("admin login authenticates without tenant fields and loads context afterwar
   expect(capturedLoginPayloads.at(-1)).not.toHaveProperty("organizationId");
   expect(capturedLoginPayloads.at(-1)).not.toHaveProperty("shopId");
   expect(capturedLoginPayloads.at(-1)).not.toHaveProperty("shopAlias");
+});
+
+test("admin sidebar submenu groups are collapsible", async ({ page }) => {
+  await loginAdmin(page);
+
+  const catalogGroup = page.locator("details.adminNavGroup").filter({ hasText: "Catalogo" });
+  const catalogSummary = catalogGroup.locator("summary.adminNavParent");
+  await expect(catalogSummary.locator(".adminNavChevron")).toBeVisible();
+  await expect(catalogGroup.getByRole("link", { name: "Productos" })).toBeHidden();
+
+  await catalogSummary.click();
+  await expect(catalogGroup.getByRole("link", { name: "Productos" })).toBeVisible();
+});
+
+test("admin sidebar keeps only the current submenu item bold", async ({ page }) => {
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/configuracion/comunicaciones`);
+
+  const configurationGroup = page.locator("details.adminNavGroup").filter({ hasText: "Configuracion" });
+  const summaryLink = configurationGroup.getByRole("link", { name: "Resumen" });
+  const communicationsLink = configurationGroup.getByRole("link", { name: "Comunicaciones" });
+
+  await expect(configurationGroup).toHaveAttribute("open", "");
+  await expect(summaryLink).not.toHaveAttribute("aria-current", "page");
+  await expect(communicationsLink).toHaveAttribute("aria-current", "page");
+  await expect(summaryLink).not.toHaveClass(/adminNavActive/);
+  await expect(communicationsLink).toHaveClass(/adminNavActive/);
+
+  const summaryWeight = await summaryLink.locator(".adminNavLabel").evaluate((element) => getComputedStyle(element).fontWeight);
+  const communicationsWeight = await communicationsLink.locator(".adminNavLabel").evaluate((element) => getComputedStyle(element).fontWeight);
+
+  expect(Number(summaryWeight)).toBeLessThan(Number(communicationsWeight));
+});
+
+test("communications configuration saves email provider and bootstraps auth templates", async ({ page }) => {
+  capturedCommunicationsAdminRequests.length = 0;
+  capturedCommunicationsMutations.length = 0;
+  Object.assign(emailProviderSettings, {
+    provider: "stub",
+    active: false,
+    fromEmail: null,
+    replyToEmail: null,
+    smtpHost: null,
+    smtpPort: null,
+    smtpSecure: false,
+    smtpUser: null,
+    secretConfigured: false,
+    secretUpdatedAt: null,
+    updatedAt: "2026-07-01T10:00:00.000Z",
+  });
+  authEmailTemplates = [{
+    templateId: "template-activation",
+    templateKey: "customer.account.activation",
+    locale: "es-ES",
+    subjectTemplate: "Activa tu cuenta",
+    status: "ACTIVE",
+    requiredVariables: ["activationUrl"],
+    version: 1,
+    updatedAt: "2026-07-01T10:00:00.000Z",
+    activatedAt: "2026-07-01T10:00:00.000Z",
+  }];
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/configuracion/comunicaciones`);
+
+  await expect(page.getByRole("heading", { name: "Comunicaciones email" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Proveedor email" })).toBeVisible();
+  await expect(page.getByText("Password / API key")).toBeVisible();
+  await expect(page.getByText("Plantillas de cuenta")).toBeVisible();
+  await expect(page.getByRole("row", { name: /customer\.account\.activation/ })).toBeVisible();
+
+  const providerPanel = page.locator("article.adminCard").filter({
+    has: page.getByRole("heading", { name: "Proveedor email" }),
+  });
+  await providerPanel.getByLabel("Proveedor").selectOption("smtp");
+  await providerPanel.getByLabel("Activo").check();
+  await providerPanel.getByLabel("Email remitente").fill("Tienda <no-reply@ecommium.test>");
+  await providerPanel.getByLabel("Reply-To").fill("soporte@ecommium.test");
+  await providerPanel.getByLabel("SMTP host").fill("smtp.ecommium.test");
+  await providerPanel.getByLabel("SMTP port").fill("465");
+  await providerPanel.getByLabel("TLS/SSL directo").check();
+  await providerPanel.getByLabel("Usuario SMTP / API user").fill("smtp-user");
+  await providerPanel.getByLabel("Password / API key").fill("smtp-secret-playwright");
+  await providerPanel.getByRole("button", { name: "Guardar email" }).click();
+
+  await expect(page.getByText("Configuracion de email guardada.")).toBeVisible();
+  await expect(page.getByText("Configurado")).toBeVisible();
+  await expect.poll(() => capturedCommunicationsMutations).toContainEqual({
+    method: "PATCH",
+    path: "/api/v1/admin/communications/settings/email-provider",
+    body: {
+      provider: "smtp",
+      active: true,
+      fromEmail: "Tienda <no-reply@ecommium.test>",
+      replyToEmail: "soporte@ecommium.test",
+      smtpHost: "smtp.ecommium.test",
+      smtpPort: 465,
+      smtpSecure: true,
+      smtpUser: "smtp-user",
+      secret: "smtp-secret-playwright",
+    },
+  });
+
+  const templatesPanel = page.locator("aside.adminCard").filter({
+    has: page.getByRole("heading", { name: "Plantillas de cuenta" }),
+  });
+  await templatesPanel.getByLabel("Sobrescribir defaults existentes").check();
+  await templatesPanel.getByRole("button", { name: "Crear defaults auth" }).click();
+
+  await expect(page.getByText("Plantillas auth listas: 4 creadas, 1 actualizadas, 0 existentes.")).toBeVisible();
+  await expect(page.getByRole("row", { name: /customer\.account\.password-reset/ })).toBeVisible();
+  await expect.poll(() => capturedCommunicationsMutations).toContainEqual({
+    method: "POST",
+    path: "/api/v1/admin/communications/templates/email/auth-defaults",
+    body: {
+      locale: "es-ES",
+      overwrite: true,
+    },
+  });
+
+  const testEmailPanel = providerPanel.locator(".adminSection").filter({
+    has: page.getByRole("heading", { name: "Enviar prueba" }),
+  });
+  await expect(testEmailPanel.getByLabel("Destinatario de prueba")).toBeVisible();
+  await testEmailPanel.getByLabel("Destinatario de prueba").fill("ricardo@example.com");
+  await testEmailPanel.getByLabel("Plantilla").selectOption("customer.account.activation");
+  await testEmailPanel.getByRole("button", { name: "Enviar prueba" }).click();
+
+  await expect(page.getByText("Prueba de email procesada para ricardo@example.com. Delivery delivery-email-test en estado SENT.")).toBeVisible();
+  await expect.poll(() => capturedCommunicationsMutations.some((item) => (
+    item.method === "POST"
+    && item.path === "/api/v1/admin/communications/email/send"
+    && (item.body.recipient as { email?: string } | undefined)?.email === "ricardo@example.com"
+  ))).toBe(true);
+  const testEmailMutation = capturedCommunicationsMutations.find((item) => item.path === "/api/v1/admin/communications/email/send");
+  expect(testEmailMutation?.body).toMatchObject({
+    templateKey: "customer.account.activation",
+    locale: "es-ES",
+    recipient: { email: "ricardo@example.com" },
+    data: {
+      customerName: "Prueba Ecommium",
+      activationUrl: "https://example.test/account/activate?token=test",
+      passwordResetUrl: "https://example.test/account/password-reset?token=test",
+      supportEmail: "soporte@example.com",
+      eventType: "email_provider_test",
+    },
+  });
+  expect(String(testEmailMutation?.body.idempotencyKey)).toContain("admin-communications-test");
+  expect(String(testEmailMutation?.body.sourceEventId)).toContain("admin.communications.test.");
+  expect(capturedCommunicationsAdminRequests).toContain("GET /api/v1/admin/communications/settings/email-provider");
+  expect(capturedCommunicationsAdminRequests).toContain("GET /api/v1/admin/communications/templates/email");
+});
+
+test("customers admin opens the 360 drawer with profile addresses and purchases", async ({ page }) => {
+  capturedCustomersAdminRequests.length = 0;
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/clientes`);
+
+  await expect(page.getByRole("heading", { name: "Clientes", exact: true })).toBeVisible();
+  await expect(page.getByText("Vista 360 de clientes")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Todos los clientes" })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Ada Lovelace/ })).toBeVisible();
+  await expect(page.getByText("Registrados")).toBeVisible();
+  await expect(page.getByText("Newsletter")).toBeVisible();
+  expect(capturedCustomersAdminRequests).toContain(
+    `GET /api/v1/admin/customers?organizationId=${defaultOrganizationId}&shopId=${barcelonaShopId}&limit=100&offset=0`,
+  );
+
+  await page.getByRole("link", { name: "Crear cliente" }).click();
+  await expect(page.locator(".customersDrawerBackdrop")).toBeVisible();
+  await expect(page.locator(".adminSideDrawer").getByRole("heading", { name: "Crear cliente" })).toBeVisible();
+  await expect(page.locator(".adminSideDrawer").getByRole("button", { name: "Crear cliente" })).toBeVisible();
+  await page.locator(".adminSideDrawer").getByRole("link", { name: "Cerrar" }).click();
+  await expect(page.locator(".customersDrawerBackdrop")).toHaveCount(0);
+
+  await page.getByRole("link", { name: /Ver Ada Lovelace/ }).click();
+
+  const drawer = page.locator(".adminSideDrawer");
+  await expect(page.locator(".customersDrawerBackdrop")).toBeVisible();
+  await expect(drawer.getByRole("heading", { name: "Ada Lovelace" })).toBeVisible();
+  await expect(drawer.getByRole("heading", { name: "Resumen 360" })).toBeVisible();
+  await expect(drawer.getByRole("heading", { name: "Consentimientos" })).toBeVisible();
+  await expect(drawer.getByText("Importe ultima compra")).toBeVisible();
+  await expect(drawer.getByRole("heading", { name: "Perfil" })).toBeVisible();
+  await expect(drawer.getByRole("heading", { name: "Direcciones" })).toBeVisible();
+  await expect(drawer.getByRole("heading", { name: "Compras" })).toBeVisible();
+  await expect(drawer.getByRole("button", { name: "Guardar perfil" })).toBeVisible();
+  await expect(drawer.getByRole("link", { name: "Agregar" })).toBeVisible();
+  await expect(drawer.getByRole("row", { name: /Ada Lovelace address-playwright Ambas Calle Mayor/ })).toBeVisible();
+  await expect(drawer.getByRole("row", { name: /order-playwright 1 items 2x Pastillas freno PAID/ })).toBeVisible();
+  await expect(drawer.getByRole("link", { name: "Ver producto" })).toHaveAttribute("href", "/pdp/pastillas-freno");
+
+  expect(capturedCustomersAdminRequests.some((item) => item.startsWith("GET /api/v1/admin/customers?"))).toBe(true);
+  expect(capturedCustomersAdminRequests).toContain(
+    `GET /api/v1/admin/customers/customer-playwright?organizationId=${defaultOrganizationId}&shopId=${barcelonaShopId}`,
+  );
+  expect(capturedCustomersAdminRequests).toContain(
+    `GET /api/v1/admin/customers/customer-playwright/addresses?organizationId=${defaultOrganizationId}&shopId=${barcelonaShopId}`,
+  );
+  expect(capturedCustomersAdminRequests).toContain(
+    `GET /api/v1/admin/customers/customer-playwright/purchases?organizationId=${defaultOrganizationId}&shopId=${barcelonaShopId}&limit=5&offset=0`,
+  );
+});
+
+test("customers admin hides purchases when the session lacks purchases permission", async ({ page }) => {
+  authPermissions = ["customers.read", "customers.addresses.write"];
+  capturedCustomersAdminRequests.length = 0;
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/clientes?drawer=detail&customerId=customer-playwright`);
+
+  const drawer = page.locator(".adminSideDrawer");
+  await expect(drawer.getByRole("heading", { name: "Ada Lovelace" })).toBeVisible();
+  await expect(drawer.getByRole("heading", { name: "Resumen 360" })).toBeVisible();
+  await expect(drawer.getByRole("heading", { name: "Consentimientos" })).toBeVisible();
+  await expect(drawer.getByText("Falta permiso customers.purchases.read para consultar compras.")).toBeVisible();
+  await expect(drawer.getByRole("button", { name: "Guardar perfil" })).toBeVisible();
+  await expect(drawer.getByRole("link", { name: "Agregar" })).toBeVisible();
+  await expect(drawer.getByText("order-playwright")).toHaveCount(0);
+
+  expect(capturedCustomersAdminRequests).toContain(
+    `GET /api/v1/admin/customers/customer-playwright?organizationId=${defaultOrganizationId}&shopId=${barcelonaShopId}`,
+  );
+  expect(capturedCustomersAdminRequests).toContain(
+    `GET /api/v1/admin/customers/customer-playwright/addresses?organizationId=${defaultOrganizationId}&shopId=${barcelonaShopId}`,
+  );
+  expect(capturedCustomersAdminRequests.some((item) => item.includes("/purchases?"))).toBe(false);
 });
 
 test("catalog attributes and features page filters and creates feature values through BFF", async ({ page }) => {

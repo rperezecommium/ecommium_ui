@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { StorefrontCategoryLink, StorefrontPlpBlock, StorefrontPlpData, StorefrontPlpProduct, StorefrontPlpResult } from "./plp";
+import { getStorefrontCustomerSession } from "./storefront-customer-session";
+import { StorefrontAuthEntry } from "./storefront-auth-drawer";
 import { StorefrontSearchEventsClient } from "./search-events-client";
 
 type Props = {
@@ -61,12 +63,14 @@ export function StorefrontPlpPage({ result, categorySlug, searchQuery }: Props) 
   );
 }
 
-export function StorefrontHeader({ initialQuery }: { initialQuery?: string }) {
+export async function StorefrontHeader({ initialQuery }: { initialQuery?: string }) {
+  const customerSession = await getStorefrontCustomerSession();
+
   return (
     <header className="storefrontHeader">
       <div className="storefrontHeaderTop">
         <span>Contactenos</span>
-        <span>Iniciar sesion</span>
+        <StorefrontAuthEntry customerEmail={customerSession?.email} />
       </div>
       <div className="storefrontHeaderMain">
         <Link className="storefrontLogo" href="/">Ecommium</Link>
