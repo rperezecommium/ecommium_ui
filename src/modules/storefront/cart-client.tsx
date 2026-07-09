@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { CheckCircle2, Loader2, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react";
 import {
+  cartAppliedCouponOffer,
+  cartAvailableCoupons,
   cartCouponCode,
+  cartDiscountsTotalMinor,
   cartHasCouponData,
   cartHasShippingData,
   cartGrandTotalMinor,
@@ -17,6 +20,7 @@ import {
   formatCartMoney,
   normalizeOrderformPayload,
   type StorefrontCartItem,
+  type StorefrontCouponOffer,
   type StorefrontOrderform,
 } from "./cart";
 
@@ -47,17 +51,25 @@ type CartMutationItem = {
   variantId?: string;
 };
 
+export type CouponMessageStatus = "error" | "info" | "success";
+
 type StorefrontCouponControlProps = {
   appliedCouponCode?: string;
+  appliedCouponOffer?: StorefrontCouponOffer;
+  availableCoupons?: StorefrontCouponOffer[];
   couponCode: string;
   currency: string;
   discountMinor?: number;
   hasAppliedCoupon?: boolean;
+  invalidCouponCode?: string;
   message?: string;
+  messageStatus?: CouponMessageStatus;
   onApply: () => void;
   onChange: (value: string) => void;
   onRemove: () => void;
+  onSelectAvailableCoupon?: (couponCode: string) => void;
   pendingAction: string | null;
+  pendingCouponCode?: string;
 };
 
 export function StorefrontCartStatus() {
@@ -156,26 +168,69 @@ export function StorefrontAddToCartButton({
 
 export function StorefrontCouponControl({
   appliedCouponCode,
+  appliedCouponOffer,
+  availableCoupons = [],
   couponCode,
   currency,
   discountMinor = 0,
   hasAppliedCoupon,
+  invalidCouponCode,
   message,
+  messageStatus = "info",
   onApply,
   onChange,
   onRemove,
+  onSelectAvailableCoupon,
   pendingAction,
+  pendingCouponCode,
 }: StorefrontCouponControlProps) {
   const couponIsApplied = hasAppliedCoupon ?? Boolean(appliedCouponCode);
   const appliedCouponLabel = appliedCouponCode ?? "Promoción";
+  const hasAvailableCoupons = availableCoupons.length > 0;
+  const visibleCoupons = availableCoupons.slice(0, 3);
+  const hiddenCouponsCount = Math.max(0, availableCoupons.length - visibleCoupons.length);
+  const autoOpenPanelKey = `${couponIsApplied}:${appliedCouponLabel}:${messageStatus}:${message ?? ""}`;
+  const shouldAutoOpenPanel = couponIsApplied || Boolean(message);
+  const [manuallyClosedPanelKey, setManuallyClosedPanelKey] = useState<string | null>(null);
+  const [userOpenedPanel, setUserOpenedPanel] = useState(false);
+  const panelOpen = shouldAutoOpenPanel
+    ? manuallyClosedPanelKey !== autoOpenPanelKey
+    : userOpenedPanel;
   const isApplying = pendingAction === "coupon";
   const isRemoving = pendingAction === "remove-coupon";
+  const isBusy = isApplying || isRemoving;
+  const couponControlId = useId();
+  const couponInputId = `${couponControlId}-input`;
+  const couponMessageId = `${couponControlId}-message`;
+  const couponSummaryId = `${couponControlId}-summary`;
+  const currentCouponCode = normalizeCouponCodeInput(couponCode);
+  const normalizedPendingCouponCode = normalizeCouponCodeInput(pendingCouponCode ?? "");
+  const hasInvalidCurrentCode = Boolean(
+    invalidCouponCode &&
+    messageStatus === "error" &&
+    currentCouponCode === invalidCouponCode,
+  );
+  const appliedCouponDetail = appliedCouponOffer
+    ? discountMinor > 0
+      ? couponOfferConstraint(appliedCouponOffer, currency)
+      : couponOfferBenefit(appliedCouponOffer, currency)
+    : undefined;
 
   return (
-    <details className="storefrontCouponPanel" open={couponIsApplied || Boolean(message)}>
-      <summary className="storefrontCouponSummary">
-        <span>{couponIsApplied ? "Cupón aplicado" : "Cupón disponible"}</span>
-        <strong>{couponIsApplied ? appliedCouponLabel : "Añadir código"}</strong>
+    <details
+      aria-busy={isBusy}
+      aria-labelledby={couponSummaryId}
+      className="storefrontCouponPanel"
+      onToggle={(event) => {
+        const isOpen = event.currentTarget.open;
+        setUserOpenedPanel(isOpen);
+        setManuallyClosedPanelKey(shouldAutoOpenPanel && !isOpen ? autoOpenPanelKey : null);
+      }}
+      open={panelOpen}
+    >
+      <summary className="storefrontCouponSummary" id={couponSummaryId}>
+        <span>{couponIsApplied ? "Cupón aplicado" : hasAvailableCoupons ? "Cupón disponible" : "¿Tienes un cupón?"}</span>
+        <strong>{couponIsApplied ? appliedCouponLabel : hasAvailableCoupons ? availableCoupons[0].couponCode : "Añadir código"}</strong>
       </summary>
       <div className="storefrontCouponBody">
         {couponIsApplied ? (
@@ -183,6 +238,7 @@ export function StorefrontCouponControl({
             <div>
               <strong>{appliedCouponLabel}</strong>
               <span>{discountMinor > 0 ? `Ahorro ${formatCartMoney(discountMinor, currency)}` : "Promoción activa"}</span>
+              {appliedCouponDetail ? <em>{appliedCouponDetail}</em> : null}
             </div>
             <button disabled={isRemoving} onClick={onRemove} type="button">
               {isRemoving ? <Loader2 aria-hidden="true" className="storefrontCartSpinner" size={15} /> : <X aria-hidden="true" size={15} />}
@@ -190,29 +246,141 @@ export function StorefrontCouponControl({
             </button>
           </div>
         ) : (
-          <form className="storefrontCouponForm" onSubmit={(event) => {
-            event.preventDefault();
-            onApply();
-          }}>
-            <label>
-              <span>Código</span>
-              <input
-                autoComplete="off"
-                onChange={(event) => onChange(event.currentTarget.value)}
-                placeholder="WELCOME10"
-                value={couponCode}
-              />
-            </label>
-            <button disabled={!couponCode.trim() || isApplying} type="submit">
-              {isApplying ? <Loader2 aria-hidden="true" className="storefrontCartSpinner" size={15} /> : null}
-              Aplicar
-            </button>
-          </form>
+          <>
+            {hasAvailableCoupons ? (
+              <div className="storefrontCouponOffers" aria-label="Cupones disponibles">
+                {visibleCoupons.map((coupon) => {
+                  const constraint = couponOfferConstraint(coupon, currency);
+                  const isCouponOfferApplying = isApplying && normalizedPendingCouponCode === coupon.couponCode;
+                  return (
+                    <button
+                      disabled={isApplying}
+                      key={coupon.couponCode}
+                      onClick={() => onSelectAvailableCoupon?.(coupon.couponCode)}
+                      type="button"
+                    >
+                      <span>
+                        <strong>{coupon.couponCode}</strong>
+                        <small>{couponOfferBenefit(coupon, currency)}</small>
+                        {constraint ? <em>{constraint}</em> : null}
+                      </span>
+                      <b>
+                        {isCouponOfferApplying ? <Loader2 aria-hidden="true" className="storefrontCartSpinner" size={13} /> : null}
+                        {isCouponOfferApplying ? "Aplicando" : "Usar"}
+                      </b>
+                    </button>
+                  );
+                })}
+                {hiddenCouponsCount > 0 ? (
+                  <p className="storefrontCouponMore">{hiddenCouponsCount === 1 ? "Hay 1 cupón más disponible." : `Hay ${hiddenCouponsCount} cupones más disponibles.`}</p>
+                ) : null}
+              </div>
+            ) : null}
+            <form className="storefrontCouponForm" onSubmit={(event) => {
+              event.preventDefault();
+              onApply();
+            }}>
+              <label htmlFor={couponInputId}>
+                <span>Código</span>
+                <input
+                  aria-describedby={message ? couponMessageId : undefined}
+                  aria-invalid={hasInvalidCurrentCode}
+                  autoComplete="off"
+                  id={couponInputId}
+                  onChange={(event) => onChange(event.currentTarget.value)}
+                  placeholder="WELCOME10"
+                  value={couponCode}
+                />
+              </label>
+              <button disabled={!couponCode.trim() || isApplying || hasInvalidCurrentCode} type="submit">
+                {isApplying ? <Loader2 aria-hidden="true" className="storefrontCartSpinner" size={15} /> : null}
+                Aplicar
+              </button>
+            </form>
+          </>
         )}
-        {message ? <p className="storefrontCouponMessage" role="status">{message}</p> : null}
+        {message ? (
+          <p
+            aria-live={messageStatus === "error" ? "assertive" : "polite"}
+            className={`storefrontCouponMessage storefrontCouponMessage${messageStatus}`}
+            id={couponMessageId}
+            role={messageStatus === "error" ? "alert" : "status"}
+          >
+            {message}
+          </p>
+        ) : null}
       </div>
     </details>
   );
+}
+
+export function normalizeCouponCodeInput(value: string) {
+  return value.trim().toUpperCase();
+}
+
+export function couponApplicationFeedback(orderform: StorefrontOrderform, requestedCode: string) {
+  const appliedCode = cartCouponCode(orderform);
+  const discountMinor = cartDiscountsTotalMinor(orderform);
+  const codeLabel = appliedCode ?? requestedCode;
+
+  if (cartHasCouponData(orderform) || discountMinor > 0) {
+    return {
+      message: discountMinor > 0
+        ? `Cupón ${codeLabel} aplicado. Ahorro ${formatCartMoney(discountMinor, orderform.currency)}.`
+        : `Cupón ${codeLabel} aplicado.`,
+      status: "success" as CouponMessageStatus,
+    };
+  }
+
+  return {
+    message: `No pudimos validar el cupón ${requestedCode}. Revisa el código o sus condiciones.`,
+    status: "error" as CouponMessageStatus,
+  };
+}
+
+export function couponOfferBenefit(coupon: StorefrontCouponOffer, fallbackCurrency = "EUR") {
+  const discountType = coupon.discountType?.toUpperCase() ?? "";
+  const currency = coupon.currency ?? fallbackCurrency;
+
+  if (typeof coupon.value === "number" && Number.isFinite(coupon.value)) {
+    if (discountType.includes("PERCENT")) {
+      return `${coupon.value}% descuento`;
+    }
+    if (discountType.includes("FIXED") || discountType.includes("AMOUNT")) {
+      return `${formatCartMoney(coupon.value, currency)} descuento`;
+    }
+  }
+
+  return coupon.description ?? coupon.name;
+}
+
+export function couponOfferConstraint(coupon: StorefrontCouponOffer, fallbackCurrency = "EUR") {
+  const conditions = [];
+  if (typeof coupon.minSubtotalMinor === "number" && coupon.minSubtotalMinor > 0) {
+    conditions.push(`Desde ${formatCartMoney(coupon.minSubtotalMinor, coupon.currency ?? fallbackCurrency)}`);
+  }
+  const validTo = formatCouponDate(coupon.validTo);
+  if (validTo) {
+    conditions.push(`Hasta ${validTo}`);
+  }
+
+  return conditions.slice(0, 2).join(" · ");
+}
+
+function formatCouponDate(value: string | undefined) {
+  if (!value) {
+    return undefined;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "short",
+  }).format(date);
 }
 
 export function StorefrontCartPageClient() {
@@ -220,7 +388,10 @@ export function StorefrontCartPageClient() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState("");
+  const [invalidCouponCode, setInvalidCouponCode] = useState<string | undefined>();
   const [couponMessage, setCouponMessage] = useState("");
+  const [couponMessageStatus, setCouponMessageStatus] = useState<CouponMessageStatus>("info");
+  const [pendingCouponCode, setPendingCouponCode] = useState<string | undefined>();
 
   useEffect(() => {
     fetchCartCurrent()
@@ -280,14 +451,27 @@ export function StorefrontCartPageClient() {
     }
   }
 
-  async function applyCoupon() {
-    const code = couponCode.trim();
+  async function applyCouponCode(nextCouponCode: string) {
+    const code = normalizeCouponCodeInput(nextCouponCode);
     if (!orderform?.orderFormId || !code) {
       return;
     }
 
+    if (cartCouponCode(orderform)?.toUpperCase() === code) {
+      setCouponCode(code);
+      setInvalidCouponCode(undefined);
+      setPendingCouponCode(undefined);
+      setCouponMessage(`El cupón ${code} ya está aplicado.`);
+      setCouponMessageStatus("info");
+      return;
+    }
+
+    setCouponCode(code);
+    setInvalidCouponCode(undefined);
+    setPendingCouponCode(code);
     setPendingKey("coupon");
-    setCouponMessage("");
+    setCouponMessage(`Validando cupón ${code}...`);
+    setCouponMessageStatus("info");
     try {
       const nextOrderform = await mutateCheckoutCoupon("coupon", {
         guestSessionId: getOrCreateGuestSessionId(),
@@ -296,11 +480,29 @@ export function StorefrontCartPageClient() {
       });
       commitOrderform(nextOrderform);
       setOrderform(nextOrderform);
-      setCouponMessage("Cupón aplicado.");
+      const feedback = couponApplicationFeedback(nextOrderform, code);
+      setCouponMessage(feedback.message);
+      setCouponMessageStatus(feedback.status);
+      setInvalidCouponCode(feedback.status === "error" ? code : undefined);
     } catch (error) {
       setCouponMessage(error instanceof Error ? error.message : "No se pudo aplicar el cupón.");
+      setCouponMessageStatus("error");
     } finally {
+      setPendingCouponCode(undefined);
       setPendingKey(null);
+    }
+  }
+
+  async function applyCoupon() {
+    await applyCouponCode(couponCode);
+  }
+
+  function updateCouponCode(value: string) {
+    setCouponCode(value);
+    setInvalidCouponCode(undefined);
+    if (couponMessageStatus === "error") {
+      setCouponMessage("");
+      setCouponMessageStatus("info");
     }
   }
 
@@ -311,6 +513,7 @@ export function StorefrontCartPageClient() {
 
     setPendingKey("remove-coupon");
     setCouponMessage("");
+    setCouponMessageStatus("info");
     try {
       const nextOrderform = await mutateCheckoutCoupon("remove-coupon", {
         guestSessionId: getOrCreateGuestSessionId(),
@@ -319,9 +522,12 @@ export function StorefrontCartPageClient() {
       commitOrderform(nextOrderform);
       setOrderform(nextOrderform);
       setCouponCode("");
+      setInvalidCouponCode(undefined);
       setCouponMessage("Cupón quitado.");
+      setCouponMessageStatus("info");
     } catch (error) {
       setCouponMessage(error instanceof Error ? error.message : "No se pudo quitar el cupón.");
+      setCouponMessageStatus("error");
     } finally {
       setPendingKey(null);
     }
@@ -382,15 +588,21 @@ export function StorefrontCartPageClient() {
         <h2>Resumen</h2>
         <StorefrontCouponControl
           appliedCouponCode={cartCouponCode(orderform)}
+          appliedCouponOffer={cartAppliedCouponOffer(orderform)}
+          availableCoupons={cartAvailableCoupons(orderform)}
           couponCode={couponCode}
           currency={orderform.currency}
-          discountMinor={orderform.totals.discountsTotalMinor}
+          discountMinor={cartDiscountsTotalMinor(orderform)}
           hasAppliedCoupon={cartHasCouponData(orderform)}
+          invalidCouponCode={invalidCouponCode}
           message={couponMessage}
+          messageStatus={couponMessageStatus}
           onApply={applyCoupon}
-          onChange={setCouponCode}
+          onChange={updateCouponCode}
           onRemove={removeCoupon}
+          onSelectAvailableCoupon={applyCouponCode}
           pendingAction={pendingKey}
+          pendingCouponCode={pendingCouponCode}
         />
         <dl>
           <div>
@@ -401,10 +613,10 @@ export function StorefrontCartPageClient() {
             <dt>Subtotal</dt>
             <dd>{formatCartMoney(totals.subtotal, orderform.currency)}</dd>
           </div>
-          {cartHasCouponData(orderform) && orderform.totals.discountsTotalMinor ? (
+          {cartHasCouponData(orderform) && cartDiscountsTotalMinor(orderform) ? (
             <div>
               <dt>Descuentos</dt>
-              <dd>-{formatCartMoney(orderform.totals.discountsTotalMinor, orderform.currency)}</dd>
+              <dd>-{formatCartMoney(cartDiscountsTotalMinor(orderform), orderform.currency)}</dd>
             </div>
           ) : null}
           {cartHasShippingData(orderform) || totals.shipping > 0 ? (
@@ -522,7 +734,7 @@ function CartTotalsPanel({
 }) {
   const shippingMinor = orderform.totals.shippingTotalMinor ?? 0;
   const taxMinor = orderform.totals.taxTotalMinor ?? 0;
-  const discountsMinor = orderform.totals.discountsTotalMinor ?? 0;
+  const discountsMinor = cartDiscountsTotalMinor(orderform);
 
   return (
     <div className="storefrontCartTotalsPanel">

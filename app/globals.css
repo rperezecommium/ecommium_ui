@@ -5948,6 +5948,95 @@ p {
   border-color: #24b9d7;
 }
 
+.storefrontCouponForm input[aria-invalid="true"] {
+  border-color: #e74c3c;
+  background: #fffafa;
+}
+
+.storefrontCouponForm input[aria-invalid="true"]:focus {
+  outline-color: rgba(231, 76, 60, 0.2);
+  border-color: #e74c3c;
+}
+
+.storefrontCouponOffers {
+  display: grid;
+  gap: 8px;
+}
+
+.storefrontCouponOffers button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 50px;
+  padding: 9px 10px;
+  border: 1px solid #d9dde3;
+  background: #f8fbfc;
+  color: #232323;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.storefrontCouponOffers button:hover {
+  border-color: #24b9d7;
+  background: #f2fbfd;
+}
+
+.storefrontCouponOffers button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.storefrontCouponOffers span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.storefrontCouponOffers strong {
+  color: #232323;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.storefrontCouponOffers small {
+  overflow: hidden;
+  color: #647483;
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storefrontCouponOffers em {
+  overflow: hidden;
+  color: #7f8b98;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storefrontCouponOffers b {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #1e6574;
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.storefrontCouponMore {
+  margin: 0;
+  color: #647483;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .storefrontCouponForm button,
 .storefrontCouponApplied button {
   display: inline-flex;
@@ -5995,8 +6084,36 @@ p {
   line-height: 1.4;
 }
 
+.storefrontCouponApplied em {
+  color: #7f8b98;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
 .storefrontCouponMessage {
   margin: 0;
+  padding: 8px 10px;
+  border-left: 3px solid #d9dde3;
+  background: #f8fbfc;
+}
+
+.storefrontCouponMessagesuccess {
+  border-left-color: #72c279;
+  background: #f4fbf5;
+  color: #2c6d34;
+}
+
+.storefrontCouponMessageerror {
+  border-left-color: #e74c3c;
+  background: #fff6f5;
+  color: #8a2d22;
+}
+
+.storefrontCouponMessageinfo {
+  border-left-color: #24b9d7;
+  background: #f2fbfd;
+  color: #1e6574;
 }
 
 .storefrontCartSummaryTotal {

@@ -6,7 +6,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle2, CreditCard, Edit3, Loader2, LogIn, Rocket, ShieldCheck, Truck, UserRound } from "lucide-react";
 import {
+  cartAppliedCouponOffer,
+  cartAvailableCoupons,
   cartCouponCode,
+  cartDiscountsTotalMinor,
   cartGrandTotalMinor,
   cartHasCouponData,
   cartHasShippingData,
@@ -18,7 +21,7 @@ import {
   type StorefrontCartItem,
   type StorefrontOrderform,
 } from "./cart";
-import { StorefrontCouponControl } from "./cart-client";
+import { couponApplicationFeedback, normalizeCouponCodeInput, StorefrontCouponControl, type CouponMessageStatus } from "./cart-client";
 import type { StorefrontCheckoutAllowedAction, StorefrontCheckoutContextResponse } from "./checkout-types";
 import type { StorefrontAuthActionState } from "./auth-types";
 import {
@@ -98,7 +101,10 @@ export function StorefrontCheckoutClient() {
   const [guestCheckoutMode, setGuestCheckoutMode] = useState<GuestCheckoutMode>("guest");
   const [address, setAddress] = useState(defaultAddress);
   const [couponCode, setCouponCode] = useState("");
+  const [invalidCouponCode, setInvalidCouponCode] = useState<string | undefined>();
   const [couponMessage, setCouponMessage] = useState("");
+  const [couponMessageStatus, setCouponMessageStatus] = useState<CouponMessageStatus>("info");
+  const [pendingCouponCode, setPendingCouponCode] = useState<string | undefined>();
   const [paymentSystem, setPaymentSystem] = useState("credit-card");
   const [installments, setInstallments] = useState(1);
   const [shippingOptions, setShippingOptions] = useState<ShippingOptions | null>(null);
@@ -129,7 +135,7 @@ export function StorefrontCheckoutClient() {
     items: cartTotalItems(orderform),
     subtotal: orderform?.totals.itemsSubtotalMinor ?? orderform?.items.reduce((total, item) => total + cartItemLineTotalMinor(item), 0) ?? 0,
     shipping: orderform?.totals.shippingTotalMinor ?? 0,
-    discounts: orderform?.totals.discountsTotalMinor ?? 0,
+    discounts: cartDiscountsTotalMinor(orderform),
     taxes: orderform?.totals.taxTotalMinor ?? 0,
     grandTotal: cartGrandTotalMinor(orderform),
   }), [orderform]);
@@ -163,7 +169,7 @@ export function StorefrontCheckoutClient() {
     commitOrderform(nextOrderform);
     setOrderform(nextOrderform);
     syncCheckoutForms(nextOrderform);
-    return responsePayload;
+    return nextOrderform;
   }
 
   async function saveProfile() {
@@ -289,32 +295,66 @@ export function StorefrontCheckoutClient() {
     }
   }
 
-  async function applyCoupon() {
-    const code = couponCode.trim();
+  async function applyCouponCode(nextCouponCode: string) {
+    const code = normalizeCouponCodeInput(nextCouponCode);
     if (!code) {
       return;
     }
+    if (cartCouponCode(orderform)?.toUpperCase() === code) {
+      setCouponCode(code);
+      setInvalidCouponCode(undefined);
+      setPendingCouponCode(undefined);
+      setCouponMessage(`El cupón ${code} ya está aplicado.`);
+      setCouponMessageStatus("info");
+      return;
+    }
+    setCouponCode(code);
+    setInvalidCouponCode(undefined);
+    setPendingCouponCode(code);
     setPendingAction("coupon");
-    setCouponMessage("");
+    setCouponMessage(`Validando cupón ${code}...`);
+    setCouponMessageStatus("info");
     try {
-      await applyOrderformAction("coupon", { couponCode: code });
-      setCouponMessage("Cupón aplicado.");
+      const nextOrderform = await applyOrderformAction("coupon", { couponCode: code });
+      const feedback = couponApplicationFeedback(nextOrderform, code);
+      setCouponMessage(feedback.message);
+      setCouponMessageStatus(feedback.status);
+      setInvalidCouponCode(feedback.status === "error" ? code : undefined);
     } catch (error) {
       setCouponMessage(error instanceof Error ? error.message : "No se pudo aplicar el cupón.");
+      setCouponMessageStatus("error");
     } finally {
+      setPendingCouponCode(undefined);
       setPendingAction(null);
+    }
+  }
+
+  async function applyCoupon() {
+    await applyCouponCode(couponCode);
+  }
+
+  function updateCouponCode(value: string) {
+    setCouponCode(value);
+    setInvalidCouponCode(undefined);
+    if (couponMessageStatus === "error") {
+      setCouponMessage("");
+      setCouponMessageStatus("info");
     }
   }
 
   async function removeCoupon() {
     setPendingAction("remove-coupon");
     setCouponMessage("");
+    setCouponMessageStatus("info");
     try {
       await applyOrderformAction("remove-coupon", {});
       setCouponCode("");
+      setInvalidCouponCode(undefined);
       setCouponMessage("Cupón quitado.");
+      setCouponMessageStatus("info");
     } catch (error) {
       setCouponMessage(error instanceof Error ? error.message : "No se pudo quitar el cupón.");
+      setCouponMessageStatus("error");
     } finally {
       setPendingAction(null);
     }
@@ -582,15 +622,21 @@ export function StorefrontCheckoutClient() {
         couponSlot={(
           <StorefrontCouponControl
             appliedCouponCode={cartCouponCode(orderform)}
+            appliedCouponOffer={cartAppliedCouponOffer(orderform)}
+            availableCoupons={cartAvailableCoupons(orderform)}
             couponCode={couponCode}
             currency={orderform.currency}
             discountMinor={totals.discounts}
             hasAppliedCoupon={cartHasCouponData(orderform)}
+            invalidCouponCode={invalidCouponCode}
             message={couponMessage}
+            messageStatus={couponMessageStatus}
             onApply={applyCoupon}
-            onChange={setCouponCode}
+            onChange={updateCouponCode}
             onRemove={removeCoupon}
+            onSelectAvailableCoupon={applyCouponCode}
             pendingAction={pendingAction}
+            pendingCouponCode={pendingCouponCode}
           />
         )}
         orderform={orderform}
