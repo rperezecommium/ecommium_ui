@@ -152,6 +152,25 @@ export type CustomerAccountSummary = {
   principalType?: string;
   email: string;
   active?: boolean;
+  status?:
+    | "ACTIVE"
+    | "PENDING_ACTIVATION"
+    | "EMAIL_DELIVERY_FAILED"
+    | "ACTIVATION_EXPIRED"
+    | "BLOCKED";
+  activation?: {
+    tokenStatus?: "PENDING" | "USED" | "EXPIRED" | string;
+    createdAt?: string;
+    expiresAt?: string;
+    usedAt?: string | null;
+    isExpired?: boolean;
+    emailDeliveryStatus?: "PENDING" | "SENT" | "FAILED" | string | null;
+    lastEmailDeliveryId?: string | null;
+    lastEmailError?: string | null;
+    lastEmailAttemptAt?: string | null;
+    reminderCount?: number;
+    deletionWarningSentAt?: string | null;
+  } | null;
   createdAt?: string;
   updatedAt?: string;
 };

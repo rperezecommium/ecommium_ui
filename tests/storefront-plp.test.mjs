@@ -69,6 +69,8 @@ test("storefront PLP route exists outside admin", () => {
   assert.match(checkoutRouteSource, /attachments\/shipping-data/);
   assert.match(checkoutRouteSource, /attachments\/payment-data/);
   assert.match(checkoutRouteSource, /\/coupons/);
+  assert.match(checkoutRouteSource, /case "remove-coupon"/);
+  assert.match(checkoutRouteSource, /method: "DELETE"/);
   assert.match(pdpRouteSource, /getStorefrontPdp/);
   assert.match(pdpRouteSource, /StorefrontPdpPage/);
   assert.match(pdpRouteSource, /storefrontVisitorCookieName/);
@@ -163,6 +165,10 @@ test("storefront cart UI mutates orderforms through the BFF proxy", () => {
   assert.match(cartClientSource, /Finalizar compra/);
   assert.match(cartClientSource, /href="\/checkout"/);
   assert.match(cartClientSource, /CartTotalsPanel/);
+  assert.match(cartClientSource, /StorefrontCouponControl/);
+  assert.match(cartClientSource, /mutateCheckoutCoupon\("coupon"/);
+  assert.match(cartClientSource, /mutateCheckoutCoupon\("remove-coupon"/);
+  assert.match(cartClientSource, /\/api\/storefront\/checkout/);
   assert.match(cartClientSource, /mutateCart\("POST"/);
   assert.match(cartClientSource, /mutateCart\("PATCH"/);
   assert.match(cartClientSource, /mutateCart\("DELETE"/);
@@ -176,6 +182,7 @@ test("storefront cart UI mutates orderforms through the BFF proxy", () => {
   assert.match(cartNormalizerSource, /envelope\.orderform/);
   assert.match(cartNormalizerSource, /clientProfileData/);
   assert.match(cartNormalizerSource, /couponData/);
+  assert.match(cartNormalizerSource, /cartCouponCode/);
   assert.match(cartNormalizerSource, /paymentData/);
   assert.match(cartNormalizerSource, /shippingData/);
   assert.match(cartNormalizerSource, /taxTotalMinor/);
@@ -188,6 +195,7 @@ test("storefront cart UI mutates orderforms through the BFF proxy", () => {
   assert.match(cssSource, /\.storefrontCartModal/);
   assert.match(cssSource, /\.storefrontCartModalProduct/);
   assert.match(cssSource, /\.storefrontCartTotalsPanel/);
+  assert.match(cssSource, /\.storefrontCouponPanel/);
 });
 
 test("storefront checkout persists orderform checkout data through BFF actions", () => {
@@ -201,9 +209,13 @@ test("storefront checkout persists orderform checkout data through BFF actions",
   assert.match(checkoutClientSource, /shipping-data/);
   assert.match(checkoutClientSource, /payment-data/);
   assert.match(checkoutClientSource, /coupon/);
+  assert.match(checkoutClientSource, /remove-coupon/);
+  assert.match(checkoutClientSource, /StorefrontCouponControl/);
+  assert.match(checkoutClientSource, /couponSlot/);
   assert.match(checkoutClientSource, /create-order/);
   assert.match(checkoutClientSource, /\/api\/storefront\/cart\/items/);
   assert.match(checkoutClientSource, /method: "DELETE"/);
+  assert.doesNotMatch(checkoutClientSource, /Cupón o promoción/);
   assert.match(checkoutClientSource, /cartUpdatedEventName/);
   assert.match(checkoutClientSource, /selectedSlas/);
   assert.match(checkoutClientSource, /selectedSla/);

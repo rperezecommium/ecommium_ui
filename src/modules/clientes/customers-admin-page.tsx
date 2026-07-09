@@ -17,6 +17,7 @@ import {
   Star,
   Tag,
   Trash2,
+  RotateCcw,
   UserCheck,
   UserRound,
   UsersRound,
@@ -44,6 +45,7 @@ import {
   createCustomerPrivacyRequestAction,
   createCustomerTaskAction,
   deleteCustomerAddressAction,
+  executeCustomerPrivacyErasureAction,
   recordCustomerConsentAction,
   replaceCustomerTagsAction,
   requestCustomerPasswordResetAction,
@@ -53,6 +55,7 @@ import {
   setDefaultBillingAddressAction,
   setDefaultShippingAddressAction,
   setCustomerAccountActivationAction,
+  testResetCustomerAction,
   updateCustomerPrivacyRequestStatusAction,
   updateCustomerProfileAction,
   updateCustomerAddressAction,
@@ -249,6 +252,49 @@ function statusBadgeClass(status: string | undefined) {
   return "adminBadge";
 }
 
+function accountStatusValue(account: CustomerOverviewData["account"] | undefined) {
+  if (!account) {
+    return "NO_AUTH_ACCOUNT";
+  }
+
+  return account.status ?? (account.active === false ? "BLOCKED" : "ACTIVE");
+}
+
+function accountStatusLabel(status: string | undefined) {
+  if (status === "ACTIVE") {
+    return "Activa";
+  }
+  if (status === "PENDING_ACTIVATION") {
+    return "Pendiente activacion";
+  }
+  if (status === "EMAIL_DELIVERY_FAILED") {
+    return "Email fallido";
+  }
+  if (status === "ACTIVATION_EXPIRED") {
+    return "Activacion expirada";
+  }
+  if (status === "BLOCKED") {
+    return "Bloqueada";
+  }
+
+  return "No vinculada";
+}
+
+function accountStatusBadgeClass(status: string | undefined) {
+  return status === "ACTIVE" ? "adminBadge adminBadgeOk" : "adminBadge adminBadgeWarn";
+}
+
+function accountActivationActionLabel(status: string | undefined, nextActive: boolean) {
+  if (!nextActive) {
+    return "Bloquear cuenta";
+  }
+  if (status === "PENDING_ACTIVATION" || status === "EMAIL_DELIVERY_FAILED" || status === "ACTIVATION_EXPIRED") {
+    return "Activar manualmente";
+  }
+
+  return "Reactivar cuenta";
+}
+
 function OverviewMiniList<T>({
   items,
   emptyLabel,
@@ -385,20 +431,28 @@ function AccountOverviewPanel({
   overview: CustomerOverviewData | null;
 }) {
   const account = overview?.account;
+  const accountStatus = accountStatusValue(account);
+  const activation = account?.activation;
   const nextActive = account?.active === false;
 
   return (
     <section className="pricingPanel">
       <div className="pricingPanelHeader">
         <div>
-          <h3>Cuenta auth</h3>
+          <h3>Gestion de acceso</h3>
           <p>{account ? account.email : "Sin cuenta asociada"}</p>
         </div>
-        <span className={`adminBadge ${account?.active === false ? "adminBadgeWarn" : "adminBadgeOk"}`}>
-          {account ? (account.active === false ? "Bloqueada" : "Activa") : "No vinculada"}
+        <span className={accountStatusBadgeClass(accountStatus)}>
+          {accountStatusLabel(accountStatus)}
         </span>
       </div>
       <dl className="adminDefinitionList">
+        <div><dt>Estado cuenta</dt><dd>{accountStatusLabel(accountStatus)}</dd></div>
+        <div><dt>Estado activacion</dt><dd>{valueText(activation?.tokenStatus)}</dd></div>
+        <div><dt>Vence activacion</dt><dd>{dateText(activation?.expiresAt)}</dd></div>
+        <div><dt>Ultimo email</dt><dd>{valueText(activation?.emailDeliveryStatus)}</dd></div>
+        <div><dt>Intentos</dt><dd>{valueText(activation?.reminderCount)}</dd></div>
+        <div><dt>Error email</dt><dd>{valueText(activation?.lastEmailError)}</dd></div>
         <div><dt>Principal</dt><dd>{compactId(account?.principalId)}</dd></div>
         <div><dt>Tipo</dt><dd>{valueText(account?.principalType)}</dd></div>
         <div><dt>Creada</dt><dd>{dateText(account?.createdAt)}</dd></div>
@@ -407,25 +461,48 @@ function AccountOverviewPanel({
       {capabilities.canManageAccount ? (
         <div className="customersActionGrid">
           {account ? (
-            <form action={setCustomerAccountActivationAction} className="customersInlineAction">
+            <form action={setCustomerAccountActivationAction} className="customersAccessAction">
               <HiddenCustomerFields customer={customer} />
               <input name="active" type="hidden" value={nextActive ? "true" : "false"} />
+              <input name="reason" placeholder="Motivo" />
               <button className="adminButton adminButtonTiny" type="submit">
-                {nextActive ? "Reactivar cuenta" : "Bloquear cuenta"}
+                {accountActivationActionLabel(accountStatus, nextActive)}
               </button>
             </form>
           ) : null}
-          <form action={resendCustomerActivationAction} className="customersInlineAction">
-            <HiddenCustomerFields customer={customer} />
-            <input name="locale" type="hidden" value={localeValue(customer, "es-ES")} />
-            <button className="adminButton adminButtonTiny" type="submit">Reenviar activacion</button>
-          </form>
-          <form action={requestCustomerPasswordResetAction} className="customersInlineAction">
-            <HiddenCustomerFields customer={customer} />
-            <input name="locale" type="hidden" value={localeValue(customer, "es-ES")} />
-            <button className="adminButton adminButtonTiny" type="submit">Solicitar reset</button>
-          </form>
+          {account && accountStatus !== "ACTIVE" ? (
+            <form action={resendCustomerActivationAction} className="customersInlineAction">
+              <HiddenCustomerFields customer={customer} />
+              <input name="locale" type="hidden" value={localeValue(customer, "es-ES")} />
+              <input name="reason" type="hidden" value="Reenvio manual de activacion desde Customer 360" />
+              <button className="adminButton adminButtonTiny" type="submit">Reenviar activacion</button>
+            </form>
+          ) : null}
+          {account ? (
+            <form action={requestCustomerPasswordResetAction} className="customersInlineAction">
+              <HiddenCustomerFields customer={customer} />
+              <input name="locale" type="hidden" value={localeValue(customer, "es-ES")} />
+              <input name="reason" type="hidden" value="Solicitud manual de reset desde Customer 360" />
+              <button className="adminButton adminButtonTiny" type="submit">Solicitar reset</button>
+            </form>
+          ) : null}
         </div>
+      ) : null}
+      {capabilities.canWritePrivacy ? (
+        <form action={testResetCustomerAction} className="customersFixtureReset">
+          <HiddenCustomerFields customer={customer} />
+          <input
+            aria-label="Confirmar email para reset de fixture"
+            name="confirmEmail"
+            placeholder={customer.email}
+            required
+            type="email"
+          />
+          <button className="adminButton adminButtonTiny adminButtonDanger" type="submit">
+            <RotateCcw aria-hidden="true" size={14} />
+            Reset fixture
+          </button>
+        </form>
       ) : null}
     </section>
   );
@@ -489,6 +566,13 @@ function OperationalOverviewPanel({
   const tasks = overview?.tasks.items ?? [];
   const privacyRequests = overview?.privacyRequests.items ?? [];
   const sessions = overview?.sessions?.items ?? [];
+  const pendingErasureRequest = privacyRequests.find(
+    (request) =>
+      request.requestType === "ERASURE" &&
+      request.status !== "COMPLETED" &&
+      request.status !== "REJECTED" &&
+      request.status !== "CANCELED",
+  );
 
   return (
     <section className="pricingPanel">
@@ -642,6 +726,19 @@ function OperationalOverviewPanel({
             <button className="adminButton adminButtonTiny" type="submit">Crear solicitud</button>
           </form>
         ) : null}
+        {capabilities.canWritePrivacy ? (
+          <form action={executeCustomerPrivacyErasureAction} className="customersAccessAction">
+            <HiddenCustomerFields customer={customer} />
+            {pendingErasureRequest ? (
+              <input name="requestId" type="hidden" value={pendingErasureRequest.requestId} />
+            ) : null}
+            <input name="reason" placeholder="Motivo legal" required />
+            <button className="adminButton adminButtonTiny adminButtonDanger" type="submit">
+              <Trash2 aria-hidden="true" size={14} />
+              Baja legal
+            </button>
+          </form>
+        ) : null}
         <OverviewMiniList
           emptyLabel="Sin sesiones activas."
           items={sessions}
@@ -667,8 +764,9 @@ function OperationalOverviewPanel({
             </form>
           ) : null}
           {capabilities.canWriteSessions && sessions.length ? (
-            <form action={revokeCustomerSessionsAction} className="customersInlineAction">
+            <form action={revokeCustomerSessionsAction} className="customersAccessAction">
               <HiddenCustomerFields customer={customer} />
+              <input name="reason" placeholder="Motivo" />
               <button className="adminButton adminButtonTiny adminButtonDanger" type="submit">Revocar sesiones</button>
             </form>
           ) : null}

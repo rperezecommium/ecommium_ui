@@ -7,6 +7,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { CheckCircle2, Loader2, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react";
 import {
+  cartCouponCode,
   cartHasCouponData,
   cartHasShippingData,
   cartGrandTotalMinor,
@@ -44,6 +45,19 @@ type CartMutationItem = {
   quantity: number;
   refId?: string;
   variantId?: string;
+};
+
+type StorefrontCouponControlProps = {
+  appliedCouponCode?: string;
+  couponCode: string;
+  currency: string;
+  discountMinor?: number;
+  hasAppliedCoupon?: boolean;
+  message?: string;
+  onApply: () => void;
+  onChange: (value: string) => void;
+  onRemove: () => void;
+  pendingAction: string | null;
 };
 
 export function StorefrontCartStatus() {
@@ -140,10 +154,73 @@ export function StorefrontAddToCartButton({
   );
 }
 
+export function StorefrontCouponControl({
+  appliedCouponCode,
+  couponCode,
+  currency,
+  discountMinor = 0,
+  hasAppliedCoupon,
+  message,
+  onApply,
+  onChange,
+  onRemove,
+  pendingAction,
+}: StorefrontCouponControlProps) {
+  const couponIsApplied = hasAppliedCoupon ?? Boolean(appliedCouponCode);
+  const appliedCouponLabel = appliedCouponCode ?? "Promoción";
+  const isApplying = pendingAction === "coupon";
+  const isRemoving = pendingAction === "remove-coupon";
+
+  return (
+    <details className="storefrontCouponPanel" open={couponIsApplied || Boolean(message)}>
+      <summary className="storefrontCouponSummary">
+        <span>{couponIsApplied ? "Cupón aplicado" : "Cupón disponible"}</span>
+        <strong>{couponIsApplied ? appliedCouponLabel : "Añadir código"}</strong>
+      </summary>
+      <div className="storefrontCouponBody">
+        {couponIsApplied ? (
+          <div className="storefrontCouponApplied">
+            <div>
+              <strong>{appliedCouponLabel}</strong>
+              <span>{discountMinor > 0 ? `Ahorro ${formatCartMoney(discountMinor, currency)}` : "Promoción activa"}</span>
+            </div>
+            <button disabled={isRemoving} onClick={onRemove} type="button">
+              {isRemoving ? <Loader2 aria-hidden="true" className="storefrontCartSpinner" size={15} /> : <X aria-hidden="true" size={15} />}
+              Quitar
+            </button>
+          </div>
+        ) : (
+          <form className="storefrontCouponForm" onSubmit={(event) => {
+            event.preventDefault();
+            onApply();
+          }}>
+            <label>
+              <span>Código</span>
+              <input
+                autoComplete="off"
+                onChange={(event) => onChange(event.currentTarget.value)}
+                placeholder="WELCOME10"
+                value={couponCode}
+              />
+            </label>
+            <button disabled={!couponCode.trim() || isApplying} type="submit">
+              {isApplying ? <Loader2 aria-hidden="true" className="storefrontCartSpinner" size={15} /> : null}
+              Aplicar
+            </button>
+          </form>
+        )}
+        {message ? <p className="storefrontCouponMessage" role="status">{message}</p> : null}
+      </div>
+    </details>
+  );
+}
+
 export function StorefrontCartPageClient() {
   const [orderform, setOrderform] = useState<StorefrontOrderform | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponMessage, setCouponMessage] = useState("");
 
   useEffect(() => {
     fetchCartCurrent()
@@ -203,6 +280,53 @@ export function StorefrontCartPageClient() {
     }
   }
 
+  async function applyCoupon() {
+    const code = couponCode.trim();
+    if (!orderform?.orderFormId || !code) {
+      return;
+    }
+
+    setPendingKey("coupon");
+    setCouponMessage("");
+    try {
+      const nextOrderform = await mutateCheckoutCoupon("coupon", {
+        guestSessionId: getOrCreateGuestSessionId(),
+        orderFormId: orderform.orderFormId,
+        payload: { couponCode: code },
+      });
+      commitOrderform(nextOrderform);
+      setOrderform(nextOrderform);
+      setCouponMessage("Cupón aplicado.");
+    } catch (error) {
+      setCouponMessage(error instanceof Error ? error.message : "No se pudo aplicar el cupón.");
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
+  async function removeCoupon() {
+    if (!orderform?.orderFormId) {
+      return;
+    }
+
+    setPendingKey("remove-coupon");
+    setCouponMessage("");
+    try {
+      const nextOrderform = await mutateCheckoutCoupon("remove-coupon", {
+        guestSessionId: getOrCreateGuestSessionId(),
+        orderFormId: orderform.orderFormId,
+      });
+      commitOrderform(nextOrderform);
+      setOrderform(nextOrderform);
+      setCouponCode("");
+      setCouponMessage("Cupón quitado.");
+    } catch (error) {
+      setCouponMessage(error instanceof Error ? error.message : "No se pudo quitar el cupón.");
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
   if (status === "loading") {
     return (
       <section className="storefrontCartEmpty">
@@ -256,6 +380,18 @@ export function StorefrontCartPageClient() {
       </div>
       <aside className="storefrontCartSummary" aria-label="Resumen del carrito">
         <h2>Resumen</h2>
+        <StorefrontCouponControl
+          appliedCouponCode={cartCouponCode(orderform)}
+          couponCode={couponCode}
+          currency={orderform.currency}
+          discountMinor={orderform.totals.discountsTotalMinor}
+          hasAppliedCoupon={cartHasCouponData(orderform)}
+          message={couponMessage}
+          onApply={applyCoupon}
+          onChange={setCouponCode}
+          onRemove={removeCoupon}
+          pendingAction={pendingKey}
+        />
         <dl>
           <div>
             <dt>Productos</dt>
@@ -546,6 +682,30 @@ async function mutateCart(method: "POST" | "PATCH" | "DELETE", input: {
       "content-type": "application/json",
     },
     method,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(asErrorMessage(payload));
+  }
+
+  const orderform = normalizeOrderformPayload(payload);
+  saveOrderformId(orderform.orderFormId);
+  return orderform;
+}
+
+async function mutateCheckoutCoupon(action: "coupon" | "remove-coupon", input: {
+  guestSessionId: string;
+  orderFormId: string;
+  payload?: Record<string, unknown>;
+}) {
+  const response = await fetch("/api/storefront/checkout", {
+    body: JSON.stringify({ ...input, action, payload: input.payload ?? {} }),
+    cache: "no-store",
+    credentials: "same-origin",
+    headers: {
+      "content-type": "application/json",
+    },
+    method: "POST",
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {

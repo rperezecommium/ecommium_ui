@@ -350,35 +350,98 @@ export async function setDefaultBillingAddressAction(formData: FormData): Promis
 }
 
 export async function setCustomerAccountActivationAction(formData: FormData): Promise<never> {
+  const currentActor = await actor();
+
   return customerJsonMutation(
     formData,
     "/account/activation",
     "PATCH",
-    { active: asBoolean(formData.get("active")) },
+    {
+      active: asBoolean(formData.get("active")),
+      actorId: currentActor.actorId,
+      actorEmail: currentActor.actorEmail,
+      reason: asNullableString(formData.get("reason")),
+    },
     asBoolean(formData.get("active")) ? "Cuenta reactivada." : "Cuenta bloqueada.",
     "customers.account.write",
   );
 }
 
 export async function resendCustomerActivationAction(formData: FormData): Promise<never> {
+  const currentActor = await actor();
+
   return customerJsonMutation(
     formData,
     "/account/activation/resend",
     "POST",
-    { locale: asString(formData.get("locale")) ?? "es-ES" },
+    {
+      locale: asString(formData.get("locale")) ?? "es-ES",
+      actorId: currentActor.actorId,
+      actorEmail: currentActor.actorEmail,
+      reason: asNullableString(formData.get("reason")),
+    },
     "Activacion reenviada.",
     "customers.account.write",
   );
 }
 
 export async function requestCustomerPasswordResetAction(formData: FormData): Promise<never> {
+  const currentActor = await actor();
+
   return customerJsonMutation(
     formData,
     "/account/password-reset/request",
     "POST",
-    { locale: asString(formData.get("locale")) ?? "es-ES" },
+    {
+      locale: asString(formData.get("locale")) ?? "es-ES",
+      actorId: currentActor.actorId,
+      actorEmail: currentActor.actorEmail,
+      reason: asNullableString(formData.get("reason")),
+    },
     "Reset de password solicitado.",
     "customers.account.write",
+  );
+}
+
+export async function testResetCustomerAction(formData: FormData): Promise<never> {
+  const context = await getAdminContext();
+  const customerId = requiredString(formData.get("customerId"), "customerId");
+  const confirmEmail = requiredString(formData.get("confirmEmail"), "Email").toLowerCase();
+  const result = await requestBff(
+    scopedPath(`/admin/customers/${encodeURIComponent(customerId)}/test-reset`, context.organizationId, context.shopId),
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ confirmEmail }),
+      },
+    },
+  );
+
+  revalidatePath("/admin/clientes");
+  if (!result.ok) {
+    redirect(customersReturnPath(customerMutationMessage(result.status, result.error, "customers.privacy.write"), customerId));
+  }
+
+  redirect(customersReturnPath(`Fixture reiniciado para ${confirmEmail}.`));
+}
+
+export async function executeCustomerPrivacyErasureAction(formData: FormData): Promise<never> {
+  const currentActor = await actor();
+
+  return customerJsonMutation(
+    formData,
+    "/privacy-erasure/execute",
+    "POST",
+    {
+      requestId: asNullableString(formData.get("requestId")),
+      reason: requiredString(formData.get("reason"), "Motivo legal"),
+      actorId: currentActor.actorId,
+      actorEmail: currentActor.actorEmail,
+    },
+    "Baja legal ejecutada: PII anonimizada y acceso revocado.",
+    "customers.privacy.write",
   );
 }
 
@@ -509,10 +572,17 @@ export async function recordCustomerConsentAction(formData: FormData): Promise<n
 }
 
 export async function revokeCustomerSessionsAction(formData: FormData): Promise<never> {
-  return customerEmptyMutation(
+  const currentActor = await actor();
+
+  return customerJsonMutation(
     formData,
     "/sessions/revoke",
     "POST",
+    {
+      actorId: currentActor.actorId,
+      actorEmail: currentActor.actorEmail,
+      reason: asNullableString(formData.get("reason")),
+    },
     "Sesiones revocadas.",
     "customers.sessions.write",
   );

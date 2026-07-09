@@ -5873,6 +5873,132 @@ p {
   font-weight: 800;
 }
 
+.storefrontCouponPanel {
+  border: 1px solid #d9dde3;
+  background: #ffffff;
+}
+
+.storefrontCouponPanel[open] {
+  border-color: #b8e8f2;
+  box-shadow: 0 8px 18px rgba(20, 45, 65, 0.08);
+}
+
+.storefrontCouponSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 14px;
+  color: #232323;
+  cursor: pointer;
+  list-style: none;
+}
+
+.storefrontCouponSummary::-webkit-details-marker {
+  display: none;
+}
+
+.storefrontCouponSummary span {
+  color: #647483;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.storefrontCouponSummary strong {
+  color: #1e6574;
+  font-size: 13px;
+  font-weight: 850;
+  text-align: right;
+}
+
+.storefrontCouponBody {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.storefrontCouponForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.storefrontCouponForm label {
+  display: grid;
+  gap: 6px;
+  color: #232323;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.storefrontCouponForm input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #cfd6df;
+  background: #ffffff;
+  color: #232323;
+  font: inherit;
+  padding: 0 10px;
+}
+
+.storefrontCouponForm input:focus {
+  outline: 2px solid rgba(36, 185, 215, 0.22);
+  border-color: #24b9d7;
+}
+
+.storefrontCouponForm button,
+.storefrontCouponApplied button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #24b9d7;
+  background: #24b9d7;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.storefrontCouponForm button:disabled,
+.storefrontCouponApplied button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.storefrontCouponApplied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.storefrontCouponApplied div {
+  display: grid;
+  gap: 3px;
+}
+
+.storefrontCouponApplied strong {
+  color: #232323;
+  font-size: 14px;
+}
+
+.storefrontCouponApplied span,
+.storefrontCouponMessage {
+  color: #647483;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.storefrontCouponMessage {
+  margin: 0;
+}
+
 .storefrontCartSummaryTotal {
   padding-top: 14px;
   border-top: 1px solid #e6e8ec;
@@ -8822,9 +8948,15 @@ p {
     justify-self: start;
   }
 
+  .storefrontCouponForm,
   .storefrontCheckoutCouponRow,
   .storefrontCheckoutSummaryItems article {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefrontCouponApplied {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .storefrontCheckoutSummaryItems article > span {

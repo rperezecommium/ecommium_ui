@@ -268,12 +268,29 @@ function normalizeAccount(value: unknown): CustomerAccountSummary | null {
     return null;
   }
   const record = asRecord(value);
+  const activation = asRecord(record.activation);
 
   return {
     principalId: asString(record.principalId) ?? "",
     principalType: asString(record.principalType),
     email: asString(record.email) ?? "",
     active: asBoolean(record.active),
+    status: asString(record.status) as CustomerAccountSummary["status"],
+    activation: record.activation
+      ? {
+          tokenStatus: asString(activation.tokenStatus),
+          createdAt: asString(activation.createdAt),
+          expiresAt: asString(activation.expiresAt),
+          usedAt: asNullableString(activation.usedAt),
+          isExpired: asBoolean(activation.isExpired),
+          emailDeliveryStatus: asNullableString(activation.emailDeliveryStatus),
+          lastEmailDeliveryId: asNullableString(activation.lastEmailDeliveryId),
+          lastEmailError: asNullableString(activation.lastEmailError),
+          lastEmailAttemptAt: asNullableString(activation.lastEmailAttemptAt),
+          reminderCount: asNumber(activation.reminderCount),
+          deletionWarningSentAt: asNullableString(activation.deletionWarningSentAt),
+        }
+      : null,
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
   };
@@ -592,7 +609,7 @@ export function buildCustomerAdminTimeline(
       eventId: `account:${overview?.account?.principalId ?? customerId}`,
       eventType: "ACCOUNT_STATUS",
       label: "Cuenta auth",
-      status: overview?.account ? (overview.account.active === false ? "BLOCKED" : "ACTIVE") : undefined,
+      status: overview?.account?.status ?? (overview?.account ? (overview.account.active === false ? "BLOCKED" : "ACTIVE") : undefined),
       actor: overview?.account?.email,
       referenceId: overview?.account?.principalId,
       occurredAt: overview?.account?.updatedAt ?? overview?.account?.createdAt,

@@ -97,6 +97,13 @@ function endpointForAction(action: string, orderFormId: string, params: URLSearc
         path: `/orderforms/${encodeURIComponent(orderFormId)}/coupons?${params.toString()}`,
         status: 201,
       };
+    case "remove-coupon":
+      return {
+        method: "DELETE",
+        path: `/orderforms/${encodeURIComponent(orderFormId)}/coupons?${params.toString()}`,
+        status: 200,
+        withoutBody: true,
+      };
     default:
       return null;
   }
@@ -185,7 +192,7 @@ export async function POST(request: Request) {
     init: {
       method: endpoint.method,
       headers: passthroughHeaders(authorization, guestSessionId),
-      body: JSON.stringify(payload),
+      body: "withoutBody" in endpoint && endpoint.withoutBody ? undefined : JSON.stringify(payload),
     },
     withAuth: false,
   });

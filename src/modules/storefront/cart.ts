@@ -34,7 +34,18 @@ export type StorefrontCartOffering = {
   type?: string;
 };
 
+export type StorefrontCouponOffer = {
+  couponCode: string;
+  description?: string;
+  discountType?: string;
+  name: string;
+  value?: number;
+  currency?: string;
+  validTo?: string;
+};
+
 export type StorefrontOrderform = {
+  availableCoupons: StorefrontCouponOffer[];
   clientProfileData?: Record<string, unknown> | null;
   couponData?: Record<string, unknown> | null;
   createdAt?: string;
@@ -59,6 +70,7 @@ export function normalizeOrderformPayload(payload: unknown): StorefrontOrderform
     "EUR";
 
   return {
+    availableCoupons: normalizeAvailableCoupons(orderform),
     clientProfileData: nullableRecord(orderform.clientProfileData),
     couponData: nullableRecord(orderform.couponData),
     createdAt: asString(orderform.createdAt),
@@ -112,6 +124,24 @@ export function cartHasCouponData(orderform: StorefrontOrderform | undefined | n
   return Boolean(orderform?.couponData && Object.keys(orderform.couponData).length > 0);
 }
 
+export function cartCouponCode(orderform: StorefrontOrderform | undefined | null) {
+  const couponData = orderform?.couponData;
+  if (!couponData) {
+    return undefined;
+  }
+
+  return (
+    asString(couponData.couponCode) ??
+    asString(couponData.code) ??
+    asString(couponData.identifier) ??
+    asString(couponData.promoCode)
+  );
+}
+
+export function cartAvailableCoupons(orderform: StorefrontOrderform | undefined | null) {
+  return orderform?.availableCoupons ?? [];
+}
+
 export function formatCartMoney(valueMinor: number | undefined, currency = "EUR", locale = "es-ES") {
   const amount = (valueMinor ?? 0) / 100;
   return new Intl.NumberFormat(locale, {
@@ -123,11 +153,12 @@ export function formatCartMoney(valueMinor: number | undefined, currency = "EUR"
 function normalizeCartItem(value: unknown): StorefrontCartItem {
   const item = asRecord(value);
   const image = asRecord(item.image);
+  const price = asRecord(item.price);
   const quantity = Math.max(0, asNumber(item.quantity) ?? 0);
   const unitPriceMinor =
     asNumber(item.unitPriceMinor) ??
     asNumber(item.priceMinor) ??
-    asNumber(item.price?.currentAmountMinor);
+    asNumber(price.currentAmountMinor);
   const manualUnitPriceMinor = asNumber(item.manualUnitPriceMinor);
   const lineTotalMinor =
     asNumber(item.lineTotalMinor) ??
@@ -161,6 +192,40 @@ function normalizeOffering(value: unknown): StorefrontCartOffering {
     offeringId: asString(offering.offeringId),
     priceMinor: asNumber(offering.priceMinor),
     type: asString(offering.type),
+  };
+}
+
+function normalizeAvailableCoupons(orderform: Record<string, unknown>) {
+  return [
+    ...listItems(orderform.availableCoupons),
+    ...listItems(orderform.availablePromotions),
+    ...listItems(orderform.couponOffers),
+    ...listItems(asRecord(orderform.couponData).availableCoupons),
+  ]
+    .map(normalizeCouponOffer)
+    .filter((coupon): coupon is StorefrontCouponOffer => Boolean(coupon));
+}
+
+function normalizeCouponOffer(value: unknown): StorefrontCouponOffer | null {
+  const coupon = asRecord(value);
+  const couponCode =
+    asString(coupon.couponCode) ??
+    asString(coupon.code) ??
+    asString(coupon.identifier) ??
+    asString(coupon.promoCode);
+
+  if (!couponCode) {
+    return null;
+  }
+
+  return {
+    couponCode,
+    currency: asString(coupon.currency),
+    description: asString(coupon.description),
+    discountType: asString(coupon.discountType) ?? asString(coupon.type),
+    name: asString(coupon.name) ?? asString(coupon.title) ?? couponCode,
+    validTo: asString(coupon.validTo) ?? asString(coupon.expiresAt),
+    value: asNumber(coupon.value),
   };
 }
 

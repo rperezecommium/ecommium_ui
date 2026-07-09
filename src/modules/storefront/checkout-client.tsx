@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle2, CreditCard, Edit3, Loader2, LogIn, Rocket, ShieldCheck, Truck, UserRound } from "lucide-react";
 import {
+  cartCouponCode,
   cartGrandTotalMinor,
   cartHasCouponData,
   cartHasShippingData,
@@ -17,6 +18,7 @@ import {
   type StorefrontCartItem,
   type StorefrontOrderform,
 } from "./cart";
+import { StorefrontCouponControl } from "./cart-client";
 import type { StorefrontCheckoutAllowedAction, StorefrontCheckoutContextResponse } from "./checkout-types";
 import type { StorefrontAuthActionState } from "./auth-types";
 import {
@@ -96,6 +98,7 @@ export function StorefrontCheckoutClient() {
   const [guestCheckoutMode, setGuestCheckoutMode] = useState<GuestCheckoutMode>("guest");
   const [address, setAddress] = useState(defaultAddress);
   const [couponCode, setCouponCode] = useState("");
+  const [couponMessage, setCouponMessage] = useState("");
   const [paymentSystem, setPaymentSystem] = useState("credit-card");
   const [installments, setInstallments] = useState(1);
   const [shippingOptions, setShippingOptions] = useState<ShippingOptions | null>(null);
@@ -292,12 +295,26 @@ export function StorefrontCheckoutClient() {
       return;
     }
     setPendingAction("coupon");
-    setMessage("");
+    setCouponMessage("");
     try {
       await applyOrderformAction("coupon", { couponCode: code });
-      setMessage("Cupón aplicado.");
+      setCouponMessage("Cupón aplicado.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "No se pudo aplicar el cupón.");
+      setCouponMessage(error instanceof Error ? error.message : "No se pudo aplicar el cupón.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function removeCoupon() {
+    setPendingAction("remove-coupon");
+    setCouponMessage("");
+    try {
+      await applyOrderformAction("remove-coupon", {});
+      setCouponCode("");
+      setCouponMessage("Cupón quitado.");
+    } catch (error) {
+      setCouponMessage(error instanceof Error ? error.message : "No se pudo quitar el cupón.");
     } finally {
       setPendingAction(null);
     }
@@ -515,13 +532,6 @@ export function StorefrontCheckoutClient() {
             title="Pago"
           >
             <CheckoutValidationList messages={validationErrors.payment} />
-            <div className="storefrontCheckoutCouponRow">
-              <label>
-                <span>Cupón o promoción</span>
-                <input value={couponCode} onChange={(event) => setCouponCode(event.currentTarget.value)} placeholder="WELCOME10" />
-              </label>
-              <button disabled={pendingAction === "coupon"} onClick={applyCoupon} type="button">Aplicar</button>
-            </div>
             <div className="storefrontCheckoutPaymentMethods">
               {["credit-card", "paypal", "bank-transfer"].map((method) => (
                 <label key={method}>
@@ -568,7 +578,24 @@ export function StorefrontCheckoutClient() {
           </CheckoutSectionCard>
         </div>
       </div>
-      <CheckoutSummary orderform={orderform} totals={totals} />
+      <CheckoutSummary
+        couponSlot={(
+          <StorefrontCouponControl
+            appliedCouponCode={cartCouponCode(orderform)}
+            couponCode={couponCode}
+            currency={orderform.currency}
+            discountMinor={totals.discounts}
+            hasAppliedCoupon={cartHasCouponData(orderform)}
+            message={couponMessage}
+            onApply={applyCoupon}
+            onChange={setCouponCode}
+            onRemove={removeCoupon}
+            pendingAction={pendingAction}
+          />
+        )}
+        orderform={orderform}
+        totals={totals}
+      />
     </section>
   );
 }
@@ -1094,9 +1121,11 @@ function CheckoutStateGrid({ orderform }: { orderform: StorefrontOrderform }) {
 }
 
 function CheckoutSummary({
+  couponSlot,
   orderform,
   totals,
 }: {
+  couponSlot?: ReactNode;
   orderform: StorefrontOrderform;
   totals: {
     discounts: number;
@@ -1113,6 +1142,7 @@ function CheckoutSummary({
       <div className="storefrontCheckoutSummaryItems">
         {orderform.items.map((item) => <CheckoutSummaryItem currency={orderform.currency} item={item} key={`${item.variantId ?? item.refId ?? item.name}`} />)}
       </div>
+      {couponSlot}
       <dl>
         <div>
           <dt>Productos</dt>
