@@ -38,6 +38,11 @@ test("storefront PLP route exists outside admin", () => {
   const searchRouteSource = readFileSync(path.resolve(root, "app/search/page.tsx"), "utf8");
   const confirmationRouteSource = readFileSync(path.resolve(root, "app/checkout/confirmation/page.tsx"), "utf8");
   const searchEventsRouteSource = readFileSync(path.resolve(root, "app/api/storefront/search/events/route.ts"), "utf8");
+  const cartRouteSource = readFileSync(path.resolve(root, "app/api/storefront/cart/route.ts"), "utf8");
+  const cartItemsRouteSource = readFileSync(path.resolve(root, "app/api/storefront/cart/items/route.ts"), "utf8");
+  const cartPageSource = readFileSync(path.resolve(root, "app/cart/page.tsx"), "utf8");
+  const checkoutPageSource = readFileSync(path.resolve(root, "app/checkout/page.tsx"), "utf8");
+  const checkoutRouteSource = readFileSync(path.resolve(root, "app/api/storefront/checkout/route.ts"), "utf8");
   const pdpRouteSource = readFileSync(path.resolve(root, "app/pdp/[productSlug]/page.tsx"), "utf8");
   const visitorSource = readFileSync(path.resolve(root, "src/modules/storefront/visitor.ts"), "utf8");
   assert.match(routeSource, /getStorefrontPlp/);
@@ -51,6 +56,19 @@ test("storefront PLP route exists outside admin", () => {
   assert.match(searchEventsRouteSource, /\/storefront\/search\/events/);
   assert.match(searchEventsRouteSource, /withAuth: false/);
   assert.match(searchEventsRouteSource, /visitorIdFromCookieHeader/);
+  assert.match(cartRouteSource, /\/orderforms\/current/);
+  assert.match(cartRouteSource, /getStorefrontCustomerAuthorizationHeader/);
+  assert.match(cartRouteSource, /withAuth: false/);
+  assert.match(cartItemsRouteSource, /\/orderforms\/\$\{encodeURIComponent\(input\.orderFormId\)\}\/items/);
+  assert.match(cartItemsRouteSource, /items\/remove-all/);
+  assert.match(cartPageSource, /StorefrontCartPageClient/);
+  assert.match(checkoutPageSource, /StorefrontCheckoutClient/);
+  assert.match(checkoutRouteSource, /\/shipping\/options\/resolve/);
+  assert.match(checkoutRouteSource, /\/orders/);
+  assert.match(checkoutRouteSource, /attachments\/client-profile-data/);
+  assert.match(checkoutRouteSource, /attachments\/shipping-data/);
+  assert.match(checkoutRouteSource, /attachments\/payment-data/);
+  assert.match(checkoutRouteSource, /\/coupons/);
   assert.match(pdpRouteSource, /getStorefrontPdp/);
   assert.match(pdpRouteSource, /StorefrontPdpPage/);
   assert.match(pdpRouteSource, /storefrontVisitorCookieName/);
@@ -65,6 +83,11 @@ test("storefront PLP product cards expose availability ribbon and quick view", (
   assert.match(plpPageSource, /action="\/search"/);
   assert.match(plpPageSource, /name="q"/);
   assert.match(plpPageSource, /StorefrontSearchEventsClient/);
+  assert.match(plpPageSource, /StorefrontCartStatus/);
+  assert.match(plpPageSource, /StorefrontAddToCartButton/);
+  assert.match(plpPageSource, /className="storefrontProductCartButton"/);
+  assert.match(plpPageSource, /disabled=\{!product\.available \|\| !product\.variantId\}/);
+  assert.match(plpPageSource, /variantId=\{product\.variantId\}/);
   assert.match(plpPageSource, /data-search-product-id/);
   assert.match(plpPageSource, /product\.productUrlPath\?\.startsWith\("\/"\)/);
   assert.match(plpPageSource, /encodeURIComponent\(product\.slug\)/);
@@ -118,7 +141,80 @@ test("storefront PDP add to cart records search add-to-cart event", () => {
   assert.match(pdpPageSource, /productDetails: \[\{/);
   assert.match(pdpPageSource, /variantId: selectedVariant\?\.variantId/);
   assert.match(pdpPageSource, /quantity,/);
-  assert.match(pdpPageSource, /onClick=\{addToCart\}/);
+  assert.match(pdpPageSource, /StorefrontAddToCartButton/);
+  assert.match(pdpPageSource, /onAdded=\{recordAddToCartEvent\}/);
+  assert.match(pdpPageSource, /className="storefrontPdpAddToCartButton"/);
+});
+
+test("storefront cart UI mutates orderforms through the BFF proxy", () => {
+  const cartClientSource = readFileSync(path.resolve(root, "src/modules/storefront/cart-client.tsx"), "utf8");
+  const cartNormalizerSource = readFileSync(path.resolve(root, "src/modules/storefront/cart.ts"), "utf8");
+  const cartItemsRouteSource = readFileSync(path.resolve(root, "app/api/storefront/cart/items/route.ts"), "utf8");
+  const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
+
+  assert.match(cartClientSource, /ecommium_storefront_guest_session_id/);
+  assert.match(cartClientSource, /ecommium_storefront_order_form_id/);
+  assert.match(cartClientSource, /ecommium:cart-updated/);
+  assert.match(cartClientSource, /\/api\/storefront\/cart\?/);
+  assert.match(cartClientSource, /\/api\/storefront\/cart\/items/);
+  assert.match(cartClientSource, /StorefrontCartConfirmationDialog/);
+  assert.match(cartClientSource, /Producto añadido correctamente a tu carrito/);
+  assert.match(cartClientSource, /Continuar comprando/);
+  assert.match(cartClientSource, /Finalizar compra/);
+  assert.match(cartClientSource, /href="\/checkout"/);
+  assert.match(cartClientSource, /CartTotalsPanel/);
+  assert.match(cartClientSource, /mutateCart\("POST"/);
+  assert.match(cartClientSource, /mutateCart\("PATCH"/);
+  assert.match(cartClientSource, /mutateCart\("DELETE"/);
+  assert.match(cartClientSource, /itemIndex, quantity: Math\.max\(0, quantity\)/);
+  assert.match(cartClientSource, /onQuantityChange\(index, 0\)/);
+  assert.match(cartClientSource, /cartHasShippingData\(orderform\) \|\| totals\.shipping > 0/);
+  assert.match(cartClientSource, /cartHasCouponData\(orderform\) && orderform\.totals\.discountsTotalMinor/);
+  assert.doesNotMatch(cartClientSource, /Pendiente/);
+  assert.match(cartClientSource, /StorefrontCartPageClient/);
+  assert.match(cartNormalizerSource, /normalizeOrderformPayload/);
+  assert.match(cartNormalizerSource, /envelope\.orderform/);
+  assert.match(cartNormalizerSource, /clientProfileData/);
+  assert.match(cartNormalizerSource, /couponData/);
+  assert.match(cartNormalizerSource, /paymentData/);
+  assert.match(cartNormalizerSource, /shippingData/);
+  assert.match(cartNormalizerSource, /taxTotalMinor/);
+  assert.match(cartNormalizerSource, /cartItemLineTotalMinor/);
+  assert.match(cartItemsRouteSource, /method === "POST" \? 201 : 200/);
+  assert.match(cartItemsRouteSource, /items\/remove-all/);
+  assert.match(cssSource, /\.storefrontCartLayout/);
+  assert.match(cssSource, /\.storefrontCartItem/);
+  assert.match(cssSource, /\.storefrontCartQuantity/);
+  assert.match(cssSource, /\.storefrontCartModal/);
+  assert.match(cssSource, /\.storefrontCartModalProduct/);
+  assert.match(cssSource, /\.storefrontCartTotalsPanel/);
+});
+
+test("storefront checkout persists orderform checkout data through BFF actions", () => {
+  const checkoutClientSource = readFileSync(path.resolve(root, "src/modules/storefront/checkout-client.tsx"), "utf8");
+  const checkoutRouteSource = readFileSync(path.resolve(root, "app/api/storefront/checkout/route.ts"), "utf8");
+  const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
+
+  assert.match(checkoutClientSource, /StorefrontCheckoutClient/);
+  assert.match(checkoutClientSource, /client-profile-data/);
+  assert.match(checkoutClientSource, /resolve-shipping-options/);
+  assert.match(checkoutClientSource, /shipping-data/);
+  assert.match(checkoutClientSource, /payment-data/);
+  assert.match(checkoutClientSource, /coupon/);
+  assert.match(checkoutClientSource, /create-order/);
+  assert.match(checkoutClientSource, /\/api\/storefront\/cart\/items/);
+  assert.match(checkoutClientSource, /method: "DELETE"/);
+  assert.match(checkoutClientSource, /cartUpdatedEventName/);
+  assert.match(checkoutClientSource, /selectedSlas/);
+  assert.match(checkoutClientSource, /selectedSla/);
+  assert.match(checkoutClientSource, /Confirmar pedido/);
+  assert.match(checkoutClientSource, /checkout\/confirmation/);
+  assert.match(checkoutRouteSource, /passthroughHeaders\(authorization, guestSessionId\)/);
+  assert.match(checkoutRouteSource, /getStorefrontCustomerAuthorizationHeader/);
+  assert.match(checkoutRouteSource, /withAuth: false/);
+  assert.match(cssSource, /\.storefrontCheckoutLayout/);
+  assert.match(cssSource, /\.storefrontCheckoutStepper/);
+  assert.match(cssSource, /\.storefrontCheckoutSummary/);
 });
 
 

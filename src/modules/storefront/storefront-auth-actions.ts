@@ -48,16 +48,48 @@ function formString(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function safeRedirectPath(value: string, fallback: string) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return fallback;
+  }
+
+  return value;
+}
+
 function publicAuthError(status?: number) {
   if (status === 429) {
     return "Demasiados intentos. Espera unos minutos e intentalo de nuevo.";
+  }
+
+  if (status === 409) {
+    return "Ya existe una cuenta con este email. Inicia sesion o solicita recuperar password.";
   }
 
   if (status === 401 || status === 403) {
     return "No se pudo iniciar sesion. Revisa tus datos e intentalo de nuevo.";
   }
 
+  if (status === 400) {
+    return "No se pudo validar el registro. Revisa los datos e intentalo de nuevo.";
+  }
+
   return "No se pudo completar la operacion. Intentalo de nuevo.";
+}
+
+function signupActivationMessage(activation: StorefrontSignupResponse["activation"]) {
+  if (activation?.status !== "pending") {
+    return "Cuenta creada correctamente.";
+  }
+
+  if (activation.delivery === "email_failed") {
+    return "Cuenta creada, pero no pudimos enviar el email de activacion. Solicita reenvio o contacta soporte.";
+  }
+
+  if (activation.delivery === "email_skipped") {
+    return "Cuenta creada pendiente de activacion. Solicita el email de activacion para continuar.";
+  }
+
+  return "Cuenta creada. Revisa tu email para activarla antes de iniciar sesion.";
 }
 
 async function deviceHeaders() {
@@ -92,6 +124,7 @@ export async function loginStorefrontCustomer(
   void previousState;
   const email = formString(formData, "email");
   const password = formString(formData, "password");
+  const redirectTo = safeRedirectPath(formString(formData, "redirectTo"), "/account");
   const context = getStorefrontContext();
 
   if (!email || !password) {
@@ -130,6 +163,9 @@ export async function loginStorefrontCustomer(
   }
 
   await saveCustomerSession(result.data);
+  if (redirectTo !== "/account") {
+    redirect(redirectTo);
+  }
   redirect("/account");
 }
 
@@ -144,6 +180,7 @@ export async function signupStorefrontCustomer(
   const lastName = formString(formData, "lastName");
   const honeypot = formString(formData, "company");
   const startedAt = formString(formData, "startedAt");
+  const redirectTo = formString(formData, "redirectTo");
   const context = getStorefrontContext();
 
   if (!email || !password || !firstName || !lastName) {
@@ -199,14 +236,14 @@ export async function signupStorefrontCustomer(
       session: result.data.session,
       tokens: result.data.tokens,
     });
+    if (redirectTo) {
+      redirect(safeRedirectPath(redirectTo, "/account"));
+    }
   }
 
   return {
     status: result.data.activation?.status === "pending" ? "activation_pending" : "success",
-    message:
-      result.data.activation?.status === "pending"
-        ? "Cuenta creada. Revisa tu email para activarla antes de iniciar sesion."
-        : "Cuenta creada correctamente.",
+    message: signupActivationMessage(result.data.activation),
     email,
   };
 }

@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, Copy, Mail, Minus, Plus, RotateCcw, Search, Share2, ShieldCheck, ShoppingCart, Truck, X } from "lucide-react";
+import { Check, Copy, Mail, Minus, Plus, RotateCcw, Search, Share2, ShieldCheck, Truck, X } from "lucide-react";
+import { StorefrontAddToCartButton } from "./cart-client";
 import type { StorefrontPdpData } from "./pdp";
 import { sendStorefrontSearchEvent } from "./search-events-client";
 
@@ -21,7 +22,6 @@ export function StorefrontPdpContentClient({ data }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [shareUrl, setShareUrl] = useState(`/pdp/${data.slug}`);
   const [copiedShareUrl, setCopiedShareUrl] = useState(false);
-  const [cartFeedback, setCartFeedback] = useState(false);
   const [zoomModalOpen, setZoomModalOpen] = useState(false);
   const [zoomLens, setZoomLens] = useState({ active: false, x: 50, y: 50 });
   const selectedVariant = useMemo(
@@ -115,7 +115,7 @@ export function StorefrontPdpContentClient({ data }: Props) {
     }
   }
 
-  function addToCart() {
+  function recordAddToCartEvent() {
     sendStorefrontSearchEvent({
       organizationId: data.eventContext.organizationId,
       shopId: data.eventContext.shopId,
@@ -129,8 +129,6 @@ export function StorefrontPdpContentClient({ data }: Props) {
       uri: window.location.href,
       occurredAt: new Date().toISOString(),
     });
-    setCartFeedback(true);
-    window.setTimeout(() => setCartFeedback(false), 1800);
   }
 
   return (
@@ -232,9 +230,14 @@ export function StorefrontPdpContentClient({ data }: Props) {
                 <Plus aria-hidden="true" size={16} />
               </button>
             </div>
-            <button onClick={addToCart} type="button">
-              <ShoppingCart aria-hidden="true" size={19} /> {cartFeedback ? "Añadido" : "Añadir al carrito"}
-            </button>
+            <StorefrontAddToCartButton
+              className="storefrontPdpAddToCartButton"
+              disabled={!available || (!selectedVariant?.variantId && !reference)}
+              onAdded={recordAddToCartEvent}
+              quantity={quantity}
+              refId={selectedVariant?.refId ?? data.refId}
+              variantId={selectedVariant?.variantId}
+            />
           </div>
           <PdpServiceBenefits />
           <section className="storefrontPdpProductFacts">

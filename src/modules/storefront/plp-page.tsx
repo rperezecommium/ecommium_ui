@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { StorefrontCategoryLink, StorefrontPlpBlock, StorefrontPlpData, StorefrontPlpProduct, StorefrontPlpResult } from "./plp";
 import { getStorefrontCustomerSession } from "./storefront-customer-session";
 import { StorefrontAuthEntry } from "./storefront-auth-drawer";
+import { StorefrontAddToCartButton, StorefrontCartStatus } from "./cart-client";
 import { StorefrontSearchEventsClient } from "./search-events-client";
 
 type Props = {
@@ -79,11 +80,14 @@ export async function StorefrontHeader({ initialQuery }: { initialQuery?: string
           <input name="q" defaultValue={initialQuery ?? ""} placeholder="Buscar en nuestra tienda" />
           <button type="submit">Buscar</button>
         </form>
-        <nav>
-          <Link href="/plp/bike-drivetrain">Catalogo</Link>
-          <Link href="/plp/clothes">Clothes</Link>
-          <Link href="/plp/accessories">Accessories</Link>
-        </nav>
+        <div className="storefrontHeaderActions">
+          <nav>
+            <Link href="/plp/bike-drivetrain">Catalogo</Link>
+            <Link href="/plp/clothes">Clothes</Link>
+            <Link href="/plp/accessories">Accessories</Link>
+          </nav>
+          <StorefrontCartStatus />
+        </div>
       </div>
     </header>
   );
@@ -238,6 +242,13 @@ function ProductCard({
           {product.previousPriceDisplay ? <s>{product.previousPriceDisplay}</s> : null}
           <b>{product.priceDisplay ?? "Precio pendiente"}</b>
         </div>
+        <StorefrontAddToCartButton
+          className="storefrontProductCartButton"
+          compact
+          disabled={!product.available || !product.variantId}
+          quantity={1}
+          variantId={product.variantId}
+        />
       </div>
     </article>
   );
