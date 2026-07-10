@@ -1,4 +1,5 @@
 import { adminBffToken, bffBaseUrl } from "../config/env";
+import { getAdminRequestAuthorizationToken } from "../auth/admin-request-session";
 import { getAdminAuthorizationToken } from "../auth/session";
 import { createBffHeaders } from "./headers";
 import type { BffRequestContext, BffResult } from "./types";
@@ -46,7 +47,8 @@ export async function requestBff<T>(
 ): Promise<BffResult<T>> {
   const correlationId = options.context?.correlationId ?? makeCorrelationId();
   const shouldSendAuth = options.withAuth !== false;
-  const sessionToken = shouldSendAuth ? await getAdminAuthorizationToken() : undefined;
+  const requestSessionToken = shouldSendAuth ? getAdminRequestAuthorizationToken() : undefined;
+  const sessionToken = shouldSendAuth ? requestSessionToken ?? await getAdminAuthorizationToken() : undefined;
   const headers = createBffHeaders({
     adminToken: shouldSendAuth ? sessionToken ?? adminBffToken : undefined,
     correlationId,

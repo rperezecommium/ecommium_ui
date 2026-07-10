@@ -21,6 +21,16 @@ export type StorefrontPlpProduct = {
   priceDisplay?: string;
   previousPriceDisplay?: string;
   available: boolean;
+  offerings: StorefrontPlpOffering[];
+};
+
+export type StorefrontPlpOffering = {
+  active?: boolean;
+  currency?: string;
+  name: string;
+  offeringId?: string;
+  priceMinor?: number;
+  type?: string;
 };
 
 export type StorefrontSearchEventData = {
@@ -387,6 +397,7 @@ function mapProduct(value: unknown): StorefrontPlpProduct {
   const product = asRecord(value);
   const image = asRecord(product.image);
   const price = asRecord(product.price);
+  const variantId = asString(product.selectedVariantId) ?? asString(product.variantId);
   const currentAmountMinor =
     asNumber(price.currentAmountMinor) ??
     asNumber(price.grossAmountMinor) ??
@@ -397,7 +408,7 @@ function mapProduct(value: unknown): StorefrontPlpProduct {
 
   return {
     productId: asString(product.productId) ?? asString(product.variantId) ?? "product",
-    variantId: asString(product.selectedVariantId) ?? asString(product.variantId),
+    variantId,
     slug: asString(product.slug) ?? asString(product.productId) ?? "product",
     productUrlPath: asString(product.productUrlPath),
     name: asString(product.nombre) ?? asString(product.name) ?? "Producto",
@@ -408,6 +419,48 @@ function mapProduct(value: unknown): StorefrontPlpProduct {
     priceDisplay: formatMoney(currentAmountMinor, currency),
     previousPriceDisplay: formatMoney(previousAmountMinor, currency),
     available: asBoolean(product.isAvailable) ?? true,
+    offerings: productOfferings(product, variantId),
+  };
+}
+
+function productOfferings(product: Record<string, unknown>, variantId: string | undefined): StorefrontPlpOffering[] {
+  const variants = listItems(product.variants).map(asRecord);
+  const selectedVariant = variants.find((variant) => asString(variant.variantId) === variantId);
+  const defaultVariant = variants.find((variant) => asBoolean(variant.isDefault));
+  const variantWithOfferings = variants.find((variant) => listItems(variant.offerings).length > 0);
+  const source = selectedVariant && listItems(selectedVariant.offerings).length > 0
+    ? selectedVariant.offerings
+    : listItems(product.offerings).length > 0
+      ? product.offerings
+      : defaultVariant && listItems(defaultVariant.offerings).length > 0
+        ? defaultVariant.offerings
+        : variantWithOfferings?.offerings;
+
+  return listItems(source).map(normalizeOffering).filter((offering) => offering.active !== false);
+}
+
+function normalizeOffering(value: unknown): StorefrontPlpOffering {
+  const offering = asRecord(value);
+  const localizedName = listItems(offering.localizedName)
+    .map(asRecord)
+    .map((item) => asString(item.value))
+    .find((name) => Boolean(name));
+  const id =
+    asString(offering.offeringId) ??
+    asString(offering.id) ??
+    asString(offering.offering_id);
+
+  return {
+    active: typeof offering.active === "boolean"
+      ? offering.active
+      : typeof offering.isActive === "boolean"
+        ? offering.isActive
+        : undefined,
+    currency: asString(offering.currency),
+    name: asString(offering.name) ?? localizedName ?? "Servicio",
+    offeringId: id,
+    priceMinor: asNumber(offering.priceMinor),
+    type: asString(offering.type),
   };
 }
 

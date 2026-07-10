@@ -24,6 +24,7 @@ export function StorefrontPdpContentClient({ data }: Props) {
   const [copiedShareUrl, setCopiedShareUrl] = useState(false);
   const [zoomModalOpen, setZoomModalOpen] = useState(false);
   const [zoomLens, setZoomLens] = useState({ active: false, x: 50, y: 50 });
+  const [selectedOfferingIds, setSelectedOfferingIds] = useState<string[]>([]);
   const selectedVariant = useMemo(
     () =>
       data.variants.find((variant) => variant.variantId === selectedVariantId) ??
@@ -52,6 +53,15 @@ export function StorefrontPdpContentClient({ data }: Props) {
   const availableQuantity = selectedVariant?.availableQuantity ?? data.availableQuantity;
   const selectedVariantImage = selectedVariant?.images[0] ?? mainImage;
   const selectedVariantDetails = selectedVariant?.options.map((option) => `${option.attributeCode}: ${option.valueCode}`).join(", ");
+  const availableOfferings = useMemo(
+    () => selectedVariant?.offerings.filter((offering) => offering.active !== false) ?? [],
+    [selectedVariant],
+  );
+  const selectedOfferings = useMemo(
+    () => availableOfferings.filter((offering) => selectedOfferingIds.includes(offering.offeringId)),
+    [availableOfferings, selectedOfferingIds],
+  );
+  const selectedOfferingsTotalMinor = selectedOfferings.reduce((total, offering) => total + (offering.priceMinor ?? 0) * quantity, 0);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setShareUrl(window.location.href));
@@ -131,6 +141,27 @@ export function StorefrontPdpContentClient({ data }: Props) {
     });
   }
 
+  function toggleOffering(offeringId: string) {
+    setSelectedOfferingIds((current) =>
+      current.includes(offeringId)
+        ? current.filter((currentOfferingId) => currentOfferingId !== offeringId)
+        : [...current, offeringId]
+    );
+  }
+
+  function selectVariant(variantId: string) {
+    const nextVariant = data.variants.find((variant) => variant.variantId === variantId);
+    const availableOfferingIds = new Set(
+      nextVariant?.offerings
+        .filter((offering) => offering.active !== false)
+        .map((offering) => offering.offeringId) ?? [],
+    );
+
+    setSelectedVariantId(variantId);
+    setSelectedOfferingIds((current) => current.filter((offeringId) => availableOfferingIds.has(offeringId)));
+    setZoomLens({ active: false, x: 50, y: 50 });
+  }
+
   return (
     <>
       <nav className="storefrontBreadcrumb">
@@ -187,10 +218,7 @@ export function StorefrontPdpContentClient({ data }: Props) {
           {data.variants.length > 0 ? (
             <VariantSelector
               selectedVariantId={selectedVariant?.variantId}
-              setSelectedVariantId={(variantId) => {
-                setSelectedVariantId(variantId);
-                setZoomLens({ active: false, x: 50, y: 50 });
-              }}
+              setSelectedVariantId={selectVariant}
               variants={data.variants}
             />
           ) : null}
@@ -220,6 +248,35 @@ export function StorefrontPdpContentClient({ data }: Props) {
               </span>
             </section>
           ) : null}
+          {availableOfferings.length > 0 ? (
+            <section className="storefrontPdpOfferings" aria-labelledby="storefront-pdp-offerings-title">
+              <div className="storefrontPdpOfferingsHeader">
+                <h2 id="storefront-pdp-offerings-title">Servicios adicionales</h2>
+                {selectedOfferingsTotalMinor > 0 ? (
+                  <span>+{formatPdpMoney(selectedOfferingsTotalMinor, selectedOfferings[0]?.currency ?? "EUR")}</span>
+                ) : null}
+              </div>
+              <div className="storefrontPdpOfferingList">
+                {availableOfferings.map((offering) => {
+                  const checked = selectedOfferingIds.includes(offering.offeringId);
+                  return (
+                    <label className="storefrontPdpOfferingOption" key={offering.offeringId}>
+                      <input
+                        checked={checked}
+                        onChange={() => toggleOffering(offering.offeringId)}
+                        type="checkbox"
+                      />
+                      <span>
+                        <strong>{offering.name}</strong>
+                        {offering.type ? <small>{offering.type}</small> : null}
+                      </span>
+                      <b>{formatPdpMoney(offering.priceMinor ?? 0, offering.currency ?? "EUR")}</b>
+                    </label>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
           <div className="storefrontPdpCart">
             <div className="storefrontPdpQuantity">
               <button aria-label="Reducir cantidad" onClick={() => setQuantity((value) => Math.max(1, value - 1))} type="button">
@@ -234,6 +291,7 @@ export function StorefrontPdpContentClient({ data }: Props) {
               className="storefrontPdpAddToCartButton"
               disabled={!available || (!selectedVariant?.variantId && !reference)}
               onAdded={recordAddToCartEvent}
+              offerings={selectedOfferings}
               quantity={quantity}
               refId={selectedVariant?.refId ?? data.refId}
               variantId={selectedVariant?.variantId}
@@ -579,6 +637,13 @@ function discountPercentage(previousAmountMinor: number | undefined, currentAmou
   }
 
   return Math.round(((previousAmountMinor - currentAmountMinor) / previousAmountMinor) * 100);
+}
+
+function formatPdpMoney(valueMinor: number, currency = "EUR") {
+  return new Intl.NumberFormat("es-ES", {
+    currency,
+    style: "currency",
+  }).format(valueMinor / 100);
 }
 
 function copyTextWithFallback(value: string) {

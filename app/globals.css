@@ -5609,6 +5609,39 @@ p {
   line-height: 1;
 }
 
+.storefrontProductOfferingHint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid #e6e8ec;
+  background: #f8fbfc;
+  text-align: left;
+}
+
+.storefrontProductInfo .storefrontProductOfferingHint {
+  min-height: 34px;
+}
+
+.storefrontProductOfferingHint span {
+  color: #555f6d;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.storefrontProductOfferingHint strong {
+  color: #1389a2;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.storefrontProductOfferingHint:hover {
+  border-color: #24b9d7;
+  background: #f2fbfd;
+}
+
 .storefrontProductCartButton {
   display: inline-flex;
   justify-content: center;
@@ -5790,6 +5823,139 @@ p {
 .storefrontCartLineTotal span {
   color: #7a7a7a;
   font-size: 12px;
+}
+
+.storefrontCartItemOfferings,
+.storefrontCartModalOfferings {
+  display: grid;
+  gap: 5px;
+  margin: 5px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storefrontCartItemOfferings li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid #e6e8ec;
+  background: #f8fbfc;
+  color: #555f6d;
+  font-size: 12px;
+}
+
+.storefrontCartModalOfferings li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid #e6e8ec;
+  background: #f8fbfc;
+  color: #555f6d;
+  font-size: 12px;
+}
+
+.storefrontCartItemOfferings li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.storefrontCartItemOfferings strong,
+.storefrontCartModalOfferings strong {
+  color: #232323;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.storefrontCartItemOfferingRemove {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #d8dde5;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.storefrontCartItemOfferingRemove:hover {
+  border-color: #ef4444;
+  color: #dc2626;
+}
+
+.storefrontCartItemOfferingRemove:disabled {
+  border-color: #d9dde3;
+  background: #f3f4f6;
+  color: #a0a7b0;
+  cursor: wait;
+}
+
+.storefrontCartItemOfferingPanel {
+  display: grid;
+  gap: 6px;
+}
+
+.storefrontCartItemOfferingActions {
+  display: grid;
+  gap: 6px;
+}
+
+.storefrontCartItemOfferingActions button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 8px;
+  border: 1px dashed #b9c5cb;
+  background: #ffffff;
+  color: #555f6d;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.storefrontCartItemOfferingActions button:hover {
+  border-color: #24b9d7;
+  color: #1389a2;
+}
+
+.storefrontCartItemOfferingActions button:disabled {
+  border-color: #d9dde3;
+  background: #f6f7f8;
+  color: #9aa1aa;
+  cursor: wait;
+}
+
+.storefrontCartItemOfferingActions button span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.storefrontCartItemOfferingActions button strong {
+  overflow-wrap: anywhere;
+  color: inherit;
+  font-size: 12px;
+}
+
+.storefrontCartItemOfferingActions button small {
+  color: #7a7a7a;
+  font-size: 11px;
+}
+
+.storefrontCartItemOfferingActions button b {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #232323;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .storefrontCartPrice,
@@ -6983,9 +7149,38 @@ p {
   font-size: 12px;
 }
 
-.storefrontCheckoutSummaryItems b {
+.storefrontCheckoutSummaryItems article > b {
   color: #232323;
   font-size: 13px;
+}
+
+.storefrontCheckoutSummaryOfferings {
+  display: grid;
+  gap: 4px;
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storefrontCheckoutSummaryOfferings li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+  border-top: 1px solid #edf0f3;
+  color: #647483;
+  font-size: 12px;
+}
+
+.storefrontCheckoutSummaryOfferings span {
+  overflow-wrap: anywhere;
+}
+
+.storefrontCheckoutSummaryOfferings b {
+  color: #232323;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .storefrontCheckoutSummary dl {
@@ -7404,6 +7599,85 @@ p {
   margin-top: 6px;
   color: #555f6d;
   line-height: 1.4;
+}
+
+.storefrontPdpOfferings {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e6e8ec;
+  background: #ffffff;
+}
+
+.storefrontPdpOfferingsHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.storefrontPdpOfferingsHeader h2 {
+  margin: 0;
+  color: #232323;
+  font-size: 15px;
+}
+
+.storefrontPdpOfferingsHeader span {
+  color: #1389a2;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.storefrontPdpOfferingList {
+  display: grid;
+  gap: 8px;
+}
+
+.storefrontPdpOfferingOption {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  padding: 10px;
+  border: 1px solid #d9dde3;
+  background: #f8fbfc;
+  cursor: pointer;
+}
+
+.storefrontPdpOfferingOption:has(input:checked) {
+  border-color: #24b9d7;
+  background: #f2fbfd;
+}
+
+.storefrontPdpOfferingOption input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #24b9d7;
+}
+
+.storefrontPdpOfferingOption span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.storefrontPdpOfferingOption strong {
+  overflow-wrap: anywhere;
+  color: #232323;
+  font-size: 14px;
+}
+
+.storefrontPdpOfferingOption small {
+  color: #7a7a7a;
+  font-size: 12px;
+}
+
+.storefrontPdpOfferingOption b {
+  color: #232323;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .storefrontPdpCart {

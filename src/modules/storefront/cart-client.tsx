@@ -16,10 +16,13 @@ import {
   cartGrandTotalMinor,
   cartItemLineTotalMinor,
   cartItemUnitPriceMinor,
+  cartItemsSubtotalMinor,
+  cartOfferingsTotalMinor,
   cartTotalItems,
   formatCartMoney,
   normalizeOrderformPayload,
   type StorefrontCartItem,
+  type StorefrontCartOffering,
   type StorefrontCouponOffer,
   type StorefrontOrderform,
 } from "./cart";
@@ -33,6 +36,7 @@ type AddToCartButtonProps = {
   compact?: boolean;
   disabled?: boolean;
   onAdded?: (orderform: StorefrontOrderform) => void;
+  offerings?: StorefrontCartOffering[];
   quantity: number;
   refId?: string;
   variantId?: string;
@@ -46,6 +50,7 @@ type AddedCartSnapshot = {
 
 type CartMutationItem = {
   itemIndex?: number;
+  offerings?: StorefrontCartOffering[];
   quantity: number;
   refId?: string;
   variantId?: string;
@@ -107,6 +112,7 @@ export function StorefrontAddToCartButton({
   compact,
   disabled,
   onAdded,
+  offerings = [],
   quantity,
   refId,
   variantId,
@@ -130,11 +136,30 @@ export function StorefrontAddToCartButton({
         throw new Error("El carrito no devolvio orderFormId.");
       }
 
-      const orderform = await mutateCart("POST", {
+      let orderform = await mutateCart("POST", {
         guestSessionId,
-        items: [{ quantity, refId, variantId }],
+        items: [{
+          offerings: offerings.length > 0 ? offerings : undefined,
+          quantity,
+          refId,
+          variantId,
+        }],
         orderFormId,
       });
+      const selectedOfferings = offerings.filter((offering) => offering.offeringId);
+      let addedItemIndex = findAddedCartItemIndex(orderform, { refId, variantId });
+      const missingOfferingIds = missingCartOfferingIds(orderform.items[addedItemIndex], selectedOfferings);
+      if (missingOfferingIds.length > 0 && addedItemIndex >= 0) {
+        for (const offeringId of missingOfferingIds) {
+          orderform = await mutateCartOffering({
+            guestSessionId,
+            itemIndex: addedItemIndex,
+            offeringId,
+            orderFormId: orderform.orderFormId ?? orderFormId,
+          });
+          addedItemIndex = findAddedCartItemIndex(orderform, { refId, variantId });
+        }
+      }
       commitOrderform(orderform);
       setAddedSnapshot({
         item: findAddedCartItem(orderform, { refId, variantId }),
@@ -407,7 +432,7 @@ export function StorefrontCartPageClient() {
 
   const totals = useMemo(() => ({
     items: cartTotalItems(orderform),
-    subtotal: orderform?.totals.itemsSubtotalMinor ?? orderform?.items.reduce((total, item) => total + cartItemLineTotalMinor(item), 0) ?? 0,
+    subtotal: cartItemsSubtotalMinor(orderform),
     shipping: orderform?.totals.shippingTotalMinor ?? 0,
     taxes: orderform?.totals.taxTotalMinor ?? 0,
     grandTotal: cartGrandTotalMinor(orderform),
@@ -423,6 +448,47 @@ export function StorefrontCartPageClient() {
       const nextOrderform = await mutateCart("PATCH", {
         guestSessionId: getOrCreateGuestSessionId(),
         items: [{ itemIndex, quantity: Math.max(0, quantity) }],
+        orderFormId: orderform.orderFormId,
+      });
+      commitOrderform(nextOrderform);
+      setOrderform(nextOrderform);
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
+  async function addLineOffering(itemIndex: number, offeringId: string) {
+    if (!orderform?.orderFormId || !offeringId) {
+      return;
+    }
+
+    setPendingKey(`offering-${itemIndex}-${offeringId}`);
+    try {
+      const nextOrderform = await mutateCartOffering({
+        guestSessionId: getOrCreateGuestSessionId(),
+        itemIndex,
+        offeringId,
+        orderFormId: orderform.orderFormId,
+      });
+      commitOrderform(nextOrderform);
+      setOrderform(nextOrderform);
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
+  async function removeLineOffering(itemIndex: number, offeringId: string) {
+    if (!orderform?.orderFormId || !offeringId) {
+      return;
+    }
+
+    setPendingKey(`offering-remove-${itemIndex}-${offeringId}`);
+    try {
+      const nextOrderform = await mutateCartOffering({
+        guestSessionId: getOrCreateGuestSessionId(),
+        itemIndex,
+        method: "DELETE",
+        offeringId,
         orderFormId: orderform.orderFormId,
       });
       commitOrderform(nextOrderform);
@@ -580,7 +646,11 @@ export function StorefrontCartPageClient() {
             index={index}
             item={item}
             key={`${item.variantId ?? item.refId ?? item.name}-${index}`}
+            onOfferingAdd={addLineOffering}
+            onOfferingRemove={removeLineOffering}
             onQuantityChange={updateLineQuantity}
+            pendingOfferingId={pendingKey?.startsWith(`offering-${index}-`) ? pendingKey.slice(`offering-${index}-`.length) : null}
+            pendingOfferingRemoveId={pendingKey?.startsWith(`offering-remove-${index}-`) ? pendingKey.slice(`offering-remove-${index}-`.length) : null}
           />
         ))}
       </div>
@@ -653,7 +723,7 @@ function StorefrontCartConfirmationDialog({
   snapshot: AddedCartSnapshot;
 }) {
   const { item, orderform, quantityAdded } = snapshot;
-  const subtotalMinor = orderform.totals.itemsSubtotalMinor ?? orderform.items.reduce((total, currentItem) => total + cartItemLineTotalMinor(currentItem), 0);
+  const subtotalMinor = cartItemsSubtotalMinor(orderform);
   const totalItems = cartTotalItems(orderform);
   const productName = item?.name ?? "Producto";
 
@@ -699,6 +769,16 @@ function StorefrontCartConfirmationDialog({
               {item ? <p>{formatCartMoney(cartItemUnitPriceMinor(item), orderform.currency)}</p> : null}
               {item?.refId ?? item?.variantId ? <span>{item.refId ?? item.variantId}</span> : null}
               <span>Cantidad: <strong>{quantityAdded}</strong></span>
+              {item?.offerings.length ? (
+                <ul className="storefrontCartModalOfferings" aria-label="Servicios adicionales añadidos">
+                  {item.offerings.map((offering) => (
+                    <li key={offering.offeringId ?? offering.id ?? offering.name}>
+                      <span>{offering.name}</span>
+                      <strong>{formatCartMoney(offering.priceMinor ?? 0, offering.currency ?? orderform.currency)}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
           </div>
           <CartTotalsPanel
@@ -735,6 +815,7 @@ function CartTotalsPanel({
   const shippingMinor = orderform.totals.shippingTotalMinor ?? 0;
   const taxMinor = orderform.totals.taxTotalMinor ?? 0;
   const discountsMinor = cartDiscountsTotalMinor(orderform);
+  const offeringsMinor = cartOfferingsTotalMinor(orderform);
 
   return (
     <div className="storefrontCartTotalsPanel">
@@ -748,6 +829,12 @@ function CartTotalsPanel({
           <div>
             <dt>Descuentos</dt>
             <dd>-{formatCartMoney(discountsMinor, orderform.currency)}</dd>
+          </div>
+        ) : null}
+        {offeringsMinor > 0 ? (
+          <div>
+            <dt>Servicios adicionales</dt>
+            <dd>{formatCartMoney(offeringsMinor, orderform.currency)}</dd>
           </div>
         ) : null}
         {cartHasShippingData(orderform) || shippingMinor > 0 ? (
@@ -777,19 +864,34 @@ function CartLine({
   disabled,
   index,
   item,
+  onOfferingAdd,
+  onOfferingRemove,
   onQuantityChange,
+  pendingOfferingId,
+  pendingOfferingRemoveId,
 }: {
   currency: string;
   disabled: boolean;
   index: number;
   item: StorefrontCartItem;
+  onOfferingAdd: (itemIndex: number, offeringId: string) => void;
+  onOfferingRemove: (itemIndex: number, offeringId: string) => void;
   onQuantityChange: (itemIndex: number, quantity: number) => void;
+  pendingOfferingId?: string | null;
+  pendingOfferingRemoveId?: string | null;
 }) {
   const productHref = item.productUrlPath?.startsWith("/") && !item.productUrlPath.startsWith("//")
     ? item.productUrlPath
     : item.productSlug
       ? `/pdp/${encodeURIComponent(item.productSlug)}`
       : undefined;
+  const selectedOfferingIds = new Set(item.offerings.map((offering) => offering.offeringId).filter(Boolean));
+  const availableOfferings = item.availableOfferings.filter((offering) =>
+    offering.active !== false &&
+    Boolean(offering.offeringId) &&
+    !selectedOfferingIds.has(offering.offeringId)
+  );
+  const hasOfferingPanel = item.offerings.length > 0 || availableOfferings.length > 0;
 
   return (
     <article className="storefrontCartItem">
@@ -803,8 +905,62 @@ function CartLine({
       <div className="storefrontCartItemMain">
         {productHref ? <Link href={productHref}>{item.name}</Link> : <strong>{item.name}</strong>}
         <span>{item.refId ?? item.variantId ?? "SKU pendiente"}</span>
-        {item.availableOfferings.length > 0 ? (
-          <small>{item.availableOfferings.length} servicio(s) disponibles</small>
+        {hasOfferingPanel ? (
+          <div className="storefrontCartItemOfferingPanel" aria-label="Servicios adicionales del producto">
+            {item.offerings.length > 0 ? (
+              <ul className="storefrontCartItemOfferings" aria-label="Servicios adicionales seleccionados">
+                {item.offerings.map((offering) => {
+                  const offeringId = offering.offeringId ?? offering.id ?? "";
+                  const pending = Boolean(offeringId) && pendingOfferingRemoveId === offeringId;
+                  return (
+                  <li key={offeringId || offering.name}>
+                    <button
+                      aria-label={`Quitar ${offering.name}`}
+                      className="storefrontCartItemOfferingRemove"
+                      disabled={disabled || !offeringId || Boolean(pendingOfferingRemoveId)}
+                      onClick={() => onOfferingRemove(index, offeringId)}
+                      type="button"
+                    >
+                      {pending ? (
+                        <Loader2 aria-hidden="true" className="storefrontCartSpinner" size={14} />
+                      ) : (
+                        <Trash2 aria-hidden="true" size={14} />
+                      )}
+                    </button>
+                    <span>{offering.name}</span>
+                    <strong>{formatCartMoney(offering.priceMinor ?? 0, offering.currency ?? currency)}</strong>
+                  </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+            {availableOfferings.length > 0 ? (
+              <div className="storefrontCartItemOfferingActions" aria-label="Servicios adicionales disponibles">
+                {availableOfferings.map((offering) => {
+                  const offeringId = offering.offeringId!;
+                  const pending = pendingOfferingId === offeringId;
+                  return (
+                    <button
+                      aria-label={`Añadir ${offering.name}`}
+                      disabled={disabled || Boolean(pendingOfferingId)}
+                      key={offeringId}
+                      onClick={() => onOfferingAdd(index, offeringId)}
+                      type="button"
+                    >
+                      <span>
+                        <strong>{offering.name}</strong>
+                        {offering.type ? <small>{offering.type}</small> : null}
+                      </span>
+                      <b>
+                        {pending ? <Loader2 aria-hidden="true" className="storefrontCartSpinner" size={13} /> : null}
+                        {formatCartMoney(offering.priceMinor ?? 0, offering.currency ?? currency)}
+                      </b>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
       <div className="storefrontCartPrice">
@@ -840,10 +996,28 @@ function CartLine({
 }
 
 function findAddedCartItem(orderform: StorefrontOrderform, itemInput: { refId?: string; variantId?: string }) {
-  return orderform.items.find((item) =>
+  const index = findAddedCartItemIndex(orderform, itemInput);
+  return index >= 0 ? orderform.items[index] : null;
+}
+
+function findAddedCartItemIndex(orderform: StorefrontOrderform, itemInput: { refId?: string; variantId?: string }) {
+  const index = orderform.items.findIndex((item) =>
     (itemInput.variantId && item.variantId === itemInput.variantId) ||
     (itemInput.refId && item.refId === itemInput.refId)
-  ) ?? orderform.items[orderform.items.length - 1] ?? null;
+  );
+  return index >= 0 ? index : orderform.items.length - 1;
+}
+
+function missingCartOfferingIds(item: StorefrontCartItem | undefined, offerings: StorefrontCartOffering[]) {
+  const selectedIds = offerings
+    .map((offering) => offering.offeringId)
+    .filter((offeringId): offeringId is string => Boolean(offeringId));
+  if (!item) {
+    return selectedIds;
+  }
+
+  const appliedOfferingIds = new Set(item.offerings.map((offering) => offering.offeringId).filter(Boolean));
+  return selectedIds.filter((offeringId) => !appliedOfferingIds.has(offeringId));
 }
 
 async function fetchCartCurrent({
@@ -894,6 +1068,32 @@ async function mutateCart(method: "POST" | "PATCH" | "DELETE", input: {
       "content-type": "application/json",
     },
     method,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(asErrorMessage(payload));
+  }
+
+  const orderform = normalizeOrderformPayload(payload);
+  saveOrderformId(orderform.orderFormId);
+  return orderform;
+}
+
+async function mutateCartOffering(input: {
+  guestSessionId: string;
+  itemIndex: number;
+  method?: "POST" | "DELETE";
+  offeringId: string;
+  orderFormId: string;
+}) {
+  const response = await fetch("/api/storefront/cart/offerings", {
+    body: JSON.stringify(input),
+    cache: "no-store",
+    credentials: "same-origin",
+    headers: {
+      "content-type": "application/json",
+    },
+    method: input.method ?? "POST",
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {

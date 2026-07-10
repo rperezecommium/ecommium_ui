@@ -15,6 +15,7 @@ export type StorefrontCartItem = {
   lineTotalMinor?: number;
   manualUnitPriceMinor?: number;
   name: string;
+  offerings: StorefrontCartOffering[];
   productId?: string;
   productSlug?: string;
   productUrlPath?: string;
@@ -28,6 +29,7 @@ export type StorefrontCartItem = {
 export type StorefrontCartOffering = {
   active?: boolean;
   currency?: string;
+  id?: string;
   name: string;
   offeringId?: string;
   priceMinor?: number;
@@ -110,7 +112,24 @@ export function cartItemUnitPriceMinor(item: StorefrontCartItem) {
 }
 
 export function cartItemLineTotalMinor(item: StorefrontCartItem) {
-  return item.lineTotalMinor ?? cartItemUnitPriceMinor(item) * item.quantity;
+  return item.lineTotalMinor ?? cartItemUnitPriceMinor(item) * item.quantity + cartItemOfferingsTotalMinor(item);
+}
+
+export function cartItemOfferingsTotalMinor(item: StorefrontCartItem) {
+  return item.offerings.reduce((total, offering) => {
+    if (offering.active === false) {
+      return total;
+    }
+    return total + (offering.priceMinor ?? 0) * item.quantity;
+  }, 0);
+}
+
+export function cartItemsSubtotalMinor(orderform: StorefrontOrderform | undefined | null) {
+  return orderform?.totals.itemsSubtotalMinor ?? orderform?.items.reduce((total, item) => total + cartItemUnitPriceMinor(item) * item.quantity, 0) ?? 0;
+}
+
+export function cartOfferingsTotalMinor(orderform: StorefrontOrderform | undefined | null) {
+  return orderform?.totals.offeringsTotalMinor ?? orderform?.items.reduce((total, item) => total + cartItemOfferingsTotalMinor(item), 0) ?? 0;
 }
 
 export function cartGrandTotalMinor(orderform: StorefrontOrderform | undefined | null) {
@@ -196,8 +215,7 @@ function normalizeCartItem(value: unknown): StorefrontCartItem {
   const manualUnitPriceMinor = asNumber(item.manualUnitPriceMinor);
   const lineTotalMinor =
     asNumber(item.lineTotalMinor) ??
-    asNumber(item.totalMinor) ??
-    (unitPriceMinor !== undefined ? (manualUnitPriceMinor ?? unitPriceMinor) * quantity : undefined);
+    asNumber(item.totalMinor);
 
   return {
     availableOfferings: listItems(item.availableOfferings).map(normalizeOffering),
@@ -206,6 +224,7 @@ function normalizeCartItem(value: unknown): StorefrontCartItem {
     lineTotalMinor,
     manualUnitPriceMinor,
     name: asString(item.name) ?? asString(item.productName) ?? asString(item.title) ?? "Producto",
+    offerings: listItems(item.offerings).map(normalizeOffering),
     productId: asString(item.productId),
     productSlug: asString(item.productSlug) ?? asString(item.slug),
     productUrlPath: asString(item.productUrlPath),
@@ -219,11 +238,25 @@ function normalizeCartItem(value: unknown): StorefrontCartItem {
 
 function normalizeOffering(value: unknown): StorefrontCartOffering {
   const offering = asRecord(value);
+  const localizedName = listItems(offering.localizedName)
+    .map(asRecord)
+    .map((item) => asString(item.value))
+    .find((value) => Boolean(value));
+  const id =
+    asString(offering.offeringId) ??
+    asString(offering.id) ??
+    asString(offering.offering_id);
+
   return {
-    active: typeof offering.active === "boolean" ? offering.active : undefined,
+    active: typeof offering.active === "boolean"
+      ? offering.active
+      : typeof offering.isActive === "boolean"
+        ? offering.isActive
+        : undefined,
     currency: asString(offering.currency),
-    name: asString(offering.name) ?? "Servicio",
-    offeringId: asString(offering.offeringId),
+    id,
+    name: asString(offering.name) ?? localizedName ?? "Servicio",
+    offeringId: id,
     priceMinor: asNumber(offering.priceMinor),
     type: asString(offering.type),
   };

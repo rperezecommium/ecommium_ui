@@ -90,6 +90,10 @@ test("storefront PLP product cards expose availability ribbon and quick view", (
   assert.match(plpPageSource, /className="storefrontProductCartButton"/);
   assert.match(plpPageSource, /disabled=\{!product\.available \|\| !product\.variantId\}/);
   assert.match(plpPageSource, /variantId=\{product\.variantId\}/);
+  assert.match(plpPageSource, /storefrontProductOfferingHint/);
+  assert.match(plpPageSource, /formatProductOfferingMoney/);
+  assert.match(plpPageSource, /servicios disponibles/);
+  assert.match(readFileSync(path.resolve(root, "src/modules/storefront/plp.ts"), "utf8"), /productOfferings\(product, variantId\)/);
   assert.match(plpPageSource, /data-search-product-id/);
   assert.match(plpPageSource, /product\.productUrlPath\?\.startsWith\("\/"\)/);
   assert.match(plpPageSource, /encodeURIComponent\(product\.slug\)/);
@@ -106,6 +110,7 @@ test("storefront PLP product cards expose availability ribbon and quick view", (
   assert.match(cssSource, /\.storefrontProductCard:hover \.storefrontQuickView[\s\S]*opacity: 1/);
   assert.match(cssSource, /\.storefrontProductCard:hover \.storefrontQuickView[\s\S]*transform: translate\(-50%, 132%\)/);
   assert.match(cssSource, /\.storefrontProductInfo b[\s\S]*font-size: 24px/);
+  assert.match(cssSource, /\.storefrontProductOfferingHint/);
 });
 
 test("storefront checkout confirmation records purchase complete events", () => {
@@ -143,6 +148,15 @@ test("storefront PDP add to cart records search add-to-cart event", () => {
   assert.match(pdpPageSource, /productDetails: \[\{/);
   assert.match(pdpPageSource, /variantId: selectedVariant\?\.variantId/);
   assert.match(pdpPageSource, /quantity,/);
+  assert.match(pdpPageSource, /storefrontPdpOfferings/);
+  assert.match(pdpPageSource, /selectedOfferingIds/);
+  assert.match(pdpPageSource, /selectedOfferingsTotalMinor/);
+  assert.match(pdpPageSource, /\(offering\.priceMinor \?\? 0\) \* quantity/);
+  assert.match(pdpPageSource, /function selectVariant\(variantId: string\)/);
+  assert.match(pdpPageSource, /nextVariant\?\.offerings/);
+  assert.match(pdpPageSource, /current\.filter\(\(offeringId\) => availableOfferingIds\.has\(offeringId\)\)/);
+  assert.match(pdpPageSource, /setSelectedVariantId=\{selectVariant\}/);
+  assert.match(pdpPageSource, /offerings=\{selectedOfferings\}/);
   assert.match(pdpPageSource, /StorefrontAddToCartButton/);
   assert.match(pdpPageSource, /onAdded=\{recordAddToCartEvent\}/);
   assert.match(pdpPageSource, /className="storefrontPdpAddToCartButton"/);
@@ -152,6 +166,7 @@ test("storefront cart UI mutates orderforms through the BFF proxy", () => {
   const cartClientSource = readFileSync(path.resolve(root, "src/modules/storefront/cart-client.tsx"), "utf8");
   const cartNormalizerSource = readFileSync(path.resolve(root, "src/modules/storefront/cart.ts"), "utf8");
   const cartItemsRouteSource = readFileSync(path.resolve(root, "app/api/storefront/cart/items/route.ts"), "utf8");
+  const cartOfferingsRouteSource = readFileSync(path.resolve(root, "app/api/storefront/cart/offerings/route.ts"), "utf8");
   const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
 
   assert.match(cartClientSource, /ecommium_storefront_guest_session_id/);
@@ -161,6 +176,28 @@ test("storefront cart UI mutates orderforms through the BFF proxy", () => {
   assert.match(cartClientSource, /\/api\/storefront\/cart\/items/);
   assert.match(cartClientSource, /StorefrontCartConfirmationDialog/);
   assert.match(cartClientSource, /Producto añadido correctamente a tu carrito/);
+  assert.match(cartClientSource, /storefrontCartModalOfferings/);
+  assert.match(cartClientSource, /storefrontCartItemOfferings/);
+  assert.match(cartClientSource, /Servicios adicionales/);
+  assert.match(cartClientSource, /offerings: offerings\.length > 0 \? offerings : undefined/);
+  assert.match(cartClientSource, /cartItemsSubtotalMinor\(orderform\)/);
+  assert.match(cartClientSource, /cartOfferingsTotalMinor\(orderform\)/);
+  assert.match(cartClientSource, /mutateCartOffering/);
+  assert.match(cartClientSource, /\/api\/storefront\/cart\/offerings/);
+  assert.match(cartClientSource, /findAddedCartItemIndex/);
+  assert.match(cartClientSource, /missingCartOfferingIds/);
+  assert.match(cartClientSource, /const missingOfferingIds = missingCartOfferingIds\(orderform\.items\[addedItemIndex\], selectedOfferings\)/);
+  assert.match(cartClientSource, /selectedIds\.filter\(\(offeringId\) => !appliedOfferingIds\.has\(offeringId\)\)/);
+  assert.match(cartClientSource, /async function addLineOffering/);
+  assert.match(cartClientSource, /async function removeLineOffering/);
+  assert.match(cartClientSource, /onOfferingAdd=\{addLineOffering\}/);
+  assert.match(cartClientSource, /onOfferingRemove=\{removeLineOffering\}/);
+  assert.match(cartClientSource, /pendingOfferingId=/);
+  assert.match(cartClientSource, /pendingOfferingRemoveId=/);
+  assert.match(cartClientSource, /Quitar \$\{offering\.name\}/);
+  assert.match(cartClientSource, /method: "DELETE"/);
+  assert.match(cartClientSource, /storefrontCartItemOfferingRemove/);
+  assert.match(cartClientSource, /storefrontCartItemOfferingActions/);
   assert.match(cartClientSource, /Continuar comprando/);
   assert.match(cartClientSource, /Finalizar compra/);
   assert.match(cartClientSource, /href="\/checkout"/);
@@ -227,6 +264,11 @@ test("storefront cart UI mutates orderforms through the BFF proxy", () => {
   assert.match(cartNormalizerSource, /paymentData/);
   assert.match(cartNormalizerSource, /shippingData/);
   assert.match(cartNormalizerSource, /taxTotalMinor/);
+  assert.match(cartNormalizerSource, /offerings: listItems\(item\.offerings\)\.map\(normalizeOffering\)/);
+  assert.match(cartNormalizerSource, /cartItemOfferingsTotalMinor/);
+  assert.match(cartNormalizerSource, /cartItemsSubtotalMinor/);
+  assert.match(cartNormalizerSource, /cartOfferingsTotalMinor/);
+  assert.match(cartNormalizerSource, /\(offering\.priceMinor \?\? 0\) \* item\.quantity/);
   assert.match(cartNormalizerSource, /cartItemLineTotalMinor/);
   assert.match(cartNormalizerSource, /cartDiscountsTotalMinor/);
   assert.match(cartNormalizerSource, /normalizeDiscountTotalMinor/);
@@ -234,12 +276,23 @@ test("storefront cart UI mutates orderforms through the BFF proxy", () => {
   assert.match(cartNormalizerSource, /promotionDiscountMinor/);
   assert.match(cartItemsRouteSource, /method === "POST" \? 201 : 200/);
   assert.match(cartItemsRouteSource, /items\/remove-all/);
+  assert.match(cartOfferingsRouteSource, /\/orderforms\/\$\{encodeURIComponent\(orderFormId\)\}\/items\/\$\{itemIndex\}\/offerings/);
+  assert.match(cartOfferingsRouteSource, /JSON\.stringify\(\{ offeringId \}\)/);
+  assert.match(cartOfferingsRouteSource, /export async function DELETE/);
+  assert.match(cartOfferingsRouteSource, /\/offerings\/\$\{encodeURIComponent\(offeringId\)\}/);
+  assert.match(cartOfferingsRouteSource, /Carrito guest requiere guestSessionId/);
   assert.match(cssSource, /\.storefrontCartLayout/);
   assert.match(cssSource, /\.storefrontCartItem/);
   assert.match(cssSource, /\.storefrontCartQuantity/);
   assert.match(cssSource, /\.storefrontCartModal/);
   assert.match(cssSource, /\.storefrontCartModalProduct/);
+  assert.match(cssSource, /\.storefrontCartModalOfferings/);
+  assert.match(cssSource, /\.storefrontCartItemOfferings/);
+  assert.match(cssSource, /\.storefrontCartItemOfferingPanel/);
+  assert.match(cssSource, /\.storefrontCartItemOfferingActions/);
   assert.match(cssSource, /\.storefrontCartTotalsPanel/);
+  assert.match(cssSource, /\.storefrontPdpOfferings/);
+  assert.match(cssSource, /\.storefrontPdpOfferingOption/);
   assert.match(cssSource, /\.storefrontCouponPanel/);
   assert.match(cssSource, /\.storefrontCouponOffers/);
   assert.match(cssSource, /\.storefrontCouponOffers b[\s\S]*display: inline-flex/);
@@ -268,6 +321,10 @@ test("storefront checkout persists orderform checkout data through BFF actions",
   assert.match(checkoutClientSource, /cartAppliedCouponOffer\(orderform\)/);
   assert.match(checkoutClientSource, /cartAvailableCoupons\(orderform\)/);
   assert.match(checkoutClientSource, /cartDiscountsTotalMinor\(orderform\)/);
+  assert.match(checkoutClientSource, /cartItemsSubtotalMinor\(orderform\)/);
+  assert.match(checkoutClientSource, /cartOfferingsTotalMinor\(orderform\)/);
+  assert.match(checkoutClientSource, /Servicios adicionales/);
+  assert.match(checkoutClientSource, /storefrontCheckoutSummaryOfferings/);
   assert.match(checkoutClientSource, /onSelectAvailableCoupon=\{applyCouponCode\}/);
   assert.match(checkoutClientSource, /pendingCouponCode/);
   assert.match(checkoutClientSource, /Validando cupón \$\{code\}/);
@@ -291,6 +348,47 @@ test("storefront checkout persists orderform checkout data through BFF actions",
   assert.match(cssSource, /\.storefrontCheckoutLayout/);
   assert.match(cssSource, /\.storefrontCheckoutStepper/);
   assert.match(cssSource, /\.storefrontCheckoutSummary/);
+  assert.match(cssSource, /\.storefrontCheckoutSummaryOfferings/);
+});
+
+test("storefront cart normalizes offering totals without merging them into base subtotal", () => {
+  const {
+    cartItemLineTotalMinor,
+    cartItemsSubtotalMinor,
+    cartOfferingsTotalMinor,
+    normalizeOrderformPayload,
+  } = loadTsModule("src/modules/storefront/cart.ts");
+
+  const orderform = normalizeOrderformPayload({
+    orderform: {
+      currency: "EUR",
+      orderFormId: "orderform-offerings",
+      items: [{
+        name: "Bike helmet",
+        quantity: 2,
+        unitPriceMinor: 1000,
+        offerings: [{
+          offeringId: "extended-warranty",
+          name: "Garantia extendida",
+          priceMinor: 250,
+          currency: "EUR",
+          active: true,
+        }, {
+          offeringId: "inactive-installation",
+          name: "Instalacion inactiva",
+          priceMinor: 900,
+          currency: "EUR",
+          active: false,
+        }],
+      }],
+      totals: {},
+    },
+  });
+
+  assert.equal(cartItemsSubtotalMinor(orderform), 2000);
+  assert.equal(cartOfferingsTotalMinor(orderform), 500);
+  assert.equal(cartItemLineTotalMinor(orderform.items[0]), 2500);
+  assert.equal(orderform.items[0].offerings[0].offeringId, "extended-warranty");
 });
 
 
@@ -391,9 +489,29 @@ test("storefront PLP fetches public BFF listing with routePath for CMS targeting
           productUrlPath: "/pdp/linen-shirt-canonical",
           nombre: "Linen Shirt",
           brand: "Ecommium",
+          selectedVariantId: "variant-plp-1",
           image: { url: "https://cdn.example.test/linen.jpg", altText: "Linen Shirt" },
           price: { currency: "EUR", currentAmountMinor: 1299 },
           isAvailable: true,
+          variants: [{
+            variantId: "variant-plp-1",
+            isDefault: true,
+            offerings: [{
+              offeringId: "gift-wrap",
+              name: "Envoltorio premium",
+              priceMinor: 350,
+              currency: "EUR",
+              type: "service",
+              active: true,
+            }, {
+              offeringId: "inactive-setup",
+              name: "Setup inactivo",
+              priceMinor: 900,
+              currency: "EUR",
+              type: "service",
+              active: false,
+            }],
+          }],
         }],
         cmsBlocks: {
           beforeList: [{ blockId: "intro", type: "plp.categoryIntro", props: { title: "Clothes" } }],
@@ -439,6 +557,9 @@ test("storefront PLP fetches public BFF listing with routePath for CMS targeting
   assert.equal(result.ok, true);
   assert.equal(result.data.products[0].name, "Linen Shirt");
   assert.equal(result.data.products[0].productUrlPath, "/pdp/linen-shirt-canonical");
+  assert.equal(result.data.products[0].offerings.length, 1);
+  assert.equal(result.data.products[0].offerings[0].offeringId, "gift-wrap");
+  assert.equal(result.data.products[0].offerings[0].priceMinor, 350);
   assert.equal(result.data.cmsBlocks.beforeList[0].blockId, "intro");
   assert.equal(result.data.limit, 16);
   assert.equal(result.data.categories[0].href, "/plp/clothes");
@@ -603,6 +724,14 @@ test("storefront PDP maps product details, variants and specifications", async (
             availability: { available: true, availableQuantity: 7 },
             images: [{ url: "https://cdn.example.test/linen-m.jpg", altText: "Linen Shirt M" }],
             options: [{ attributeCode: "size", valueCode: "m" }],
+            offerings: [{
+              offeringId: "gift-wrap",
+              name: "Envoltorio premium",
+              priceMinor: 350,
+              currency: "EUR",
+              type: "service",
+              active: true,
+            }],
             price: { currency: "EUR", currentAmountMinor: 1299 },
           }],
           specifications: [{
@@ -655,6 +784,9 @@ test("storefront PDP maps product details, variants and specifications", async (
   assert.equal(result.data.variants[0].priceAmountMinor, 1299);
   assert.equal(result.data.variants[0].images[0].url, "https://cdn.example.test/linen-m.jpg");
   assert.equal(result.data.variants[0].options[0].valueCode, "m");
+  assert.equal(result.data.variants[0].offerings[0].offeringId, "gift-wrap");
+  assert.equal(result.data.variants[0].offerings[0].priceMinor, 350);
+  assert.equal(result.data.variants[0].offerings[0].active, true);
   assert.equal(result.data.specifications[0].fields[0].value, "Linen");
   assert.equal(result.data.eventContext.organizationId, "org-1");
   assert.equal(result.data.eventContext.shopId, "shop-1");

@@ -25,11 +25,21 @@ export type StorefrontPdpVariant = {
   available: boolean;
   availableQuantity?: number;
   isDefault: boolean;
-  offerings: string[];
+  offerings: StorefrontPdpOffering[];
   options: Array<{
     attributeCode: string;
     valueCode: string;
   }>;
+};
+
+export type StorefrontPdpOffering = {
+  active?: boolean;
+  currency?: string;
+  id: string;
+  name: string;
+  offeringId: string;
+  priceMinor?: number;
+  type?: string;
 };
 
 export type StorefrontPdpImage = {
@@ -346,9 +356,7 @@ function mapPdpPayload(
       available: asBoolean(variant.isAvailable) ?? asBoolean(variantAvailability.available) ?? true,
       availableQuantity: asNumber(variantAvailability.availableQuantity),
       isDefault: asBoolean(variant.isDefault) ?? false,
-      offerings: listItems(variant.offerings)
-        .map((offering) => asString(asRecord(offering).name))
-        .filter((name): name is string => Boolean(name)),
+      offerings: listItems(variant.offerings).map(normalizeOffering).filter((offering): offering is StorefrontPdpOffering => Boolean(offering)),
       options: listItems(variant.options).map((option) => {
         const record = asRecord(option);
         return {
@@ -399,6 +407,33 @@ function mapPdpPayload(
     specifications: normalizeSpecifications(product),
     contextQuery,
     eventContext,
+  };
+}
+
+function normalizeOffering(value: unknown): StorefrontPdpOffering | null {
+  const offering = asRecord(value);
+  const localizedName = listItems(offering.localizedName)
+    .map(asRecord)
+    .map((item) => asString(item.value))
+    .find((name) => Boolean(name));
+  const id =
+    asString(offering.offeringId) ??
+    asString(offering.id) ??
+    asString(offering.offering_id);
+  const name = asString(offering.name) ?? localizedName;
+
+  if (!id || !name) {
+    return null;
+  }
+
+  return {
+    active: asBoolean(offering.active) ?? asBoolean(offering.isActive),
+    currency: asString(offering.currency),
+    id,
+    name,
+    offeringId: id,
+    priceMinor: asNumber(offering.priceMinor),
+    type: asString(offering.type),
   };
 }
 

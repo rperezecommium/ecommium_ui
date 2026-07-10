@@ -108,3 +108,17 @@ test("admin context directory reports unavailable when authorization is missing"
   assert.equal(calls[0].withAuth, false);
   assert.equal(calls[0].authorization, undefined);
 });
+
+test("admin BFF auth is centralized through the resolved request session", () => {
+  const bffClientSource = readFileSync(path.resolve(root, "src/shared/bff/client.ts"), "utf8");
+  const layoutSource = readFileSync(path.resolve(root, "app/(admin)/admin/layout.tsx"), "utf8");
+  const contextPageSource = readFileSync(path.resolve(root, "app/(admin)/admin/configuracion/contexto/page.tsx"), "utf8");
+
+  assert.match(bffClientSource, /getAdminRequestAuthorizationToken/);
+  assert.match(bffClientSource, /requestSessionToken \?\? await getAdminAuthorizationToken\(\)/);
+  assert.match(layoutSource, /runWithAdminRequestSession\(session, async \(\) =>/);
+  assert.match(layoutSource, /getOrganizationShopDirectory\(\)/);
+  assert.doesNotMatch(layoutSource, /accessToken: session\.accessToken/);
+  assert.doesNotMatch(contextPageSource, /refreshAdminEmployeeSession/);
+  assert.doesNotMatch(contextPageSource, /accessToken: session/);
+});

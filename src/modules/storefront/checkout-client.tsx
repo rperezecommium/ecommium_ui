@@ -15,6 +15,8 @@ import {
   cartHasShippingData,
   cartItemLineTotalMinor,
   cartItemUnitPriceMinor,
+  cartItemsSubtotalMinor,
+  cartOfferingsTotalMinor,
   cartTotalItems,
   formatCartMoney,
   normalizeOrderformPayload,
@@ -133,9 +135,10 @@ export function StorefrontCheckoutClient() {
 
   const totals = useMemo(() => ({
     items: cartTotalItems(orderform),
-    subtotal: orderform?.totals.itemsSubtotalMinor ?? orderform?.items.reduce((total, item) => total + cartItemLineTotalMinor(item), 0) ?? 0,
+    subtotal: cartItemsSubtotalMinor(orderform),
     shipping: orderform?.totals.shippingTotalMinor ?? 0,
     discounts: cartDiscountsTotalMinor(orderform),
+    offerings: cartOfferingsTotalMinor(orderform),
     taxes: orderform?.totals.taxTotalMinor ?? 0,
     grandTotal: cartGrandTotalMinor(orderform),
   }), [orderform]);
@@ -1177,6 +1180,7 @@ function CheckoutSummary({
     discounts: number;
     grandTotal: number;
     items: number;
+    offerings: number;
     shipping: number;
     subtotal: number;
     taxes: number;
@@ -1202,6 +1206,12 @@ function CheckoutSummary({
           <div>
             <dt>Descuentos</dt>
             <dd>-{formatCartMoney(totals.discounts, orderform.currency)}</dd>
+          </div>
+        ) : null}
+        {totals.offerings > 0 ? (
+          <div>
+            <dt>Servicios adicionales</dt>
+            <dd>{formatCartMoney(totals.offerings, orderform.currency)}</dd>
           </div>
         ) : null}
         {cartHasShippingData(orderform) || totals.shipping > 0 ? (
@@ -1234,6 +1244,16 @@ function CheckoutSummaryItem({ currency, item }: { currency: string; item: Store
       <div>
         <strong>{item.name}</strong>
         <small>{item.quantity} x {formatCartMoney(cartItemUnitPriceMinor(item), currency)}</small>
+        {item.offerings.length > 0 ? (
+          <ul className="storefrontCheckoutSummaryOfferings" aria-label="Servicios adicionales seleccionados">
+            {item.offerings.map((offering) => (
+              <li key={offering.offeringId ?? offering.id ?? offering.name}>
+                <span>{offering.name}</span>
+                <b>{formatCartMoney(offering.priceMinor ?? 0, offering.currency ?? currency)}</b>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
       <b>{formatCartMoney(cartItemLineTotalMinor(item), currency)}</b>
     </article>
