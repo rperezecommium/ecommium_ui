@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { StorefrontPaymentConfirmationClient } from "../../../src/modules/storefront/payment-confirmation-client";
 import { StorefrontHeader } from "../../../src/modules/storefront/plp-page";
 import {
   StorefrontPurchaseCompleteClient,
@@ -22,20 +23,22 @@ export default async function CheckoutConfirmationPage({ searchParams }: Confirm
   const cookieStore = await cookies();
   const visitorId = normalizeStorefrontVisitorId(cookieStore.get(storefrontVisitorCookieName)?.value);
   const event = buildPurchaseCompleteEvent(query, visitorId);
+  const transactionId = first(query?.transactionId) ?? first(query?.orderId);
 
   return (
     <main className="storefrontPage">
       <StorefrontHeader />
       <StorefrontPurchaseCompleteClient event={event} />
       <div className="storefrontShell">
+        <StorefrontPaymentConfirmationClient transactionId={transactionId} />
         <section className="storefrontConfirmation">
-          <span>Pedido confirmado</span>
-          <h1>Tu pedido fue recibido</h1>
-          <p>Hemos registrado la confirmación y pronto podrás consultar el estado del pedido.</p>
+          <span>Resumen local</span>
+          <h1>Referencia de checkout</h1>
+          <p>Esta pantalla consulta Payments/BFF antes de considerar confirmado el pago. La publicación final del pedido depende de Orders.</p>
           <dl>
             <div>
               <dt>Referencia</dt>
-              <dd>{first(query?.transactionId) ?? first(query?.orderId) ?? "Pendiente"}</dd>
+              <dd>{transactionId ?? "Pendiente"}</dd>
             </div>
             <div>
               <dt>Total</dt>

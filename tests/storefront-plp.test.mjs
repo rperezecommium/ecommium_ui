@@ -51,6 +51,7 @@ test("storefront PLP route exists outside admin", () => {
   assert.match(searchRouteSource, /StorefrontPlpPage/);
   assert.match(searchRouteSource, /storefrontVisitorCookieName/);
   assert.match(confirmationRouteSource, /StorefrontPurchaseCompleteClient/);
+  assert.match(confirmationRouteSource, /StorefrontPaymentConfirmationClient/);
   assert.match(confirmationRouteSource, /transactionId/);
   assert.match(confirmationRouteSource, /revenueMinor/);
   assert.match(searchEventsRouteSource, /\/storefront\/search\/events/);
@@ -115,6 +116,7 @@ test("storefront PLP product cards expose availability ribbon and quick view", (
 
 test("storefront checkout confirmation records purchase complete events", () => {
   const confirmationRouteSource = readFileSync(path.resolve(root, "app/checkout/confirmation/page.tsx"), "utf8");
+  const confirmationClientSource = readFileSync(path.resolve(root, "src/modules/storefront/payment-confirmation-client.tsx"), "utf8");
   const purchaseClientSource = readFileSync(path.resolve(root, "src/modules/storefront/purchase-complete-client.tsx"), "utf8");
   const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
 
@@ -125,6 +127,12 @@ test("storefront checkout confirmation records purchase complete events", () => 
   assert.match(confirmationRouteSource, /productId/);
   assert.match(confirmationRouteSource, /variantId/);
   assert.match(confirmationRouteSource, /normalizeStorefrontVisitorId/);
+  assert.match(confirmationRouteSource, /StorefrontPaymentConfirmationClient/);
+  assert.match(confirmationRouteSource, /Payments\/BFF/);
+  assert.match(confirmationClientSource, /getStorefrontPaymentTransaction/);
+  assert.match(confirmationClientSource, /readStorefrontPaymentAttempt/);
+  assert.match(confirmationClientSource, /updateStorefrontPaymentAttemptStatus\("SETTLED"\)/);
+  assert.match(confirmationClientSource, /Orders publique su estado final/);
   assert.match(cssSource, /\.storefrontConfirmation/);
 });
 
@@ -342,6 +350,14 @@ test("storefront checkout persists orderform checkout data through BFF actions",
   assert.match(checkoutClientSource, /selectedSla/);
   assert.match(checkoutClientSource, /Confirmar pedido/);
   assert.match(checkoutClientSource, /checkout\/confirmation/);
+  assert.match(checkoutClientSource, /confirmedCheckoutPaymentReference\(orderform, totals\.grandTotal\)/);
+  assert.match(checkoutClientSource, /readStorefrontPaymentReceipt/);
+  assert.match(checkoutClientSource, /paymentStatusAllowsOrder/);
+  assert.match(checkoutClientSource, /paymentTransactionId: paymentReference\.transactionId/);
+  assert.match(checkoutClientSource, /payment: paymentReference/);
+  assert.match(checkoutClientSource, /transactionId: paymentReference\.transactionId/);
+  assert.match(checkoutClientSource, /Confirma el pago con Payments antes de crear el pedido/);
+  assert.doesNotMatch(checkoutClientSource, /transactionId: orderId/);
   assert.match(checkoutRouteSource, /passthroughHeaders\(authorization, guestSessionId\)/);
   assert.match(checkoutRouteSource, /getStorefrontCustomerAuthorizationHeader/);
   assert.match(checkoutRouteSource, /withAuth: false/);

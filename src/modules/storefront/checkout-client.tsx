@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,6 +35,20 @@ import {
   loginStorefrontCustomer,
   signupStorefrontCustomer,
 } from "./storefront-auth-actions";
+import {
+  createStorefrontPaymentAttempt,
+  createStorefrontPaymentCorrelationId,
+  createStorefrontPaymentReceipt,
+  createStorefrontPaymentTransaction,
+  decideStorefrontPaymentAction,
+  installedStorefrontPaymentMethods,
+  normalizeStorefrontPaymentMethods,
+  readStorefrontPaymentAttempt,
+  readStorefrontPaymentReceipt,
+  saveStorefrontPaymentAttempt,
+  saveStorefrontPaymentReceipt,
+  type StorefrontPaymentMethod,
+} from "./payments";
 
 const guestSessionStorageKey = "ecommium_storefront_guest_session_id";
 const orderFormStorageKey = "ecommium_storefront_order_form_id";
@@ -44,6 +58,7 @@ type CheckoutStatus = "loading" | "ready" | "empty" | "error";
 type CheckoutStep = "profile" | "shipping" | "payment" | "review";
 type CheckoutValidationErrors = Partial<Record<CheckoutStep, string[]>>;
 type GuestCheckoutMode = "guest" | "login" | "signup";
+type PaymentSystemsStatus = "idle" | "loading" | "ready" | "error";
 
 type ShippingSla = {
   id: string;
@@ -112,7 +127,10 @@ export function StorefrontCheckoutClient() {
   const [couponMessage, setCouponMessage] = useState("");
   const [couponMessageStatus, setCouponMessageStatus] = useState<CouponMessageStatus>("info");
   const [pendingCouponCode, setPendingCouponCode] = useState<string | undefined>();
-  const [paymentSystem, setPaymentSystem] = useState("credit-card");
+  const [paymentSystem, setPaymentSystem] = useState("");
+  const [paymentSystems, setPaymentSystems] = useState<StorefrontPaymentMethod[]>([]);
+  const [paymentSystemsStatus, setPaymentSystemsStatus] = useState<PaymentSystemsStatus>("idle");
+  const [paymentSystemsMessage, setPaymentSystemsMessage] = useState("");
   const [installments, setInstallments] = useState(1);
   const [shippingOptions, setShippingOptions] = useState<ShippingOptions | null>(null);
   const [selectedSlas, setSelectedSlas] = useState<Record<number, string>>({});
@@ -156,6 +174,13 @@ export function StorefrontCheckoutClient() {
     taxes: orderform?.totals.taxTotalMinor ?? 0,
     grandTotal: cartGrandTotalMinor(orderform),
   }), [orderform]);
+  const selectedPaymentMethod = useMemo(
+    () => paymentSystems.find((method) => method.paymentSystemId === paymentSystem) ?? null,
+    [paymentSystem, paymentSystems],
+  );
+  const installmentOptions = useMemo(() => {
+    return paymentInstallmentOptions(selectedPaymentMethod);
+  }, [selectedPaymentMethod]);
 
   async function applyOrderformAction(action: string, payload: Record<string, unknown>) {
     if (!orderform?.orderFormId) {
@@ -188,6 +213,55 @@ export function StorefrontCheckoutClient() {
     syncCheckoutForms(nextOrderform);
     return nextOrderform;
   }
+
+  const loadPaymentSystems = useCallback(async () => {
+    setPaymentSystemsStatus("loading");
+    setPaymentSystemsMessage("");
+
+    try {
+      const guestSessionId = getOrCreateGuestSessionId();
+      const params = new URLSearchParams({ guestSessionId });
+      const response = await fetch(`/api/storefront/payments/payment-systems?${params.toString()}`, {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(errorMessage(payload));
+      }
+
+      const installedMethods = installedStorefrontPaymentMethods(normalizeStorefrontPaymentMethods(payload));
+      const nextPaymentSystem = installedMethods.some((method) => method.paymentSystemId === paymentSystem)
+        ? paymentSystem
+        : installedMethods[0]?.paymentSystemId ?? "";
+      const nextMethod = installedMethods.find((method) => method.paymentSystemId === nextPaymentSystem) ?? null;
+      setPaymentSystems(installedMethods);
+      setPaymentSystem(nextPaymentSystem);
+      setInstallments((current) => {
+        const available = paymentInstallmentOptions(nextMethod);
+        return available.includes(current) ? current : available[0] ?? 1;
+      });
+      setPaymentSystemsStatus("ready");
+      setPaymentSystemsMessage(installedMethods.length ? "" : "No hay métodos de pago activos para esta tienda.");
+    } catch (error) {
+      setPaymentSystems([]);
+      setPaymentSystem("");
+      setPaymentSystemsStatus("error");
+      setPaymentSystemsMessage(error instanceof Error ? error.message : "No se pudieron cargar los métodos de pago.");
+    }
+  }, [paymentSystem]);
+
+  useEffect(() => {
+    if (status !== "ready" || !orderform?.items.length || paymentSystemsStatus !== "idle") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      loadPaymentSystems();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadPaymentSystems, orderform?.orderFormId, orderform?.items.length, paymentSystemsStatus, status]);
 
   async function saveProfile() {
     setPendingAction("profile");
@@ -457,26 +531,126 @@ export function StorefrontCheckoutClient() {
   async function savePayment() {
     setPendingAction("payment");
     setMessage("");
-    const errors = validatePaymentSelection(orderform, paymentSystem, totals.grandTotal);
+    const errors = validatePaymentSelection(orderform, paymentSystem, paymentSystems, totals.grandTotal);
     if (errors.length) {
       setValidationErrors((next) => ({ ...next, payment: errors }));
       setPendingAction(null);
       return;
     }
+    const selectedMethod = selectedPaymentMethod;
+    if (!selectedMethod) {
+      setValidationErrors((next) => ({ ...next, payment: ["Selecciona un método de pago válido."] }));
+      setPendingAction(null);
+      return;
+    }
     try {
-      await applyOrderformAction("payment-data", {
+      const nextOrderform = await applyOrderformAction("payment-data", {
         payments: [{
-          paymentSystem,
-          paymentSystemName: paymentSystemName(paymentSystem),
-          groupName: paymentSystem === "bank-transfer" ? "offline" : "cards",
+          paymentSystem: selectedMethod.paymentSystemId,
+          paymentSystemName: selectedMethod.name,
+          groupName: selectedMethod.groupName ?? paymentGroupName(selectedMethod),
+          methodType: selectedMethod.methodType ?? selectedMethod.provider,
+          provider: selectedMethod.provider,
           valueMinor: totals.grandTotal,
           referenceValueMinor: totals.grandTotal,
           installments,
         }],
       });
-      setActiveStep("review");
+      const transactionId = createCheckoutTransactionId();
+      const correlationId = createStorefrontPaymentCorrelationId();
+      const transaction = await createStorefrontPaymentTransaction({
+        body: buildPaymentTransactionPayload({
+          actor: isAuthenticatedCheckout(checkoutContext) ? "customer" : "guest",
+          correlationId,
+          installments,
+          method: selectedMethod,
+          orderform: nextOrderform,
+          profile,
+          transactionId,
+        }),
+        correlationId,
+        guestSessionId: getOrCreateGuestSessionId(),
+      });
+      const decision = decideStorefrontPaymentAction(selectedMethod, transaction);
+
+      if (decision.kind === "redirect") {
+        saveStorefrontPaymentAttempt(createStorefrontPaymentAttempt({
+          actor: isAuthenticatedCheckout(checkoutContext) ? "customer" : "guest",
+          amountMinor: totals.grandTotal,
+          correlationId,
+          currency: nextOrderform.currency,
+          customerId: checkoutContext?.identity.customerId ?? undefined,
+          guestSessionId: getOrCreateGuestSessionId(),
+          itemsCount: cartTotalItems(nextOrderform),
+          orderFormId: nextOrderform.orderFormId ?? "",
+          paymentSystemId: selectedMethod.paymentSystemId,
+          paymentSystemName: selectedMethod.name,
+          provider: selectedMethod.provider === "paypal" ? "paypal" : "stripe",
+          status: "REDIRECTED",
+          transactionId: transaction.transactionId || transactionId,
+        }));
+        setMessage("Redirigiendo al proveedor de pago...");
+        window.location.assign(decision.redirectUrl);
+        return;
+      }
+
+      if (decision.kind === "unsupported") {
+        throw new Error(decision.message);
+      }
+
+      if (decision.kind === "pending") {
+        saveStorefrontPaymentAttempt(createStorefrontPaymentAttempt({
+          actor: isAuthenticatedCheckout(checkoutContext) ? "customer" : "guest",
+          amountMinor: totals.grandTotal,
+          correlationId,
+          currency: nextOrderform.currency,
+          customerId: checkoutContext?.identity.customerId ?? undefined,
+          guestSessionId: getOrCreateGuestSessionId(),
+          itemsCount: cartTotalItems(nextOrderform),
+          orderFormId: nextOrderform.orderFormId ?? "",
+          paymentSystemId: selectedMethod.paymentSystemId,
+          paymentSystemName: selectedMethod.name,
+          provider: selectedMethod.provider === "paypal" ? "paypal" : "stripe",
+          status: "RETURNED",
+          transactionId: transaction.transactionId || transactionId,
+        }));
+        saveStorefrontPaymentReceipt(createStorefrontPaymentReceipt({
+          attempt: readStorefrontPaymentAttempt(),
+          status: transaction.status,
+          transaction,
+        }));
+        setMessage("Pago pendiente de confirmación.");
+      } else {
+        const allowsOrder = paymentStatusAllowsOrder(transaction.status);
+        const paymentAttempt = createStorefrontPaymentAttempt({
+          actor: isAuthenticatedCheckout(checkoutContext) ? "customer" : "guest",
+          amountMinor: totals.grandTotal,
+          correlationId,
+          currency: nextOrderform.currency,
+          customerId: checkoutContext?.identity.customerId ?? undefined,
+          guestSessionId: getOrCreateGuestSessionId(),
+          itemsCount: cartTotalItems(nextOrderform),
+          orderFormId: nextOrderform.orderFormId ?? "",
+          paymentSystemId: selectedMethod.paymentSystemId,
+          paymentSystemName: selectedMethod.name,
+          provider: selectedMethod.provider === "paypal" ? "paypal" : "stripe",
+          status: allowsOrder ? "SETTLED" : "RETURNED",
+          transactionId: transaction.transactionId || transactionId,
+        });
+        saveStorefrontPaymentAttempt(paymentAttempt);
+        saveStorefrontPaymentReceipt(createStorefrontPaymentReceipt({
+          attempt: paymentAttempt,
+          status: transaction.status,
+          transaction,
+        }));
+        if (allowsOrder) {
+          setActiveStep("review");
+          setMessage("Método de pago guardado.");
+        } else {
+          setMessage("Pago pendiente de confirmación.");
+        }
+      }
       setValidationErrors((next) => ({ ...next, payment: undefined }));
-      setMessage("Método de pago guardado.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No se pudo guardar el pago.");
     } finally {
@@ -502,6 +676,15 @@ export function StorefrontCheckoutClient() {
     setMessage("");
     try {
       const guestSessionId = getOrCreateGuestSessionId();
+      const paymentReference = confirmedCheckoutPaymentReference(orderform, totals.grandTotal);
+      if (!paymentReference) {
+        setValidationErrors((next) => ({
+          ...next,
+          review: ["Confirma el pago con Payments antes de crear el pedido."],
+        }));
+        setPendingAction(null);
+        return;
+      }
       const response = await fetch("/api/storefront/checkout", {
         method: "POST",
         credentials: "same-origin",
@@ -514,7 +697,11 @@ export function StorefrontCheckoutClient() {
           guestSessionId,
           payload: {
             orderFormId: orderform.orderFormId,
-            checkoutContext: { orderFormId: orderform.orderFormId },
+            checkoutContext: {
+              orderFormId: orderform.orderFormId,
+              paymentTransactionId: paymentReference.transactionId,
+            },
+            payment: paymentReference,
             source: "storefront-checkout",
           },
         }),
@@ -529,7 +716,7 @@ export function StorefrontCheckoutClient() {
       await clearCheckoutCart(orderform, guestSessionId);
       window.location.href = `/checkout/confirmation?${new URLSearchParams({
         orderId,
-        transactionId: orderId,
+        transactionId: paymentReference.transactionId,
         revenueMinor: String(cartGrandTotalMinor(orderform)),
         currency: orderform.currency,
         productId: firstItem?.productId ?? firstItem?.productSlug ?? "cart",
@@ -682,29 +869,48 @@ export function StorefrontCheckoutClient() {
             icon={<CreditCard aria-hidden="true" size={20} />}
             onEdit={() => setActiveStep("payment")}
             status={completion.payment ? "Completo" : "Pendiente"}
-            summary={<PaymentSectionSummary orderform={orderform} paymentSystem={paymentSystem} />}
-            subtitle="Selecciona un método. La autorización/captura del proveedor queda preparada para la siguiente integración."
+            summary={<PaymentSectionSummary orderform={orderform} paymentMethod={selectedPaymentMethod} paymentSystem={paymentSystem} />}
+            subtitle="Selecciona uno de los métodos activos configurados en Payments."
             title="Pago"
           >
             <CheckoutValidationList messages={validationErrors.payment} />
-            <div className="storefrontCheckoutPaymentMethods">
-              {["credit-card", "paypal", "bank-transfer"].map((method) => (
-                <label key={method}>
-                  <input checked={paymentSystem === method} name="paymentSystem" onChange={() => setPaymentSystem(method)} type="radio" />
-                  <span>{paymentSystemName(method)}</span>
+            {paymentSystemsStatus === "loading" ? (
+              <p className="storefrontCheckoutNotice">Cargando métodos de pago...</p>
+            ) : null}
+            {paymentSystemsStatus === "error" || paymentSystemsMessage ? (
+              <p className="storefrontCheckoutNotice">{paymentSystemsMessage}</p>
+            ) : null}
+            {paymentSystems.length > 0 ? (
+              <>
+                <div className="storefrontCheckoutPaymentMethods">
+                  {paymentSystems.map((method) => (
+                    <label key={method.paymentSystemId}>
+                      <input
+                        checked={paymentSystem === method.paymentSystemId}
+                        name="paymentSystem"
+                        onChange={() => {
+                          setPaymentSystem(method.paymentSystemId);
+                          setInstallments(paymentInstallmentOptions(method)[0] ?? 1);
+                        }}
+                        type="radio"
+                      />
+                      <span>{method.name}</span>
+                      <small>{paymentProviderLabel(method)}</small>
+                    </label>
+                  ))}
+                </div>
+                <label className="storefrontCheckoutField">
+                  <span>Cuotas</span>
+                  <select value={installments} onChange={(event) => setInstallments(Number(event.currentTarget.value) || 1)}>
+                    {installmentOptions.map((value) => (
+                      <option key={value} value={value}>{value} {value === 1 ? "cuota" : "cuotas"}</option>
+                    ))}
+                  </select>
                 </label>
-              ))}
-            </div>
-            <label className="storefrontCheckoutField">
-              <span>Cuotas</span>
-              <select value={installments} onChange={(event) => setInstallments(Number(event.currentTarget.value) || 1)}>
-                <option value={1}>1 cuota</option>
-                <option value={3}>3 cuotas</option>
-                <option value={6}>6 cuotas</option>
-              </select>
-            </label>
+              </>
+            ) : null}
             <CheckoutActions>
-              <button disabled={pendingAction === "payment"} onClick={savePayment} type="button">
+              <button disabled={pendingAction === "payment" || paymentSystemsStatus !== "ready" || paymentSystems.length === 0} onClick={savePayment} type="button">
                 {pendingAction === "payment" ? "Guardando" : "Guardar pago"}
               </button>
             </CheckoutActions>
@@ -924,9 +1130,11 @@ function ShippingSectionSummary({
 
 function PaymentSectionSummary({
   orderform,
+  paymentMethod,
   paymentSystem,
 }: {
   orderform: StorefrontOrderform;
+  paymentMethod: StorefrontPaymentMethod | null;
   paymentSystem: string;
 }) {
   return (
@@ -937,7 +1145,7 @@ function PaymentSectionSummary({
       </div>
       <div>
         <dt>Método</dt>
-        <dd>{paymentSystemName(paymentSystem)}</dd>
+        <dd>{paymentMethod?.name ?? paymentSystemName(paymentSystem)}</dd>
       </div>
       <div>
         <dt>Total</dt>
@@ -1576,12 +1784,19 @@ function validateShippingAddress(address: typeof defaultAddress) {
   return errors;
 }
 
-function validatePaymentSelection(orderform: StorefrontOrderform | null, paymentSystem: string, totalMinor: number) {
+function validatePaymentSelection(
+  orderform: StorefrontOrderform | null,
+  paymentSystem: string,
+  paymentSystems: StorefrontPaymentMethod[],
+  totalMinor: number,
+) {
   const errors: string[] = [];
   if (!orderform?.items.length) {
     errors.push("El carrito necesita productos para seleccionar pago.");
   }
-  if (!["credit-card", "paypal", "bank-transfer"].includes(paymentSystem)) {
+  if (!paymentSystems.length) {
+    errors.push("No hay métodos de pago activos para esta tienda.");
+  } else if (!paymentSystems.some((method) => method.paymentSystemId === paymentSystem)) {
     errors.push("Selecciona un método de pago válido.");
   }
   if (!Number.isFinite(totalMinor) || totalMinor < 0) {
@@ -1882,13 +2097,171 @@ function defaultSelectedSlas(options: ShippingOptions) {
 }
 
 function paymentSystemName(value: string) {
-  if (value === "paypal") {
+  if (!value) {
+    return "Pendiente";
+  }
+  if (value.toLowerCase().includes("paypal")) {
     return "PayPal";
   }
-  if (value === "bank-transfer") {
-    return "Transferencia";
-  }
   return "Tarjeta";
+}
+
+function paymentProviderLabel(method: StorefrontPaymentMethod) {
+  if (method.provider === "paypal") {
+    return "PayPal";
+  }
+  if (method.provider === "stripe") {
+    return method.methodType?.toLowerCase().includes("card") ? "Stripe tarjeta" : "Stripe";
+  }
+  return method.methodType ?? method.groupName ?? "Método activo";
+}
+
+function paymentInstallmentOptions(method: StorefrontPaymentMethod | null) {
+  const configured = method?.installments?.filter((value) => Number.isFinite(value) && value > 0) ?? [];
+  return configured.length ? configured : [1];
+}
+
+function paymentGroupName(method: StorefrontPaymentMethod) {
+  if (method.provider === "paypal") {
+    return "paypal";
+  }
+  if (method.provider === "stripe") {
+    return "cards";
+  }
+  return method.groupName ?? "payments";
+}
+
+function createCheckoutTransactionId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `checkout-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function buildPaymentTransactionPayload(input: {
+  actor: "guest" | "customer";
+  correlationId: string;
+  installments: number;
+  method: StorefrontPaymentMethod;
+  orderform: StorefrontOrderform;
+  profile: CheckoutProfile;
+  transactionId: string;
+}) {
+  const amountMinor = cartGrandTotalMinor(input.orderform);
+  const orderFormId = input.orderform.orderFormId ?? "";
+  const urls = paymentProviderReturnUrls(input.method);
+  const inventory = buildPaymentInventorySnapshot(input.orderform, input.transactionId);
+
+  if (!inventory.items.length) {
+    throw new Error("No se pudo preparar el inventario para iniciar el pago.");
+  }
+
+  return {
+    transactionId: input.transactionId,
+    referenceId: orderFormId,
+    channel: "storefront",
+    salesChannel: "web",
+    paymentSystemId: input.method.paymentSystemId,
+    country: paymentCountry(input.orderform),
+    valueMinor: Math.max(0, Math.round(amountMinor)),
+    currency: input.orderform.currency,
+    softDescriptor: "ECOMMIUM",
+    prepareForRecurrency: false,
+    checkoutContext: {
+      returnUrl: urls.returnUrl,
+      cancelUrl: urls.cancelUrl,
+      brandName: "Ecommium",
+      locale: "es-ES",
+      userAction: "PAY_NOW",
+      landingPage: "LOGIN",
+      paymentMethodId: input.method.paymentSystemId,
+      paymentMethodName: input.method.name,
+    },
+    payer: {
+      emailAddress: input.profile.email.trim() || undefined,
+      givenName: input.profile.firstName.trim() || undefined,
+      surname: input.profile.lastName.trim() || undefined,
+    },
+    inventory,
+    actor: input.actor,
+    payment: {
+      installments: input.installments,
+      paymentSystemName: input.method.name,
+      groupName: input.method.groupName ?? paymentGroupName(input.method),
+      methodType: input.method.methodType ?? input.method.provider,
+      provider: input.method.provider,
+    },
+    correlationId: input.correlationId,
+  };
+}
+
+function paymentProviderReturnUrls(method: StorefrontPaymentMethod) {
+  const provider = method.provider === "paypal" ? "paypal" : "stripe";
+  const origin = window.location.origin;
+
+  return {
+    cancelUrl: `${origin}/checkout/payments/${provider}/cancel`,
+    returnUrl: `${origin}/checkout/payments/${provider}/return`,
+  };
+}
+
+function buildPaymentInventorySnapshot(orderform: StorefrontOrderform, transactionId: string) {
+  return {
+    saleId: transactionId,
+    orderFormId: orderform.orderFormId ?? "",
+    warehouseId: findWarehouseId(orderform.shippingData) ?? "warehouse-default",
+    items: orderform.items
+      .map((item) => ({
+        variantId: item.variantId ?? "",
+        quantity: Math.max(0, Math.round(item.quantity)),
+      }))
+      .filter((item) => item.variantId && item.quantity > 0),
+  };
+}
+
+function paymentCountry(orderform: StorefrontOrderform) {
+  return findCountry(orderform.shippingData) ?? "ES";
+}
+
+function findCountry(value: unknown): string | undefined {
+  const record = asRecord(value);
+  const direct = asText(record.country);
+  if (direct) {
+    return direct;
+  }
+  return findStringByKey(value, "country");
+}
+
+function findWarehouseId(value: unknown): string | undefined {
+  return findStringByKey(value, "warehouseId");
+}
+
+function findStringByKey(value: unknown, key: string): string | undefined {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const nested = findStringByKey(item, key);
+      if (nested) {
+        return nested;
+      }
+    }
+    return undefined;
+  }
+
+  const record = asRecord(value);
+  const direct = asText(record[key]);
+  if (direct) {
+    return direct;
+  }
+
+  for (const nested of Object.values(record)) {
+    if (typeof nested === "object" && nested !== null) {
+      const match = findStringByKey(nested, key);
+      if (match) {
+        return match;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 function hasProfile(orderform: StorefrontOrderform | null) {
@@ -1897,6 +2270,77 @@ function hasProfile(orderform: StorefrontOrderform | null) {
 
 function hasPayment(orderform: StorefrontOrderform | null) {
   return Boolean(orderform?.paymentData && Object.keys(orderform.paymentData).length > 0);
+}
+
+type ConfirmedCheckoutPaymentReference = {
+  amountMinor?: number;
+  correlationId?: string;
+  currency?: string;
+  provider: "paypal" | "stripe";
+  status: string;
+  supportReference?: string;
+  transactionId: string;
+};
+
+function confirmedCheckoutPaymentReference(
+  orderform: StorefrontOrderform,
+  amountMinor: number,
+): ConfirmedCheckoutPaymentReference | null {
+  const receipt = readStorefrontPaymentReceipt();
+  if (
+    receipt &&
+    receipt.transactionId &&
+    paymentStatusAllowsOrder(receipt.status) &&
+    paymentReferenceMatchesOrderform(receipt.orderFormId, orderform.orderFormId) &&
+    paymentAmountMatchesOrderform(receipt.amountMinor, amountMinor)
+  ) {
+    return {
+      amountMinor: receipt.amountMinor,
+      correlationId: receipt.correlationId,
+      currency: receipt.currency,
+      provider: receipt.provider,
+      status: receipt.status,
+      supportReference: receipt.supportReference,
+      transactionId: receipt.transactionId,
+    };
+  }
+
+  const attempt = readStorefrontPaymentAttempt();
+  if (
+    attempt &&
+    attempt.status === "SETTLED" &&
+    paymentReferenceMatchesOrderform(attempt.orderFormId, orderform.orderFormId) &&
+    paymentAmountMatchesOrderform(attempt.amountMinor, amountMinor)
+  ) {
+    return {
+      amountMinor: attempt.amountMinor,
+      correlationId: attempt.correlationId,
+      currency: attempt.currency,
+      provider: attempt.provider,
+      status: attempt.status,
+      supportReference: [attempt.transactionId, attempt.correlationId].filter(Boolean).join(":"),
+      transactionId: attempt.transactionId,
+    };
+  }
+
+  return null;
+}
+
+function paymentStatusAllowsOrder(status: string | undefined) {
+  const normalized = status?.toUpperCase();
+  return normalized === "SETTLED" ||
+    normalized === "AUTHORIZED" ||
+    normalized === "SUCCEEDED" ||
+    normalized === "APPROVED" ||
+    normalized === "COMPLETED";
+}
+
+function paymentReferenceMatchesOrderform(referenceOrderFormId: string | undefined, orderFormId: string | undefined) {
+  return Boolean(referenceOrderFormId && orderFormId && referenceOrderFormId === orderFormId);
+}
+
+function paymentAmountMatchesOrderform(referenceAmountMinor: number | undefined, amountMinor: number) {
+  return typeof referenceAmountMinor !== "number" || referenceAmountMinor === amountMinor;
 }
 
 function getOrCreateGuestSessionId() {

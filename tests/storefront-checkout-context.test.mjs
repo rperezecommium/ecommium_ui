@@ -110,13 +110,51 @@ test("storefront checkout validates section payloads before BFF mutations", () =
   assert.match(clientSource, /type CheckoutValidationErrors/);
   assert.match(clientSource, /validateProfile\(profile, isAuthenticatedCheckout\(checkoutContext\)\)/);
   assert.match(clientSource, /validateShippingAddress\(address\)/);
-  assert.match(clientSource, /validatePaymentSelection\(orderform, paymentSystem, totals\.grandTotal\)/);
+  assert.match(clientSource, /validatePaymentSelection\(orderform, paymentSystem, paymentSystems, totals\.grandTotal\)/);
   assert.match(clientSource, /CheckoutValidationList/);
   assert.match(clientSource, /role="alert"/);
   assert.match(clientSource, /Introduce un email válido/);
   assert.match(clientSource, /Introduce un código postal válido/);
   assert.match(clientSource, /Selecciona un método de pago válido/);
   assert.match(cssSource, /\.storefrontCheckoutValidation/);
+});
+
+test("storefront checkout loads payment methods from Payments BFF proxy", () => {
+  const clientSource = readFileSync(path.resolve(root, "src/modules/storefront/checkout-client.tsx"), "utf8");
+  const paymentSystemsRouteSource = readFileSync(path.resolve(root, "app/api/storefront/payments/payment-systems/route.ts"), "utf8");
+
+  assert.match(clientSource, /loadPaymentSystems/);
+  assert.match(clientSource, /\/api\/storefront\/payments\/payment-systems/);
+  assert.match(clientSource, /installedStorefrontPaymentMethods/);
+  assert.match(clientSource, /paymentSystems\.map/);
+  assert.match(clientSource, /No hay métodos de pago activos para esta tienda/);
+  assert.doesNotMatch(clientSource, /\["credit-card", "paypal", "bank-transfer"\]/);
+  assert.doesNotMatch(clientSource, /bank-transfer/);
+  assert.match(paymentSystemsRouteSource, /\/payments\/payment-systems/);
+  assert.match(paymentSystemsRouteSource, /getStorefrontCustomerAuthorizationHeader/);
+  assert.match(paymentSystemsRouteSource, /x-guest-session-id/);
+  assert.match(paymentSystemsRouteSource, /withAuth: false/);
+  assert.match(paymentSystemsRouteSource, /Cache-Control/);
+});
+
+test("storefront checkout starts payment transactions and persists redirect attempts", () => {
+  const clientSource = readFileSync(path.resolve(root, "src/modules/storefront/checkout-client.tsx"), "utf8");
+  const transactionsRouteSource = readFileSync(path.resolve(root, "app/api/storefront/payments/transactions/route.ts"), "utf8");
+
+  assert.match(clientSource, /createStorefrontPaymentTransaction/);
+  assert.match(clientSource, /decideStorefrontPaymentAction/);
+  assert.match(clientSource, /saveStorefrontPaymentAttempt/);
+  assert.match(clientSource, /createStorefrontPaymentCorrelationId/);
+  assert.match(clientSource, /buildPaymentTransactionPayload/);
+  assert.match(clientSource, /buildPaymentInventorySnapshot/);
+  assert.match(clientSource, /window\.location\.assign\(decision\.redirectUrl\)/);
+  assert.match(clientSource, /\/checkout\/payments\/\$\{provider\}\/return/);
+  assert.match(clientSource, /\/checkout\/payments\/\$\{provider\}\/cancel/);
+  assert.match(clientSource, /No se pudo preparar el inventario para iniciar el pago/);
+  assert.match(transactionsRouteSource, /\/payments\/transactions/);
+  assert.match(transactionsRouteSource, /x-correlation-id/);
+  assert.match(transactionsRouteSource, /stripUiOnlyFields/);
+  assert.match(transactionsRouteSource, /withAuth: false/);
 });
 
 test("storefront checkout guides the next actionable section before review", () => {
