@@ -143,4 +143,47 @@ test("storefront checkout context types model identity, sections and allowed act
   assert.match(typesSource, /contact/);
   assert.match(typesSource, /sections/);
   assert.match(typesSource, /mutationScope/);
+  assert.match(typesSource, /StorefrontCheckoutAddressBook/);
+  assert.match(typesSource, /maxAddresses/);
+  assert.match(typesSource, /addressBook/);
+  assert.match(typesSource, /selectedAddress/);
+  assert.match(typesSource, /section\?: string/);
+});
+
+test("storefront checkout consumes authenticated address book by alias", () => {
+  const clientSource = readFileSync(path.resolve(root, "src/modules/storefront/checkout-client.tsx"), "utf8");
+  const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
+
+  assert.match(clientSource, /AddressBookSelector/);
+  assert.match(clientSource, /AddressBookSavePanel/);
+  assert.match(clientSource, /selectedAddressBookId/);
+  assert.match(clientSource, /sections\?\.shipping\?\.addressBook/);
+  assert.match(clientSource, /<select value=\{selectedAddressId\}/);
+  assert.match(clientSource, /addressBookItemLabel/);
+  assert.match(clientSource, /addressFormFromCheckoutAddress/);
+  assert.match(clientSource, /buildSelectedAddress\(address, selectedSavedAddress\)/);
+  assert.match(clientSource, /addressId: savedAddress\?\.addressId/);
+  assert.match(clientSource, /alias: savedAddress\?\.alias/);
+  assert.match(clientSource, /isDisposable: !savedAddress\?\.addressId/);
+  assert.match(clientSource, /Límite de direcciones alcanzado/);
+  assert.match(cssSource, /\.storefrontCheckoutAddressBook/);
+  assert.match(cssSource, /\.storefrontCheckoutSaveAddressPanel/);
+});
+
+test("storefront checkout saves new addresses through Storefront me proxy", () => {
+  const clientSource = readFileSync(path.resolve(root, "src/modules/storefront/checkout-client.tsx"), "utf8");
+  const routeSource = readFileSync(path.resolve(root, "app/api/storefront/me/addresses/route.ts"), "utf8");
+
+  assert.match(clientSource, /\/api\/storefront\/me\/addresses/);
+  assert.match(clientSource, /validateAddressAlias/);
+  assert.match(clientSource, /buildAddressBookPayload/);
+  assert.match(clientSource, /normalizeAddressBookPayload/);
+  assert.match(clientSource, /updateCheckoutAddressBook/);
+  assert.match(routeSource, /\/storefront\/me\/addresses/);
+  assert.match(routeSource, /getStorefrontCustomerAuthorizationHeader/);
+  assert.match(routeSource, /organizationId/);
+  assert.match(routeSource, /alias/);
+  assert.match(routeSource, /validateAddressPayload/);
+  assert.match(routeSource, /withAuth: false/);
+  assert.doesNotMatch(routeSource, /customerId/);
 });

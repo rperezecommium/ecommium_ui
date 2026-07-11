@@ -28,9 +28,41 @@ export type StorefrontCheckoutSection = {
   mutationScope?: StorefrontCheckoutAllowedAction | null;
 };
 
+export type StorefrontCheckoutAddress = {
+  addressId?: string | null;
+  alias?: string | null;
+  addressType?: string | null;
+  addressRole?: "SHIPPING" | "BILLING" | "BOTH" | string | null;
+  receiverName?: string | null;
+  street?: string | null;
+  number?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postalCode?: string | null;
+  complement?: string | null;
+  reference?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+export type StorefrontCheckoutAddressBook = {
+  maxAddresses: number;
+  count: number;
+  defaultShippingAddressId?: string | null;
+  defaultBillingAddressId?: string | null;
+  items: StorefrontCheckoutAddress[];
+};
+
+export type StorefrontCheckoutShippingSection = StorefrontCheckoutSection & {
+  selectedAddress?: StorefrontCheckoutAddress | null;
+  addressBook?: StorefrontCheckoutAddressBook | null;
+};
+
 export type StorefrontCheckoutSections = {
   contact?: StorefrontCheckoutSection;
-  shipping?: StorefrontCheckoutSection;
+  shipping?: StorefrontCheckoutShippingSection;
   billing?: StorefrontCheckoutSection;
   payment?: StorefrontCheckoutSection;
 };
@@ -38,6 +70,7 @@ export type StorefrontCheckoutSections = {
 export type StorefrontCheckoutWarning = {
   code?: string;
   message: string;
+  section?: string;
 };
 
 export type StorefrontCheckoutContextResponse = {

@@ -24,7 +24,12 @@ import {
   type StorefrontOrderform,
 } from "./cart";
 import { couponApplicationFeedback, normalizeCouponCodeInput, StorefrontCouponControl, type CouponMessageStatus } from "./cart-client";
-import type { StorefrontCheckoutAllowedAction, StorefrontCheckoutContextResponse } from "./checkout-types";
+import type {
+  StorefrontCheckoutAddress,
+  StorefrontCheckoutAddressBook,
+  StorefrontCheckoutAllowedAction,
+  StorefrontCheckoutContextResponse,
+} from "./checkout-types";
 import type { StorefrontAuthActionState } from "./auth-types";
 import {
   loginStorefrontCustomer,
@@ -111,6 +116,9 @@ export function StorefrontCheckoutClient() {
   const [installments, setInstallments] = useState(1);
   const [shippingOptions, setShippingOptions] = useState<ShippingOptions | null>(null);
   const [selectedSlas, setSelectedSlas] = useState<Record<number, string>>({});
+  const [selectedAddressBookId, setSelectedAddressBookId] = useState("");
+  const [addressAlias, setAddressAlias] = useState("");
+  const [addressBookMessage, setAddressBookMessage] = useState("");
 
   useEffect(() => {
     fetchCheckoutContext()
@@ -121,6 +129,12 @@ export function StorefrontCheckoutClient() {
         const nextProfile = profileFromCheckoutContext(context, nextOrderform);
         if (nextProfile) {
           setProfile(nextProfile);
+        }
+        const nextAddress = checkoutAddressForForm(context);
+        if (nextAddress) {
+          setAddress(addressFormFromCheckoutAddress(nextAddress));
+          setSelectedAddressBookId(nextAddress.addressId ?? "");
+          setAddressAlias(nextAddress.alias ?? "");
         }
         setStatus(nextOrderform.items.length > 0 ? "ready" : "empty");
       })
@@ -260,6 +274,7 @@ export function StorefrontCheckoutClient() {
   }
 
   async function saveShipping() {
+    const selectedSavedAddress = findAddressBookItem(checkoutContext?.sections?.shipping?.addressBook, selectedAddressBookId);
     const errors = validateShippingAddress(address);
     if (errors.length) {
       setValidationErrors((next) => ({ ...next, shipping: errors }));
@@ -275,7 +290,7 @@ export function StorefrontCheckoutClient() {
     setMessage("");
     try {
       await applyOrderformAction("shipping-data", {
-        selectedAddress: buildSelectedAddress(address),
+        selectedAddress: buildSelectedAddress(address, selectedSavedAddress),
         billingSameAsShipping: true,
         billingAddress: null,
         logisticsInfo: shippingOptions.logisticsInfo.map((info) => {
@@ -342,6 +357,82 @@ export function StorefrontCheckoutClient() {
     if (couponMessageStatus === "error") {
       setCouponMessage("");
       setCouponMessageStatus("info");
+    }
+  }
+
+  function updateShippingAddress(patch: Partial<typeof defaultAddress>) {
+    setAddress((next) => ({ ...next, ...patch }));
+    setSelectedAddressBookId("");
+    setShippingOptions(null);
+    setAddressBookMessage("");
+  }
+
+  function selectAddressBookItem(addressId: string) {
+    if (!addressId) {
+      setSelectedAddressBookId("");
+      setAddressAlias("");
+      setAddressBookMessage("");
+      setShippingOptions(null);
+      return;
+    }
+
+    const selected = findAddressBookItem(checkoutContext?.sections?.shipping?.addressBook, addressId);
+    if (!selected) {
+      return;
+    }
+
+    setSelectedAddressBookId(selected.addressId ?? "");
+    setAddress(addressFormFromCheckoutAddress(selected));
+    setAddressAlias(selected.alias ?? "");
+    setShippingOptions(null);
+    setAddressBookMessage("");
+  }
+
+  async function saveAddressToBook() {
+    const errors = [
+      ...validateShippingAddress(address),
+      ...validateAddressAlias(addressAlias),
+    ];
+    if (errors.length) {
+      setValidationErrors((next) => ({ ...next, shipping: errors }));
+      return;
+    }
+
+    setPendingAction("address-book");
+    setAddressBookMessage("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/storefront/me/addresses", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(buildAddressBookPayload(address, addressAlias)),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(errorMessage(payload));
+      }
+
+      const nextAddressBook = normalizeAddressBookPayload(payload, checkoutContext?.sections?.shipping?.addressBook);
+      const payloadRecord = asRecord(payload);
+      const addressRecord = asRecord(payloadRecord.address);
+      const createdAddressId = asText(payloadRecord.addressId) ?? asText(payloadRecord.id) ?? asText(addressRecord.addressId) ?? asText(addressRecord.id) ?? "";
+      const nextSelected = findAddressBookItem(nextAddressBook, createdAddressId);
+      setCheckoutContext((next) => updateCheckoutAddressBook(next, nextAddressBook));
+      if (nextSelected?.addressId) {
+        setSelectedAddressBookId(nextSelected.addressId);
+        setAddress(addressFormFromCheckoutAddress(nextSelected));
+        setAddressAlias(nextSelected.alias ?? addressAlias.trim());
+      }
+      setValidationErrors((next) => ({ ...next, shipping: undefined }));
+      setAddressBookMessage("Dirección guardada.");
+    } catch (error) {
+      setAddressBookMessage(error instanceof Error ? error.message : "No se pudo guardar la dirección.");
+    } finally {
+      setPendingAction(null);
     }
   }
 
@@ -485,6 +576,8 @@ export function StorefrontCheckoutClient() {
   const contactAction = contactMutationAction(checkoutContext);
   const nextStep = checkoutNextStep(completion);
   const canReview = nextStep === "review";
+  const addressBook = checkoutContext?.sections?.shipping?.addressBook ?? null;
+  const addressBookWarning = checkoutContext?.warnings?.some((warning) => warning.section === "addresses");
 
   return (
     <section className="storefrontCheckoutLayout">
@@ -537,18 +630,37 @@ export function StorefrontCheckoutClient() {
             title="Entrega"
           >
             <CheckoutValidationList messages={validationErrors.shipping} />
+            {isAuthenticated ? (
+              <AddressBookSelector
+                addressBook={addressBook}
+                degraded={Boolean(addressBookWarning)}
+                onSelect={selectAddressBookItem}
+                selectedAddressId={selectedAddressBookId}
+              />
+            ) : null}
             <div className="storefrontCheckoutFormGrid">
-              <CheckoutInput label="Recibe" value={address.receiverName} onChange={(value) => setAddress((next) => ({ ...next, receiverName: value }))} />
-              <CheckoutInput label="Codigo postal" value={address.postalCode} onChange={(value) => setAddress((next) => ({ ...next, postalCode: value }))} />
-              <CheckoutInput label="Ciudad" value={address.city} onChange={(value) => setAddress((next) => ({ ...next, city: value }))} />
-              <CheckoutInput label="Provincia" value={address.state} onChange={(value) => setAddress((next) => ({ ...next, state: value }))} />
-              <CheckoutInput label="Pais" value={address.country} onChange={(value) => setAddress((next) => ({ ...next, country: value }))} />
-              <CheckoutInput label="Calle" value={address.street} onChange={(value) => setAddress((next) => ({ ...next, street: value }))} />
-              <CheckoutInput label="Numero" value={address.number} onChange={(value) => setAddress((next) => ({ ...next, number: value }))} />
-              <CheckoutInput label="Barrio" value={address.neighborhood} onChange={(value) => setAddress((next) => ({ ...next, neighborhood: value }))} />
-              <CheckoutInput label="Complemento" value={address.complement} onChange={(value) => setAddress((next) => ({ ...next, complement: value }))} />
-              <CheckoutInput label="Referencia" value={address.reference} onChange={(value) => setAddress((next) => ({ ...next, reference: value }))} />
+              <CheckoutInput label="Recibe" value={address.receiverName} onChange={(value) => updateShippingAddress({ receiverName: value })} />
+              <CheckoutInput label="Codigo postal" value={address.postalCode} onChange={(value) => updateShippingAddress({ postalCode: value })} />
+              <CheckoutInput label="Ciudad" value={address.city} onChange={(value) => updateShippingAddress({ city: value })} />
+              <CheckoutInput label="Provincia" value={address.state} onChange={(value) => updateShippingAddress({ state: value })} />
+              <CheckoutInput label="Pais" value={address.country} onChange={(value) => updateShippingAddress({ country: value })} />
+              <CheckoutInput label="Calle" value={address.street} onChange={(value) => updateShippingAddress({ street: value })} />
+              <CheckoutInput label="Numero" value={address.number} onChange={(value) => updateShippingAddress({ number: value })} />
+              <CheckoutInput label="Barrio" value={address.neighborhood} onChange={(value) => updateShippingAddress({ neighborhood: value })} />
+              <CheckoutInput label="Complemento" value={address.complement} onChange={(value) => updateShippingAddress({ complement: value })} />
+              <CheckoutInput label="Referencia" value={address.reference} onChange={(value) => updateShippingAddress({ reference: value })} />
             </div>
+            {isAuthenticated ? (
+              <AddressBookSavePanel
+                addressBook={addressBook}
+                alias={addressAlias}
+                message={addressBookMessage}
+                onAliasChange={setAddressAlias}
+                onSave={saveAddressToBook}
+                pending={pendingAction === "address-book"}
+                selectedAddressId={selectedAddressBookId}
+              />
+            ) : null}
             <ShippingOptionsList
               currency={orderform.currency}
               options={shippingOptions}
@@ -1102,6 +1214,91 @@ function AuthenticatedContactStep({
   );
 }
 
+function AddressBookSelector({
+  addressBook,
+  degraded,
+  onSelect,
+  selectedAddressId,
+}: {
+  addressBook: StorefrontCheckoutAddressBook | null;
+  degraded: boolean;
+  onSelect: (addressId: string) => void;
+  selectedAddressId: string;
+}) {
+  if (degraded) {
+    return <p className="storefrontCheckoutAddressBookNotice">Direcciones no disponibles ahora.</p>;
+  }
+
+  if (!addressBook?.items.length) {
+    return <p className="storefrontCheckoutAddressBookNotice">Sin direcciones guardadas.</p>;
+  }
+
+  const selectedAddress = findAddressBookItem(addressBook, selectedAddressId);
+
+  return (
+    <div className="storefrontCheckoutAddressBook">
+      <div className="storefrontCheckoutAddressBookHeader">
+        <h2>Dirección guardada</h2>
+        <span>{addressBook.count}/{addressBook.maxAddresses}</span>
+      </div>
+      <label className="storefrontCheckoutField">
+        <span>Alias</span>
+        <select value={selectedAddressId} onChange={(event) => onSelect(event.currentTarget.value)}>
+          <option value="">Nueva dirección</option>
+          {addressBook.items.map((item) => (
+            <option key={item.addressId ?? item.alias ?? addressBookItemLine(item)} value={item.addressId ?? ""}>
+              {addressBookItemLabel(item)}
+            </option>
+          ))}
+        </select>
+      </label>
+      {selectedAddress ? (
+        <p className="storefrontCheckoutAddressBookMeta">{addressBookItemLine(selectedAddress)}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function AddressBookSavePanel({
+  addressBook,
+  alias,
+  message,
+  onAliasChange,
+  onSave,
+  pending,
+  selectedAddressId,
+}: {
+  addressBook: StorefrontCheckoutAddressBook | null;
+  alias: string;
+  message: string;
+  onAliasChange: (value: string) => void;
+  onSave: () => void;
+  pending: boolean;
+  selectedAddressId: string;
+}) {
+  if (!addressBook) {
+    return null;
+  }
+
+  if (selectedAddressId) {
+    return message ? <p className="storefrontCheckoutAddressBookNotice">{message}</p> : null;
+  }
+
+  if (addressBook.count >= addressBook.maxAddresses) {
+    return <p className="storefrontCheckoutAddressBookNotice">Límite de direcciones alcanzado.</p>;
+  }
+
+  return (
+    <div className="storefrontCheckoutSaveAddressPanel">
+      <CheckoutInput label="Alias de dirección" value={alias} onChange={onAliasChange} />
+      <button className="storefrontCheckoutSecondaryButton" disabled={pending} onClick={onSave} type="button">
+        {pending ? "Guardando" : "Guardar en libreta"}
+      </button>
+      {message ? <p>{message}</p> : null}
+    </div>
+  );
+}
+
 function CheckoutActions({ children }: { children: ReactNode }) {
   return <div className="storefrontCheckoutActions">{children}</div>;
 }
@@ -1465,11 +1662,68 @@ function profileFromCheckoutContext(context: StorefrontCheckoutContextResponse, 
   };
 }
 
-function buildSelectedAddress(value: typeof defaultAddress) {
+function checkoutAddressForForm(context: StorefrontCheckoutContextResponse) {
+  const shipping = context.sections?.shipping;
+  const selectedAddress = shipping?.selectedAddress;
+  if (selectedAddress && typeof selectedAddress === "object") {
+    return selectedAddress;
+  }
+
+  const defaultShippingAddressId = shipping?.addressBook?.defaultShippingAddressId;
+  return defaultShippingAddressId
+    ? findAddressBookItem(shipping.addressBook, defaultShippingAddressId)
+    : null;
+}
+
+function addressFormFromCheckoutAddress(address: StorefrontCheckoutAddress) {
   return {
+    ...defaultAddress,
+    receiverName: address.receiverName ?? "",
+    postalCode: address.postalCode ?? "",
+    city: address.city ?? "",
+    state: address.state ?? "",
+    country: address.country ?? defaultAddress.country,
+    street: address.street ?? "",
+    number: address.number ?? "",
+    neighborhood: address.neighborhood ?? "",
+    complement: address.complement ?? "",
+    reference: address.reference ?? "",
+  };
+}
+
+function findAddressBookItem(addressBook: StorefrontCheckoutAddressBook | null | undefined, addressId: string) {
+  if (!addressId) {
+    return null;
+  }
+
+  return addressBook?.items.find((item) => item.addressId === addressId) ?? null;
+}
+
+function addressBookItemLabel(address: StorefrontCheckoutAddress) {
+  return address.alias?.trim() || addressBookItemLine(address);
+}
+
+function addressBookItemLine(address: StorefrontCheckoutAddress) {
+  return [address.street, address.number, address.city, address.postalCode].filter(Boolean).join(", ") || "Dirección";
+}
+
+function validateAddressAlias(alias: string) {
+  const value = alias.trim();
+  if (value.length < 2) {
+    return ["Introduce un alias para la dirección."];
+  }
+  if (value.length > 40) {
+    return ["El alias debe tener 40 caracteres o menos."];
+  }
+  return [];
+}
+
+function buildAddressBookPayload(value: typeof defaultAddress, alias: string) {
+  return {
+    alias: alias.trim(),
     addressType: "residential",
+    addressRole: "SHIPPING",
     receiverName: value.receiverName.trim(),
-    isDisposable: true,
     postalCode: value.postalCode.trim(),
     city: value.city.trim(),
     state: value.state.trim(),
@@ -1479,6 +1733,96 @@ function buildSelectedAddress(value: typeof defaultAddress) {
     neighborhood: value.neighborhood.trim() || null,
     complement: value.complement.trim() || null,
     reference: value.reference.trim() || null,
+  };
+}
+
+function buildSelectedAddress(value: typeof defaultAddress, savedAddress?: StorefrontCheckoutAddress | null) {
+  return {
+    addressId: savedAddress?.addressId ?? undefined,
+    alias: savedAddress?.alias ?? undefined,
+    addressType: savedAddress?.addressType ?? "residential",
+    addressRole: savedAddress?.addressRole ?? undefined,
+    receiverName: value.receiverName.trim(),
+    isDisposable: !savedAddress?.addressId,
+    postalCode: value.postalCode.trim(),
+    city: value.city.trim(),
+    state: value.state.trim(),
+    country: value.country.trim(),
+    street: value.street.trim(),
+    number: value.number.trim(),
+    neighborhood: value.neighborhood.trim() || null,
+    complement: value.complement.trim() || null,
+    reference: value.reference.trim() || null,
+  };
+}
+
+function normalizeAddressBookPayload(payload: unknown, previous?: StorefrontCheckoutAddressBook | null): StorefrontCheckoutAddressBook {
+  const root = asRecord(payload);
+  const bookRecord = asRecord(root.addressBook);
+  const rawItems = Array.isArray(bookRecord.items) ? bookRecord.items : undefined;
+  const createdAddress = normalizeCheckoutAddress(root.address ?? root);
+  const previousItems = previous?.items ?? [];
+  const items = rawItems
+    ? rawItems.map(normalizeCheckoutAddress).filter((item) => item.addressId)
+    : upsertAddressBookItem(previousItems, createdAddress);
+
+  return {
+    maxAddresses: asNumber(bookRecord.maxAddresses) ?? previous?.maxAddresses ?? 5,
+    count: asNumber(bookRecord.count) ?? items.length,
+    defaultShippingAddressId: asText(bookRecord.defaultShippingAddressId) ?? previous?.defaultShippingAddressId ?? null,
+    defaultBillingAddressId: asText(bookRecord.defaultBillingAddressId) ?? previous?.defaultBillingAddressId ?? null,
+    items,
+  };
+}
+
+function normalizeCheckoutAddress(value: unknown): StorefrontCheckoutAddress {
+  const record = asRecord(value);
+  return {
+    addressId: asText(record.addressId) ?? asText(record.id) ?? null,
+    alias: asText(record.alias) ?? null,
+    addressType: asText(record.addressType) ?? null,
+    addressRole: asText(record.addressRole) ?? null,
+    receiverName: asText(record.receiverName) ?? null,
+    street: asText(record.street) ?? null,
+    number: asText(record.number) ?? null,
+    neighborhood: asText(record.neighborhood) ?? null,
+    city: asText(record.city) ?? null,
+    state: asText(record.state) ?? null,
+    country: asText(record.country) ?? null,
+    postalCode: asText(record.postalCode) ?? null,
+    complement: asText(record.complement) ?? null,
+    reference: asText(record.reference) ?? null,
+    createdAt: asText(record.createdAt) ?? null,
+    updatedAt: asText(record.updatedAt) ?? null,
+  };
+}
+
+function upsertAddressBookItem(items: StorefrontCheckoutAddress[], address: StorefrontCheckoutAddress) {
+  if (!address.addressId) {
+    return items;
+  }
+
+  const withoutCurrent = items.filter((item) => item.addressId !== address.addressId);
+  return [...withoutCurrent, address];
+}
+
+function updateCheckoutAddressBook(
+  context: StorefrontCheckoutContextResponse | null,
+  addressBook: StorefrontCheckoutAddressBook,
+) {
+  if (!context) {
+    return context;
+  }
+
+  return {
+    ...context,
+    sections: {
+      ...(context.sections ?? {}),
+      shipping: {
+        ...(context.sections?.shipping ?? {}),
+        addressBook,
+      },
+    },
   };
 }
 

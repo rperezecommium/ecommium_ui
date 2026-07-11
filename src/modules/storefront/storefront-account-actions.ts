@@ -3,12 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { clearStorefrontCustomerSession, updateStorefrontCustomerSessionEmail } from "./storefront-customer-session";
-import { createStorefrontAfterSalesCase, patchStorefrontCustomerProfile } from "./storefront-account";
+import {
+  createStorefrontAfterSalesCase,
+  createStorefrontCustomerAddress,
+  deleteStorefrontCustomerAddress,
+  patchStorefrontCustomerAddress,
+  patchStorefrontCustomerProfile,
+  setStorefrontCustomerAddressDefault,
+} from "./storefront-account";
 
 export type StorefrontAccountActionState = {
   status: "idle" | "success" | "error";
   message: string;
 };
+
+type AddressOperation = "create" | "update" | "delete" | "default-shipping" | "default-billing";
 
 function formString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -17,6 +26,12 @@ function formString(formData: FormData, key: string) {
 
 function formBoolean(formData: FormData, key: string) {
   return formData.get(key) === "on";
+}
+
+function addressOperation(value: string): AddressOperation | null {
+  return ["create", "update", "delete", "default-shipping", "default-billing"].includes(value)
+    ? value as AddressOperation
+    : null;
 }
 
 export async function updateStorefrontAccountProfile(
@@ -179,8 +194,119 @@ export async function submitStorefrontAfterSalesCase(
   };
 }
 
+export async function submitStorefrontAccountAddress(
+  previousState: StorefrontAccountActionState,
+  formData: FormData,
+): Promise<StorefrontAccountActionState> {
+  void previousState;
+  const operation = addressOperation(formString(formData, "operation"));
+  const addressId = formString(formData, "addressId");
+
+  if (!operation) {
+    return {
+      status: "error",
+      message: "Accion de direccion no soportada.",
+    };
+  }
+
+  if (operation !== "create" && !addressId) {
+    return {
+      status: "error",
+      message: "Selecciona una direccion valida.",
+    };
+  }
+
+  if (operation === "delete") {
+    const result = await deleteStorefrontCustomerAddress(addressId);
+    return addressActionResult(result.ok, result.status, "Direccion eliminada.");
+  }
+
+  if (operation === "default-shipping" || operation === "default-billing") {
+    const result = await setStorefrontCustomerAddressDefault(addressId, operation === "default-shipping" ? "shipping" : "billing");
+    return addressActionResult(result.ok, result.status, operation === "default-shipping" ? "Direccion de envio actualizada." : "Direccion fiscal actualizada.");
+  }
+
+  const payload = addressPayloadFromForm(formData);
+  const validationError = validateAddressPayload(payload);
+  if (validationError) {
+    return {
+      status: "error",
+      message: validationError,
+    };
+  }
+
+  const result = operation === "create"
+    ? await createStorefrontCustomerAddress(payload)
+    : await patchStorefrontCustomerAddress(addressId, payload);
+
+  return addressActionResult(result.ok, result.status, operation === "create" ? "Direccion guardada." : "Direccion actualizada.");
+}
+
 export async function logoutStorefrontCustomer(): Promise<void> {
   await clearStorefrontCustomerSession();
   revalidatePath("/");
   redirect("/");
+}
+
+function addressPayloadFromForm(formData: FormData) {
+  return {
+    alias: formString(formData, "alias"),
+    addressType: formString(formData, "addressType") || "residential",
+    addressRole: formString(formData, "addressRole") || "BOTH",
+    receiverName: formString(formData, "receiverName"),
+    street: formString(formData, "street"),
+    number: formString(formData, "number"),
+    neighborhood: formString(formData, "neighborhood") || null,
+    city: formString(formData, "city"),
+    state: formString(formData, "state"),
+    country: formString(formData, "country") || "ES",
+    postalCode: formString(formData, "postalCode"),
+    complement: formString(formData, "complement") || null,
+    reference: formString(formData, "reference") || null,
+  };
+}
+
+function validateAddressPayload(payload: ReturnType<typeof addressPayloadFromForm>) {
+  if (payload.alias.length < 2 || payload.alias.length > 40) {
+    return "El alias debe tener entre 2 y 40 caracteres.";
+  }
+
+  if (!payload.receiverName || !payload.street || !payload.number || !payload.city || !payload.state || !payload.country || !payload.postalCode) {
+    return "Completa los campos obligatorios de la direccion.";
+  }
+
+  if (payload.postalCode.length < 4) {
+    return "Introduce un codigo postal valido.";
+  }
+
+  return null;
+}
+
+function addressActionResult(ok: boolean, status: number | undefined, successMessage: string): StorefrontAccountActionState {
+  if (ok) {
+    revalidatePath("/account");
+    return {
+      status: "success",
+      message: successMessage,
+    };
+  }
+
+  if (status === 401) {
+    return {
+      status: "error",
+      message: "Inicia sesion para gestionar direcciones.",
+    };
+  }
+
+  if (status === 409) {
+    return {
+      status: "error",
+      message: "Revisa el alias o el limite de direcciones guardadas.",
+    };
+  }
+
+  return {
+    status: "error",
+    message: "No se pudo guardar la libreta de direcciones.",
+  };
 }

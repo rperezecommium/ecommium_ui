@@ -4,10 +4,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { useActionState, useState } from "react";
 import type { ReactNode } from "react";
-import { Download, ExternalLink, Eye, EyeOff, FileText, LifeBuoy, PackageCheck, ShieldCheck, Truck, UserRound, X } from "lucide-react";
+import { Download, ExternalLink, Eye, EyeOff, FileText, LifeBuoy, MapPin, PackageCheck, ShieldCheck, Star, Trash2, Truck, UserRound, X } from "lucide-react";
 import type {
   StorefrontAccountData,
   StorefrontAvatarOption,
+  StorefrontCustomerAddress,
   StorefrontInvoice,
   StorefrontPurchase,
   StorefrontPurchaseLine,
@@ -15,6 +16,7 @@ import type {
 import {
   logoutStorefrontCustomer,
   submitStorefrontAfterSalesCase,
+  submitStorefrontAccountAddress,
   updateStorefrontAccountCredentials,
   updateStorefrontAccountProfile,
   type StorefrontAccountActionState,
@@ -25,7 +27,7 @@ const initialState: StorefrontAccountActionState = {
   message: "",
 };
 
-type AccountDrawer = "profile" | "credentials" | "afterSales" | "invoices" | null;
+type AccountDrawer = "profile" | "credentials" | "addresses" | "afterSales" | "invoices" | null;
 
 const avatarImagePath: Record<string, string> = {
   "human-01": "/storefront/avatars/human-01.jpg",
@@ -52,6 +54,7 @@ const shippingStatusLabels: Record<string, string> = {
 export function StorefrontAccountClient({ data }: { data: StorefrontAccountData }) {
   const [profileState, profileAction, profilePending] = useActionState(updateStorefrontAccountProfile, initialState);
   const [credentialsState, credentialsAction, credentialsPending] = useActionState(updateStorefrontAccountCredentials, initialState);
+  const [addressState, addressAction, addressPending] = useActionState(submitStorefrontAccountAddress, initialState);
   const [afterSalesState, afterSalesAction, afterSalesPending] = useActionState(submitStorefrontAfterSalesCase, initialState);
   const [drawer, setDrawer] = useState<AccountDrawer>(null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -71,6 +74,7 @@ export function StorefrontAccountClient({ data }: { data: StorefrontAccountData 
         <nav aria-label="Gestion de cuenta" className="storefrontAccountMenu">
           <button onClick={() => setDrawer("profile")} type="button">Editar datos</button>
           <button onClick={() => setDrawer("credentials")} type="button">Cambiar Contrasena</button>
+          <button onClick={() => setDrawer("addresses")} type="button">Direcciones</button>
           <button onClick={() => setDrawer("afterSales")} type="button">Postventa</button>
           <button onClick={() => setDrawer("invoices")} type="button">Mis Facturas</button>
         </nav>
@@ -163,6 +167,19 @@ export function StorefrontAccountClient({ data }: { data: StorefrontAccountData 
               </form>
             </>
           ) : null}
+          {drawer === "addresses" ? (
+            <>
+              <div className="storefrontAccountPanelHeader">
+                <MapPin aria-hidden="true" size={20} />
+                <div>
+                  <h2>Direcciones</h2>
+                  <p>Alias, destino y preferencias de envio/facturacion.</p>
+                </div>
+              </div>
+              <ActionNotice state={addressState} />
+              <AddressBookPanel action={addressAction} addresses={data.addresses} pending={addressPending} />
+            </>
+          ) : null}
           {drawer === "afterSales" ? (
             <>
               <div className="storefrontAccountPanelHeader">
@@ -201,6 +218,9 @@ function drawerTitle(drawer: Exclude<AccountDrawer, null>) {
   if (drawer === "credentials") {
     return "Cambiar Contrasena";
   }
+  if (drawer === "addresses") {
+    return "Direcciones";
+  }
   return drawer === "afterSales" ? "Postventa" : "Mis Facturas";
 }
 
@@ -229,6 +249,199 @@ function AccountSideDrawer({
       </aside>
     </div>
   );
+}
+
+function AddressBookPanel({
+  action,
+  addresses,
+  pending,
+}: {
+  action: (payload: FormData) => void;
+  addresses: StorefrontAccountData["addresses"];
+  pending: boolean;
+}) {
+  if (!addresses.ok) {
+    return (
+      <div className="storefrontAccountEmpty">
+        <strong>No pudimos cargar direcciones</strong>
+        <p>{addresses.status === 401 ? "Vuelve a iniciar sesion para gestionar tu libreta." : addresses.error}</p>
+      </div>
+    );
+  }
+
+  const isFull = addresses.data.count >= addresses.data.maxAddresses;
+
+  return (
+    <div className="storefrontAddressBookPanel">
+      <div className="storefrontAddressBookMeter">
+        <span>Guardadas</span>
+        <strong>{addresses.data.count}/{addresses.data.maxAddresses}</strong>
+      </div>
+      {addresses.data.items.length > 0 ? (
+        <div className="storefrontAddressBookList">
+          {addresses.data.items.map((address) => (
+            <AddressBookCard
+              action={action}
+              address={address}
+              defaultBillingAddressId={addresses.data.defaultBillingAddressId}
+              defaultShippingAddressId={addresses.data.defaultShippingAddressId}
+              key={address.addressId}
+              pending={pending}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="storefrontAccountEmpty">
+          <strong>Sin direcciones guardadas</strong>
+          <p>Puedes guardar hasta {addresses.data.maxAddresses} direcciones.</p>
+        </div>
+      )}
+      {!isFull ? (
+        <details className="storefrontAddressBookEditor">
+          <summary>Nueva direccion</summary>
+          <form action={action} className="storefrontAccountForm">
+            <input name="operation" type="hidden" value="create" />
+            <AddressFields />
+            <button className="storefrontAuthSubmit" disabled={pending} type="submit">
+              {pending ? "Guardando..." : "Guardar direccion"}
+            </button>
+          </form>
+        </details>
+      ) : (
+        <p className="storefrontAddressBookNotice">Limite de direcciones alcanzado.</p>
+      )}
+    </div>
+  );
+}
+
+function AddressBookCard({
+  action,
+  address,
+  defaultBillingAddressId,
+  defaultShippingAddressId,
+  pending,
+}: {
+  action: (payload: FormData) => void;
+  address: StorefrontCustomerAddress;
+  defaultBillingAddressId?: string | null;
+  defaultShippingAddressId?: string | null;
+  pending: boolean;
+}) {
+  const isDefaultShipping = defaultShippingAddressId === address.addressId;
+  const isDefaultBilling = defaultBillingAddressId === address.addressId;
+
+  return (
+    <article className="storefrontAddressBookCard">
+      <div className="storefrontAddressBookCardHeader">
+        <div>
+          <h3>{address.alias}</h3>
+          <p>{addressLine(address)}</p>
+        </div>
+        <div className="storefrontAddressBookBadges">
+          {isDefaultShipping ? <span>Envio</span> : null}
+          {isDefaultBilling ? <span>Fiscal</span> : null}
+        </div>
+      </div>
+      <dl>
+        <div><dt>Recibe</dt><dd>{address.receiverName}</dd></div>
+        <div><dt>Ciudad</dt><dd>{address.city}</dd></div>
+        <div><dt>Codigo postal</dt><dd>{address.postalCode}</dd></div>
+        <div><dt>Rol</dt><dd>{addressRoleLabel(address.addressRole)}</dd></div>
+      </dl>
+      <div className="storefrontAddressBookActions">
+        {!isDefaultShipping ? (
+          <form action={action}>
+            <input name="operation" type="hidden" value="default-shipping" />
+            <input name="addressId" type="hidden" value={address.addressId} />
+            <button disabled={pending} type="submit">
+              <Star aria-hidden="true" size={15} />
+              Envio
+            </button>
+          </form>
+        ) : null}
+        {!isDefaultBilling ? (
+          <form action={action}>
+            <input name="operation" type="hidden" value="default-billing" />
+            <input name="addressId" type="hidden" value={address.addressId} />
+            <button disabled={pending} type="submit">
+              <Star aria-hidden="true" size={15} />
+              Fiscal
+            </button>
+          </form>
+        ) : null}
+        <form action={action}>
+          <input name="operation" type="hidden" value="delete" />
+          <input name="addressId" type="hidden" value={address.addressId} />
+          <button className="storefrontAddressBookDanger" disabled={pending} type="submit">
+            <Trash2 aria-hidden="true" size={15} />
+            Eliminar
+          </button>
+        </form>
+      </div>
+      <details className="storefrontAddressBookEditor">
+        <summary>Editar</summary>
+        <form action={action} className="storefrontAccountForm">
+          <input name="operation" type="hidden" value="update" />
+          <input name="addressId" type="hidden" value={address.addressId} />
+          <AddressFields address={address} />
+          <button className="storefrontAuthSubmit" disabled={pending} type="submit">
+            {pending ? "Guardando..." : "Guardar cambios"}
+          </button>
+        </form>
+      </details>
+    </article>
+  );
+}
+
+function AddressFields({ address }: { address?: StorefrontCustomerAddress }) {
+  return (
+    <>
+      <div className="storefrontAuthGrid">
+        <AccountField defaultValue={address?.alias ?? ""} label="Alias" name="alias" type="text" />
+        <AccountField defaultValue={address?.receiverName ?? ""} label="Recibe" name="receiverName" type="text" />
+      </div>
+      <div className="storefrontAuthGrid">
+        <AccountField defaultValue={address?.street ?? ""} label="Calle" name="street" type="text" />
+        <AccountField defaultValue={address?.number ?? ""} label="Numero" name="number" type="text" />
+      </div>
+      <div className="storefrontAuthGrid">
+        <AccountField defaultValue={address?.city ?? ""} label="Ciudad" name="city" type="text" />
+        <AccountField defaultValue={address?.state ?? ""} label="Provincia" name="state" type="text" />
+      </div>
+      <div className="storefrontAuthGrid">
+        <AccountField defaultValue={address?.postalCode ?? ""} label="Codigo postal" name="postalCode" type="text" />
+        <AccountField defaultValue={address?.country ?? "ES"} label="Pais" name="country" type="text" />
+      </div>
+      <div className="storefrontAuthGrid">
+        <AccountField defaultValue={address?.neighborhood ?? ""} label="Barrio" name="neighborhood" required={false} type="text" />
+        <AccountField defaultValue={address?.complement ?? ""} label="Complemento" name="complement" required={false} type="text" />
+      </div>
+      <AccountField defaultValue={address?.reference ?? ""} label="Referencia" name="reference" required={false} type="text" />
+      <label className="storefrontAuthField">
+        <span>Uso</span>
+        <select defaultValue={address?.addressRole ?? "BOTH"} name="addressRole">
+          <option value="BOTH">Envio y fiscal</option>
+          <option value="SHIPPING">Solo envio</option>
+          <option value="BILLING">Solo fiscal</option>
+        </select>
+      </label>
+      <input name="addressType" type="hidden" value={address?.addressType ?? "residential"} />
+    </>
+  );
+}
+
+function addressLine(address: StorefrontCustomerAddress) {
+  return [address.street, address.number, address.city, address.postalCode].filter(Boolean).join(", ") || "-";
+}
+
+function addressRoleLabel(value: string | undefined) {
+  if (value === "SHIPPING") {
+    return "Envio";
+  }
+  if (value === "BILLING") {
+    return "Fiscal";
+  }
+  return "Ambas";
 }
 
 function AfterSalesPanel({

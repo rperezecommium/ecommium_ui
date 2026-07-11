@@ -29,6 +29,33 @@ export type StorefrontCustomerProfile = {
   updatedAt?: string;
 };
 
+export type StorefrontCustomerAddress = {
+  addressId: string;
+  alias: string;
+  addressType: string;
+  addressRole?: "SHIPPING" | "BILLING" | "BOTH" | string;
+  receiverName: string;
+  street: string;
+  number: string;
+  neighborhood?: string | null;
+  city: string;
+  state: string;
+  country: string;
+  postalCode: string;
+  complement?: string | null;
+  reference?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type StorefrontAddressBook = {
+  maxAddresses: number;
+  count: number;
+  defaultShippingAddressId?: string | null;
+  defaultBillingAddressId?: string | null;
+  items: StorefrontCustomerAddress[];
+};
+
 export type StorefrontPurchaseLine = {
   lineId: string;
   productId: string;
@@ -122,6 +149,7 @@ export type StorefrontAfterSalesCaseResponse = {
 export type StorefrontAccountData = {
   profile: StorefrontCustomerProfile;
   avatarOptions: StorefrontAvatarOption[];
+  addresses: BffResult<StorefrontAddressBook>;
   purchases: BffResult<StorefrontPurchasesData>;
   invoices: BffResult<StorefrontInvoicesData>;
 };
@@ -197,13 +225,18 @@ export async function getStorefrontAccountData({
     };
   }
 
-  const [profileResult, avatarResult, purchasesResult, invoicesResult] = await Promise.all([
+  const [profileResult, avatarResult, addressesResult, purchasesResult, invoicesResult] = await Promise.all([
     requestBff<ProfileResponse>(accountPath("/storefront/me/profile"), {
       withAuth: false,
       context: { locale: context.locale },
       init: { headers },
     }),
     requestBff<AvatarOptionsResponse>(accountPath("/storefront/me/avatar-options"), {
+      withAuth: false,
+      context: { locale: context.locale },
+      init: { headers },
+    }),
+    requestBff<StorefrontAddressBook>(accountPath("/storefront/me/addresses"), {
       withAuth: false,
       context: { locale: context.locale },
       init: { headers },
@@ -239,6 +272,7 @@ export async function getStorefrontAccountData({
       avatarOptions: avatarResult.ok && avatarResult.data.items.length >= 10
         ? avatarResult.data.items
         : fallbackAvatarOptions,
+      addresses: addressesResult,
       purchases: purchasesResult,
       invoices: invoicesResult,
     },
@@ -299,4 +333,99 @@ export async function createStorefrontAfterSalesCase(
       body: JSON.stringify(payload),
     },
   });
+}
+
+export async function createStorefrontCustomerAddress(
+  payload: Record<string, unknown>,
+): Promise<BffResult<StorefrontAddressBook>> {
+  const headers = await storefrontAuthHeaders();
+
+  if (!headers) {
+    return unauthenticatedAddressResult();
+  }
+
+  return requestBff<StorefrontAddressBook>(accountPath("/storefront/me/addresses"), {
+    withAuth: false,
+    context: { locale: getStorefrontContext().locale },
+    init: {
+      method: "POST",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  });
+}
+
+export async function patchStorefrontCustomerAddress(
+  addressId: string,
+  payload: Record<string, unknown>,
+): Promise<BffResult<StorefrontAddressBook>> {
+  const headers = await storefrontAuthHeaders();
+
+  if (!headers) {
+    return unauthenticatedAddressResult();
+  }
+
+  return requestBff<StorefrontAddressBook>(accountPath(`/storefront/me/addresses/${encodeURIComponent(addressId)}`), {
+    withAuth: false,
+    context: { locale: getStorefrontContext().locale },
+    init: {
+      method: "PATCH",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  });
+}
+
+export async function deleteStorefrontCustomerAddress(
+  addressId: string,
+): Promise<BffResult<StorefrontAddressBook>> {
+  const headers = await storefrontAuthHeaders();
+
+  if (!headers) {
+    return unauthenticatedAddressResult();
+  }
+
+  return requestBff<StorefrontAddressBook>(accountPath(`/storefront/me/addresses/${encodeURIComponent(addressId)}`), {
+    withAuth: false,
+    context: { locale: getStorefrontContext().locale },
+    init: {
+      method: "DELETE",
+      headers,
+    },
+  });
+}
+
+export async function setStorefrontCustomerAddressDefault(
+  addressId: string,
+  defaultKind: "shipping" | "billing",
+): Promise<BffResult<StorefrontAddressBook>> {
+  const headers = await storefrontAuthHeaders();
+
+  if (!headers) {
+    return unauthenticatedAddressResult();
+  }
+
+  return requestBff<StorefrontAddressBook>(accountPath(`/storefront/me/addresses/${encodeURIComponent(addressId)}/default-${defaultKind}`), {
+    withAuth: false,
+    context: { locale: getStorefrontContext().locale },
+    init: {
+      method: "PATCH",
+      headers,
+    },
+  });
+}
+
+function unauthenticatedAddressResult(): BffResult<StorefrontAddressBook> {
+  return {
+    ok: false,
+    status: 401,
+    error: "Cliente no autenticado.",
+    correlationId: "storefront-address-book-local",
+  };
 }

@@ -5032,6 +5032,187 @@ p {
   color: #7a7a7a;
 }
 
+.storefrontAddressBookPanel {
+  display: grid;
+  gap: 14px;
+}
+
+.storefrontAddressBookMeter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  background: #f6f7f8;
+}
+
+.storefrontAddressBookMeter span {
+  color: #7a7a7a;
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.storefrontAddressBookMeter strong {
+  color: #232323;
+  font-size: 16px;
+}
+
+.storefrontAddressBookList {
+  display: grid;
+  gap: 12px;
+}
+
+.storefrontAddressBookCard {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.storefrontAddressBookCardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.storefrontAddressBookCardHeader h3 {
+  margin: 0 0 4px;
+  color: #232323;
+  font-size: 18px;
+}
+
+.storefrontAddressBookCardHeader p,
+.storefrontAddressBookNotice {
+  margin: 0;
+  color: #7a7a7a;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.storefrontAddressBookBadges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.storefrontAddressBookBadges span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid #b9dfc3;
+  border-radius: 4px;
+  background: #f2fbf4;
+  color: #20734a;
+  font-size: 11px;
+  font-weight: 850;
+  padding: 0 8px;
+  text-transform: uppercase;
+}
+
+.storefrontAddressBookCard dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.storefrontAddressBookCard dl div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #eef1f4;
+  background: #f8fafb;
+}
+
+.storefrontAddressBookCard dt {
+  color: #7a7a7a;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.storefrontAddressBookCard dd {
+  margin: 4px 0 0;
+  color: #232323;
+  font-size: 13px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.storefrontAddressBookActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.storefrontAddressBookActions form {
+  margin: 0;
+}
+
+.storefrontAddressBookActions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  border: 1px solid #d9dde3;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1688a3;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  padding: 0 10px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.storefrontAddressBookActions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.storefrontAddressBookActions .storefrontAddressBookDanger {
+  border-color: #f1b3aa;
+  color: #8a2d22;
+}
+
+.storefrontAddressBookEditor {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #eef1f4;
+  padding-top: 12px;
+}
+
+.storefrontAddressBookPanel > .storefrontAddressBookEditor {
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  padding: 14px;
+}
+
+.storefrontAddressBookEditor summary {
+  color: #1688a3;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.storefrontAddressBookEditor[open] summary {
+  margin-bottom: 12px;
+}
+
+.storefrontAddressBookNotice {
+  padding: 10px 12px;
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  background: #f6f7f8;
+}
+
 .storefrontPurchasesList {
   display: grid;
   gap: 12px;
@@ -6900,6 +7081,93 @@ p {
   font-size: 15px;
   font-weight: 800;
   overflow-wrap: anywhere;
+}
+
+.storefrontCheckoutAddressBook {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e0e4ea;
+  background: #f7f8fa;
+}
+
+.storefrontCheckoutAddressBookHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.storefrontCheckoutAddressBookHeader h2 {
+  margin: 0;
+  color: #232323;
+  font-size: 16px;
+}
+
+.storefrontCheckoutAddressBookHeader span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px solid #cfd6df;
+  background: #ffffff;
+  color: #647483;
+  font-size: 12px;
+  font-weight: 850;
+  padding: 0 9px;
+}
+
+.storefrontCheckoutAddressBookMeta,
+.storefrontCheckoutAddressBookNotice {
+  margin: 0;
+  color: #647483;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.storefrontCheckoutAddressBookNotice {
+  padding: 10px 12px;
+  border: 1px solid #e0e4ea;
+  background: #f7f8fa;
+}
+
+.storefrontCheckoutSaveAddressPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #e0e4ea;
+  background: #ffffff;
+}
+
+.storefrontCheckoutSaveAddressPanel button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 1px solid #d9dde3;
+  background: #ffffff;
+  color: #232323;
+  font: inherit;
+  font-weight: 850;
+  padding: 0 14px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.storefrontCheckoutSaveAddressPanel button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.storefrontCheckoutSaveAddressPanel p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #20734a;
+  font-size: 13px;
+  font-weight: 750;
 }
 
 .storefrontCheckoutField {
@@ -9279,6 +9547,7 @@ p {
   .storefrontCheckoutMiniSummary,
   .storefrontCheckoutPaymentMethods,
   .storefrontCheckoutStateGrid,
+  .storefrontAddressBookCard dl,
   .storefrontCmsTiles,
   .storefrontCmsCarousel,
   .storefrontPdpCart,
@@ -9341,6 +9610,7 @@ p {
 
   .storefrontCouponForm,
   .storefrontCheckoutCouponRow,
+  .storefrontCheckoutSaveAddressPanel,
   .storefrontCheckoutSummaryItems article {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -9354,7 +9624,8 @@ p {
     width: min(100%, 120px);
   }
 
-  .storefrontCheckoutActions {
+  .storefrontCheckoutActions,
+  .storefrontAddressBookActions {
     align-items: stretch;
     flex-direction: column;
   }
@@ -9366,7 +9637,10 @@ p {
   }
 
   .storefrontCheckoutActions button,
-  .storefrontCheckoutCouponRow button {
+  .storefrontCheckoutCouponRow button,
+  .storefrontCheckoutSaveAddressPanel button,
+  .storefrontAddressBookActions form,
+  .storefrontAddressBookActions button {
     width: 100%;
   }
 

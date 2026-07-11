@@ -23,6 +23,7 @@ test("storefront account route uses BFF customer profile and avatar contracts", 
   assert.match(routeSource, /storefrontAuthPanelLogout/);
   assert.match(accountSource, /\/storefront\/me\/profile/);
   assert.match(accountSource, /\/storefront\/me\/avatar-options/);
+  assert.match(accountSource, /\/storefront\/me\/addresses/);
   assert.match(accountSource, /\/storefront\/me\/purchases/);
   assert.match(accountSource, /\/storefront\/me\/invoices/);
   assert.match(accountSource, /\/storefront\/me\/after-sales\/cases/);
@@ -30,6 +31,7 @@ test("storefront account route uses BFF customer profile and avatar contracts", 
   assert.match(accountSource, /authorization/);
   assert.match(actionsSource, /patchStorefrontCustomerProfile/);
   assert.match(actionsSource, /submitStorefrontAfterSalesCase/);
+  assert.match(actionsSource, /submitStorefrontAccountAddress/);
   assert.match(actionsSource, /createStorefrontAfterSalesCase/);
   assert.match(actionsSource, /email/);
   assert.match(actionsSource, /currentPassword/);
@@ -40,6 +42,40 @@ test("storefront account route uses BFF customer profile and avatar contracts", 
   assert.match(sessionSource, /httpOnly: true/);
   assert.match(sessionSource, /ecommium_customer_session/);
   assert.doesNotMatch(sessionSource, /localStorage/);
+});
+
+test("storefront account UI manages address book from profile", () => {
+  const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
+  const actionsSource = source("src/modules/storefront/storefront-account-actions.ts");
+  const accountSource = source("src/modules/storefront/storefront-account.ts");
+  const cssSource = source("app/globals.css");
+
+  assert.match(accountSource, /StorefrontAddressBook/);
+  assert.match(accountSource, /createStorefrontCustomerAddress/);
+  assert.match(accountSource, /patchStorefrontCustomerAddress/);
+  assert.match(accountSource, /deleteStorefrontCustomerAddress/);
+  assert.match(accountSource, /setStorefrontCustomerAddressDefault/);
+  assert.match(accountSource, /\/storefront\/me\/addresses\/\$\{encodeURIComponent\(addressId\)\}/);
+  assert.match(accountSource, /default-\$\{defaultKind\}/);
+  assert.match(clientSource, /setDrawer\("addresses"\)/);
+  assert.match(clientSource, /AddressBookPanel/);
+  assert.match(clientSource, /AddressBookCard/);
+  assert.match(clientSource, /Nueva direccion/);
+  assert.match(clientSource, /name="operation" type="hidden" value="create"/);
+  assert.match(clientSource, /name="operation" type="hidden" value="update"/);
+  assert.match(clientSource, /name="operation" type="hidden" value="delete"/);
+  assert.match(clientSource, /name="operation" type="hidden" value="default-shipping"/);
+  assert.match(clientSource, /name="operation" type="hidden" value="default-billing"/);
+  assert.match(clientSource, /address\.alias/);
+  assert.match(clientSource, /addresses\.data\.count >= addresses\.data\.maxAddresses/);
+  assert.match(actionsSource, /addressOperation/);
+  assert.match(actionsSource, /validateAddressPayload/);
+  assert.match(actionsSource, /El alias debe tener entre 2 y 40 caracteres/);
+  assert.match(actionsSource, /Revisa el alias o el limite de direcciones guardadas/);
+  assert.doesNotMatch(clientSource + actionsSource + accountSource, /customerId.*name=/);
+  assert.match(cssSource, /\.storefrontAddressBookPanel/);
+  assert.match(cssSource, /\.storefrontAddressBookCard/);
+  assert.match(cssSource, /\.storefrontAddressBookActions/);
 });
 
 test("storefront account UI exposes editable profile, credentials and 10 avatars", () => {
