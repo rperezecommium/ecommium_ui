@@ -73,7 +73,18 @@ const capturedMediaAssetContentRequests: string[] = [];
 let authPermissions = ["admin:*"];
 let saveOperationMode: "partial_failed" | "success" | "published" = "partial_failed";
 let draftMediaUploadMode: "success" | "failed" = "success";
-const pricingTaxes = [{
+
+type PricingTaxFixture = {
+  taxId: string;
+  taxCode: string;
+  name: string;
+  calculationType: string;
+  rate: number | null;
+  country?: string;
+  isActive: boolean;
+};
+
+const pricingTaxes: PricingTaxFixture[] = [{
   taxId: "tax-standard",
   taxCode: "standard",
   name: "IVA general",
@@ -351,7 +362,22 @@ const seoRoutes = [{
   createdAt: "2026-06-30T00:00:00.000Z",
   updatedAt: "2026-06-30T00:00:00.000Z",
 }];
-const seoRedirects = [{
+type SeoRedirectFixture = {
+  redirectId: string;
+  organizationId: string;
+  shopId: string;
+  locale: string;
+  fromPath: string;
+  toPath: string;
+  statusCode: number;
+  status: string;
+  reason: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const seoRedirects: SeoRedirectFixture[] = [{
   redirectId: "redirect-product-old",
   organizationId: defaultOrganizationId,
   shopId: barcelonaShopId,
@@ -2456,13 +2482,12 @@ test("communications configuration saves email provider and bootstraps auth temp
 
   await expect(page.getByRole("heading", { name: "Comunicaciones email" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Proveedor email" })).toBeVisible();
-  await expect(page.getByText("Password / API key")).toBeVisible();
   await expect(page.getByText("Plantillas de cuenta")).toBeVisible();
   await expect(page.getByRole("row", { name: /customer\.account\.activation/ })).toBeVisible();
 
-  const providerPanel = page.locator("article.adminCard").filter({
-    has: page.getByRole("heading", { name: "Proveedor email" }),
-  });
+  await page.getByRole("link", { name: "Configurar proveedor" }).click();
+  const providerPanel = page.getByRole("dialog", { name: "Configurar proveedor email" });
+  await expect(providerPanel.getByText("Password / API key")).toBeVisible();
   await providerPanel.getByLabel("Proveedor").selectOption("smtp");
   await providerPanel.getByLabel("Activo").check();
   await providerPanel.getByLabel("Email remitente").fill("Tienda <no-reply@ecommium.test>");
@@ -2509,13 +2534,16 @@ test("communications configuration saves email provider and bootstraps auth temp
     },
   });
 
-  const testEmailPanel = providerPanel.locator(".adminSection").filter({
+  const testEmailPanel = page.locator(".adminSection").filter({
     has: page.getByRole("heading", { name: "Enviar prueba" }),
   });
   await expect(testEmailPanel.getByLabel("Destinatario de prueba")).toBeVisible();
   await testEmailPanel.getByLabel("Destinatario de prueba").fill("ricardo@example.com");
   await testEmailPanel.getByLabel("Plantilla").selectOption("customer.account.activation");
-  await testEmailPanel.getByRole("button", { name: "Enviar prueba" }).click();
+  await testEmailPanel.getByRole("button", { name: "Enviar prueba" }).evaluate((button) => {
+    const submitter = button instanceof HTMLButtonElement ? button : undefined;
+    submitter?.form?.requestSubmit(submitter);
+  });
 
   await expect(page.getByText("Prueba de email procesada para ricardo@example.com. Delivery delivery-email-test en estado SENT.")).toBeVisible();
   await expect.poll(() => capturedCommunicationsMutations.some((item) => (

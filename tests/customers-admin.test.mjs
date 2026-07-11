@@ -132,7 +132,7 @@ test("customers admin route renders the module instead of the placeholder", () =
   assert.match(pageSource, /Todos los clientes/);
   assert.match(pageSource, /Resumen 360/);
   assert.match(pageSource, /Consentimientos/);
-  assert.match(pageSource, /Cuenta auth/);
+  assert.match(pageSource, /Gestion de acceso/);
   assert.match(pageSource, /Posibles duplicados/);
   assert.match(pageSource, /Continuidad comercial/);
   assert.match(pageSource, /Operacion interna/);
@@ -804,7 +804,12 @@ test("customers admin customer 360 actions use scoped BFF endpoints", async () =
     ["POST", "/admin/customers/customer-1/sessions/revoke?organizationId=org-1&shopId=shop-1"],
     ["POST", "/admin/customers/customer-1/communications/email?organizationId=org-1&shopId=shop-1"],
   ]);
-  assert.deepEqual(calls[0].body, { active: false });
+  assert.deepEqual(calls[0].body, {
+    active: false,
+    actorEmail: "admin@example.com",
+    actorId: "employee-1",
+    reason: "Solicitud del cliente",
+  });
   assert.equal(calls[3].body.authorId, "employee-1");
   assert.equal(calls[3].body.authorEmail, "admin@example.com");
   assert.deepEqual(calls[4].body.items, [

@@ -26,15 +26,23 @@ type Address = {
   reference?: string | null;
 };
 
+type AddressBookFixture = {
+  maxAddresses: number;
+  count: number;
+  defaultShippingAddressId: string | null;
+  defaultBillingAddressId: string | null;
+  items: Address[];
+};
+
 let bffServer: Server;
 let bffPort = 0;
 let nextPort = 0;
 let nextProcess: ChildProcessWithoutNullStreams;
-let addressBook = initialAddressBook();
+let addressBook: AddressBookFixture = initialAddressBook();
 const capturedAddressMutations: Array<{ method: string; path: string; body: Record<string, unknown> }> = [];
 const capturedShippingPayloads: Record<string, unknown>[] = [];
 
-function initialAddressBook() {
+function initialAddressBook(): AddressBookFixture {
   return {
     maxAddresses: 5,
     count: 2,
