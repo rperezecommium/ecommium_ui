@@ -14,6 +14,7 @@ import {
 type Props = {
   capabilities: InvoiceAdminCapabilities;
   data: InvoiceAdminData;
+  embedded?: boolean;
   filters: InvoiceAdminFilters;
 };
 
@@ -369,9 +370,9 @@ function DocumentPanel({ data }: Pick<Props, "data">) {
   );
 }
 
-export function InvoicesAdminPage({ capabilities, data, filters }: Props) {
+function InvoicesAdminContent({ capabilities, data, filters }: Props) {
   return (
-    <main className="adminPage">
+    <>
       <div className="adminBreadcrumb">Admin / Pagos / Facturacion fiscal</div>
       <div className="adminPageHeader">
         <div>
@@ -404,6 +405,18 @@ export function InvoicesAdminPage({ capabilities, data, filters }: Props) {
           <DocumentPanel data={data} />
         </div>
       </div>
+    </>
+  );
+}
+
+export function InvoicesAdminPage({ capabilities, data, embedded = false, filters }: Props) {
+  if (embedded) {
+    return <InvoicesAdminContent capabilities={capabilities} data={data} filters={filters} />;
+  }
+
+  return (
+    <main className="adminPage">
+      <InvoicesAdminContent capabilities={capabilities} data={data} filters={filters} />
     </main>
   );
 }

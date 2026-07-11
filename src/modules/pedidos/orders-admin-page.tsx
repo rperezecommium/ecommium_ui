@@ -17,6 +17,7 @@ import {
   assignAfterSalesCaseAction,
   createInvoiceAdjustmentAction,
   issueOrderInvoiceAction,
+  requestOrderRefundAction,
 } from "./orders-admin-actions";
 
 type Props = {
@@ -274,16 +275,60 @@ function OrderCoreDetail({ order }: { order: AdminOrderSummary | null }) {
   );
 }
 
-function PaymentDetail({ detail }: { detail: AdminOrderDetail }) {
+function firstRecordField(items: unknown[], keys: string[]) {
+  for (const item of items) {
+    const value = recordField(typeof item === "object" && item !== null ? item as Record<string, unknown> : null, keys);
+    if (value) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function PaymentDetail({
+  capabilities,
+  detail,
+}: {
+  capabilities: OrdersAdminCapabilities;
+  detail: AdminOrderDetail;
+}) {
   const payment = detail.payment;
+  const afterSales = detail.afterSales;
+  const orderId = detail.order?.orderId;
+  const caseId = String(recordField(afterSales, ["caseId"]) ?? "");
+  const transactionId = String(recordField(payment, ["transactionId", "paymentId", "authorizationId"]) ?? "");
+  const resolutionId = String(firstRecordField(recordArray(afterSales, ["resolutions"]), ["resolutionId", "id"]) ?? "");
 
   return (
-    <dl className="adminDefinitionList">
-      <div><dt>Estado</dt><dd>{valueText(recordField(payment, ["status", "transactionStatus", "paymentStatus"]))}</dd></div>
-      <div><dt>Transaction</dt><dd>{valueText(recordField(payment, ["transactionId", "paymentId"]))}</dd></div>
-      <div><dt>PSP</dt><dd>{valueText(recordField(payment, ["provider", "psp", "gateway"]))}</dd></div>
-      <div><dt>Refunds</dt><dd>{valueText(recordField(payment, ["refundsCount", "refundCount"]))}</dd></div>
-    </dl>
+    <>
+      <dl className="adminDefinitionList">
+        <div><dt>Estado</dt><dd>{valueText(recordField(payment, ["status", "transactionStatus", "paymentStatus"]))}</dd></div>
+        <div><dt>Transaction</dt><dd>{valueText(transactionId)}</dd></div>
+        <div><dt>PSP</dt><dd>{valueText(recordField(payment, ["provider", "psp", "gateway"]))}</dd></div>
+        <div><dt>Refunds</dt><dd>{valueText(recordField(payment, ["refundsCount", "refundCount"]))}</dd></div>
+      </dl>
+      {capabilities.canManageAfterSales && caseId && transactionId ? (
+        <form action={requestOrderRefundAction} className="pricingDenseForm">
+          <input name="caseId" type="hidden" value={caseId} />
+          <input name="orderId" type="hidden" value={orderId ?? ""} />
+          <input name="transactionId" type="hidden" value={transactionId} />
+          <label className="adminField">
+            <span>Resolucion</span>
+            <input name="resolutionId" placeholder="resolutionId" defaultValue={resolutionId} />
+          </label>
+          <button className="adminButton" type="submit">Solicitar refund</button>
+        </form>
+      ) : (
+        <div className="adminButtonRow">
+          {orderId ? (
+            <Link className="adminButton adminButtonTiny" href={`/admin/postventa?orderId=${encodeURIComponent(orderId)}`}>
+              Abrir postventa para refund
+            </Link>
+          ) : null}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -493,7 +538,7 @@ function OrderDetailPanel({ capabilities, data }: Pick<Props, "capabilities" | "
         <OrderCoreDetail order={detail.order} />
       </DetailSection>
       <DetailSection icon={<CreditCard aria-hidden="true" size={18} />} title="Pago">
-        <PaymentDetail detail={detail} />
+        <PaymentDetail capabilities={capabilities} detail={detail} />
       </DetailSection>
       <DetailSection icon={<Truck aria-hidden="true" size={18} />} title="Shipping">
         <ShippingDetail detail={detail} />

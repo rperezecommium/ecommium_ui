@@ -107,8 +107,10 @@ test("invoices admin replaces pagos placeholder and exposes fiscal navigation", 
   const documentRouteSource = readFileSync(path.resolve(root, "app/(admin)/admin/pagos/invoices/[invoiceId]/document/route.ts"), "utf8");
 
   assert.match(routeSource, /getInvoiceAdminData/);
-  assert.match(routeSource, /InvoicesAdminPage/);
+  assert.match(routeSource, /getPaymentsAdminData/);
+  assert.match(routeSource, /PaymentsAdminPage/);
   assert.doesNotMatch(routeSource, /Modulo pendiente de implementar/);
+  assert.match(readFileSync(path.resolve(root, "src/modules/pagos/payments-admin-page.tsx"), "utf8"), /<InvoicesAdminPage capabilities=\{invoiceCapabilities\} data=\{invoiceData\} embedded filters=\{invoiceFilters\}/);
   assert.match(pageSource, /Facturas y fiscalidad/);
   assert.match(pageSource, /Bandeja de facturas/);
   assert.match(pageSource, /createFiscalInvoiceAdjustmentAction/);

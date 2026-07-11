@@ -117,6 +117,9 @@ test("orders admin route replaces placeholder with operative module", () => {
   assert.match(pageSource, /assignAfterSalesCaseAction/);
   assert.match(pageSource, /issueOrderInvoiceAction/);
   assert.match(pageSource, /createInvoiceAdjustmentAction/);
+  assert.match(pageSource, /requestOrderRefundAction/);
+  assert.match(pageSource, /Solicitar refund/);
+  assert.match(pageSource, /Abrir postventa para refund/);
   assert.match(pageSource, /Nota de credito/);
   assert.match(pageSource, /\/admin\/pagos\?invoiceId=/);
   assert.match(pageSource, /\/admin\/pagos\/invoices\/.*\/document/);
@@ -134,6 +137,9 @@ test("orders admin route replaces placeholder with operative module", () => {
   assert.match(dataSource, /PAYMENT_STATUS/);
   assert.match(dataSource, /INVOICE_ADJUSTMENT/);
   assert.match(dataSource, /COMPOSITION_WARNING/);
+  const actionsSource = readFileSync(path.resolve(root, "src/modules/pedidos/orders-admin-actions.ts"), "utf8");
+  assert.match(actionsSource, /refund-requests/);
+  assert.match(actionsSource, /admin-order-refund/);
 });
 
 test("orders admin capabilities map order invoice and after-sales permissions", () => {
@@ -239,7 +245,7 @@ test("orders admin loads list detail invoice preview and after-sales through BFF
   ]);
 });
 
-test("orders admin actions assign after-sales, issue invoice and create fiscal adjustments through scoped BFF", async () => {
+test("orders admin actions assign after-sales, issue invoice, refund and create fiscal adjustments through scoped BFF", async () => {
   const calls = [];
   const requestBff = async (pathValue, options = {}) => {
     calls.push({
@@ -249,11 +255,18 @@ test("orders admin actions assign after-sales, issue invoice and create fiscal a
     });
     return { ok: true, data: {}, status: 200, correlationId: "corr-orders" };
   };
-  const { assignAfterSalesCaseAction, createInvoiceAdjustmentAction, issueOrderInvoiceAction } = loadOrdersActionsModule({ requestBff });
+  const {
+    assignAfterSalesCaseAction,
+    createInvoiceAdjustmentAction,
+    issueOrderInvoiceAction,
+    requestOrderRefundAction,
+  } = loadOrdersActionsModule({ requestBff });
   const formData = new FormData();
   formData.set("caseId", "case-1");
   formData.set("orderId", "order-1");
   formData.set("assignedEmployeeId", "employee-2");
+  formData.set("transactionId", "tx-1");
+  formData.set("resolutionId", "resolution-1");
   formData.set("invoiceId", "invoice-1");
   formData.set("adjustmentType", "CREDIT_NOTE");
   formData.set("amountMinor", "1299");
@@ -262,6 +275,7 @@ test("orders admin actions assign after-sales, issue invoice and create fiscal a
 
   await assert.rejects(() => assignAfterSalesCaseAction(formData), { url: "/admin/pedidos?notice=Caso+postventa+asignado.&orderId=order-1" });
   await assert.rejects(() => issueOrderInvoiceAction(formData), { url: "/admin/pedidos?notice=Factura+solicitada.&orderId=order-1" });
+  await assert.rejects(() => requestOrderRefundAction(formData), { url: "/admin/pedidos?notice=Refund+solicitado.&orderId=order-1" });
   await assert.rejects(() => createInvoiceAdjustmentAction(formData), { url: "/admin/pedidos?notice=Ajuste+fiscal+solicitado.&orderId=order-1" });
 
   assert.deepEqual(calls, [
@@ -279,6 +293,16 @@ test("orders admin actions assign after-sales, issue invoice and create fiscal a
       body: {
         orderId: "order-1",
         idempotencyKey: "admin-order-invoice-order-1",
+      },
+    },
+    {
+      path: "/admin/after-sales/cases/case-1/refund-requests?organizationId=org-1&shopId=shop-1",
+      method: "POST",
+      body: {
+        transactionId: "tx-1",
+        resolutionId: "resolution-1",
+        source: "admin-orders",
+        idempotencyKey: "admin-order-refund-case-1-tx-1",
       },
     },
     {

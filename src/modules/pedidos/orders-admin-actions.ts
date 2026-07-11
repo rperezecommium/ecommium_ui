@@ -160,3 +160,34 @@ export async function createInvoiceAdjustmentAction(formData: FormData): Promise
 
   redirect(ordersReturnPath("Ajuste fiscal solicitado.", orderId));
 }
+
+export async function requestOrderRefundAction(formData: FormData): Promise<never> {
+  const context = await getAdminContext();
+  const orderId = asString(formData.get("orderId"));
+  const caseId = requiredString(formData.get("caseId"), "caseId");
+  const transactionId = requiredString(formData.get("transactionId"), "transactionId");
+  const resolutionId = asString(formData.get("resolutionId"));
+  const result = await requestBff(
+    scopedPath(`/admin/after-sales/cases/${encodeURIComponent(caseId)}/refund-requests`, context.organizationId, context.shopId),
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          transactionId,
+          resolutionId,
+          source: "admin-orders",
+          idempotencyKey: `admin-order-refund-${caseId}-${transactionId}`,
+        }),
+      },
+    },
+  );
+
+  revalidatePath("/admin/pedidos");
+  if (!result.ok) {
+    redirect(ordersReturnPath(result.status === 403 ? "Falta permiso after-sales.manage." : result.error, orderId));
+  }
+
+  redirect(ordersReturnPath("Refund solicitado.", orderId));
+}
