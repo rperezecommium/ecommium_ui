@@ -562,6 +562,7 @@ export function StorefrontCheckoutClient() {
         body: buildPaymentTransactionPayload({
           actor: isAuthenticatedCheckout(checkoutContext) ? "customer" : "guest",
           correlationId,
+          guestSessionId: getOrCreateGuestSessionId(),
           installments,
           method: selectedMethod,
           orderform: nextOrderform,
@@ -2140,6 +2141,7 @@ function createCheckoutTransactionId() {
 function buildPaymentTransactionPayload(input: {
   actor: "guest" | "customer";
   correlationId: string;
+  guestSessionId: string;
   installments: number;
   method: StorefrontPaymentMethod;
   orderform: StorefrontOrderform;
@@ -2148,7 +2150,14 @@ function buildPaymentTransactionPayload(input: {
 }) {
   const amountMinor = cartGrandTotalMinor(input.orderform);
   const orderFormId = input.orderform.orderFormId ?? "";
-  const urls = paymentProviderReturnUrls(input.method);
+  const urls = paymentProviderReturnUrls({
+    amountMinor,
+    currency: input.orderform.currency,
+    guestSessionId: input.guestSessionId,
+    method: input.method,
+    orderFormId,
+    transactionId: input.transactionId,
+  });
   const inventory = buildPaymentInventorySnapshot(input.orderform, input.transactionId);
 
   if (!inventory.items.length) {
@@ -2194,13 +2203,33 @@ function buildPaymentTransactionPayload(input: {
   };
 }
 
-function paymentProviderReturnUrls(method: StorefrontPaymentMethod) {
+function paymentProviderReturnUrls(input: {
+  amountMinor: number;
+  currency: string;
+  guestSessionId: string;
+  method: StorefrontPaymentMethod;
+  orderFormId: string;
+  transactionId: string;
+}) {
+  const method = input.method;
   const provider = method.provider === "paypal" ? "paypal" : "stripe";
   const origin = window.location.origin;
+  const params = new URLSearchParams({
+    amountMinor: String(Math.max(0, Math.round(input.amountMinor))),
+    currency: input.currency,
+    orderFormId: input.orderFormId,
+    paymentSystemId: method.paymentSystemId,
+    paymentSystemName: method.name,
+    transactionId: input.transactionId,
+  });
+
+  if (input.guestSessionId) {
+    params.set("guestSessionId", input.guestSessionId);
+  }
 
   return {
-    cancelUrl: `${origin}/checkout/payments/${provider}/cancel`,
-    returnUrl: `${origin}/checkout/payments/${provider}/return`,
+    cancelUrl: `${origin}/checkout/payments/${provider}/cancel?${params.toString()}`,
+    returnUrl: `${origin}/checkout/payments/${provider}/return?${params.toString()}`,
   };
 }
 

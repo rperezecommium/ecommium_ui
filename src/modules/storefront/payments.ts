@@ -229,7 +229,7 @@ export function inferPaymentProvider(input: {
 
 export function normalizeStorefrontPaymentTransaction(payload: unknown): StorefrontPaymentTransaction {
   const raw = asRecord(payload);
-  const transaction = asRecord(raw.transaction ?? raw.paymentTransaction ?? raw.data ?? raw);
+  const transaction = extractPaymentTransactionRecord(raw);
   const transactionId =
     asString(transaction.transactionId) ??
     asString(transaction.id) ??
@@ -245,6 +245,29 @@ export function normalizeStorefrontPaymentTransaction(payload: unknown): Storefr
     status: asString(transaction.status),
     transactionId,
   };
+}
+
+function extractPaymentTransactionRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  const settlement = asRecord(raw.settlement);
+  const authorization = asRecord(raw.authorization);
+  const additionalData = asRecord(raw.additionalData);
+
+  return asRecord(
+    raw.transaction ??
+    raw.paymentTransaction ??
+    asRecord(settlement.transaction).transaction ??
+    settlement.transaction ??
+    asRecord(settlement.data).transaction ??
+    settlement.data ??
+    asRecord(authorization.transaction).transaction ??
+    authorization.transaction ??
+    asRecord(authorization.data).transaction ??
+    authorization.data ??
+    asRecord(additionalData.transaction).transaction ??
+    additionalData.transaction ??
+    raw.data ??
+    raw,
+  );
 }
 
 export function normalizeTransactionNextAction(value: unknown): StorefrontPaymentNextAction {
@@ -373,7 +396,23 @@ export async function completeStorefrontPaymentReturn(
     paymentRequestInit("POST", input.body, input.correlationId),
     paymentsFetch,
   );
-  return normalizeStorefrontPaymentTransaction(data);
+  const transaction = normalizeStorefrontPaymentTransaction(data);
+
+  if (!transaction.status && input.transactionId) {
+    return getStorefrontPaymentTransaction({
+      correlationId: input.correlationId,
+      currency: input.currency,
+      country: input.country,
+      guestSessionId: input.guestSessionId,
+      locale: input.locale,
+      organizationId: input.organizationId,
+      shopAlias: input.shopAlias,
+      shopId: input.shopId,
+      transactionId: input.transactionId,
+    }, paymentsFetch);
+  }
+
+  return transaction;
 }
 
 export function createStorefrontPaymentAttempt(input: Omit<StorefrontPaymentAttempt, "createdAtIso" | "expiresAtIso" | "status"> & {

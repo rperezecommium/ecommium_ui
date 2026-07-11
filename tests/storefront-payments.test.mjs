@@ -109,6 +109,35 @@ test("storefront payments decide redirect and reject missing redirect urls", () 
   assert.equal(decideStorefrontPaymentAction({ provider: "stripe" }, missingUrl).kind, "unsupported");
 });
 
+test("storefront payments normalize composed complete-return responses", () => {
+  const {
+    normalizeStorefrontPaymentTransaction,
+  } = loadPaymentsModule();
+
+  const transaction = normalizeStorefrontPaymentTransaction({
+    additionalData: { transactionId: "tx-ignored" },
+    authorization: {
+      transaction: {
+        status: "AUTHORIZED",
+        transactionId: "tx-auth",
+      },
+    },
+    settlement: {
+      transaction: {
+        currency: "USD",
+        status: "SETTLED",
+        transactionId: "tx-settled",
+        valueMinor: 40505,
+      },
+    },
+  });
+
+  assert.equal(transaction.transactionId, "tx-settled");
+  assert.equal(transaction.status, "SETTLED");
+  assert.equal(transaction.amountMinor, 40505);
+  assert.equal(transaction.currency, "USD");
+});
+
 test("storefront payments build UI proxy paths without PSP secrets", async () => {
   const {
     buildStorefrontPaymentCompleteReturnPath,
@@ -128,6 +157,7 @@ test("storefront payments build UI proxy paths without PSP secrets", async () =>
       transaction: {
         transactionId: "tx-1",
         nextAction: { type: "AWAIT_WEBHOOK" },
+        status: "PENDING",
       },
     }, { headers: { "x-correlation-id": "corr-bff" } });
   };
@@ -170,6 +200,43 @@ test("storefront payments build UI proxy paths without PSP secrets", async () =>
   assert.equal(calls[0].headers.get("x-correlation-id"), "corr-ui");
   assert.equal(calls[1].path, "/api/storefront/payments/transactions/tx-1/paypal/complete-return?organizationId=org-1&shopId=shop-1");
   assert.doesNotMatch(JSON.stringify(calls), /secret|sk_|client_secret/i);
+});
+
+test("storefront payments refetch transaction when complete-return is idempotent", async () => {
+  const {
+    completeStorefrontPaymentReturn,
+  } = loadPaymentsModule();
+  const calls = [];
+  const paymentsFetch = async (pathValue, init = {}) => {
+    calls.push({
+      method: init.method ?? "GET",
+      path: pathValue,
+    });
+    if ((init.method ?? "GET") === "POST") {
+      return Response.json({
+        additionalData: { transactionId: "tx-1" },
+        authorization: null,
+        settlement: null,
+        idempotentReplay: true,
+      });
+    }
+    return Response.json({
+      transactionId: "tx-1",
+      status: "SETTLED",
+      valueMinor: 40505,
+      currency: "USD",
+    });
+  };
+
+  const transaction = await completeStorefrontPaymentReturn("stripe", {
+    body: { sessionId: "cs_test_123" },
+    transactionId: "tx-1",
+  }, paymentsFetch);
+
+  assert.equal(transaction.status, "SETTLED");
+  assert.equal(transaction.amountMinor, 40505);
+  assert.deepEqual(calls.map((call) => call.method), ["POST", "GET"]);
+  assert.equal(calls[1].path, "/api/storefront/payments/transactions/tx-1");
 });
 
 test("storefront payments can call UI proxy with only guest context", () => {
@@ -223,9 +290,14 @@ test("storefront payment return pages complete PSP returns idempotently", () => 
   assert.match(returnClientSource, /makeStorefrontPaymentReturnOnceKey/);
   assert.match(returnClientSource, /hasProcessedStorefrontPaymentReturn/);
   assert.match(returnClientSource, /markStorefrontPaymentReturnProcessed/);
+  assert.match(returnClientSource, /paymentReturnAttemptFromParams/);
   assert.match(returnClientSource, /attempt\.provider !== provider/);
+  assert.match(returnClientSource, /saveStorefrontPaymentReceipt/);
+  assert.match(returnClientSource, /createStorefrontPaymentReceipt/);
   assert.match(returnClientSource, /completed \? "SETTLED" : "RETURNED"/);
   assert.match(returnClientSource, /updateStorefrontPaymentAttemptStatus\("CANCELLED"\)/);
+  assert.match(returnClientSource, /params\.transactionId/);
+  assert.match(returnClientSource, /params\.orderFormId/);
   assert.match(returnClientSource, /params\.PayerID/);
   assert.match(returnClientSource, /params\.session_id/);
   assert.match(confirmationClientSource, /createStorefrontPaymentReceipt/);

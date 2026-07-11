@@ -5,11 +5,15 @@ import { useEffect, useMemo, useState } from "react";
 import {
   clearStorefrontPaymentAttempt,
   completeStorefrontPaymentReturn,
+  createStorefrontPaymentAttempt,
+  createStorefrontPaymentReceipt,
   hasProcessedStorefrontPaymentReturn,
   makeStorefrontPaymentReturnOnceKey,
   markStorefrontPaymentReturnProcessed,
   readStorefrontPaymentAttempt,
   sanitizePspReturnSearchParams,
+  saveStorefrontPaymentAttempt,
+  saveStorefrontPaymentReceipt,
   updateStorefrontPaymentAttemptStatus,
   type StorefrontPaymentProvider,
 } from "./payments";
@@ -51,7 +55,7 @@ export function StorefrontPaymentReturnClient({ mode, provider }: PaymentReturnC
       }
     };
     const timeoutId = window.setTimeout(() => {
-      const attempt = readStorefrontPaymentAttempt();
+      const attempt = paymentReturnAttemptFromParams(provider, sanitizedParams) ?? readStorefrontPaymentAttempt();
 
       if (!attempt || attempt.provider !== provider) {
         setSafeState({
@@ -72,6 +76,7 @@ export function StorefrontPaymentReturnClient({ mode, provider }: PaymentReturnC
         return;
       }
 
+      saveStorefrontPaymentAttempt(attempt);
       const pspReference = pspReturnReference(provider, sanitizedParams);
       const returnOnceKey = makeStorefrontPaymentReturnOnceKey({
         provider,
@@ -102,6 +107,11 @@ export function StorefrontPaymentReturnClient({ mode, provider }: PaymentReturnC
           markStorefrontPaymentReturnProcessed(returnOnceKey);
           const completed = isCompletedPaymentStatus(transaction.status);
           updateStorefrontPaymentAttemptStatus(completed ? "SETTLED" : "RETURNED");
+          saveStorefrontPaymentReceipt(createStorefrontPaymentReceipt({
+            attempt,
+            status: transaction.status,
+            transaction,
+          }));
           setSafeState({
             correlationId: attempt.correlationId,
             message: completed
@@ -169,6 +179,32 @@ export function StorefrontPaymentReturnClient({ mode, provider }: PaymentReturnC
   );
 }
 
+function paymentReturnAttemptFromParams(provider: SupportedPaymentProvider, params: Record<string, string>) {
+  const transactionId = params.transactionId ?? params.tx ?? "";
+  const orderFormId = params.orderFormId ?? params.orderformId ?? "";
+  const paymentSystemId = params.paymentSystemId ?? (provider === "paypal" ? "paypal" : "stripe-card");
+
+  if (!transactionId || !orderFormId) {
+    return null;
+  }
+
+  return createStorefrontPaymentAttempt({
+    actor: params.customerId ? "customer" : "guest",
+    amountMinor: parsePositiveInteger(params.amountMinor),
+    correlationId: params.correlationId ?? `return-${provider}-${transactionId}`,
+    currency: params.currency ?? "",
+    customerId: params.customerId,
+    guestSessionId: params.guestSessionId,
+    itemsCount: parsePositiveInteger(params.itemsCount),
+    orderFormId,
+    paymentSystemId,
+    paymentSystemName: params.paymentSystemName ?? paymentSystemId,
+    provider,
+    status: "RETURNED",
+    transactionId,
+  });
+}
+
 function buildCompleteReturnPayload(
   provider: SupportedPaymentProvider,
   params: Record<string, string>,
@@ -206,6 +242,11 @@ function pspReturnReference(provider: SupportedPaymentProvider, params: Record<s
   }
 
   return params.session_id ?? params.sessionId ?? "";
+}
+
+function parsePositiveInteger(value: string | undefined) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
 function isCompletedPaymentStatus(status: string | undefined) {
