@@ -29,14 +29,28 @@ function requiredPositiveInteger(value: FormDataEntryValue | null, label: string
   return parsed;
 }
 
+function isAllowedFulfillmentStatus(status: string | undefined): status is string {
+  return (
+    status !== "READY_TO_PICK" &&
+    status !== "PICKING" &&
+    status !== "PACKED" &&
+    status !== "SHIPPED" &&
+    status !== "DELIVERED" &&
+    status !== "FAILED"
+  ) ? false : true;
+}
+
 function scopedPath(path: string, organizationId: string, shopId: string) {
   return `${path}?${new URLSearchParams({ organizationId, shopId }).toString()}`;
 }
 
-function ordersReturnPath(message: string, orderId?: string) {
+function ordersReturnPath(message: string, orderId?: string, noticeKind?: "success" | "error" | "info") {
   const params = new URLSearchParams({ notice: message });
   if (orderId) {
     params.set("orderId", orderId);
+  }
+  if (noticeKind) {
+    params.set("noticeKind", noticeKind);
   }
 
   return `/admin/pedidos?${params.toString()}`;
@@ -190,4 +204,70 @@ export async function requestOrderRefundAction(formData: FormData): Promise<neve
   }
 
   redirect(ordersReturnPath("Refund solicitado.", orderId));
+}
+
+export async function createOrderFulfillmentAction(formData: FormData): Promise<never> {
+  const context = await getAdminContext();
+  const orderId = requiredString(formData.get("orderId"), "orderId");
+  const result = await requestBff(
+    scopedPath(`/admin/orders/${encodeURIComponent(orderId)}/fulfillment`, context.organizationId, context.shopId),
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      },
+    },
+  );
+
+  revalidatePath("/admin/pedidos");
+  if (!result.ok) {
+    redirect(ordersReturnPath(result.status === 403 ? "Falta permiso shipping.logistics.write." : result.error, orderId, "error"));
+  }
+
+  redirect(ordersReturnPath("Preparacion creada.", orderId, "success"));
+}
+
+export async function transitionFulfillmentStatusAction(formData: FormData): Promise<never> {
+  const context = await getAdminContext();
+  const orderId = requiredString(formData.get("orderId"), "orderId");
+  const status = asString(formData.get("status"));
+  const trackingNumber = asString(formData.get("trackingNumber"));
+  const carrierId = asString(formData.get("carrierId"));
+
+  if (!isAllowedFulfillmentStatus(status)) {
+    redirect(ordersReturnPath("Estado logistico no permitido.", orderId, "error"));
+  }
+  if (status === "SHIPPED" && !trackingNumber) {
+    redirect(ordersReturnPath("Numero de tracking requerido para marcar como enviado.", orderId, "error"));
+  }
+
+  const body: Record<string, string> = { status };
+
+  if (trackingNumber) {
+    body.trackingNumber = trackingNumber;
+  }
+  if (carrierId) {
+    body.carrierId = carrierId;
+  }
+
+  const result = await requestBff(
+    scopedPath(`/admin/orders/${encodeURIComponent(orderId)}/fulfillment/status`, context.organizationId, context.shopId),
+    {
+      context,
+      init: {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    },
+  );
+
+  revalidatePath("/admin/pedidos");
+  if (!result.ok) {
+    redirect(ordersReturnPath(result.status === 403 ? "Falta permiso shipping.logistics.write." : result.error, orderId, "error"));
+  }
+
+  redirect(ordersReturnPath(`Estado logistico actualizado a ${status}.`, orderId, "success"));
 }

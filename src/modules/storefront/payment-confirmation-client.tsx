@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   clearStorefrontPaymentAttempt,
-  clearStorefrontPaymentReceipt,
   createStorefrontPaymentReceipt,
   getStorefrontPaymentTransaction,
   readStorefrontPaymentReceipt,
@@ -25,10 +24,16 @@ type PaymentConfirmationState = {
 };
 
 type StorefrontPaymentConfirmationClientProps = {
+  guestSessionId?: string;
+  orderId?: string;
   transactionId?: string;
 };
 
-export function StorefrontPaymentConfirmationClient({ transactionId }: StorefrontPaymentConfirmationClientProps) {
+export function StorefrontPaymentConfirmationClient({
+  guestSessionId,
+  orderId,
+  transactionId,
+}: StorefrontPaymentConfirmationClientProps) {
   const [state, setState] = useState<PaymentConfirmationState>({
     message: transactionId
       ? "Consultando estado de pago..."
@@ -42,7 +47,7 @@ export function StorefrontPaymentConfirmationClient({ transactionId }: Storefron
         const receipt = readStorefrontPaymentReceipt();
         if (receipt) {
           setState({
-            message: "Mostramos la ultima referencia de pago guardada en este navegador.",
+            message: paymentConfirmationMessage(paymentConfirmationStatus(receipt.status), Boolean(orderId)),
             receipt,
             status: paymentConfirmationStatus(receipt.status),
           });
@@ -63,7 +68,7 @@ export function StorefrontPaymentConfirmationClient({ transactionId }: Storefron
 
       getStorefrontPaymentTransaction({
         correlationId: attempt?.correlationId,
-        guestSessionId: attempt?.guestSessionId,
+        guestSessionId: attempt?.guestSessionId ?? guestSessionId,
         transactionId,
       })
         .then((transaction) => {
@@ -85,15 +90,15 @@ export function StorefrontPaymentConfirmationClient({ transactionId }: Storefron
             saveStorefrontPaymentReceipt(receipt);
           }
           setSafeState({
-            message: paymentConfirmationMessage(status, transaction.status),
+            message: paymentConfirmationMessage(status, Boolean(orderId)),
             receipt,
             status,
             transaction,
           });
         })
-        .catch((error) => {
+        .catch(() => {
           setSafeState({
-            message: error instanceof Error ? error.message : "No se pudo consultar el estado del pago.",
+            message: paymentConfirmationMessage("error", Boolean(orderId)),
             status: "error",
           });
         });
@@ -103,61 +108,22 @@ export function StorefrontPaymentConfirmationClient({ transactionId }: Storefron
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [transactionId]);
+  }, [guestSessionId, orderId, transactionId]);
+
+  const view = paymentConfirmationView(state.status, Boolean(orderId));
 
   return (
     <section className="storefrontConfirmation">
-      <span>{state.status === "completed" ? "Pago confirmado" : "Estado de pago"}</span>
-      <h1>{state.status === "completed" ? "Tu pago fue confirmado" : "Confirmación en proceso"}</h1>
+      <span>{view.label}</span>
+      <h1>{view.title}</h1>
       <p>{state.message}</p>
-      <dl>
-        <div>
-          <dt>Transacción</dt>
-          <dd>{state.transaction?.transactionId ?? transactionId ?? "Pendiente"}</dd>
-        </div>
-        <div>
-          <dt>Estado Payments</dt>
-          <dd>{state.transaction?.status ?? state.receipt?.status ?? state.status}</dd>
-        </div>
-        {state.receipt ? (
-          <>
-            <div>
-              <dt>Provider</dt>
-              <dd>{state.receipt.provider === "paypal" ? "PayPal" : "Stripe"}</dd>
-            </div>
-            <div>
-              <dt>Importe</dt>
-              <dd>{paymentReceiptMoney(state.receipt)}</dd>
-            </div>
-            <div>
-              <dt>Referencia soporte</dt>
-              <dd>{state.receipt.supportReference}</dd>
-            </div>
-          </>
-        ) : null}
-      </dl>
-      {state.status === "pending" || state.status === "error" ? (
-        <div className="storefrontCheckoutActions">
+      <div className="storefrontCheckoutActions">
+        {state.status === "completed" && orderId ? (
+          <Link href="/">Seguir comprando</Link>
+        ) : (
           <Link href="/checkout">Volver al checkout</Link>
-        </div>
-      ) : null}
-      {state.receipt ? (
-        <div className="storefrontCheckoutActions">
-          <button
-            type="button"
-            onClick={() => {
-              clearStorefrontPaymentReceipt();
-              setState((current) => {
-                const next = { ...current };
-                delete next.receipt;
-                return next;
-              });
-            }}
-          >
-            Limpiar referencia local
-          </button>
-        </div>
-      ) : null}
+        )}
+      </div>
     </section>
   );
 }
@@ -179,27 +145,40 @@ function paymentConfirmationStatus(status: string | undefined): PaymentConfirmat
   return "pending";
 }
 
-function paymentConfirmationMessage(status: PaymentConfirmationStatus, rawStatus: string | undefined) {
+function paymentConfirmationMessage(status: PaymentConfirmationStatus, hasOrder: boolean) {
   if (status === "completed") {
-    return "Payments confirmó la transacción. El pedido se mostrará cuando Orders publique su estado final.";
+    if (!hasOrder) {
+      return "Pago confirmado. Estamos preparando tu pedido.";
+    }
+    return "Gracias. Tu pago se registró correctamente.";
   }
   if (status === "error") {
-    return rawStatus
-      ? `Payments devolvió estado ${rawStatus}. Revisa el pago o intenta con otro método.`
-      : "Payments no pudo confirmar la transacción.";
+    return "No pudimos confirmar el pago. Intenta de nuevo o usa otro método.";
   }
-  return rawStatus
-    ? `Payments devolvió estado ${rawStatus}. Seguimos esperando la confirmación operativa.`
-    : "Payments todavía no devolvió un estado final.";
+  return "El pago aún está en proceso. Revisa de nuevo en unos segundos.";
 }
 
-function paymentReceiptMoney(receipt: StorefrontPaymentReceipt) {
-  if (typeof receipt.amountMinor !== "number") {
-    return "-";
+function paymentConfirmationView(status: PaymentConfirmationStatus, hasOrder: boolean) {
+  if (status === "completed") {
+    if (!hasOrder) {
+      return {
+        label: "Pago confirmado",
+        title: "Confirmando pedido",
+      };
+    }
+    return {
+      label: "Pago confirmado",
+      title: "Pago realizado",
+    };
   }
-
-  return new Intl.NumberFormat("es-ES", {
-    currency: receipt.currency ?? "EUR",
-    style: "currency",
-  }).format(receipt.amountMinor / 100);
+  if (status === "error") {
+    return {
+      label: "Pago no confirmado",
+      title: "No se completó el pago",
+    };
+  }
+  return {
+    label: "Pago en proceso",
+    title: "Confirmando pago",
+  };
 }

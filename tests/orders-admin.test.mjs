@@ -109,15 +109,21 @@ test("orders admin route replaces placeholder with operative module", () => {
 
   assert.match(routeSource, /getOrdersAdminData/);
   assert.match(routeSource, /getOrdersAdminCapabilities/);
+  assert.match(routeSource, /noticeKind/);
+  assert.match(routeSource, /orderTab/);
   assert.match(routeSource, /OrdersAdminPage/);
   assert.doesNotMatch(routeSource, /Modulo pendiente de implementar/);
   assert.match(pageSource, /Centro operativo para pedido, pago, shipping, facturas y postventa/);
+  assert.match(pageSource, /noticeBannerClass/);
+  assert.match(pageSource, /adminBannerSuccess/);
   assert.match(pageSource, /Preview plantilla factura/);
   assert.match(pageSource, /Bandeja postventa/);
   assert.match(pageSource, /assignAfterSalesCaseAction/);
   assert.match(pageSource, /issueOrderInvoiceAction/);
   assert.match(pageSource, /createInvoiceAdjustmentAction/);
   assert.match(pageSource, /requestOrderRefundAction/);
+  assert.match(pageSource, /transitionFulfillmentStatusAction/);
+  assert.match(pageSource, /createOrderFulfillmentAction/);
   assert.match(pageSource, /Solicitar refund/);
   assert.match(pageSource, /Abrir postventa para refund/);
   assert.match(pageSource, /Nota de credito/);
@@ -127,6 +133,59 @@ test("orders admin route replaces placeholder with operative module", () => {
   assert.match(pageSource, /Atender caso/);
   assert.match(pageSource, /Auditoria del pedido/);
   assert.match(pageSource, /OrderAuditTimelinePanel/);
+  assert.match(pageSource, /orderShortReference/);
+  assert.match(pageSource, /orderNextStep/);
+  assert.match(pageSource, /isOrderPaid/);
+  assert.match(pageSource, /orderStatus === "PAYMENT_SETTLED"/);
+  assert.match(pageSource, /Pago confirmado/);
+  assert.match(pageSource, /orderPaymentLabel/);
+  assert.match(pageSource, /ID interno/);
+  assert.match(pageSource, /OrderDetailDrawer/);
+  assert.match(pageSource, /OrderDrawerSummary/);
+  assert.match(pageSource, /Resumen operativo/);
+  assert.match(pageSource, /Siguiente accion/);
+  assert.match(pageSource, /Bloqueos/);
+  assert.match(pageSource, /Avisos/);
+  assert.match(pageSource, /OrderDrawerTabs/);
+  assert.match(pageSource, /activeOrderDrawerTab/);
+  assert.match(pageSource, /orderDrawerTabs/);
+  assert.match(pageSource, /Secciones del pedido/);
+  assert.match(pageSource, /orderTab: "operacion"/);
+  assert.match(pageSource, /orderTab: undefined/);
+  assert.match(pageSource, /ordersDrawerBackdrop/);
+  assert.match(pageSource, /ordersSideDrawer/);
+  assert.match(pageSource, /Cerrar panel de pedido/);
+  assert.match(pageSource, /aria-modal="true"/);
+  assert.match(pageSource, /Documentos/);
+  assert.match(pageSource, /Soporte/);
+  assert.match(pageSource, /Auditoria/);
+  assert.match(pageSource, /Siguiente paso/);
+  assert.match(pageSource, /Crear preparacion/);
+  assert.match(pageSource, /Esperar pago/);
+  assert.match(pageSource, /Operar/);
+  assert.doesNotMatch(pageSource, /Ver detalle/);
+  assert.match(pageSource, /Operacion del pedido/);
+  assert.match(pageSource, /OrderOperationWorkspace/);
+  assert.match(pageSource, /OperationPrimaryAction/);
+  assert.match(pageSource, /targetFulfillmentStatus/);
+  assert.match(pageSource, /canManageShipping/);
+  assert.match(pageSource, /Checklist operativo/);
+  assert.match(pageSource, /Linea operativa/);
+  assert.match(pageSource, /CREATE_FULFILLMENT/);
+  assert.match(pageSource, /requiresTracking/);
+  assert.match(pageSource, /Transportista actual/);
+  assert.match(pageSource, /Actualizar estado/);
+  assert.match(pageSource, /Numero de seguimiento/);
+  assert.match(pageSource, /name="trackingNumber"/);
+  assert.match(pageSource, /name="carrierId"/);
+  assert.doesNotMatch(pageSource, /Carrier ID/);
+  assert.match(pageSource, /type="submit"/);
+  assert.match(pageSource, /Siguiente paso/);
+  assert.match(pageSource, /Falta permiso shipping\.logistics\.write/);
+  assert.match(pageSource, /Sin estado operativo/);
+  const detailMount = pageSource.slice(pageSource.indexOf("function OrdersAdminPage"), pageSource.length);
+  assert.match(detailMount, /OrderDetailDrawer/);
+  assert.doesNotMatch(detailMount, /<OrderDetailPanel/);
   assert.match(pageSource, /Paginacion de pedidos/);
   assert.match(pageSource, /Anterior/);
   assert.match(pageSource, /Siguiente/);
@@ -140,6 +199,12 @@ test("orders admin route replaces placeholder with operative module", () => {
   const actionsSource = readFileSync(path.resolve(root, "src/modules/pedidos/orders-admin-actions.ts"), "utf8");
   assert.match(actionsSource, /refund-requests/);
   assert.match(actionsSource, /admin-order-refund/);
+  assert.match(actionsSource, /createOrderFulfillmentAction/);
+  assert.match(actionsSource, /transitionFulfillmentStatusAction/);
+  assert.match(actionsSource, /admin\/orders\/.*\/fulfillment/);
+  assert.doesNotMatch(actionsSource, /admin\/shipping\/fulfillments/);
+  assert.match(actionsSource, /noticeKind/);
+  assert.match(actionsSource, /Numero de tracking requerido para marcar como enviado/);
 });
 
 test("orders admin capabilities map order invoice and after-sales permissions", () => {
@@ -147,14 +212,40 @@ test("orders admin capabilities map order invoice and after-sales permissions", 
   const empty = getOrdersAdminCapabilities(null);
   const reader = getOrdersAdminCapabilities({ scope: "admin", permissions: ["orders.read"] });
   const manager = getOrdersAdminCapabilities({ scope: "admin", permissions: ["orders.read", "invoices.manage", "after-sales.manage"] });
+  const logistics = getOrdersAdminCapabilities({ scope: "admin", permissions: ["orders.read", "shipping.logistics.write"] });
 
   assert.equal(empty.canReadOrders, false);
+  assert.equal(empty.canManageShipping, false);
   assert.equal(reader.canReadOrders, true);
   assert.equal(reader.canManageInvoices, false);
   assert.equal(reader.canManageAfterSales, false);
+  assert.equal(reader.canManageShipping, false);
   assert.equal(manager.canReadOrders, true);
   assert.equal(manager.canManageInvoices, true);
   assert.equal(manager.canManageAfterSales, true);
+  assert.equal(manager.canManageShipping, false);
+  assert.equal(logistics.canReadOrders, true);
+  assert.equal(logistics.canManageShipping, true);
+});
+
+test("orders admin fulfillment UI uses BFF primaryAction as the operation source", () => {
+  const pageSource = readFileSync(path.resolve(root, "src/modules/pedidos/orders-admin-page.tsx"), "utf8");
+  const workspace = pageSource.slice(
+    pageSource.indexOf("function OperationPrimaryAction"),
+    pageSource.indexOf("function OrderOperationWorkspace"),
+  );
+
+  assert.match(workspace, /action\.type === "CREATE_FULFILLMENT"/);
+  assert.match(workspace, /action\.targetFulfillmentStatus/);
+  assert.match(workspace, /action\.requiresTracking/);
+  assert.match(workspace, /transitionFulfillmentStatusAction/);
+  assert.match(workspace, /shippingCarrierLabel/);
+  assert.match(workspace, /Transportista actual/);
+  assert.match(workspace, /Numero de seguimiento/);
+  assert.match(workspace, /type="hidden" value=\{carrierIdValue\}/);
+  assert.doesNotMatch(workspace, /fulfillmentActionByStatus/);
+  assert.doesNotMatch(workspace, /fulfillmentId/);
+  assert.doesNotMatch(workspace, /Carrier ID/);
 });
 
 test("orders admin loads list detail invoice preview and after-sales through BFF", async () => {
@@ -177,6 +268,29 @@ test("orders admin loads list detail invoice preview and after-sales through BFF
           },
           shipping: {
             fulfillment: { status: "READY", carrierName: "DHL", trackingNumber: "TRACK-1", updatedAt: "2026-07-07T09:10:00.000Z" },
+          },
+          operation: {
+            status: "PACKED",
+            paymentState: "PAID",
+            fulfillmentStatus: "PACKED",
+            primaryAction: {
+              type: "MARK_SHIPPED",
+              label: "Marcar enviado",
+              enabled: true,
+              targetFulfillmentStatus: "SHIPPED",
+              requiresTracking: true,
+              requiresCarrier: true,
+              reason: null,
+            },
+            blockers: [],
+            sections: [
+              { code: "payment", label: "Pago", status: "ready", message: "Pago confirmado.", count: null },
+              { code: "fulfillment", label: "Preparacion y envio", status: "pending", message: "Preparacion o envio en curso.", count: 1 },
+            ],
+            timeline: [
+              { code: "ORDER_RECEIVED", label: "Pedido recibido", state: "completed" },
+              { code: "SHIPPED", label: "Enviado", state: "current" },
+            ],
           },
           invoice: {
             items: [
@@ -221,7 +335,7 @@ test("orders admin loads list detail invoice preview and after-sales through BFF
   };
   const { getOrdersAdminData } = loadOrdersAdminModule(requestBff);
   const { buildOrderAuditTimeline } = loadOrdersAdminModule(requestBff);
-  const capabilities = { canReadOrders: true, canManageInvoices: true, canManageAfterSales: true };
+  const capabilities = { canReadOrders: true, canManageInvoices: true, canManageAfterSales: true, canManageShipping: true };
 
   const data = await getOrdersAdminData(context, { orderId: "order-1", customerId: "customer-1" }, capabilities);
   const timeline = buildOrderAuditTimeline(data.selectedOrder.data);
@@ -229,6 +343,8 @@ test("orders admin loads list detail invoice preview and after-sales through BFF
   assert.equal(data.orders.data.items[0].orderId, "order-1");
   assert.equal(data.selectedOrder.data.payment.status, "SETTLED");
   assert.equal(data.selectedOrder.data.shipping.trackingNumber, "TRACK-1");
+  assert.equal(data.selectedOrder.data.operation.primaryAction.targetFulfillmentStatus, "SHIPPED");
+  assert.equal(data.selectedOrder.data.operation.sections[0].status, "ready");
   assert.equal(data.selectedOrder.data.invoice.invoiceId, "invoice-1");
   assert.equal(data.selectedOrder.data.afterSales.caseId, "case-1");
   assert.equal(data.invoicePreview.data.html, "<html>Factura</html>");
@@ -257,9 +373,11 @@ test("orders admin actions assign after-sales, issue invoice, refund and create 
   };
   const {
     assignAfterSalesCaseAction,
+    createOrderFulfillmentAction,
     createInvoiceAdjustmentAction,
     issueOrderInvoiceAction,
     requestOrderRefundAction,
+    transitionFulfillmentStatusAction,
   } = loadOrdersActionsModule({ requestBff });
   const formData = new FormData();
   formData.set("caseId", "case-1");
@@ -272,11 +390,16 @@ test("orders admin actions assign after-sales, issue invoice, refund and create 
   formData.set("amountMinor", "1299");
   formData.set("currency", "EUR");
   formData.set("reason", "Devolucion parcial");
+  formData.set("status", "SHIPPED");
+  formData.set("trackingNumber", "TRACK-001");
+  formData.set("carrierId", "carrier-standard");
 
   await assert.rejects(() => assignAfterSalesCaseAction(formData), { url: "/admin/pedidos?notice=Caso+postventa+asignado.&orderId=order-1" });
   await assert.rejects(() => issueOrderInvoiceAction(formData), { url: "/admin/pedidos?notice=Factura+solicitada.&orderId=order-1" });
   await assert.rejects(() => requestOrderRefundAction(formData), { url: "/admin/pedidos?notice=Refund+solicitado.&orderId=order-1" });
   await assert.rejects(() => createInvoiceAdjustmentAction(formData), { url: "/admin/pedidos?notice=Ajuste+fiscal+solicitado.&orderId=order-1" });
+  await assert.rejects(() => createOrderFulfillmentAction(formData), { url: "/admin/pedidos?notice=Preparacion+creada.&orderId=order-1&noticeKind=success" });
+  await assert.rejects(() => transitionFulfillmentStatusAction(formData), { url: "/admin/pedidos?notice=Estado+logistico+actualizado+a+SHIPPED.&orderId=order-1&noticeKind=success" });
 
   assert.deepEqual(calls, [
     {
@@ -319,5 +442,92 @@ test("orders admin actions assign after-sales, issue invoice, refund and create 
         reason: "Devolucion parcial",
       },
     },
+    {
+      path: "/admin/orders/order-1/fulfillment?organizationId=org-1&shopId=shop-1",
+      method: "POST",
+      body: {},
+    },
+    {
+      path: "/admin/orders/order-1/fulfillment/status?organizationId=org-1&shopId=shop-1",
+      method: "PATCH",
+      body: {
+        status: "SHIPPED",
+        trackingNumber: "TRACK-001",
+        carrierId: "carrier-standard",
+      },
+    },
   ]);
+});
+
+test("orders admin fulfillment action redirects validation errors without calling BFF", async () => {
+  const calls = [];
+  const requestBff = async () => {
+    calls.push("called");
+    return { ok: true, data: {}, status: 200, correlationId: "corr-orders" };
+  };
+  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestBff });
+  const formData = new FormData();
+  formData.set("orderId", "order-1");
+  formData.set("status", "SHIPPED");
+
+  await assert.rejects(() => transitionFulfillmentStatusAction(formData), {
+    url: "/admin/pedidos?notice=Numero+de+tracking+requerido+para+marcar+como+enviado.&orderId=order-1&noticeKind=error",
+  });
+  assert.deepEqual(calls, []);
+});
+
+test("orders admin fulfillment action advances non-shipped states without tracking", async () => {
+  const calls = [];
+  const requestBff = async (pathValue, options = {}) => {
+    calls.push({
+      path: pathValue,
+      method: options.init?.method,
+      body: options.init?.body ? JSON.parse(options.init.body) : undefined,
+    });
+    return { ok: true, data: {}, status: 200, correlationId: "corr-orders" };
+  };
+  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestBff });
+  const formData = new FormData();
+  formData.set("orderId", "order-1");
+  formData.set("status", "READY_TO_PICK");
+
+  await assert.rejects(() => transitionFulfillmentStatusAction(formData), {
+    url: "/admin/pedidos?notice=Estado+logistico+actualizado+a+READY_TO_PICK.&orderId=order-1&noticeKind=success",
+  });
+  assert.deepEqual(calls, [{
+    path: "/admin/orders/order-1/fulfillment/status?organizationId=org-1&shopId=shop-1",
+    method: "PATCH",
+    body: {
+      status: "READY_TO_PICK",
+    },
+  }]);
+});
+
+test("orders admin fulfillment action surfaces permission errors", async () => {
+  const requestBff = async () => ({ ok: false, error: "Forbidden", status: 403, correlationId: "corr-orders" });
+  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestBff });
+  const formData = new FormData();
+  formData.set("orderId", "order-1");
+  formData.set("status", "DELIVERED");
+
+  await assert.rejects(() => transitionFulfillmentStatusAction(formData), {
+    url: "/admin/pedidos?notice=Falta+permiso+shipping.logistics.write.&orderId=order-1&noticeKind=error",
+  });
+});
+
+test("orders admin fulfillment action rejects invalid status before BFF", async () => {
+  const calls = [];
+  const requestBff = async () => {
+    calls.push("called");
+    return { ok: true, data: {}, status: 200, correlationId: "corr-orders" };
+  };
+  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestBff });
+  const formData = new FormData();
+  formData.set("orderId", "order-1");
+  formData.set("status", "DELIVERED_WITH_MAGIC");
+
+  await assert.rejects(() => transitionFulfillmentStatusAction(formData), {
+    url: "/admin/pedidos?notice=Estado+logistico+no+permitido.&orderId=order-1&noticeKind=error",
+  });
+  assert.deepEqual(calls, []);
 });

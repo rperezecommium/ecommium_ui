@@ -3,6 +3,7 @@ import { adminBffToken, bffBaseUrl } from "../../../../../../../src/shared/confi
 import { getAdminAuthorizationToken } from "../../../../../../../src/shared/auth/session";
 import { getAdminContext } from "../../../../../../../src/shared/config/admin-context";
 import { createBffHeaders } from "../../../../../../../src/shared/bff/headers";
+import { invoicePdfFilename, renderInvoiceDocumentPdf } from "../../../../../../../src/shared/invoice/invoice-document-pdf";
 
 function makeCorrelationId() {
   return "ui-admin-invoice-" + Date.now() + "-" + Math.random().toString(16).slice(2);
@@ -80,23 +81,45 @@ export async function GET(
   const contentType = response.headers.get("content-type") ?? "";
   const headers = new Headers();
   headers.set("cache-control", "private, no-store");
-  headers.set("content-disposition", `inline; filename="invoice-${safeFilenamePart(normalizedInvoiceId)}.html"`);
 
   if (contentType.includes("application/json")) {
     const payload = await response.json().catch(() => undefined) as unknown;
     const html = htmlFromPayload(payload);
     if (html) {
-      headers.set("content-type", "text/html; charset=utf-8");
-      return new Response(html, { status: 200, headers });
+      const pdf = renderInvoiceDocumentPdf(payload, html);
+      headers.set("content-type", "application/pdf");
+      headers.set("content-disposition", `inline; filename="${invoicePdfFilename(payload, normalizedInvoiceId)}"`);
+      headers.set("content-length", String(pdf.byteLength));
+      return new Response(new Uint8Array(pdf), { status: 200, headers });
     }
 
-    headers.set("content-type", "application/json; charset=utf-8");
-    return new Response(JSON.stringify(payload ?? {}, null, 2), { status: 200, headers });
+    return new Response("Invoice document HTML is not available", {
+      status: 502,
+      headers,
+    });
   }
 
   const content = await response.arrayBuffer();
-  headers.set("content-type", contentType || "text/html; charset=utf-8");
-  return new Response(content, {
+  if (contentType.includes("application/pdf")) {
+    headers.set("content-type", contentType);
+    headers.set(
+      "content-disposition",
+      response.headers.get("content-disposition") ??
+        `inline; filename="invoice-${safeFilenamePart(normalizedInvoiceId)}.pdf"`,
+    );
+    headers.set("content-length", String(content.byteLength));
+    return new Response(content, {
+      status: 200,
+      headers,
+    });
+  }
+
+  const html = Buffer.from(content).toString("utf8");
+  const pdf = renderInvoiceDocumentPdf(undefined, html);
+  headers.set("content-type", "application/pdf");
+  headers.set("content-disposition", `inline; filename="invoice-${safeFilenamePart(normalizedInvoiceId)}.pdf"`);
+  headers.set("content-length", String(pdf.byteLength));
+  return new Response(new Uint8Array(pdf), {
     status: 200,
     headers,
   });

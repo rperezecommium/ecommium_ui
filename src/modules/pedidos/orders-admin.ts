@@ -4,19 +4,24 @@ import type { AdminSession } from "../../shared/auth/session";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 
+export type OrdersAdminDrawerTab = "operacion" | "datos" | "documentos" | "soporte" | "auditoria";
+
 export type OrdersAdminFilters = {
   orderId?: string;
   customerId?: string;
   status?: string;
   limit?: string;
   offset?: string;
+  orderTab?: OrdersAdminDrawerTab;
   notice?: string;
+  noticeKind?: "success" | "error" | "info";
 };
 
 export type OrdersAdminCapabilities = {
   canReadOrders: boolean;
   canManageInvoices: boolean;
   canManageAfterSales: boolean;
+  canManageShipping: boolean;
 };
 
 export type AdminOrderSummary = {
@@ -41,10 +46,45 @@ export type AdminOrderDetail = {
   order: AdminOrderSummary | null;
   payment: Record<string, unknown> | null;
   shipping: Record<string, unknown> | null;
+  operation: AdminOrderOperation | null;
   invoice: Record<string, unknown> | null;
   afterSales: Record<string, unknown> | null;
   warnings: { section: string; message?: string }[];
   generatedAt?: string;
+};
+
+export type AdminOrderOperationAction = {
+  type?: string;
+  label?: string;
+  enabled?: boolean;
+  targetFulfillmentStatus?: string | null;
+  requiresTracking?: boolean;
+  requiresCarrier?: boolean;
+  reason?: string | null;
+};
+
+export type AdminOrderOperationSection = {
+  code?: string;
+  label?: string;
+  status?: string;
+  message?: string;
+  count?: number | null;
+};
+
+export type AdminOrderOperationTimelineStep = {
+  code?: string;
+  label?: string;
+  state?: "pending" | "current" | "completed" | "blocked" | string;
+};
+
+export type AdminOrderOperation = {
+  status?: string;
+  paymentState?: string;
+  fulfillmentStatus?: string | null;
+  primaryAction?: AdminOrderOperationAction | null;
+  blockers?: Array<{ code?: string; message?: string }>;
+  sections?: AdminOrderOperationSection[];
+  timeline?: AdminOrderOperationTimelineStep[];
 };
 
 export type InvoiceTemplatePreview = {
@@ -216,6 +256,56 @@ function normalizeOrdersList(value: unknown): AdminOrdersList {
   };
 }
 
+function normalizeOrderOperation(value: unknown): AdminOrderOperation | null {
+  const record = asRecord(value);
+  if (!Object.keys(record).length) {
+    return null;
+  }
+  const primaryAction = asRecord(record.primaryAction);
+
+  return {
+    status: asString(record.status),
+    paymentState: asString(record.paymentState),
+    fulfillmentStatus: asNullableString(record.fulfillmentStatus),
+    primaryAction: Object.keys(primaryAction).length
+      ? {
+          type: asString(primaryAction.type),
+          label: asString(primaryAction.label),
+          enabled: typeof primaryAction.enabled === "boolean" ? primaryAction.enabled : undefined,
+          targetFulfillmentStatus: asNullableString(primaryAction.targetFulfillmentStatus),
+          requiresTracking: typeof primaryAction.requiresTracking === "boolean" ? primaryAction.requiresTracking : undefined,
+          requiresCarrier: typeof primaryAction.requiresCarrier === "boolean" ? primaryAction.requiresCarrier : undefined,
+          reason: asNullableString(primaryAction.reason),
+        }
+      : null,
+    blockers: asArray(record.blockers).map((blocker) => {
+      const item = asRecord(blocker);
+      return {
+        code: asString(item.code),
+        message: asString(item.message),
+      };
+    }),
+    sections: asArray(record.sections).map((section) => {
+      const item = asRecord(section);
+      return {
+        code: asString(item.code),
+        label: asString(item.label),
+        status: asString(item.status),
+        message: asString(item.message),
+        count: item.count === null ? null : asNumber(item.count),
+      };
+    }),
+    timeline: asArray(record.timeline).map((step) => {
+      const item = asRecord(step);
+      return {
+        code: asString(item.code),
+        label: asString(item.label),
+        state: asString(item.state),
+      };
+    }),
+  };
+}
+
 function normalizeOrderDetail(value: unknown): AdminOrderDetail {
   const record = asRecord(value);
   const payment = record.payment ? asRecord(record.payment) : null;
@@ -231,6 +321,7 @@ function normalizeOrderDetail(value: unknown): AdminOrderDetail {
     order: record.order ? normalizeOrderSummary(record.order) : normalizeOrderSummary(record),
     payment: payment ? { ...(paymentTransaction ?? {}), ...payment } : null,
     shipping: fulfillment ? { ...fulfillment, fulfillment } : shipping,
+    operation: normalizeOrderOperation(record.operation),
     invoice: firstInvoice ?? invoice,
     afterSales: firstAfterSalesCase ?? afterSales,
     warnings: asArray(record.warnings).map((warning) => {
@@ -409,6 +500,7 @@ export function getOrdersAdminCapabilities(
     canReadOrders: hasPermission(session, ["orders.read", "admin:orders:view"]),
     canManageInvoices: hasPermission(session, ["invoices.manage", "invoice.manage"]),
     canManageAfterSales: hasPermission(session, ["after-sales.manage", "after_sales.manage"]),
+    canManageShipping: hasPermission(session, ["shipping.logistics.write", "shipping.admin.write"]),
   };
 }
 

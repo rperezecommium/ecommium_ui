@@ -276,14 +276,16 @@ function parseAvailableAdminContext(value: unknown): Omit<AvailableAdminContextD
   for (const organization of organizations) {
     byOrganization.set(organization.id, {
       ...organization,
-      shops: [],
+      shops: [...organization.shops],
     });
   }
 
   for (const shop of shops) {
     const existing = byOrganization.get(shop.organizationId);
     if (existing) {
-      existing.shops.push(shop);
+      if (!existing.shops.some((existingShop) => existingShop.id === shop.id)) {
+        existing.shops.push(shop);
+      }
       continue;
     }
 

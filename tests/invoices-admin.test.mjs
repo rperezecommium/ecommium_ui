@@ -119,6 +119,8 @@ test("invoices admin replaces pagos placeholder and exposes fiscal navigation", 
   assert.match(actionsSource, /\/admin\/invoices\/adjustments/);
   assert.match(permissionsSource, /invoices\.manage/);
   assert.match(documentRouteSource, /\/admin\/invoices\/.*\/document/);
+  assert.match(documentRouteSource, /renderInvoiceDocumentPdf/);
+  assert.match(documentRouteSource, /application\/pdf/);
 });
 
 test("invoices admin capabilities map fiscal permissions", () => {

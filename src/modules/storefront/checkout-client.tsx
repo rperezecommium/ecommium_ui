@@ -686,6 +686,7 @@ export function StorefrontCheckoutClient() {
         setPendingAction(null);
         return;
       }
+      const orderStatus = orderStatusForPaymentStatus(paymentReference.status);
       const response = await fetch("/api/storefront/checkout", {
         method: "POST",
         credentials: "same-origin",
@@ -698,6 +699,11 @@ export function StorefrontCheckoutClient() {
           guestSessionId,
           payload: {
             orderFormId: orderform.orderFormId,
+            paymentData: paymentReference,
+            paymentStatus: paymentReference.status,
+            paymentTransactionId: paymentReference.transactionId,
+            status: orderStatus,
+            transactionId: paymentReference.transactionId,
             checkoutContext: {
               orderFormId: orderform.orderFormId,
               paymentTransactionId: paymentReference.transactionId,
@@ -716,6 +722,7 @@ export function StorefrontCheckoutClient() {
       const firstItem = orderform.items[0];
       await clearCheckoutCart(orderform, guestSessionId);
       window.location.href = `/checkout/confirmation?${new URLSearchParams({
+        guestSessionId,
         orderId,
         transactionId: paymentReference.transactionId,
         revenueMinor: String(cartGrandTotalMinor(orderform)),
@@ -2358,10 +2365,27 @@ function confirmedCheckoutPaymentReference(
 function paymentStatusAllowsOrder(status: string | undefined) {
   const normalized = status?.toUpperCase();
   return normalized === "SETTLED" ||
-    normalized === "AUTHORIZED" ||
+    normalized === "CAPTURED" ||
+    normalized === "PAID" ||
     normalized === "SUCCEEDED" ||
-    normalized === "APPROVED" ||
     normalized === "COMPLETED";
+}
+
+function orderStatusForPaymentStatus(status: string | undefined) {
+  const normalized = status?.toUpperCase();
+  if (
+    normalized === "SETTLED" ||
+    normalized === "CAPTURED" ||
+    normalized === "PAID" ||
+    normalized === "SUCCEEDED" ||
+    normalized === "COMPLETED"
+  ) {
+    return "PAYMENT_SETTLED";
+  }
+  if (normalized === "AUTHORIZED" || normalized === "APPROVED" || normalized === "REQUIRES_CAPTURE") {
+    return "PAYMENT_AUTHORIZED";
+  }
+  return "PAYMENT_PENDING";
 }
 
 function paymentReferenceMatchesOrderform(referenceOrderFormId: string | undefined, orderFormId: string | undefined) {

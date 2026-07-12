@@ -154,6 +154,7 @@ test("storefront checkout starts payment transactions and persists redirect atte
   assert.match(clientSource, /orderFormId: input\.orderFormId/);
   assert.match(clientSource, /paymentSystemId: method\.paymentSystemId/);
   assert.match(clientSource, /guestSessionId: input\.guestSessionId/);
+  assert.match(clientSource, /guestSessionId,\s*orderId/s);
   assert.match(clientSource, /No se pudo preparar el inventario para iniciar el pago/);
   assert.match(transactionsRouteSource, /\/payments\/transactions/);
   assert.match(transactionsRouteSource, /x-correlation-id/);

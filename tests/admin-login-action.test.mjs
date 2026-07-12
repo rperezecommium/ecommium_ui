@@ -109,6 +109,14 @@ const multipleShopsAvailableContext = {
   selectionRequired: true,
 };
 
+const multipleShopsWithDefaultContext = {
+  ...multipleShopsAvailableContext,
+  defaultContext: {
+    organizationId: "11111111-1111-4111-8111-111111111111",
+    shopId: "07071977-aa11-4f34-b030-b7efed2e2cd6",
+  },
+};
+
 const emptyAvailableContext = {
   tenantAccess: {
     level: "NONE",
@@ -122,6 +130,14 @@ const emptyAvailableContext = {
   ],
   shops: [],
   selectionRequired: false,
+};
+
+const defaultOnlyAvailableContext = {
+  ...emptyAvailableContext,
+  defaultContext: {
+    organizationId: "11111111-1111-4111-8111-111111111111",
+    shopId: "22222222-2222-4222-8222-222222222222",
+  },
 };
 
 const commonJsExports = {};
@@ -356,6 +372,31 @@ test("admin login redirects to context selector when several shops are available
   assert.equal(savedSession.employeeId, "employee-1");
   assert.equal(savedContext, null);
   assert.equal(clearContextCalls, 1);
+});
+
+test("admin login always prefers BFF defaultContext over manual shop selection", async () => {
+  resetScenario({ availableContext: multipleShopsWithDefaultContext });
+
+  await assert.rejects(() => submitLogin("/admin/pedidos"), { url: "/admin/pedidos" });
+
+  assert.equal(savedSession.employeeId, "employee-1");
+  assert.equal(savedContext.organizationId, "11111111-1111-4111-8111-111111111111");
+  assert.equal(savedContext.shopId, "07071977-aa11-4f34-b030-b7efed2e2cd6");
+  assert.equal(savedContext.shopAlias, "tienda-ui-1780565845946");
+  assert.equal(clearContextCalls, 0);
+});
+
+test("admin login persists BFF defaultContext even when directory omits shop details", async () => {
+  resetScenario({ availableContext: defaultOnlyAvailableContext });
+
+  await assert.rejects(() => submitLogin("/admin/pedidos"), { url: "/admin/pedidos" });
+
+  assert.equal(savedSession.employeeId, "employee-1");
+  assert.equal(savedContext.organizationId, "11111111-1111-4111-8111-111111111111");
+  assert.equal(savedContext.shopId, "22222222-2222-4222-8222-222222222222");
+  assert.equal(savedContext.locale, "es-ES");
+  assert.equal(savedContext.currency, "EUR");
+  assert.equal(clearContextCalls, 0);
 });
 
 test("admin login blocks operational access when no shops are available", async () => {

@@ -61,6 +61,9 @@ test("storefront account UI manages address book from profile", () => {
   assert.match(clientSource, /AddressBookPanel/);
   assert.match(clientSource, /AddressBookCard/);
   assert.match(clientSource, /Nueva direccion/);
+  assert.match(clientSource, /newAddressEditorRef/);
+  assert.match(clientSource, /scrollIntoView/);
+  assert.match(clientSource, /block: "start"/);
   assert.match(clientSource, /name="operation" type="hidden" value="create"/);
   assert.match(clientSource, /name="operation" type="hidden" value="update"/);
   assert.match(clientSource, /name="operation" type="hidden" value="delete"/);
@@ -75,6 +78,10 @@ test("storefront account UI manages address book from profile", () => {
   assert.doesNotMatch(clientSource + actionsSource + accountSource, /customerId.*name=/);
   assert.match(cssSource, /\.storefrontAddressBookPanel/);
   assert.match(cssSource, /\.storefrontAddressBookCard/);
+  assert.match(cssSource, /\.storefrontAccountSideDrawer[\s\S]*height: 100dvh/);
+  assert.match(cssSource, /\.storefrontAccountSideDrawer[\s\S]*overflow: hidden/);
+  assert.match(cssSource, /\.storefrontAccountDrawerBody[\s\S]*overflow: auto/);
+  assert.match(cssSource, /\.storefrontAddressBookEditor[\s\S]*scroll-margin-top: 18px/);
   assert.match(cssSource, /\.storefrontAddressBookActions/);
 });
 
@@ -120,10 +127,42 @@ test("storefront account UI renders purchase history snapshots without cart shor
   assert.match(clientSource, /productUrlPath/);
   assert.match(clientSource, /\/pdp\/\$\{encodeURIComponent\(item\.productSlug\)\}/);
   assert.match(clientSource, /trackingUrl/);
+  assert.match(clientSource, /PurchaseTrackingModule/);
+  assert.match(clientSource, /purchaseTrackingSteps/);
+  assert.match(clientSource, /storefrontTrackingRail/);
+  assert.match(clientSource, /trackingStepIcon/);
+  assert.match(clientSource, /TrackingShipmentDetail/);
+  assert.match(clientSource, /storefrontTrackingCompleteFlag/);
+  assert.match(clientSource, /storefrontPurchaseTrackingDelivered/);
+  assert.match(clientSource, /storefrontPurchaseTrackingIdle/);
+  assert.match(clientSource, /hasStartedTracking/);
+  assert.match(clientSource, /hasOperationalTrackingStarted/);
+  assert.match(clientSource, /trackingOperationalCodes/);
+  assert.match(clientSource, /currentMilestoneCode/);
+  assert.match(clientSource, /trackingDispatchCodes\.includes\(currentMilestoneCode\)/);
+  assert.match(clientSource, /currentStep\?\.label \?\?/);
+  assert.match(clientSource, /En preparacion/);
+  assert.match(clientSource, /En despacho/);
+  assert.match(clientSource, /Disponible al enviar/);
+  assert.match(clientSource, /shipping\?\.status === "DELIVERED"/);
+  assert.match(clientSource, /!isDelivered && hasStartedTracking \? \(/);
   assert.match(clientSource, /moneyText\(purchase\.totalAmountMinor/);
   assert.match(clientSource, /moneyText\(item\.unitPriceMinor/);
+  assert.match(clientSource, /purchase\.items\.map/);
+  assert.doesNotMatch(clientSource, /purchase\.items\.slice\(0, 3\)/);
   assert.match(cssSource, /\.storefrontPurchaseCard/);
-  assert.match(cssSource, /\.storefrontPurchaseShipping/);
+  assert.match(cssSource, /\.storefrontPurchaseItems[\s\S]*max-height: 202px/);
+  assert.match(cssSource, /\.storefrontPurchaseItems[\s\S]*overflow-y: auto/);
+  assert.match(cssSource, /\.storefrontPurchaseTracking/);
+  assert.match(cssSource, /\.storefrontTrackingRail::after[\s\S]*animation: storefrontTrackingFlow/);
+  assert.match(cssSource, /\.storefrontPurchaseTrackingIdle \.storefrontTrackingRail::after[\s\S]*animation: none/);
+  assert.match(cssSource, /\.storefrontPurchaseTrackingDelivered \.storefrontTrackingRail::after[\s\S]*animation: none/);
+  assert.match(cssSource, /\.storefrontPurchaseTrackingDelivered \.storefrontTrackingStepCurrent > span[\s\S]*animation: none/);
+  assert.match(cssSource, /\.storefrontTrackingCompleteFlag/);
+  assert.match(cssSource, /@keyframes storefrontTrackingPulse/);
+  assert.match(cssSource, /\.storefrontTrackingShipmentDetail/);
+  assert.match(cssSource, /\.storefrontTrackingRoutePreview/);
+  assert.doesNotMatch(clientSource + cssSource, /storefrontTrackingDetails/);
   assert.doesNotMatch(clientSource, /add-items|addToCart|Añadir al carrito/);
 });
 
@@ -132,6 +171,7 @@ test("storefront account UI renders invoices with authenticated document downloa
   const accountSource = source("src/modules/storefront/storefront-account.ts");
   const routeSource = source("app/account/page.tsx");
   const documentRouteSource = source("app/account/invoices/[invoiceId]/document/route.ts");
+  const pdfSource = source("src/shared/invoice/invoice-document-pdf.ts");
   const cssSource = source("app/globals.css");
 
   assert.match(routeSource, /invoicesLimit/);
@@ -145,7 +185,11 @@ test("storefront account UI renders invoices with authenticated document downloa
   assert.match(documentRouteSource, /\/storefront\/me\/invoices\/.*\/document/);
   assert.match(documentRouteSource, /cache-control", "private, no-store"/);
   assert.match(documentRouteSource, /content-disposition/);
+  assert.match(documentRouteSource, /renderInvoiceDocumentPdf/);
+  assert.match(documentRouteSource, /application\/pdf/);
   assert.doesNotMatch(documentRouteSource, /localStorage|NEXT_PUBLIC/);
+  assert.match(pdfSource, /toPdfLiteral/);
+  assert.doesNotMatch(pdfSource, /utf16le|FEFF|0xfe|0xff/i);
   assert.match(cssSource, /\.storefrontInvoiceCard/);
   assert.match(cssSource, /\.storefrontInvoiceDownload/);
 });

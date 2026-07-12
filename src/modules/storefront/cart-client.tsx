@@ -412,6 +412,7 @@ export function StorefrontCartPageClient() {
   const [orderform, setOrderform] = useState<StorefrontOrderform | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [cartMessage, setCartMessage] = useState("");
   const [couponCode, setCouponCode] = useState("");
   const [invalidCouponCode, setInvalidCouponCode] = useState<string | undefined>();
   const [couponMessage, setCouponMessage] = useState("");
@@ -444,6 +445,7 @@ export function StorefrontCartPageClient() {
     }
 
     setPendingKey(`line-${itemIndex}`);
+    setCartMessage("");
     try {
       const nextOrderform = await mutateCart("PATCH", {
         guestSessionId: getOrCreateGuestSessionId(),
@@ -452,6 +454,8 @@ export function StorefrontCartPageClient() {
       });
       commitOrderform(nextOrderform);
       setOrderform(nextOrderform);
+    } catch (error) {
+      setCartMessage(error instanceof Error ? error.message : "No se pudo actualizar el carrito.");
     } finally {
       setPendingKey(null);
     }
@@ -504,6 +508,7 @@ export function StorefrontCartPageClient() {
     }
 
     setPendingKey("clear");
+    setCartMessage("");
     try {
       const nextOrderform = await mutateCart("DELETE", {
         guestSessionId: getOrCreateGuestSessionId(),
@@ -512,6 +517,8 @@ export function StorefrontCartPageClient() {
       });
       commitOrderform(nextOrderform);
       setOrderform(nextOrderform);
+    } catch (error) {
+      setCartMessage(error instanceof Error ? error.message : "No se pudo vaciar el carrito.");
     } finally {
       setPendingKey(null);
     }
@@ -639,6 +646,11 @@ export function StorefrontCartPageClient() {
             Vaciar
           </button>
         </div>
+        {cartMessage ? (
+          <p className="storefrontCouponMessage storefrontCouponMessageerror" role="alert">
+            {cartMessage}
+          </p>
+        ) : null}
         {orderform.items.map((item, index) => (
           <CartLine
             currency={orderform.currency}

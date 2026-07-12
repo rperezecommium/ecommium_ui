@@ -23,29 +23,16 @@ export default async function CheckoutConfirmationPage({ searchParams }: Confirm
   const cookieStore = await cookies();
   const visitorId = normalizeStorefrontVisitorId(cookieStore.get(storefrontVisitorCookieName)?.value);
   const event = buildPurchaseCompleteEvent(query, visitorId);
-  const transactionId = first(query?.transactionId) ?? first(query?.orderId);
+  const orderId = first(query?.orderId);
+  const transactionId = first(query?.transactionId) ?? orderId;
+  const guestSessionId = first(query?.guestSessionId);
 
   return (
     <main className="storefrontPage">
       <StorefrontHeader />
       <StorefrontPurchaseCompleteClient event={event} />
       <div className="storefrontShell">
-        <StorefrontPaymentConfirmationClient transactionId={transactionId} />
-        <section className="storefrontConfirmation">
-          <span>Resumen local</span>
-          <h1>Referencia de checkout</h1>
-          <p>Esta pantalla consulta Payments/BFF antes de considerar confirmado el pago. La publicación final del pedido depende de Orders.</p>
-          <dl>
-            <div>
-              <dt>Referencia</dt>
-              <dd>{transactionId ?? "Pendiente"}</dd>
-            </div>
-            <div>
-              <dt>Total</dt>
-              <dd>{formatMoney(event?.revenue, event?.currencyCode ?? currency())}</dd>
-            </div>
-          </dl>
-        </section>
+        <StorefrontPaymentConfirmationClient guestSessionId={guestSessionId} orderId={orderId} transactionId={transactionId} />
       </div>
     </main>
   );
@@ -114,15 +101,4 @@ function currency() {
   return process.env.ECOMMIUM_STOREFRONT_CURRENCY ||
     defaultAdminContext.currency ||
     localStorefrontDefaults.currency;
-}
-
-function formatMoney(value: number | undefined, currencyCode: string) {
-  if (typeof value !== "number") {
-    return "Pendiente";
-  }
-
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: currencyCode,
-  }).format(value);
 }

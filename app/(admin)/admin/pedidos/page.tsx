@@ -20,7 +20,9 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
     status: params?.status,
     limit: params?.limit,
     offset: params?.offset,
+    orderTab: params?.orderTab,
     notice: params?.notice,
+    noticeKind: params?.noticeKind,
   };
   const capabilities = getOrdersAdminCapabilities(session);
   const data = await getOrdersAdminData(context, filters, capabilities);

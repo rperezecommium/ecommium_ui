@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { Boxes, CreditCard, FileText, LifeBuoy, Search, Truck } from "lucide-react";
+import { Boxes, CreditCard, FileText, LifeBuoy, Search, Truck, X } from "lucide-react";
 import type { ReactNode } from "react";
 import type {
   AdminOrderDetail,
+  AdminOrderOperation,
   AdminOrderSummary,
   AfterSalesCase,
   InvoiceTemplatePreview,
+  OrdersAdminDrawerTab,
   OrdersAdminAuditEvent,
   OrdersAdminCapabilities,
   OrdersAdminData,
@@ -15,9 +17,11 @@ import { buildOrderAuditTimeline } from "./orders-admin";
 import {
   applyOrdersFiltersAction,
   assignAfterSalesCaseAction,
+  createOrderFulfillmentAction,
   createInvoiceAdjustmentAction,
   issueOrderInvoiceAction,
   requestOrderRefundAction,
+  transitionFulfillmentStatusAction,
 } from "./orders-admin-actions";
 
 type Props = {
@@ -25,6 +29,14 @@ type Props = {
   data: OrdersAdminData;
   filters: OrdersAdminFilters;
 };
+
+const orderDrawerTabs: Array<{ id: OrdersAdminDrawerTab; label: string }> = [
+  { id: "operacion", label: "Operacion" },
+  { id: "datos", label: "Datos" },
+  { id: "documentos", label: "Documentos" },
+  { id: "soporte", label: "Soporte" },
+  { id: "auditoria", label: "Auditoria" },
+];
 
 function ordersHref(filters: OrdersAdminFilters, patch: Partial<OrdersAdminFilters>) {
   const params = new URLSearchParams();
@@ -37,6 +49,10 @@ function ordersHref(filters: OrdersAdminFilters, patch: Partial<OrdersAdminFilte
   });
 
   return `/admin/pedidos${params.size ? `?${params.toString()}` : ""}`;
+}
+
+function activeOrderDrawerTab(filters: OrdersAdminFilters): OrdersAdminDrawerTab {
+  return orderDrawerTabs.some((tab) => tab.id === filters.orderTab) ? filters.orderTab as OrdersAdminDrawerTab : "operacion";
 }
 
 function valueText(value: unknown) {
@@ -79,9 +95,22 @@ function moneyText(amountMinor: number | undefined, currency = "EUR") {
   }).format(amountMinor / 100);
 }
 
+function orderShortReference(orderId: string | undefined) {
+  const normalized = orderId?.replace(/[^a-zA-Z0-9]/g, "").trim();
+  if (!normalized) {
+    return "-";
+  }
+
+  if (normalized.length <= 8) {
+    return `#${normalized.toUpperCase()}`;
+  }
+
+  return `#${normalized.slice(-7).toUpperCase()}`;
+}
+
 function statusBadgeClass(status: string | undefined) {
   const value = status?.toUpperCase();
-  if (value === "PAID" || value === "SETTLED" || value === "ISSUED" || value === "DELIVERED" || value === "APPROVED") {
+  if (value === "PAID" || value === "PAYMENT_SETTLED" || value === "SETTLED" || value === "ISSUED" || value === "DELIVERED" || value === "APPROVED") {
     return "adminBadge adminBadgeOk";
   }
   if (value === "PENDING" || value === "OPEN" || value === "IN_REVIEW" || value === "DRAFT") {
@@ -92,6 +121,71 @@ function statusBadgeClass(status: string | undefined) {
   }
 
   return "adminBadge";
+}
+
+function fulfillmentStepLabel(status: string | undefined) {
+  switch (status?.toUpperCase()) {
+    case "READY_TO_PICK":
+      return "Preparar";
+    case "PICKING":
+      return "Cerrar picking";
+    case "PACKED":
+      return "Enviar";
+    case "SHIPPED":
+      return "En transito";
+    case "DELIVERED":
+      return "Entregado";
+    case "FAILED":
+      return "Revisar envio";
+    default:
+      return "Crear preparacion";
+  }
+}
+
+function isOrderPaid(order: AdminOrderSummary) {
+  const paymentStatus = order.paymentStatus?.toUpperCase();
+  const orderStatus = order.status?.toUpperCase();
+
+  return (
+    paymentStatus === "PAID" ||
+    paymentStatus === "SETTLED" ||
+    paymentStatus === "APPROVED" ||
+    orderStatus === "PAYMENT_SETTLED" ||
+    orderStatus === "PAID" ||
+    orderStatus === "SETTLED"
+  );
+}
+
+function orderPaymentLabel(order: AdminOrderSummary) {
+  if (order.paymentStatus) {
+    return order.paymentStatus;
+  }
+
+  return isOrderPaid(order) ? "Pago confirmado" : "-";
+}
+
+function orderNextStep(order: AdminOrderSummary) {
+  const fulfillmentStatus = order.fulfillmentStatus?.toUpperCase();
+  const orderStatus = order.status?.toUpperCase();
+
+  if (orderStatus === "CANCELED" || orderStatus === "FAILED") {
+    return { label: "Revisar pedido", detail: valueText(order.status), badgeClass: "adminBadge adminBadgeError" };
+  }
+  if (!isOrderPaid(order)) {
+    return { label: "Esperar pago", detail: valueText(order.paymentStatus), badgeClass: "adminBadge adminBadgeWarn" };
+  }
+  if (fulfillmentStatus === "DELIVERED") {
+    return { label: "Completado", detail: "Entregado", badgeClass: "adminBadge adminBadgeOk" };
+  }
+  if (fulfillmentStatus === "FAILED") {
+    return { label: "Resolver envio", detail: valueText(order.fulfillmentStatus), badgeClass: "adminBadge adminBadgeError" };
+  }
+
+  return {
+    label: fulfillmentStepLabel(order.fulfillmentStatus),
+    detail: valueText(order.fulfillmentStatus),
+    badgeClass: fulfillmentStatus === "SHIPPED" ? "adminBadge adminBadgeOk" : "adminBadge adminBadgeWarn",
+  };
 }
 
 function recordField(record: Record<string, unknown> | null, keys: string[]) {
@@ -107,6 +201,44 @@ function recordField(record: Record<string, unknown> | null, keys: string[]) {
   }
 
   return undefined;
+}
+
+function nestedRecordField(record: Record<string, unknown> | null, parentKeys: string[], childKeys: string[]) {
+  if (!record) {
+    return undefined;
+  }
+
+  for (const parentKey of parentKeys) {
+    const parent = record[parentKey];
+    if (typeof parent !== "object" || parent === null || Array.isArray(parent)) {
+      continue;
+    }
+
+    const value = recordField(parent as Record<string, unknown>, childKeys);
+    if (value) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function shippingCarrierLabel(shipping: Record<string, unknown> | null) {
+  return (
+    recordField(shipping, ["carrierName", "carrierLabel", "selectedCarrier", "carrier"]) ??
+    nestedRecordField(shipping, ["carrier", "selectedCarrier"], ["label", "name", "carrierName", "id"])
+  );
+}
+
+function shippingCarrierId(shipping: Record<string, unknown> | null) {
+  return (
+    recordField(shipping, ["carrierId", "selectedCarrierId"]) ??
+    nestedRecordField(shipping, ["carrier", "selectedCarrier"], ["id", "carrierId"])
+  );
+}
+
+function shippingTrackingNumber(shipping: Record<string, unknown> | null) {
+  return recordField(shipping, ["trackingNumber", "trackingCode", "trackingReference"]);
 }
 
 function recordArray(record: Record<string, unknown> | null, keys: string[]) {
@@ -134,6 +266,17 @@ function ResultBanner({ result }: { result: { ok: boolean; error?: string } }) {
       <p>{result.error}</p>
     </div>
   );
+}
+
+function noticeBannerClass(kind: OrdersAdminFilters["noticeKind"]) {
+  if (kind === "error") {
+    return "adminBanner adminBannerError";
+  }
+  if (kind === "success") {
+    return "adminBanner adminBannerSuccess";
+  }
+
+  return "adminBanner adminBannerInfo";
 }
 
 function OrdersPagination({
@@ -204,30 +347,39 @@ function OrdersTable({ data, filters }: Props) {
               <th>Cliente</th>
               <th>Estado</th>
               <th>Pago</th>
-              <th>Fulfillment</th>
+              <th>Envio</th>
+              <th>Siguiente paso</th>
               <th>Total</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {orders.items.map((order) => (
-              <tr key={order.orderId}>
-                <td>
-                  <strong>{order.orderId}</strong>
-                  <div className="adminMuted">{dateText(order.createdAt)}</div>
-                </td>
-                <td>{valueText(order.customerId)}</td>
-                <td><span className={statusBadgeClass(order.status)}>{valueText(order.status)}</span></td>
-                <td><span className={statusBadgeClass(order.paymentStatus)}>{valueText(order.paymentStatus)}</span></td>
-                <td><span className={statusBadgeClass(order.fulfillmentStatus)}>{valueText(order.fulfillmentStatus)}</span></td>
-                <td>{moneyText(order.totalAmountMinor, order.currency)}</td>
-                <td>
-                  <Link className="adminButton adminButtonTiny" href={ordersHref(filters, { orderId: order.orderId })}>
-                    Ver detalle
-                  </Link>
-                </td>
-              </tr>
-            ))}
+            {orders.items.map((order) => {
+              const nextStep = orderNextStep(order);
+
+              return (
+                <tr key={order.orderId}>
+                  <td>
+                    <strong>{orderShortReference(order.orderId)}</strong>
+                    <div className="adminMuted">{dateText(order.createdAt)}</div>
+                  </td>
+                  <td>{valueText(order.customerId)}</td>
+                  <td><span className={statusBadgeClass(order.status)}>{valueText(order.status)}</span></td>
+                  <td><span className={isOrderPaid(order) ? "adminBadge adminBadgeOk" : statusBadgeClass(order.paymentStatus)}>{orderPaymentLabel(order)}</span></td>
+                  <td><span className={statusBadgeClass(order.fulfillmentStatus)}>{valueText(order.fulfillmentStatus)}</span></td>
+                  <td>
+                    <span className={nextStep.badgeClass}>{nextStep.label}</span>
+                    <div className="adminMuted">{nextStep.detail}</div>
+                  </td>
+                  <td>{moneyText(order.totalAmountMinor, order.currency)}</td>
+                  <td>
+                    <Link className="adminButton adminButtonTiny" href={ordersHref(filters, { orderId: order.orderId, orderTab: "operacion" })}>
+                      Operar
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -267,7 +419,8 @@ function DetailSection({
 function OrderCoreDetail({ order }: { order: AdminOrderSummary | null }) {
   return (
     <dl className="adminDefinitionList">
-      <div><dt>Pedido</dt><dd>{valueText(order?.orderId)}</dd></div>
+      <div><dt>Referencia</dt><dd>{orderShortReference(order?.orderId)}</dd></div>
+      <div><dt>ID interno</dt><dd>{valueText(order?.orderId)}</dd></div>
       <div><dt>Cliente</dt><dd>{valueText(order?.customerId)}</dd></div>
       <div><dt>Estado</dt><dd>{valueText(order?.status)}</dd></div>
       <div><dt>Total</dt><dd>{moneyText(order?.totalAmountMinor, order?.currency)}</dd></div>
@@ -332,16 +485,261 @@ function PaymentDetail({
   );
 }
 
+function operationStatusLabel(status: string | undefined) {
+  switch (status) {
+    case "PAYMENT_REQUIRED":
+      return "Pago pendiente";
+    case "READY_TO_PREPARE":
+      return "Listo para preparar";
+    case "PREPARING":
+      return "Preparando";
+    case "PICKING":
+      return "Picking";
+    case "PACKED":
+      return "Empacado";
+    case "SHIPPED":
+      return "Enviado";
+    case "DELIVERED":
+      return "Entregado";
+    case "FAILED":
+      return "Incidencia";
+    case "BLOCKED":
+      return "Bloqueado";
+    default:
+      return "Sin estado operativo";
+  }
+}
+
+function sectionStatusBadgeClass(status: string | undefined) {
+  if (status === "ready") {
+    return "adminBadge adminBadgeOk";
+  }
+  if (status === "attention" || status === "degraded") {
+    return "adminBadge adminBadgeError";
+  }
+  if (status === "pending" || status === "empty") {
+    return "adminBadge adminBadgeWarn";
+  }
+
+  return "adminBadge";
+}
+
+function OperationPrimaryAction({
+  canManageShipping,
+  operation,
+  orderId,
+  shipping,
+}: {
+  canManageShipping: boolean;
+  operation: AdminOrderOperation;
+  orderId: string | undefined;
+  shipping: Record<string, unknown> | null;
+}) {
+  const action = operation.primaryAction;
+  const currentCarrierLabel = shippingCarrierLabel(shipping);
+  const currentCarrierId = shippingCarrierId(shipping);
+  const currentTrackingNumber = shippingTrackingNumber(shipping);
+  const carrierIdValue = typeof currentCarrierId === "string" || typeof currentCarrierId === "number" ? String(currentCarrierId) : "";
+  const trackingNumberValue = typeof currentTrackingNumber === "string" ? currentTrackingNumber : "";
+
+  if (!action || action.type === "NONE") {
+    return (
+      <div className="adminButtonRow">
+        <span className={statusBadgeClass(operation.status)}>{action?.label ?? operationStatusLabel(operation.status)}</span>
+      </div>
+    );
+  }
+
+  if (!action.enabled) {
+    return (
+      <div className="adminButtonRow">
+        <span className="adminBadge adminBadgeWarn">{action.label ?? "Accion no disponible"}</span>
+        {action.reason ? <span className="adminMuted">{action.reason}</span> : null}
+      </div>
+    );
+  }
+
+  if (!canManageShipping) {
+    return (
+      <div className="adminButtonRow">
+        <span className="adminBadge adminBadgeWarn">Falta permiso shipping.logistics.write</span>
+      </div>
+    );
+  }
+
+  if (action.type === "CREATE_FULFILLMENT") {
+    return (
+      <form action={createOrderFulfillmentAction} className="adminButtonRow">
+        <input name="orderId" type="hidden" value={orderId ?? ""} />
+        <button className="adminButton adminButtonPrimary" disabled={!orderId} type="submit">
+          {action.label ?? "Crear preparacion"}
+        </button>
+      </form>
+    );
+  }
+
+  if (!action.targetFulfillmentStatus) {
+    return (
+      <div className="adminButtonRow">
+        <span className="adminBadge adminBadgeWarn">Siguiente estado no disponible</span>
+      </div>
+    );
+  }
+
+  if (action.requiresTracking) {
+    return (
+      <form action={transitionFulfillmentStatusAction} aria-label="Datos de envio" className="pricingDenseForm">
+        <input name="orderId" type="hidden" value={orderId ?? ""} />
+        <input name="status" type="hidden" value={action.targetFulfillmentStatus} />
+        <div className="ordersFulfillmentSummary" aria-label="Resumen de envio">
+          <div className="ordersFulfillmentSummaryHeader">
+            <div>
+              <span>Envio</span>
+              <strong>{carrierIdValue ? "Listo para notificar" : "Falta transportista"}</strong>
+            </div>
+            <span className={carrierIdValue ? "adminBadge adminBadgeOk" : "adminBadge adminBadgeWarn"}>Seguimiento</span>
+          </div>
+          <dl className="ordersFulfillmentSummaryMeta">
+            <div>
+              <dt>Transportista actual</dt>
+              <dd>{valueText(currentCarrierLabel)}</dd>
+            </div>
+            <div>
+              <dt>Seguimiento actual</dt>
+              <dd>{valueText(currentTrackingNumber)}</dd>
+            </div>
+          </dl>
+        </div>
+        <label className="adminField">
+          <span>Numero de seguimiento</span>
+          <input name="trackingNumber" placeholder="TRACK-001" defaultValue={trackingNumberValue} required />
+        </label>
+        {carrierIdValue ? (
+          <input name="carrierId" type="hidden" value={carrierIdValue} />
+        ) : (
+          <label className="adminField">
+            <span>Transportista</span>
+            <input name="carrierId" placeholder="standard" required={action.requiresCarrier === true} />
+          </label>
+        )}
+        <button className="adminButton adminButtonPrimary" disabled={!orderId} type="submit">
+          {action.label ?? "Actualizar estado"}
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <form action={transitionFulfillmentStatusAction} className="adminButtonRow">
+      <input name="orderId" type="hidden" value={orderId ?? ""} />
+      <input name="status" type="hidden" value={action.targetFulfillmentStatus} />
+      <button className="adminButton adminButtonPrimary" disabled={!orderId} type="submit">
+        {action.label ?? "Actualizar estado"}
+      </button>
+    </form>
+  );
+}
+
+function OrderOperationWorkspace({
+  canManageShipping,
+  detail,
+}: {
+  canManageShipping: boolean;
+  detail: AdminOrderDetail;
+}) {
+  const operation = detail.operation;
+  const orderId = detail.order?.orderId;
+
+  if (!operation) {
+    return (
+      <section className="adminCard">
+        <div className="adminCardHeader">
+          <div>
+            <h2>Operacion del pedido</h2>
+            <p>El detalle aun no expone el resumen operativo del BFF.</p>
+          </div>
+          <span className="adminBadge adminBadgeWarn">Legacy</span>
+        </div>
+        <div className="adminEmptyState">Actualiza el BFF o vuelve a cargar el pedido.</div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="adminCard">
+      <div className="adminCardHeader">
+        <div>
+          <h2>Operacion del pedido</h2>
+          <p>Accion principal, bloqueos y salud operativa del pedido.</p>
+        </div>
+        <span className={statusBadgeClass(operation.status)}>{operationStatusLabel(operation.status)}</span>
+      </div>
+      <div className="customersOverviewSubsection">
+        <h3>Siguiente paso</h3>
+        <div className="ordersFulfillmentNext">
+          <span>{operation.primaryAction?.type ?? "NONE"}</span>
+          <strong>{operation.primaryAction?.label ?? operationStatusLabel(operation.status)}</strong>
+        </div>
+        <OperationPrimaryAction
+          canManageShipping={canManageShipping}
+          operation={operation}
+          orderId={orderId}
+          shipping={detail.shipping}
+        />
+      </div>
+      {operation.blockers?.length ? (
+        <div className="customersOverviewSubsection">
+          <h3>Bloqueos</h3>
+          {operation.blockers.map((blocker, index) => (
+            <div className="adminBanner adminBannerWarning" key={`${blocker.code ?? "blocker"}-${index}`}>
+              <p>{blocker.message ?? blocker.code}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {operation.sections?.length ? (
+        <div className="customersOverviewSubsection">
+          <h3>Checklist operativo</h3>
+          <div className="customersOverviewList">
+            {operation.sections.map((section) => (
+              <div className="customersOverviewListItem" key={section.code ?? section.label}>
+                <strong>{section.label ?? section.code}</strong>
+                <span>{section.message ?? "-"}</span>
+                <span className={sectionStatusBadgeClass(section.status)}>{valueText(section.status)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {operation.timeline?.length ? (
+        <div className="customersOverviewSubsection">
+          <h3>Linea operativa</h3>
+          <div className="customersOverviewList">
+            {operation.timeline.map((step) => (
+              <div className="customersOverviewListItem" key={step.code ?? step.label}>
+                <strong>{step.label ?? step.code}</strong>
+                <span className={sectionStatusBadgeClass(step.state)}>{valueText(step.state)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function ShippingDetail({ detail }: { detail: AdminOrderDetail }) {
   const shipping = detail.shipping;
 
   return (
-    <dl className="adminDefinitionList">
-      <div><dt>Estado</dt><dd>{valueText(recordField(shipping, ["status", "fulfillmentStatus"]))}</dd></div>
-      <div><dt>Carrier</dt><dd>{valueText(recordField(shipping, ["carrierName", "carrier", "selectedCarrier"]))}</dd></div>
-      <div><dt>Tracking</dt><dd>{valueText(recordField(shipping, ["trackingNumber", "trackingUrl"]))}</dd></div>
-      <div><dt>Entrega</dt><dd>{valueText(recordField(shipping, ["estimatedDeliveryAt", "deliveredAt"]))}</dd></div>
-    </dl>
+    <>
+      <dl className="adminDefinitionList">
+        <div><dt>Estado</dt><dd>{valueText(recordField(shipping, ["status", "fulfillmentStatus"]))}</dd></div>
+        <div><dt>Transportista</dt><dd>{valueText(shippingCarrierLabel(shipping))}</dd></div>
+        <div><dt>Seguimiento</dt><dd>{valueText(recordField(shipping, ["trackingNumber", "trackingUrl"]))}</dd></div>
+        <div><dt>Entrega</dt><dd>{valueText(recordField(shipping, ["estimatedDeliveryAt", "deliveredAt"]))}</dd></div>
+      </dl>
+    </>
   );
 }
 
@@ -521,7 +919,73 @@ function OrderAuditTimelinePanel({ events }: { events: OrdersAdminAuditEvent[] }
   );
 }
 
-function OrderDetailPanel({ capabilities, data }: Pick<Props, "capabilities" | "data">) {
+function OrderDrawerTabs({ current, filters }: { current: OrdersAdminDrawerTab; filters: OrdersAdminFilters }) {
+  return (
+    <nav className="adminTabs pricingTabs ordersDrawerTabs" aria-label="Secciones del pedido">
+      {orderDrawerTabs.map((tab) => (
+        <Link
+          aria-current={tab.id === current ? "page" : undefined}
+          className={`productEditorTab ${tab.id === current ? "productEditorTabActive" : ""}`}
+          href={ordersHref(filters, { orderTab: tab.id })}
+          key={tab.id}
+        >
+          {tab.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function OrderDrawerSummary({ detail }: { detail: AdminOrderDetail }) {
+  const operation = detail.operation;
+  const paymentStatus = recordField(detail.payment, ["status", "transactionStatus", "paymentStatus"]) ?? detail.order?.paymentStatus;
+  const shippingStatus = recordField(detail.shipping, ["status", "fulfillmentStatus"]) ?? detail.order?.fulfillmentStatus;
+  const nextAction = operation?.primaryAction?.label ?? operationStatusLabel(operation?.status);
+  const blockersCount = operation?.blockers?.length ?? 0;
+  const warningsCount = detail.warnings.length;
+  const healthLabel = blockersCount ? "Bloqueado" : warningsCount ? "Con avisos" : "Operable";
+  const healthBadgeClass = blockersCount ? "adminBadge adminBadgeError" : warningsCount ? "adminBadge adminBadgeWarn" : "adminBadge adminBadgeOk";
+
+  return (
+    <section className="ordersFulfillmentSummary ordersDrawerSummary" aria-label="Resumen operativo del pedido">
+      <div className="ordersFulfillmentSummaryHeader">
+        <div>
+          <span>Resumen operativo</span>
+          <strong>{healthLabel}</strong>
+        </div>
+        <span className={healthBadgeClass}>{operationStatusLabel(operation?.status)}</span>
+      </div>
+      <dl className="ordersFulfillmentSummaryMeta">
+        <div>
+          <dt>Referencia</dt>
+          <dd>{orderShortReference(detail.order?.orderId)}</dd>
+        </div>
+        <div>
+          <dt>Siguiente accion</dt>
+          <dd>{valueText(nextAction)}</dd>
+        </div>
+        <div>
+          <dt>Pago</dt>
+          <dd>{valueText(paymentStatus)}</dd>
+        </div>
+        <div>
+          <dt>Envio</dt>
+          <dd>{valueText(shippingStatus)}</dd>
+        </div>
+        <div>
+          <dt>Bloqueos</dt>
+          <dd>{blockersCount}</dd>
+        </div>
+        <div>
+          <dt>Avisos</dt>
+          <dd>{warningsCount}</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
+function OrderDetailPanel({ capabilities, data, filters }: Pick<Props, "capabilities" | "data" | "filters">) {
   if (!data.selectedOrder.ok) {
     return <ResultBanner result={data.selectedOrder} />;
   }
@@ -531,37 +995,104 @@ function OrderDetailPanel({ capabilities, data }: Pick<Props, "capabilities" | "
 
   const detail = data.selectedOrder.data;
   const auditEvents = buildOrderAuditTimeline(detail);
+  const currentTab = activeOrderDrawerTab(filters);
 
   return (
-    <section className="adminGrid">
-      <DetailSection icon={<Boxes aria-hidden="true" size={18} />} title="Pedido">
-        <OrderCoreDetail order={detail.order} />
-      </DetailSection>
-      <DetailSection icon={<CreditCard aria-hidden="true" size={18} />} title="Pago">
-        <PaymentDetail capabilities={capabilities} detail={detail} />
-      </DetailSection>
-      <DetailSection icon={<Truck aria-hidden="true" size={18} />} title="Shipping">
-        <ShippingDetail detail={detail} />
-      </DetailSection>
-      <DetailSection icon={<FileText aria-hidden="true" size={18} />} title="Factura">
-        <InvoiceDetail capabilities={capabilities} detail={detail} />
-      </DetailSection>
-      <DetailSection icon={<LifeBuoy aria-hidden="true" size={18} />} title="Postventa">
-        <AfterSalesDetail capabilities={capabilities} detail={detail} />
-      </DetailSection>
-      {detail.warnings.length ? (
-        <DetailSection icon={<Search aria-hidden="true" size={18} />} title="Warnings">
-          {detail.warnings.map((warning) => (
-            <div className="adminBanner adminBannerWarning" key={warning.section}>
-              <p><strong>{warning.section}</strong>: {warning.message ?? "Seccion degradada"}</p>
-            </div>
-          ))}
-        </DetailSection>
+    <>
+      <OrderDrawerSummary detail={detail} />
+      <OrderDrawerTabs current={currentTab} filters={filters} />
+      {currentTab === "operacion" ? (
+        <>
+          <OrderOperationWorkspace canManageShipping={capabilities.canManageShipping} detail={detail} />
+          <section className="adminGrid">
+            <DetailSection icon={<Boxes aria-hidden="true" size={18} />} title="Pedido">
+              <OrderCoreDetail order={detail.order} />
+            </DetailSection>
+            <DetailSection icon={<Truck aria-hidden="true" size={18} />} title="Envio">
+              <ShippingDetail detail={detail} />
+            </DetailSection>
+          </section>
+        </>
       ) : null}
-      <DetailSection icon={<Search aria-hidden="true" size={18} />} title="Auditoria del pedido">
-        <OrderAuditTimelinePanel events={auditEvents} />
-      </DetailSection>
-    </section>
+      {currentTab === "datos" ? (
+        <section className="adminGrid">
+          <DetailSection icon={<Boxes aria-hidden="true" size={18} />} title="Pedido">
+            <OrderCoreDetail order={detail.order} />
+          </DetailSection>
+          <DetailSection icon={<CreditCard aria-hidden="true" size={18} />} title="Pago">
+            <PaymentDetail capabilities={capabilities} detail={detail} />
+          </DetailSection>
+          <DetailSection icon={<Truck aria-hidden="true" size={18} />} title="Envio">
+            <ShippingDetail detail={detail} />
+          </DetailSection>
+        </section>
+      ) : null}
+      {currentTab === "documentos" ? (
+        <section className="adminGrid">
+          <DetailSection icon={<FileText aria-hidden="true" size={18} />} title="Factura">
+            <InvoiceDetail capabilities={capabilities} detail={detail} />
+          </DetailSection>
+        </section>
+      ) : null}
+      {currentTab === "soporte" ? (
+        <section className="adminGrid">
+          <DetailSection icon={<LifeBuoy aria-hidden="true" size={18} />} title="Postventa">
+            <AfterSalesDetail capabilities={capabilities} detail={detail} />
+          </DetailSection>
+        </section>
+      ) : null}
+      {currentTab === "auditoria" ? (
+        <section className="adminGrid">
+          {detail.warnings.length ? (
+            <DetailSection icon={<Search aria-hidden="true" size={18} />} title="Warnings">
+              {detail.warnings.map((warning) => (
+                <div className="adminBanner adminBannerWarning" key={warning.section}>
+                  <p><strong>{warning.section}</strong>: {warning.message ?? "Seccion degradada"}</p>
+                </div>
+              ))}
+            </DetailSection>
+          ) : null}
+          <DetailSection icon={<Search aria-hidden="true" size={18} />} title="Auditoria del pedido">
+            <OrderAuditTimelinePanel events={auditEvents} />
+          </DetailSection>
+        </section>
+      ) : null}
+    </>
+  );
+}
+
+function OrderDetailDrawer({
+  capabilities,
+  data,
+  filters,
+}: Pick<Props, "capabilities" | "data" | "filters">) {
+  if (!filters.orderId) {
+    return null;
+  }
+
+  const selectedOrder = data.selectedOrder.ok ? data.selectedOrder.data?.order : null;
+  const title = `Operar pedido ${orderShortReference(selectedOrder?.orderId ?? filters.orderId)}`;
+  const closeHref = ordersHref(filters, { orderId: undefined, orderTab: undefined });
+
+  return (
+    <div className="adminDrawerBackdrop ordersDrawerBackdrop">
+      <Link className="ordersDrawerBackdropLink" href={closeHref} aria-label="Cerrar panel de pedido" />
+      <aside className="adminSideDrawer ordersSideDrawer" aria-label={title} aria-modal="true" role="dialog">
+        <div className="adminSideDrawerHeader">
+          <div>
+            <h2>{title}</h2>
+            <p>{valueText(selectedOrder?.customerId)} - {moneyText(selectedOrder?.totalAmountMinor, selectedOrder?.currency)}</p>
+          </div>
+          <Link className="adminIconButton" href={closeHref} title="Cerrar">
+            <X aria-hidden="true" size={16} />
+            <span className="adminVisuallyHidden">Cerrar</span>
+          </Link>
+        </div>
+        <div className="ordersSideDrawerBody">
+          <OrderDetailPanel capabilities={capabilities} data={data} filters={filters} />
+        </div>
+      </aside>
+    </div>
   );
 }
 
@@ -674,7 +1205,7 @@ export function OrdersAdminPage({ capabilities, data, filters }: Props) {
         </div>
       </div>
 
-      {filters.notice ? <div className="adminBanner adminBannerInfo">{filters.notice}</div> : null}
+      {filters.notice ? <div className={noticeBannerClass(filters.noticeKind)}>{filters.notice}</div> : null}
 
       <section className="adminKpiGrid">
         <article className="adminKpi">
@@ -736,7 +1267,7 @@ export function OrdersAdminPage({ capabilities, data, filters }: Props) {
         <OrdersTable capabilities={capabilities} data={data} filters={filters} />
       </section>
 
-      <OrderDetailPanel capabilities={capabilities} data={data} />
+      <OrderDetailDrawer capabilities={capabilities} data={data} filters={filters} />
       <section className="adminGrid">
         <InvoiceTemplatePanel capabilities={capabilities} preview={data.invoicePreview} />
         <AfterSalesQueue capabilities={capabilities} cases={data.afterSalesCases} />

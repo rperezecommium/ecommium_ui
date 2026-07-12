@@ -54,6 +54,10 @@ test("storefront PLP route exists outside admin", () => {
   assert.match(confirmationRouteSource, /StorefrontPaymentConfirmationClient/);
   assert.match(confirmationRouteSource, /transactionId/);
   assert.match(confirmationRouteSource, /revenueMinor/);
+  assert.doesNotMatch(confirmationRouteSource, /Payments\/BFF/);
+  assert.doesNotMatch(confirmationRouteSource, /Resumen local/);
+  assert.doesNotMatch(confirmationRouteSource, /Referencia de checkout/);
+  assert.doesNotMatch(confirmationRouteSource, /formatMoney/);
   assert.match(searchEventsRouteSource, /\/storefront\/search\/events/);
   assert.match(searchEventsRouteSource, /withAuth: false/);
   assert.match(searchEventsRouteSource, /visitorIdFromCookieHeader/);
@@ -128,11 +132,14 @@ test("storefront checkout confirmation records purchase complete events", () => 
   assert.match(confirmationRouteSource, /variantId/);
   assert.match(confirmationRouteSource, /normalizeStorefrontVisitorId/);
   assert.match(confirmationRouteSource, /StorefrontPaymentConfirmationClient/);
-  assert.match(confirmationRouteSource, /Payments\/BFF/);
+  assert.match(confirmationRouteSource, /guestSessionId=\{guestSessionId\}/);
+  assert.match(confirmationRouteSource, /orderId=\{orderId\}/);
   assert.match(confirmationClientSource, /getStorefrontPaymentTransaction/);
   assert.match(confirmationClientSource, /readStorefrontPaymentAttempt/);
   assert.match(confirmationClientSource, /updateStorefrontPaymentAttemptStatus\("SETTLED"\)/);
-  assert.match(confirmationClientSource, /Orders publique su estado final/);
+  assert.match(confirmationClientSource, /Pago realizado/);
+  assert.doesNotMatch(confirmationClientSource, /Orders publique su estado final/);
+  assert.doesNotMatch(confirmationClientSource, /Payments confirmó/);
   assert.match(cssSource, /\.storefrontConfirmation/);
 });
 
@@ -182,6 +189,8 @@ test("storefront cart UI mutates orderforms through the BFF proxy", () => {
   assert.match(cartClientSource, /ecommium:cart-updated/);
   assert.match(cartClientSource, /\/api\/storefront\/cart\?/);
   assert.match(cartClientSource, /\/api\/storefront\/cart\/items/);
+  assert.match(cartClientSource, /cartMessage/);
+  assert.match(cartClientSource, /No se pudo actualizar el carrito/);
   assert.match(cartClientSource, /StorefrontCartConfirmationDialog/);
   assert.match(cartClientSource, /Producto añadido correctamente a tu carrito/);
   assert.match(cartClientSource, /storefrontCartModalOfferings/);
@@ -353,6 +362,10 @@ test("storefront checkout persists orderform checkout data through BFF actions",
   assert.match(checkoutClientSource, /confirmedCheckoutPaymentReference\(orderform, totals\.grandTotal\)/);
   assert.match(checkoutClientSource, /readStorefrontPaymentReceipt/);
   assert.match(checkoutClientSource, /paymentStatusAllowsOrder/);
+  assert.match(checkoutClientSource, /orderStatusForPaymentStatus\(paymentReference\.status\)/);
+  assert.match(checkoutClientSource, /status: orderStatus/);
+  assert.match(checkoutClientSource, /paymentData: paymentReference/);
+  assert.match(checkoutClientSource, /paymentTransactionId: paymentReference\.transactionId/);
   assert.match(checkoutClientSource, /paymentTransactionId: paymentReference\.transactionId/);
   assert.match(checkoutClientSource, /payment: paymentReference/);
   assert.match(checkoutClientSource, /transactionId: paymentReference\.transactionId/);

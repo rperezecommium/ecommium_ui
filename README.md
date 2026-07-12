@@ -72,3 +72,9 @@ the selected organization, display `shopAlias` as a human identifier, and persis
 the resolved `shopId` as the canonical context for the rest of the Admin. These
 discovery reads are available after Admin authentication so the operator can
 select only shops allowed by their employee scopes.
+
+Irrompible: despues del login Admin, `GET /api/v1/admin/context/available` es
+el resolvedor de contexto propiedad del sistema. Si devuelve `defaultContext`,
+la UI debe guardar ese contexto y entrar automaticamente a la ruta Admin
+solicitada, aunque el empleado tenga acceso a mas de una tienda. El selector
+manual solo es fallback cuando el BFF no puede entregar un contexto por defecto.

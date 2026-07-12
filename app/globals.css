@@ -798,6 +798,11 @@ p {
   background: color-mix(in srgb, var(--admin-info) 12%, var(--admin-surface));
 }
 
+.adminBannerSuccess {
+  border-color: var(--admin-success);
+  background: color-mix(in srgb, var(--admin-success) 14%, var(--admin-surface));
+}
+
 .adminBannerWarning {
   border-color: var(--admin-warning);
   background: color-mix(in srgb, var(--admin-warning) 16%, var(--admin-surface));
@@ -3100,6 +3105,66 @@ p {
   white-space: nowrap;
 }
 
+.ordersFulfillmentSummary {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 6px;
+  background: var(--admin-surface-muted);
+}
+
+.ordersFulfillmentSummaryHeader,
+.ordersFulfillmentNext {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ordersFulfillmentSummaryHeader div,
+.ordersFulfillmentNext {
+  min-width: 0;
+}
+
+.ordersFulfillmentSummaryHeader span,
+.ordersFulfillmentNext span,
+.ordersFulfillmentSummaryMeta dt {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.ordersFulfillmentSummaryHeader strong,
+.ordersFulfillmentNext strong {
+  display: block;
+  color: var(--admin-text);
+  font-size: 14px;
+}
+
+.ordersFulfillmentSummaryMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.ordersFulfillmentSummaryMeta div {
+  min-width: 0;
+}
+
+.ordersFulfillmentSummaryMeta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--admin-text);
+}
+
+.ordersFulfillmentTrackingLink {
+  color: var(--admin-primary-pressed);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .adminInlineActions {
   display: flex;
   flex-wrap: wrap;
@@ -3281,6 +3346,57 @@ p {
   position: absolute;
   inset: 0;
   z-index: 0;
+}
+
+.ordersDrawerBackdrop {
+  align-items: stretch;
+  padding-left: 64px;
+  background: rgb(245 248 249 / 78%);
+}
+
+.ordersDrawerBackdropLink {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.ordersSideDrawer {
+  position: relative;
+  z-index: 1;
+  width: min(760px, calc(100vw - 16px));
+  gap: 0;
+  padding: 0;
+  border-left: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: -10px 0 24px rgb(54 58 65 / 14%);
+}
+
+.ordersSideDrawer .adminSideDrawerHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--admin-surface);
+}
+
+.ordersSideDrawerBody {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.ordersDrawerSummary {
+  position: sticky;
+  top: 73px;
+  z-index: 1;
+  background: var(--admin-surface-muted);
+  box-shadow: 0 1px 0 var(--admin-border-subtle);
+}
+
+.ordersSideDrawerBody > .adminGrid {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .customersSideDrawer {
@@ -3525,18 +3641,22 @@ p {
 }
 
 @media (max-width: 760px) {
+  .ordersDrawerBackdrop,
   .customersDrawerBackdrop {
     padding-left: 0;
   }
 
+  .ordersSideDrawer,
   .customersSideDrawer {
     width: 100%;
   }
 
+  .ordersSideDrawerBody,
   .customersSideDrawerBody {
     padding: 12px;
   }
 
+  .ordersSideDrawerBody > .adminGrid,
   .customersSideDrawerBody > .adminFormGrid,
   .customersSideDrawer .adminSummaryGrid {
     grid-template-columns: minmax(0, 1fr);
@@ -4810,6 +4930,8 @@ p {
   z-index: 90;
   display: grid;
   justify-items: end;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .storefrontAccountDrawerBackdrop {
@@ -4826,7 +4948,10 @@ p {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   width: min(440px, 100vw);
-  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   border-left: 1px solid #d9dde3;
   background: #ffffff;
   box-shadow: -14px 0 34px rgba(54, 58, 65, 0.16);
@@ -4858,7 +4983,9 @@ p {
 
 @media (prefers-reduced-motion: reduce) {
   .storefrontAccountDrawerBackdrop,
-  .storefrontAccountSideDrawer {
+  .storefrontAccountSideDrawer,
+  .storefrontTrackingRail::after,
+  .storefrontTrackingStepCurrent > span {
     animation: none;
   }
 }
@@ -4895,6 +5022,7 @@ p {
   min-height: 0;
   overflow: auto;
   padding: 20px;
+  overscroll-behavior: contain;
 }
 
 .storefrontPurchasesPanel,
@@ -5186,6 +5314,7 @@ p {
 .storefrontAddressBookEditor {
   display: grid;
   gap: 12px;
+  scroll-margin-top: 18px;
   border-top: 1px solid #eef1f4;
   padding-top: 12px;
 }
@@ -5358,6 +5487,10 @@ p {
 .storefrontPurchaseItems {
   display: grid;
   gap: 8px;
+  max-height: 202px;
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
 }
 
 .storefrontPurchaseItem {
@@ -5427,6 +5560,304 @@ p {
   color: #1688a3;
   font-weight: 800;
   text-decoration: none;
+}
+
+.storefrontPurchaseTracking {
+  --tracking-fill: 12%;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #d8eef3;
+  border-radius: 6px;
+  background: #f8fdfe;
+}
+
+.storefrontPurchaseTrackingHeader {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) repeat(2, auto);
+  align-items: center;
+  gap: 10px;
+  color: #1688a3;
+}
+
+.storefrontPurchaseTrackingHeader p {
+  margin: 2px 0 0;
+  color: #6e7f86;
+}
+
+.storefrontPurchaseTrackingHeader a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #1688a3;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.storefrontTrackingCompleteBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #8fd9a8;
+  border-radius: 999px;
+  background: #effbf3;
+  color: #17813d;
+}
+
+.storefrontTrackingRail {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  min-height: 70px;
+  padding: 8px 0 0;
+}
+
+.storefrontTrackingRail::before,
+.storefrontTrackingRail::after {
+  position: absolute;
+  top: 18px;
+  left: 8%;
+  right: 8%;
+  height: 3px;
+  border-radius: 999px;
+  content: "";
+}
+
+.storefrontTrackingRail::before {
+  background: #d7e0e4;
+}
+
+.storefrontTrackingRail::after {
+  right: auto;
+  width: calc(var(--tracking-fill) * 0.84);
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, #23a8c3, #43d18a, #23a8c3);
+  background-size: 180px 100%;
+  animation: storefrontTrackingFlow 1.25s linear infinite;
+}
+
+.storefrontPurchaseTrackingIdle .storefrontPurchaseTrackingHeader {
+  color: #6e7f86;
+}
+
+.storefrontPurchaseTrackingIdle .storefrontTrackingRail::after {
+  width: 0;
+  background: transparent;
+  animation: none;
+}
+
+.storefrontPurchaseTrackingDelivered .storefrontTrackingRail::after {
+  width: 84%;
+  background: #31a653;
+  animation: none;
+}
+
+.storefrontTrackingStep {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: #6e7f86;
+  text-align: center;
+}
+
+.storefrontTrackingStep > span {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #c8d4d9;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px #f8fdfe;
+}
+
+.storefrontTrackingStep strong {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.15;
+}
+
+.storefrontTrackingStep small {
+  color: #8a989e;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.storefrontTrackingStepCompleted > span {
+  border-color: #23a8c3;
+  background: #23a8c3;
+  color: #ffffff;
+}
+
+.storefrontTrackingStepCurrent > span {
+  border-color: #23a8c3;
+  background: #ffffff;
+  color: #23a8c3;
+  box-shadow: 0 0 0 4px #dff7fb, 0 0 0 8px rgba(35, 168, 195, 0.12);
+  animation: storefrontTrackingPulse 1.4s ease-in-out infinite;
+}
+
+.storefrontTrackingStepPending > span {
+  color: #9aa8ad;
+}
+
+.storefrontTrackingStepCompleted,
+.storefrontTrackingStepCurrent {
+  color: #1688a3;
+}
+
+.storefrontPurchaseTrackingDelivered .storefrontTrackingStepCompleted > span,
+.storefrontPurchaseTrackingDelivered .storefrontTrackingStepCurrent > span {
+  border-color: #31a653;
+  background: #31a653;
+  color: #ffffff;
+  box-shadow: 0 0 0 4px #f8fdfe;
+  animation: none;
+}
+
+.storefrontPurchaseTrackingDelivered .storefrontTrackingStepCompleted,
+.storefrontPurchaseTrackingDelivered .storefrontTrackingStepCurrent {
+  color: #17813d;
+}
+
+.storefrontTrackingCompleteFlag {
+  position: absolute;
+  top: 5px;
+  right: 2px;
+  z-index: 2;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #31a653;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #31a653;
+  box-shadow: 0 0 0 4px #f8fdfe;
+}
+
+.storefrontTrackingShipmentDetail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  gap: 12px;
+  align-items: stretch;
+  padding: 12px;
+  border: 1px solid #dce8ec;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.storefrontTrackingShipmentDetail > div:first-child {
+  display: grid;
+  gap: 10px;
+}
+
+.storefrontTrackingShipmentDetail > div:first-child > strong {
+  color: #30343b;
+  font-size: 14px;
+}
+
+.storefrontTrackingShipmentDetail .storefrontTrackingMeta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.storefrontTrackingMeta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.storefrontTrackingMeta div {
+  min-width: 0;
+}
+
+.storefrontTrackingMeta dt {
+  color: #7a7a7a;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.storefrontTrackingMeta dd {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: #30343b;
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storefrontTrackingRoutePreview {
+  position: relative;
+  min-height: 132px;
+  overflow: hidden;
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, transparent 24%, rgba(35, 168, 195, 0.12) 25%, transparent 26%),
+    linear-gradient(0deg, transparent 24%, rgba(35, 168, 195, 0.12) 25%, transparent 26%),
+    #edf8fb;
+  background-size: 58px 58px;
+}
+
+.storefrontTrackingRouteLine {
+  position: absolute;
+  inset: 42% 18% auto 18%;
+  height: 32px;
+  border-bottom: 3px solid #237bc3;
+  border-radius: 50%;
+}
+
+.storefrontTrackingRoutePoint {
+  position: absolute;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #237bc3;
+  box-shadow: 0 4px 14px rgba(35, 123, 195, 0.24);
+}
+
+.storefrontTrackingRoutePointOrigin {
+  top: 42px;
+  left: 18%;
+}
+
+.storefrontTrackingRoutePointDestination {
+  top: 26px;
+  right: 14%;
+}
+
+@keyframes storefrontTrackingFlow {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 180px 0;
+  }
+}
+
+@keyframes storefrontTrackingPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.12);
+  }
 }
 
 .storefrontPurchasesPager {
@@ -9514,6 +9945,34 @@ p {
   .storefrontPurchaseHeader,
   .storefrontPurchaseShipping {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefrontPurchaseTrackingHeader,
+  .storefrontTrackingShipmentDetail,
+  .storefrontTrackingMeta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefrontTrackingShipmentDetail .storefrontTrackingMeta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefrontTrackingRoutePreview {
+    min-height: 112px;
+  }
+
+  .storefrontTrackingRail {
+    gap: 2px;
+  }
+
+  .storefrontTrackingRail::before,
+  .storefrontTrackingRail::after {
+    left: 12%;
+    right: 12%;
+  }
+
+  .storefrontTrackingStep strong {
+    font-size: 10px;
   }
 
   .storefrontPurchaseHeader {

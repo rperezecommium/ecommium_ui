@@ -71,6 +71,17 @@ function makeAuthHeader(accessToken: string) {
   };
 }
 
+function contextFromDefault(
+  defaultContext: { organizationId: string; shopId: string },
+  currentContext: Awaited<ReturnType<typeof getAdminContext>>,
+) {
+  return {
+    ...currentContext,
+    organizationId: defaultContext.organizationId,
+    shopId: defaultContext.shopId,
+  };
+}
+
 async function fetchCurrentSessionWithToken(accessToken: string) {
   return await requestBff("/auth/me", {
     withAuth: false,
@@ -136,20 +147,31 @@ async function loginAdminWithCredentials({
   }
 
   const shops = availableContexts.directory.organizations.flatMap((organization) => organization.shops);
+  const currentContext = await getAdminContext();
+  const selectedDefaultShop = availableContexts.defaultContext
+    ? shops.find((shop) => (
+        shop.organizationId === availableContexts.defaultContext?.organizationId &&
+        shop.id === availableContexts.defaultContext?.shopId
+      ))
+    : null;
 
-  if (shops.length === 0) {
+  if (shops.length === 0 && !availableContexts.defaultContext) {
     await clearAdminContext();
     await clearAdminSession();
     loginRedirect(nextPath, "Acceso denegado operativo: tu usuario no tiene tiendas disponibles para operar el Admin.");
   }
 
-  const selectedShop = shops.length === 1 ? shops[0] : null;
-  const currentContext = await getAdminContext();
+  const selectedShop = selectedDefaultShop ?? (shops.length === 1 ? shops[0] : null);
 
   await saveAdminSession(session);
 
   if (selectedShop) {
     await saveAdminContext(shopToContext(selectedShop, currentContext));
+    redirect(nextPath);
+  }
+
+  if (availableContexts.defaultContext) {
+    await saveAdminContext(contextFromDefault(availableContexts.defaultContext, currentContext));
     redirect(nextPath);
   }
 

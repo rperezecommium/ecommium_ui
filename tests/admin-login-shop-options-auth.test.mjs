@@ -84,6 +84,45 @@ test("admin context directory uses post-login available context endpoint", async
   assert.equal(calls.every((call) => call.authorization === "Bearer server-admin-token"), true);
 });
 
+test("admin context directory preserves shops nested inside organizations", async () => {
+  const requestBff = async (pathValue, options = {}) => {
+    if (pathValue === "/admin/context/available") {
+      return {
+        ok: true,
+        data: options.parse({
+          organizations: [{
+            organizationId: "org-1",
+            name: "Org Uno",
+            shops: [{
+              shopId: "shop-1",
+              organizationId: "org-1",
+              shopName: "Tienda Uno",
+              shopAlias: "tienda-uno",
+              status: "ACTIVE",
+            }],
+          }],
+          selectionRequired: false,
+          defaultContext: {
+            organizationId: "org-1",
+            shopId: "shop-1",
+          },
+        }),
+        correlationId: "corr-nested",
+      };
+    }
+
+    throw new Error(`Unexpected BFF path: ${pathValue}`);
+  };
+  const { getAvailableAdminContexts } = loadOrganizationShopModule(requestBff);
+
+  const result = await getAvailableAdminContexts({ accessToken: "access-token-1" });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.defaultContext.shopId, "shop-1");
+  assert.equal(result.directory.organizations[0].shops.length, 1);
+  assert.equal(result.directory.organizations[0].shops[0].shopAlias, "tienda-uno");
+});
+
 test("admin context directory reports unavailable when authorization is missing", async () => {
   const calls = [];
   const requestBff = async (pathValue, options = {}) => {
