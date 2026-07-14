@@ -78,3 +78,38 @@ el resolvedor de contexto propiedad del sistema. Si devuelve `defaultContext`,
 la UI debe guardar ese contexto y entrar automaticamente a la ruta Admin
 solicitada, aunque el empleado tenga acceso a mas de una tienda. El selector
 manual solo es fallback cuando el BFF no puede entregar un contexto por defecto.
+
+## Storefront signup human verification
+
+The Storefront signup form always sends passive anti-abuse signals to the BFF:
+`startedAt`, honeypot `company`, and action `customer_signup`.
+
+Optional Turnstile verification is controlled only with browser-safe public
+configuration:
+
+- `NEXT_PUBLIC_ECOMMIUM_SIGNUP_HUMAN_VERIFICATION=off|turnstile`, defaults to
+  `off`.
+- `NEXT_PUBLIC_ECOMMIUM_TURNSTILE_SITE_KEY`, public Cloudflare Turnstile site
+  key used only when signup verification is `turnstile`.
+
+Never expose the Turnstile secret key in this repo or any `NEXT_PUBLIC_*`
+variable. The secret belongs only to the BFF/Sessions runtime.
+
+Configuration matrix:
+
+- `off`: no Turnstile widget is rendered, signup remains available, and only
+  passive signals are sent in `humanVerification`.
+- `turnstile` with `NEXT_PUBLIC_ECOMMIUM_TURNSTILE_SITE_KEY`: the signup UI
+  renders Cloudflare Turnstile, stores the resulting token in `turnstileToken`,
+  and posts `provider: "turnstile"` plus the token to the BFF.
+- `turnstile` without `NEXT_PUBLIC_ECOMMIUM_TURNSTILE_SITE_KEY`: signup fails
+  closed. The UI keeps submit disabled, shows a configuration error, and the
+  server action refuses requests without `turnstileToken` before calling the
+  BFF.
+
+Manual local checks:
+
+```bash
+NEXT_PUBLIC_ECOMMIUM_SIGNUP_HUMAN_VERIFICATION=off npm run dev
+NEXT_PUBLIC_ECOMMIUM_SIGNUP_HUMAN_VERIFICATION=turnstile NEXT_PUBLIC_ECOMMIUM_TURNSTILE_SITE_KEY=<site-key> npm run dev
+```

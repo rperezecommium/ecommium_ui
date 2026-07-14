@@ -35,6 +35,7 @@ import {
   loginStorefrontCustomer,
   signupStorefrontCustomer,
 } from "./storefront-auth-actions";
+import { StorefrontSignupSubmitGate } from "./storefront-signup-submit-gate";
 import {
   createStorefrontPaymentAttempt,
   createStorefrontPaymentCorrelationId,
@@ -1340,9 +1341,10 @@ function CheckoutAuthPanel({ mode }: { mode: Exclude<GuestCheckoutMode, "guest">
           </label>
           <input name="startedAt" type="hidden" value={signupStartedAt} />
           <label className="storefrontAuthTrap">Empresa<input autoComplete="off" name="company" tabIndex={-1} /></label>
-          <button className="storefrontAuthSubmit" disabled={pending} type="submit">
-            {pending ? "Creando..." : "Crear cuenta"}
-          </button>
+          <StorefrontSignupSubmitGate
+            key={signupState.verificationResetKey ?? "checkout-signup-gate"}
+            pending={pending}
+          />
         </form>
       )}
     </div>

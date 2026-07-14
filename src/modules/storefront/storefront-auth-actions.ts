@@ -4,6 +4,10 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requestBff } from "../../shared/bff/client";
 import type { StorefrontAuthActionState } from "./auth-types";
+import {
+  getStorefrontSignupHumanVerificationConfig,
+  storefrontSignupHumanVerificationAction,
+} from "./storefront-human-verification";
 import { saveStorefrontCustomerSession } from "./storefront-customer-session";
 import { getStorefrontContext } from "./storefront-context";
 
@@ -46,6 +50,10 @@ type StorefrontSignupResponse = {
 function formString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function verificationResetKey() {
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function safeRedirectPath(value: string, fallback: string) {
@@ -180,14 +188,26 @@ export async function signupStorefrontCustomer(
   const lastName = formString(formData, "lastName");
   const honeypot = formString(formData, "company");
   const startedAt = formString(formData, "startedAt");
+  const turnstileToken = formString(formData, "turnstileToken");
   const redirectTo = formString(formData, "redirectTo");
   const context = getStorefrontContext();
+  const humanVerification = getStorefrontSignupHumanVerificationConfig();
 
   if (!email || !password || !firstName || !lastName) {
     return {
       status: "error",
       message: "Completa nombre, apellido, email y password.",
       email,
+      verificationResetKey: verificationResetKey(),
+    };
+  }
+
+  if (humanVerification.mode === "turnstile" && !turnstileToken) {
+    return {
+      status: "error",
+      message: "Completa la verificacion humana para crear tu cuenta.",
+      email,
+      verificationResetKey: verificationResetKey(),
     };
   }
 
@@ -210,9 +230,15 @@ export async function signupStorefrontCustomer(
         locale: context.locale,
         activationMode: "email",
         humanVerification: {
+          ...(turnstileToken
+            ? {
+                provider: "turnstile",
+                token: turnstileToken,
+              }
+            : {}),
           startedAt,
           honeypot,
-          action: "customer_signup",
+          action: storefrontSignupHumanVerificationAction,
         },
       }),
     },
@@ -223,6 +249,7 @@ export async function signupStorefrontCustomer(
       status: "error",
       message: publicAuthError(result.status),
       email,
+      verificationResetKey: verificationResetKey(),
     };
   }
 

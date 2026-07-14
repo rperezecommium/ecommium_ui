@@ -58,6 +58,12 @@ test("storefront checkout lets unauthenticated buyers choose guest login or sign
   assert.match(clientSource, /CheckoutAuthPanel/);
   assert.match(clientSource, /loginStorefrontCustomer/);
   assert.match(clientSource, /signupStorefrontCustomer/);
+  assert.match(clientSource, /StorefrontSignupSubmitGate/);
+  assert.match(clientSource, /key=\{signupState\.verificationResetKey \?\? "checkout-signup-gate"\}/);
+  assert.match(
+    clientSource,
+    /<label className="storefrontAuthTrap">[\s\S]*?<StorefrontSignupSubmitGate[\s\S]*?pending=\{pending\}/,
+  );
   assert.match(clientSource, /name="redirectTo" type="hidden" value="\/checkout"/);
   assert.match(authActionsSource, /safeRedirectPath/);
   assert.match(authActionsSource, /formString\(formData, "redirectTo"\)/);

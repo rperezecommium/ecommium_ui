@@ -4681,6 +4681,36 @@ p {
   clip: rect(0, 0, 0, 0);
 }
 
+.storefrontTurnstile {
+  display: grid;
+  gap: 8px;
+}
+
+.storefrontTurnstileWidget {
+  min-height: 65px;
+}
+
+.storefrontTurnstileMessage {
+  margin: 0;
+  color: #5b6b76;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.storefrontTurnstileMessageError {
+  color: #a32618;
+}
+
+.storefrontSignupVerificationHint {
+  margin: -2px 0 0;
+  border-left: 3px solid #f0a500;
+  background: #fff7e0;
+  color: #5f4b13;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .storefrontAuthSubmit {
   min-height: 44px;
   border: 1px solid #25abc4;

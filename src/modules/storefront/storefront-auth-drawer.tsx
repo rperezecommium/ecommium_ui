@@ -8,6 +8,7 @@ import {
   signupStorefrontCustomer,
 } from "./storefront-auth-actions";
 import { logoutStorefrontCustomer } from "./storefront-account-actions";
+import { StorefrontSignupSubmitGate } from "./storefront-signup-submit-gate";
 import type { StorefrontAuthActionState } from "./auth-types";
 
 type AuthMode = "login" | "signup";
@@ -158,9 +159,10 @@ function AuthDrawer({
             <PasswordField show={showPassword} toggle={() => setShowPassword(!showPassword)} />
             <input name="startedAt" type="hidden" value={signupStartedAt} />
             <label className="storefrontAuthTrap">Empresa<input autoComplete="off" name="company" tabIndex={-1} /></label>
-            <button className="storefrontAuthSubmit" disabled={pending} type="submit">
-              {pending ? "Creando..." : "Crear cuenta"}
-            </button>
+            <StorefrontSignupSubmitGate
+              key={signupState.verificationResetKey ?? "signup-gate"}
+              pending={pending}
+            />
           </form>
         )}
       </aside>
