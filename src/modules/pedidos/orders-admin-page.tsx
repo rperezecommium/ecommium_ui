@@ -125,20 +125,20 @@ function statusBadgeClass(status: string | undefined) {
 
 function fulfillmentStepLabel(status: string | undefined) {
   switch (status?.toUpperCase()) {
+    case "PENDING_FULFILLMENT":
     case "READY_TO_PICK":
-      return "Preparar";
     case "PICKING":
-      return "Cerrar picking";
+      return "En preparacion";
     case "PACKED":
-      return "Enviar";
+      return "En despacho";
     case "SHIPPED":
-      return "En transito";
+      return "Enviado";
     case "DELIVERED":
       return "Entregado";
     case "FAILED":
       return "Revisar envio";
     default:
-      return "Crear preparacion";
+      return "En preparacion";
   }
 }
 
@@ -490,13 +490,13 @@ function operationStatusLabel(status: string | undefined) {
     case "PAYMENT_REQUIRED":
       return "Pago pendiente";
     case "READY_TO_PREPARE":
-      return "Listo para preparar";
     case "PREPARING":
-      return "Preparando";
+      return "En preparacion";
     case "PICKING":
-      return "Picking";
+      return "En preparacion";
+    case "DISPATCHING":
     case "PACKED":
-      return "Empacado";
+      return "En despacho";
     case "SHIPPED":
       return "Enviado";
     case "DELIVERED":
@@ -572,7 +572,7 @@ function OperationPrimaryAction({
       <form action={createOrderFulfillmentAction} className="adminButtonRow">
         <input name="orderId" type="hidden" value={orderId ?? ""} />
         <button className="adminButton adminButtonPrimary" disabled={!orderId} type="submit">
-          {action.label ?? "Crear preparacion"}
+          {action.label ?? "Iniciar preparacion"}
         </button>
       </form>
     );

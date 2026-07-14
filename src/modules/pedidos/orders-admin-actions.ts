@@ -31,8 +31,6 @@ function requiredPositiveInteger(value: FormDataEntryValue | null, label: string
 
 function isAllowedFulfillmentStatus(status: string | undefined): status is string {
   return (
-    status !== "READY_TO_PICK" &&
-    status !== "PICKING" &&
     status !== "PACKED" &&
     status !== "SHIPPED" &&
     status !== "DELIVERED" &&
@@ -226,7 +224,7 @@ export async function createOrderFulfillmentAction(formData: FormData): Promise<
     redirect(ordersReturnPath(result.status === 403 ? "Falta permiso shipping.logistics.write." : result.error, orderId, "error"));
   }
 
-  redirect(ordersReturnPath("Preparacion creada.", orderId, "success"));
+  redirect(ordersReturnPath("Pedido en preparacion.", orderId, "success"));
 }
 
 export async function transitionFulfillmentStatusAction(formData: FormData): Promise<never> {
@@ -269,5 +267,6 @@ export async function transitionFulfillmentStatusAction(formData: FormData): Pro
     redirect(ordersReturnPath(result.status === 403 ? "Falta permiso shipping.logistics.write." : result.error, orderId, "error"));
   }
 
-  redirect(ordersReturnPath(`Estado logistico actualizado a ${status}.`, orderId, "success"));
+  const statusLabel = status === "PACKED" ? "En despacho" : status;
+  redirect(ordersReturnPath(`Estado logistico actualizado a ${statusLabel}.`, orderId, "success"));
 }

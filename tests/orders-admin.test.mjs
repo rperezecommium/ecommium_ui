@@ -160,7 +160,8 @@ test("orders admin route replaces placeholder with operative module", () => {
   assert.match(pageSource, /Soporte/);
   assert.match(pageSource, /Auditoria/);
   assert.match(pageSource, /Siguiente paso/);
-  assert.match(pageSource, /Crear preparacion/);
+  assert.match(pageSource, /Iniciar preparacion/);
+  assert.match(pageSource, /En despacho/);
   assert.match(pageSource, /Esperar pago/);
   assert.match(pageSource, /Operar/);
   assert.doesNotMatch(pageSource, /Ver detalle/);
@@ -398,7 +399,7 @@ test("orders admin actions assign after-sales, issue invoice, refund and create 
   await assert.rejects(() => issueOrderInvoiceAction(formData), { url: "/admin/pedidos?notice=Factura+solicitada.&orderId=order-1" });
   await assert.rejects(() => requestOrderRefundAction(formData), { url: "/admin/pedidos?notice=Refund+solicitado.&orderId=order-1" });
   await assert.rejects(() => createInvoiceAdjustmentAction(formData), { url: "/admin/pedidos?notice=Ajuste+fiscal+solicitado.&orderId=order-1" });
-  await assert.rejects(() => createOrderFulfillmentAction(formData), { url: "/admin/pedidos?notice=Preparacion+creada.&orderId=order-1&noticeKind=success" });
+  await assert.rejects(() => createOrderFulfillmentAction(formData), { url: "/admin/pedidos?notice=Pedido+en+preparacion.&orderId=order-1&noticeKind=success" });
   await assert.rejects(() => transitionFulfillmentStatusAction(formData), { url: "/admin/pedidos?notice=Estado+logistico+actualizado+a+SHIPPED.&orderId=order-1&noticeKind=success" });
 
   assert.deepEqual(calls, [
@@ -489,16 +490,16 @@ test("orders admin fulfillment action advances non-shipped states without tracki
   const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestBff });
   const formData = new FormData();
   formData.set("orderId", "order-1");
-  formData.set("status", "READY_TO_PICK");
+  formData.set("status", "PACKED");
 
   await assert.rejects(() => transitionFulfillmentStatusAction(formData), {
-    url: "/admin/pedidos?notice=Estado+logistico+actualizado+a+READY_TO_PICK.&orderId=order-1&noticeKind=success",
+    url: "/admin/pedidos?notice=Estado+logistico+actualizado+a+En+despacho.&orderId=order-1&noticeKind=success",
   });
   assert.deepEqual(calls, [{
     path: "/admin/orders/order-1/fulfillment/status?organizationId=org-1&shopId=shop-1",
     method: "PATCH",
     body: {
-      status: "READY_TO_PICK",
+      status: "PACKED",
     },
   }]);
 });

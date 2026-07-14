@@ -95,9 +95,9 @@ test("storefront PLP product cards expose availability ribbon and quick view", (
   assert.match(plpPageSource, /className="storefrontProductCartButton"/);
   assert.match(plpPageSource, /disabled=\{!product\.available \|\| !product\.variantId\}/);
   assert.match(plpPageSource, /variantId=\{product\.variantId\}/);
-  assert.match(plpPageSource, /storefrontProductOfferingHint/);
-  assert.match(plpPageSource, /formatProductOfferingMoney/);
-  assert.match(plpPageSource, /servicios disponibles/);
+  assert.doesNotMatch(plpPageSource, /storefrontProductOfferingHint/);
+  assert.doesNotMatch(plpPageSource, /formatProductOfferingMoney/);
+  assert.doesNotMatch(plpPageSource, /servicios disponibles/);
   assert.match(readFileSync(path.resolve(root, "src/modules/storefront/plp.ts"), "utf8"), /productOfferings\(product, variantId\)/);
   assert.match(plpPageSource, /data-search-product-id/);
   assert.match(plpPageSource, /product\.productUrlPath\?\.startsWith\("\/"\)/);
@@ -115,7 +115,6 @@ test("storefront PLP product cards expose availability ribbon and quick view", (
   assert.match(cssSource, /\.storefrontProductCard:hover \.storefrontQuickView[\s\S]*opacity: 1/);
   assert.match(cssSource, /\.storefrontProductCard:hover \.storefrontQuickView[\s\S]*transform: translate\(-50%, 132%\)/);
   assert.match(cssSource, /\.storefrontProductInfo b[\s\S]*font-size: 24px/);
-  assert.match(cssSource, /\.storefrontProductOfferingHint/);
 });
 
 test("storefront checkout confirmation records purchase complete events", () => {

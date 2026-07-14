@@ -766,22 +766,28 @@ function PurchaseTrackingModule({ purchase }: { purchase: StorefrontPurchase }) 
         ) : null}
       </div>
 
-      {!isDelivered && hasStartedTracking ? (
-        <TrackingShipmentDetail currentStep={currentStep} shipping={shipping} statusLabel={statusLabel} />
-      ) : null}
+      <TrackingShipmentDetail
+        currentStep={currentStep}
+        hasStartedTracking={hasStartedTracking}
+        shipping={shipping}
+        statusLabel={statusLabel}
+      />
     </section>
   );
 }
 
 function TrackingShipmentDetail({
   currentStep,
+  hasStartedTracking,
   shipping,
   statusLabel,
 }: {
   currentStep: PurchaseTrackingStep | undefined;
+  hasStartedTracking: boolean;
   shipping: StorefrontPurchaseShipping | undefined;
   statusLabel: string;
 }) {
+  const visualState = trackingVisualState(currentStep?.code, shipping?.status);
   const lastUpdate = [...(shipping?.milestones ?? [])].reverse().find((milestone) => milestone.completed || milestone.current);
   const infoItems = [
     ["Estado", statusLabel],
@@ -804,17 +810,44 @@ function TrackingShipmentDetail({
           ))}
         </dl>
       </div>
-      <div className="storefrontTrackingRoutePreview" aria-hidden="true">
-        <span className="storefrontTrackingRoutePoint storefrontTrackingRoutePointOrigin">
-          <Truck size={15} />
-        </span>
-        <span className="storefrontTrackingRouteLine" />
-        <span className="storefrontTrackingRoutePoint storefrontTrackingRoutePointDestination">
-          <MapPin size={15} />
-        </span>
+      <div
+        aria-hidden="true"
+        className={`storefrontTrackingRoutePreview${hasStartedTracking ? ` storefrontTrackingRoutePreview${capitalize(visualState)}` : ""}`}
+      >
+        {!hasStartedTracking ? (
+          <>
+            <span className="storefrontTrackingRoutePoint storefrontTrackingRoutePointOrigin">
+              <Truck size={15} />
+            </span>
+            <span className="storefrontTrackingRouteLine" />
+            <span className="storefrontTrackingRoutePoint storefrontTrackingRoutePointDestination">
+              <MapPin size={15} />
+            </span>
+          </>
+        ) : null}
       </div>
     </div>
   );
+}
+
+function trackingVisualState(
+  step: PurchaseTrackingStep["code"] | undefined,
+  status: StorefrontPurchaseShipping["status"] | undefined,
+) {
+  if (status === "ISSUE") {
+    return "issue";
+  }
+
+  switch (step) {
+    case "DISPATCH":
+      return "dispatch";
+    case "SHIPPED":
+      return "transit";
+    case "DELIVERED":
+      return "delivered";
+    default:
+      return "preparing";
+  }
 }
 
 function trackingStepIcon(code: PurchaseTrackingStep["code"]) {

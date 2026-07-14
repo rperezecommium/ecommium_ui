@@ -206,8 +206,6 @@ function ProductCard({
   const productHref = product.productUrlPath?.startsWith("/") && !product.productUrlPath.startsWith("//")
     ? product.productUrlPath
     : `/pdp/${encodeURIComponent(product.slug)}`;
-  const activeOfferings = product.offerings.filter((offering) => offering.active !== false);
-  const firstOffering = activeOfferings[0];
 
   return (
     <article className="storefrontProductCard">
@@ -244,16 +242,6 @@ function ProductCard({
           {product.previousPriceDisplay ? <s>{product.previousPriceDisplay}</s> : null}
           <b>{product.priceDisplay ?? "Precio pendiente"}</b>
         </div>
-        {firstOffering ? (
-          <Link className="storefrontProductOfferingHint" href={productHref}>
-            <span>{activeOfferings.length === 1 ? "Servicio disponible" : `${activeOfferings.length} servicios disponibles`}</span>
-            <strong>
-              {firstOffering.priceMinor !== undefined
-                ? `Desde ${formatProductOfferingMoney(firstOffering.priceMinor, firstOffering.currency)}`
-                : "Configurar"}
-            </strong>
-          </Link>
-        ) : null}
         <StorefrontAddToCartButton
           className="storefrontProductCartButton"
           compact
@@ -264,13 +252,6 @@ function ProductCard({
       </div>
     </article>
   );
-}
-
-function formatProductOfferingMoney(valueMinor: number, currency = "EUR") {
-  return new Intl.NumberFormat("es-ES", {
-    currency,
-    style: "currency",
-  }).format(valueMinor / 100);
 }
 
 function StorefrontPagination({ data }: { data: StorefrontPlpData }) {

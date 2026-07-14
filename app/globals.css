@@ -5808,6 +5808,29 @@ p {
   background-size: 58px 58px;
 }
 
+.storefrontTrackingRoutePreviewPreparing,
+.storefrontTrackingRoutePreviewDispatch,
+.storefrontTrackingRoutePreviewTransit,
+.storefrontTrackingRoutePreviewDelivered,
+.storefrontTrackingRoutePreviewIssue {
+  background-color: #edf8fb;
+  background-image: url("/storefront/fulfillment/fulfillment-states.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+}
+
+.storefrontTrackingRoutePreviewPreparing { background-position: 0 0; }
+.storefrontTrackingRoutePreviewDispatch { background-position: 100% 0; }
+.storefrontTrackingRoutePreviewTransit { background-position: 0 100%; }
+.storefrontTrackingRoutePreviewDelivered { background-position: 100% 100%; }
+.storefrontTrackingRoutePreviewIssue { background-position: 0 100%; }
+.storefrontTrackingRoutePreviewIssue::after {
+  position: absolute;
+  inset: 0;
+  background: rgba(231, 76, 60, 0.24);
+  content: "";
+}
+
 .storefrontTrackingRouteLine {
   position: absolute;
   inset: 42% 18% auto 18%;

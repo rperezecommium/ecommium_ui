@@ -145,7 +145,10 @@ test("storefront account UI renders purchase history snapshots without cart shor
   assert.match(clientSource, /En despacho/);
   assert.match(clientSource, /Disponible al enviar/);
   assert.match(clientSource, /shipping\?\.status === "DELIVERED"/);
-  assert.match(clientSource, /!isDelivered && hasStartedTracking \? \(/);
+  assert.match(clientSource, /trackingVisualState/);
+  assert.match(clientSource, /!hasStartedTracking \? \(/);
+  assert.match(clientSource, /storefrontTrackingRoutePointOrigin/);
+  assert.match(clientSource, /storefrontTrackingRoutePreview\$\{capitalize\(visualState\)\}/);
   assert.match(clientSource, /moneyText\(purchase\.totalAmountMinor/);
   assert.match(clientSource, /moneyText\(item\.unitPriceMinor/);
   assert.match(clientSource, /purchase\.items\.map/);
@@ -162,6 +165,12 @@ test("storefront account UI renders purchase history snapshots without cart shor
   assert.match(cssSource, /@keyframes storefrontTrackingPulse/);
   assert.match(cssSource, /\.storefrontTrackingShipmentDetail/);
   assert.match(cssSource, /\.storefrontTrackingRoutePreview/);
+  assert.match(cssSource, /\/storefront\/fulfillment\/fulfillment-states\.png/);
+  assert.match(cssSource, /\.storefrontTrackingRoutePreviewPreparing/);
+  assert.match(cssSource, /\.storefrontTrackingRoutePreviewDispatch/);
+  assert.match(cssSource, /\.storefrontTrackingRoutePreviewTransit/);
+  assert.match(cssSource, /\.storefrontTrackingRoutePreviewDelivered/);
+  assert.match(cssSource, /\.storefrontTrackingRoutePointOrigin/);
   assert.doesNotMatch(clientSource + cssSource, /storefrontTrackingDetails/);
   assert.doesNotMatch(clientSource, /add-items|addToCart|Añadir al carrito/);
 });
