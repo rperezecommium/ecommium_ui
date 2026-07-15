@@ -36,6 +36,7 @@ const configurationNavItems = [
   { href: "/admin/configuracion/precios", label: "Precios", description: "Impuestos, tablas y reglas", permission: "admin:catalog:view" as const },
   { href: "/admin/configuracion/transporte", label: "Transporte", description: "Carriers, zonas y SLA", permission: "admin:shipping:view" as const },
   { href: "/admin/configuracion/seo", label: "SEO", description: "Rutas, redirects y sitemap", permission: "admin:catalog:view" as const },
+  { href: "/admin/configuracion/automatizacion", label: "Automatizacion", description: "Reglas, ejecuciones y reintentos", permission: "admin:automation:view" as const },
   { href: "/admin/configuracion/comunicaciones", label: "Comunicaciones", description: "Email, SMTP y plantillas", permission: "admin:communications:view" as const },
 ];
 

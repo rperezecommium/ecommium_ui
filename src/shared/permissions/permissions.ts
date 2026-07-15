@@ -14,6 +14,7 @@ export type AdminPermission =
   | "admin:customers:view"
   | "admin:payments:view"
   | "admin:shipping:view"
+  | "admin:automation:view"
   | "admin:communications:view";
 
 const permissionAliases: Record<AdminPermission, string[]> = {
@@ -43,6 +44,7 @@ const permissionAliases: Record<AdminPermission, string[]> = {
   "admin:customers:view": ["admin:customers:view", "customers.read"],
   "admin:payments:view": ["admin:payments:view", "payments.admin.write", "invoices.manage", "invoice.manage"],
   "admin:shipping:view": ["admin:shipping:view", "shipping.admin.write"],
+  "admin:automation:view": ["admin:automation:view", "automation.manage"],
   "admin:communications:view": ["admin:communications:view", "communications.manage"],
 };
 
