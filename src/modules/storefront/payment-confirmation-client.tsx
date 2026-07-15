@@ -20,6 +20,7 @@ type PaymentConfirmationState = {
   message: string;
   receipt?: StorefrontPaymentReceipt;
   status: PaymentConfirmationStatus;
+  trackingPath?: string;
   transaction?: StorefrontPaymentTransaction;
 };
 
@@ -89,12 +90,13 @@ export function StorefrontPaymentConfirmationClient({
             updateStorefrontPaymentAttemptStatus("FAILED");
             saveStorefrontPaymentReceipt(receipt);
           }
-          setSafeState({
-            message: paymentConfirmationMessage(status, Boolean(orderId)),
-            receipt,
-            status,
-            transaction,
-          });
+          if (status === "completed" && orderId) {
+            resolveTrackingPath(orderId, attempt?.guestSessionId ?? guestSessionId)
+              .then((trackingPath) => setSafeState({ message: paymentConfirmationMessage(status, true), receipt, status, trackingPath, transaction }))
+              .catch(() => setSafeState({ message: paymentConfirmationMessage(status, true), receipt, status, transaction }));
+            return;
+          }
+          setSafeState({ message: paymentConfirmationMessage(status, Boolean(orderId)), receipt, status, transaction });
         })
         .catch(() => {
           setSafeState({
@@ -119,13 +121,26 @@ export function StorefrontPaymentConfirmationClient({
       <p>{state.message}</p>
       <div className="storefrontCheckoutActions">
         {state.status === "completed" && orderId ? (
-          <Link href="/">Seguir comprando</Link>
+          <>
+            {state.trackingPath ? <Link href={state.trackingPath}>Ver seguimiento del pedido</Link> : null}
+            <Link href="/">Seguir comprando</Link>
+          </>
         ) : (
           <Link href="/checkout">Volver al checkout</Link>
         )}
       </div>
     </section>
   );
+}
+
+async function resolveTrackingPath(orderId: string, guestSessionId?: string) {
+  const params = new URLSearchParams();
+  if (guestSessionId) params.set("guestSessionId", guestSessionId);
+  const response = await fetch(`/api/storefront/orders/${encodeURIComponent(orderId)}/tracking-link?${params.toString()}`, { method: "POST", cache: "no-store" });
+  if (!response.ok) throw new Error("tracking link unavailable");
+  const payload = await response.json() as { trackingPath?: unknown };
+  if (typeof payload.trackingPath !== "string" || !payload.trackingPath.startsWith("/")) throw new Error("tracking link is invalid");
+  return payload.trackingPath;
 }
 
 function paymentConfirmationStatus(status: string | undefined): PaymentConfirmationStatus {

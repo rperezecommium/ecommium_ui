@@ -3,8 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useActionState, useRef, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
-import { CircleCheck, Download, ExternalLink, Eye, EyeOff, FileText, LifeBuoy, MapPin, Package, PackageCheck, ShieldCheck, Star, Trash2, Truck, UserRound, X } from "lucide-react";
+import type { ReactNode } from "react";
+import { Download, Eye, EyeOff, FileText, LifeBuoy, MapPin, PackageCheck, ShieldCheck, Star, Trash2, UserRound, X } from "lucide-react";
 import type {
   StorefrontAccountData,
   StorefrontAvatarOption,
@@ -12,7 +12,6 @@ import type {
   StorefrontInvoice,
   StorefrontPurchase,
   StorefrontPurchaseLine,
-  StorefrontPurchaseShipping,
 } from "./storefront-account";
 import {
   logoutStorefrontCustomer,
@@ -42,36 +41,6 @@ const avatarImagePath: Record<string, string> = {
   "animal-panda": "/storefront/avatars/animal-panda.jpg",
   "animal-owl": "/storefront/avatars/animal-owl.jpg",
 };
-
-const shippingStatusLabels: Record<string, string> = {
-  PENDING_CONFIRMATION: "Pendiente",
-  PREPARING_SHIPMENT: "Preparando",
-  IN_TRANSIT: "En transito",
-  DELIVERED: "Entregado",
-  ISSUE: "Incidencia",
-  NOT_AVAILABLE: "Sin tracking",
-};
-
-type PurchaseTrackingStepState = "completed" | "current" | "pending";
-
-type PurchaseTrackingStep = {
-  code: "PREPARING" | "DISPATCH" | "SHIPPED" | "DELIVERED";
-  detail: string;
-  label: string;
-  occurredAt: string | null;
-  state: PurchaseTrackingStepState;
-};
-
-const trackingPreparingCodes = ["FULFILLMENT_CREATED", "READY_TO_PICK", "PICKING"];
-const trackingDispatchCodes = ["PACKED"];
-const trackingShippedCodes = ["SHIPPED"];
-const trackingDeliveredCodes = ["DELIVERED"];
-const trackingOperationalCodes = [
-  ...trackingPreparingCodes,
-  ...trackingDispatchCodes,
-  ...trackingShippedCodes,
-  ...trackingDeliveredCodes,
-];
 
 export function StorefrontAccountClient({ data }: { data: StorefrontAccountData }) {
   const [profileState, profileAction, profilePending] = useActionState(updateStorefrontAccountProfile, initialState);
@@ -693,13 +662,15 @@ function PurchasesPanel({ purchases }: { purchases: StorefrontAccountData["purch
 }
 
 function PurchaseCard({ purchase }: { purchase: StorefrontPurchase }) {
+  const orderReference = purchase.orderReference ?? purchase.orderId;
+
   return (
     <article className="storefrontPurchaseCard">
       <div className="storefrontPurchaseHeader">
         <div>
           <span>{dateText(purchase.placedAt)}</span>
-          <h3>{purchase.items[0]?.name ?? "Compra registrada"}</h3>
-          <p>{purchase.itemsCount} item(s) · {purchase.orderId}</p>
+          <h3>Pedido #{orderReference}</h3>
+          <p>{purchase.itemsCount} item(s)</p>
         </div>
         <div>
           <strong>{moneyText(purchase.totalAmountMinor, purchase.currency)}</strong>
@@ -713,276 +684,13 @@ function PurchaseCard({ purchase }: { purchase: StorefrontPurchase }) {
           <PurchaseItem key={item.lineId} item={item} currency={purchase.currency} />
         ))}
       </div>
-      <PurchaseTrackingModule purchase={purchase} />
+      <div className="storefrontPurchaseActions">
+        <Link href={`/pedido/${encodeURIComponent(orderReference)}/seguimiento`}>
+          Ver seguimiento del pedido
+        </Link>
+      </div>
     </article>
   );
-}
-
-function PurchaseTrackingModule({ purchase }: { purchase: StorefrontPurchase }) {
-  const shipping = purchase.shipping;
-  const steps = purchaseTrackingSteps(shipping);
-  const hasStartedTracking = hasOperationalTrackingStarted(shipping);
-  const progress = hasStartedTracking ? purchaseTrackingProgress(steps) : 0;
-  const currentStep = steps.find((step) => step.state === "current") ?? steps.find((step) => step.state === "pending") ?? steps.at(-1);
-  const statusLabel = currentStep?.label ?? (shipping ? shippingStatusLabels[shipping.status] ?? shipping.status : "Preparando");
-  const isDelivered = shipping?.status === "DELIVERED";
-
-  return (
-    <section
-      className={`storefrontPurchaseTracking${isDelivered ? " storefrontPurchaseTrackingDelivered" : ""}${hasStartedTracking ? "" : " storefrontPurchaseTrackingIdle"}`}
-      style={{ "--tracking-fill": `${progress}%` } as CSSProperties}
-    >
-      <div className="storefrontPurchaseTrackingHeader">
-        <Truck aria-hidden="true" size={20} />
-        <div>
-          <strong>{currentStep?.label ?? statusLabel}</strong>
-          <p>{trackingHeadline(shipping)}</p>
-        </div>
-        {shipping?.isTrackingAvailable && shipping.trackingUrl ? (
-          <a href={shipping.trackingUrl} rel="noreferrer" target="_blank">
-            Tracking
-            <ExternalLink aria-hidden="true" size={14} />
-          </a>
-        ) : null}
-        {isDelivered ? (
-          <span className="storefrontTrackingCompleteBadge" aria-label="Proceso completado" title="Proceso completado">
-            <CircleCheck aria-hidden="true" size={14} />
-          </span>
-        ) : null}
-      </div>
-
-      <div className="storefrontTrackingRail" aria-label="Estado del pedido">
-        {steps.map((step) => (
-          <div className={`storefrontTrackingStep storefrontTrackingStep${capitalize(step.state)}`} key={step.code}>
-            <span aria-hidden="true">{trackingStepIcon(step.code)}</span>
-            <strong>{step.label}</strong>
-            <small>{step.occurredAt ? dateText(step.occurredAt) : trackingStateText(step.state)}</small>
-          </div>
-        ))}
-        {isDelivered ? (
-          <span className="storefrontTrackingCompleteFlag" aria-label="Proceso completado">
-            <CircleCheck aria-hidden="true" size={18} />
-          </span>
-        ) : null}
-      </div>
-
-      <TrackingShipmentDetail
-        currentStep={currentStep}
-        hasStartedTracking={hasStartedTracking}
-        shipping={shipping}
-        statusLabel={statusLabel}
-      />
-    </section>
-  );
-}
-
-function TrackingShipmentDetail({
-  currentStep,
-  hasStartedTracking,
-  shipping,
-  statusLabel,
-}: {
-  currentStep: PurchaseTrackingStep | undefined;
-  hasStartedTracking: boolean;
-  shipping: StorefrontPurchaseShipping | undefined;
-  statusLabel: string;
-}) {
-  const visualState = trackingVisualState(currentStep?.code, shipping?.status);
-  const lastUpdate = [...(shipping?.milestones ?? [])].reverse().find((milestone) => milestone.completed || milestone.current);
-  const infoItems = [
-    ["Estado", statusLabel],
-    ["Transportista", shipping?.carrier.label ?? "Por asignar"],
-    ["Seguimiento", shipping?.trackingNumber ?? "Disponible al enviar"],
-    ["Entrega", shipping?.shippingEstimate ?? deliveryPromiseText(shipping)],
-    ["Ultima actualizacion", lastUpdate?.occurredAt ? dateText(lastUpdate.occurredAt) : currentStep?.label ?? "Pendiente"],
-  ].filter((item): item is [string, string] => Boolean(item[1]));
-
-  return (
-    <div className="storefrontTrackingShipmentDetail">
-      <div>
-        <strong>Detalle del envio</strong>
-        <dl className="storefrontTrackingMeta">
-          {infoItems.map(([label, value]) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-      <div
-        aria-hidden="true"
-        className={`storefrontTrackingRoutePreview${hasStartedTracking ? ` storefrontTrackingRoutePreview${capitalize(visualState)}` : ""}`}
-      >
-        {!hasStartedTracking ? (
-          <>
-            <span className="storefrontTrackingRoutePoint storefrontTrackingRoutePointOrigin">
-              <Truck size={15} />
-            </span>
-            <span className="storefrontTrackingRouteLine" />
-            <span className="storefrontTrackingRoutePoint storefrontTrackingRoutePointDestination">
-              <MapPin size={15} />
-            </span>
-          </>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function trackingVisualState(
-  step: PurchaseTrackingStep["code"] | undefined,
-  status: StorefrontPurchaseShipping["status"] | undefined,
-) {
-  if (status === "ISSUE") {
-    return "issue";
-  }
-
-  switch (step) {
-    case "DISPATCH":
-      return "dispatch";
-    case "SHIPPED":
-      return "transit";
-    case "DELIVERED":
-      return "delivered";
-    default:
-      return "preparing";
-  }
-}
-
-function trackingStepIcon(code: PurchaseTrackingStep["code"]) {
-  if (code === "PREPARING") return <PackageCheck size={13} />;
-  if (code === "DISPATCH") return <Package size={13} />;
-  if (code === "SHIPPED") return <Truck size={13} />;
-  return <CircleCheck size={13} />;
-}
-
-function purchaseTrackingSteps(shipping: StorefrontPurchaseShipping | undefined): PurchaseTrackingStep[] {
-  const milestone = (codes: string[]) => shipping?.milestones.find((item) => codes.includes(item.code));
-  const preparing = milestone(trackingPreparingCodes);
-  const dispatch = milestone(trackingDispatchCodes);
-  const shipped = milestone(trackingShippedCodes);
-  const delivered = milestone(trackingDeliveredCodes);
-  const currentMilestoneCode = shipping?.milestones.find((item) => item.current && trackingOperationalCodes.includes(item.code))?.code;
-  const status = shipping?.status ?? "PREPARING_SHIPMENT";
-  const operationalTrackingStarted = hasOperationalTrackingStarted(shipping);
-
-  const steps: PurchaseTrackingStep[] = [
-    {
-      code: "PREPARING",
-      detail: "Pedido recibido por operaciones",
-      label: "En preparacion",
-      occurredAt: preparing?.occurredAt ?? null,
-      state: stepState(
-        Boolean(preparing?.completed) || (operationalTrackingStarted && status !== "PENDING_CONFIRMATION"),
-        currentMilestoneCode
-          ? trackingPreparingCodes.includes(currentMilestoneCode)
-          : Boolean(preparing?.current),
-      ),
-    },
-    {
-      code: "DISPATCH",
-      detail: "Preparacion y empaque",
-      label: "En despacho",
-      occurredAt: dispatch?.occurredAt ?? null,
-      state: stepState(
-        Boolean(dispatch?.completed),
-        currentMilestoneCode ? trackingDispatchCodes.includes(currentMilestoneCode) : Boolean(dispatch?.current),
-      ),
-    },
-    {
-      code: "SHIPPED",
-      detail: "Transportista y tracking",
-      label: "Enviado",
-      occurredAt: shipped?.occurredAt ?? null,
-      state: stepState(
-        Boolean(shipped?.completed) || status === "IN_TRANSIT" || status === "DELIVERED",
-        currentMilestoneCode ? trackingShippedCodes.includes(currentMilestoneCode) : status === "IN_TRANSIT",
-      ),
-    },
-    {
-      code: "DELIVERED",
-      detail: "Pedido en destino",
-      label: "Entregado",
-      occurredAt: delivered?.occurredAt ?? null,
-      state: stepState(
-        Boolean(delivered?.completed) || status === "DELIVERED",
-        currentMilestoneCode ? trackingDeliveredCodes.includes(currentMilestoneCode) : status === "DELIVERED",
-      ),
-    },
-  ];
-
-  if (status === "ISSUE") {
-    return steps.map((step, index) => {
-      const state: PurchaseTrackingStepState = index === 0 ? "completed" : index === 1 ? "current" : "pending";
-      return { ...step, state };
-    });
-  }
-
-  return normalizeTrackingCurrentStep(steps);
-}
-
-function hasOperationalTrackingStarted(shipping: StorefrontPurchaseShipping | undefined) {
-  if (shipping?.status === "IN_TRANSIT" || shipping?.status === "DELIVERED") {
-    return true;
-  }
-
-  return Boolean(
-    shipping?.milestones.some(
-      (milestone) => trackingOperationalCodes.includes(milestone.code) && (milestone.completed || milestone.current),
-    ),
-  );
-}
-
-function normalizeTrackingCurrentStep(steps: PurchaseTrackingStep[]): PurchaseTrackingStep[] {
-  if (steps.some((step) => step.state === "current")) {
-    return steps;
-  }
-
-  const firstPendingIndex = steps.findIndex((step) => step.state === "pending");
-  if (firstPendingIndex > 0) {
-    const currentState: PurchaseTrackingStepState = "current";
-    return steps.map((step, index): PurchaseTrackingStep =>
-      index === firstPendingIndex ? { ...step, state: currentState } : step,
-    );
-  }
-
-  return steps;
-}
-
-function stepState(completed: boolean, current: boolean): PurchaseTrackingStepState {
-  if (current) return "current";
-  return completed ? "completed" : "pending";
-}
-
-function purchaseTrackingProgress(steps: PurchaseTrackingStep[]) {
-  const currentIndex = steps.findIndex((step) => step.state === "current");
-  const completedCount = steps.filter((step) => step.state === "completed").length;
-  const activeIndex = currentIndex >= 0 ? currentIndex : Math.max(0, completedCount - 1);
-  return Math.min(100, Math.max(8, (activeIndex / Math.max(1, steps.length - 1)) * 100));
-}
-
-function trackingHeadline(shipping: StorefrontPurchaseShipping | undefined) {
-  if (!shipping) return "Estamos preparando tu pedido.";
-  if (shipping.status === "IN_TRANSIT") return "Tu pedido va en camino.";
-  if (shipping.status === "DELIVERED") return "Pedido entregado.";
-  if (shipping.status === "ISSUE") return "Hay una incidencia en seguimiento.";
-  return [shipping.carrier.label, shipping.shippingEstimate].filter(Boolean).join(" · ") || "Seguimiento en preparacion.";
-}
-
-function trackingStateText(state: PurchaseTrackingStepState) {
-  if (state === "completed") return "Completado";
-  if (state === "current") return "Ahora";
-  return "Pendiente";
-}
-
-function deliveryPromiseText(shipping: StorefrontPurchaseShipping | undefined) {
-  if (!shipping?.deliveryPromise) return "Pendiente";
-  return `${dateText(shipping.deliveryPromise.minDate)} - ${dateText(shipping.deliveryPromise.maxDate)}`;
-}
-
-function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function PurchaseItem({ currency, item }: { currency: string; item: StorefrontPurchaseLine }) {

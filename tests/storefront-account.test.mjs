@@ -115,7 +115,7 @@ test("storefront account UI exposes editable profile, credentials and 10 avatars
   assert.match(cssSource, /\.storefrontAvatarOption:has\(input:checked\) \.storefrontAvatarThumb[\s\S]*border-color: #25abc4/);
 });
 
-test("storefront account UI renders purchase history snapshots without cart shortcuts", () => {
+test("storefront account links each purchase to the canonical tracking view without recreating it", () => {
   const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
   const cssSource = source("app/globals.css");
   const routeSource = source("app/account/page.tsx");
@@ -126,29 +126,10 @@ test("storefront account UI renders purchase history snapshots without cart shor
   assert.match(clientSource, /purchaseItemHref/);
   assert.match(clientSource, /productUrlPath/);
   assert.match(clientSource, /\/pdp\/\$\{encodeURIComponent\(item\.productSlug\)\}/);
-  assert.match(clientSource, /trackingUrl/);
-  assert.match(clientSource, /PurchaseTrackingModule/);
-  assert.match(clientSource, /purchaseTrackingSteps/);
-  assert.match(clientSource, /storefrontTrackingRail/);
-  assert.match(clientSource, /trackingStepIcon/);
-  assert.match(clientSource, /TrackingShipmentDetail/);
-  assert.match(clientSource, /storefrontTrackingCompleteFlag/);
-  assert.match(clientSource, /storefrontPurchaseTrackingDelivered/);
-  assert.match(clientSource, /storefrontPurchaseTrackingIdle/);
-  assert.match(clientSource, /hasStartedTracking/);
-  assert.match(clientSource, /hasOperationalTrackingStarted/);
-  assert.match(clientSource, /trackingOperationalCodes/);
-  assert.match(clientSource, /currentMilestoneCode/);
-  assert.match(clientSource, /trackingDispatchCodes\.includes\(currentMilestoneCode\)/);
-  assert.match(clientSource, /currentStep\?\.label \?\?/);
-  assert.match(clientSource, /En preparacion/);
-  assert.match(clientSource, /En despacho/);
-  assert.match(clientSource, /Disponible al enviar/);
-  assert.match(clientSource, /shipping\?\.status === "DELIVERED"/);
-  assert.match(clientSource, /trackingVisualState/);
-  assert.match(clientSource, /!hasStartedTracking \? \(/);
-  assert.match(clientSource, /storefrontTrackingRoutePointOrigin/);
-  assert.match(clientSource, /storefrontTrackingRoutePreview\$\{capitalize\(visualState\)\}/);
+  assert.match(clientSource, /orderReference/);
+  assert.match(clientSource, /Pedido #\{orderReference\}/);
+  assert.match(clientSource, /Ver seguimiento del pedido/);
+  assert.match(clientSource, /\/pedido\/\$\{encodeURIComponent\(orderReference\)\}\/seguimiento/);
   assert.match(clientSource, /moneyText\(purchase\.totalAmountMinor/);
   assert.match(clientSource, /moneyText\(item\.unitPriceMinor/);
   assert.match(clientSource, /purchase\.items\.map/);
@@ -156,21 +137,8 @@ test("storefront account UI renders purchase history snapshots without cart shor
   assert.match(cssSource, /\.storefrontPurchaseCard/);
   assert.match(cssSource, /\.storefrontPurchaseItems[\s\S]*max-height: 202px/);
   assert.match(cssSource, /\.storefrontPurchaseItems[\s\S]*overflow-y: auto/);
-  assert.match(cssSource, /\.storefrontPurchaseTracking/);
-  assert.match(cssSource, /\.storefrontTrackingRail::after[\s\S]*animation: storefrontTrackingFlow/);
-  assert.match(cssSource, /\.storefrontPurchaseTrackingIdle \.storefrontTrackingRail::after[\s\S]*animation: none/);
-  assert.match(cssSource, /\.storefrontPurchaseTrackingDelivered \.storefrontTrackingRail::after[\s\S]*animation: none/);
-  assert.match(cssSource, /\.storefrontPurchaseTrackingDelivered \.storefrontTrackingStepCurrent > span[\s\S]*animation: none/);
-  assert.match(cssSource, /\.storefrontTrackingCompleteFlag/);
-  assert.match(cssSource, /@keyframes storefrontTrackingPulse/);
-  assert.match(cssSource, /\.storefrontTrackingShipmentDetail/);
-  assert.match(cssSource, /\.storefrontTrackingRoutePreview/);
-  assert.match(cssSource, /\/storefront\/fulfillment\/fulfillment-states\.png/);
-  assert.match(cssSource, /\.storefrontTrackingRoutePreviewPreparing/);
-  assert.match(cssSource, /\.storefrontTrackingRoutePreviewDispatch/);
-  assert.match(cssSource, /\.storefrontTrackingRoutePreviewTransit/);
-  assert.match(cssSource, /\.storefrontTrackingRoutePreviewDelivered/);
-  assert.match(cssSource, /\.storefrontTrackingRoutePointOrigin/);
+  assert.match(cssSource, /\.storefrontPurchaseActions/);
+  assert.doesNotMatch(clientSource, /PurchaseTrackingModule|purchaseTrackingSteps|storefrontTrackingRail/);
   assert.doesNotMatch(clientSource + cssSource, /storefrontTrackingDetails/);
   assert.doesNotMatch(clientSource, /add-items|addToCart|Añadir al carrito/);
 });

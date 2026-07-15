@@ -98,6 +98,7 @@ export type StorefrontPurchaseShipping = {
 export type StorefrontPurchase = {
   purchaseId: string;
   orderId: string;
+  orderReference: string | null;
   customerId: string;
   organizationId: string;
   shopId: string;

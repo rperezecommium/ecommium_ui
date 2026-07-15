@@ -20,6 +20,236 @@
   --admin-shadow-popover: 0 8px 24px rgba(54, 58, 65, 0.16);
 }
 
+.storefrontOrderTrackingPage {
+  width: min(100% - 32px, 760px);
+  margin: 40px auto 72px;
+}
+
+.storefrontOrderTracking,
+.storefrontOrderTrackingError {
+  display: grid;
+  gap: 24px;
+  padding: 28px;
+  border: 1px solid #e1e6eb;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgb(19 49 62 / 8%);
+}
+
+.storefrontOrderTrackingHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #edf0f2;
+}
+
+.storefrontOrderTrackingHeader span {
+  color: #1688a3;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.storefrontOrderTrackingHeader h1,
+.storefrontOrderTrackingError h1 {
+  margin: 4px 0;
+  color: #17232a;
+  font-size: clamp(24px, 4vw, 32px);
+}
+
+.storefrontOrderTrackingHeader p,
+.storefrontOrderTrackingError p {
+  margin: 0;
+  color: #63717a;
+}
+
+.storefrontOrderTrackingBack {
+  color: #1688a3;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.storefrontOrderTrackingStatus,
+.storefrontOrderTrackingShipping {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #ccebf1;
+  border-radius: 8px;
+  background: #f5fcfd;
+  color: #1688a3;
+}
+
+.storefrontOrderTrackingStatus h2,
+.storefrontOrderTrackingShipping h2 {
+  margin: 0;
+  color: #17232a;
+  font-size: 18px;
+}
+
+.storefrontOrderTrackingStatus p,
+.storefrontOrderTrackingShipping p {
+  margin: 4px 0 0;
+  color: #52626b;
+}
+
+.storefrontOrderTrackingTimeline {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storefrontOrderTrackingStep {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 64px;
+}
+
+.storefrontOrderTrackingStep:not(:last-child)::before {
+  position: absolute;
+  top: 28px;
+  left: 13px;
+  width: 2px;
+  height: calc(100% - 20px);
+  background: #dbe3e7;
+  content: "";
+}
+
+.storefrontOrderTrackingStep > span {
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #c9d2d7;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.storefrontOrderTrackingStepCompleted > span {
+  border-color: #36a85d;
+  background: #36a85d;
+}
+
+.storefrontOrderTrackingStepCurrent > span {
+  border-color: #1688a3;
+  box-shadow: 0 0 0 5px rgb(22 136 163 / 14%);
+}
+
+.storefrontOrderTrackingStep strong {
+  display: block;
+  color: #26343a;
+}
+
+.storefrontOrderTrackingStep small {
+  color: #68757b;
+}
+
+.storefrontOrderTrackingShipping a,
+.storefrontOrderTrackingPrimaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 5px;
+  background: #1688a3;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.storefrontOrderTrackingError {
+  justify-items: start;
+  color: #b14a33;
+}
+
+.storefrontOrderTrackingErrorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.storefrontOrderTrackingErrorActions button,
+.storefrontOrderTrackingSecondaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #b9c6cd;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #3f5965;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.storefrontOrderTrackingLoading {
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+  border: 1px solid #e1e6eb;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.storefrontOrderTrackingLoading span {
+  display: block;
+  height: 46px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #edf1f3 25%, #f7f9fa 50%, #edf1f3 75%);
+  background-size: 200% 100%;
+  animation: storefront-order-tracking-shimmer 1.2s infinite;
+}
+
+.storefrontOrderTrackingLoading span:nth-child(2) {
+  height: 82px;
+}
+
+@keyframes storefront-order-tracking-shimmer {
+  to { background-position: -200% 0; }
+}
+
+@media (max-width: 640px) {
+  .storefrontOrderTrackingPage {
+    width: min(100% - 20px, 760px);
+    margin: 20px auto 48px;
+  }
+
+  .storefrontOrderTracking,
+  .storefrontOrderTrackingError {
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .storefrontOrderTrackingHeader,
+  .storefrontOrderTrackingShipping {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .storefrontOrderTrackingBack,
+  .storefrontOrderTrackingShipping a {
+    grid-column: 1 / -1;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -5521,6 +5751,25 @@ p {
   overflow-y: auto;
   padding-right: 4px;
   overscroll-behavior: contain;
+}
+
+.storefrontPurchaseActions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.storefrontPurchaseActions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 5px;
+  background: #1688a3;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .storefrontPurchaseItem {
