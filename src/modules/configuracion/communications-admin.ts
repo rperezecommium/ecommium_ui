@@ -44,6 +44,34 @@ export type EmailTemplateList = {
 
 export type EmailDeliveryStatus = "PENDING" | "SENT" | "FAILED" | "SKIPPED" | "RETRYING";
 
+export type EmailDeliveryRecipient = {
+  email?: string | null;
+  phone?: string | null;
+  customerId?: string | null;
+  externalUserId?: string | null;
+};
+
+export type EmailDeliveryAttachment = {
+  type: "url";
+  name: string;
+  url: string;
+};
+
+export type EmailDeliveryAttempt = {
+  attemptId: string;
+  provider: string;
+  status: "SENT" | "FAILED";
+  providerMessageId?: string | null;
+  errorMessage?: string | null;
+  occurredAt: string;
+};
+
+export type EmailRenderedSnapshot = {
+  subject?: string | null;
+  html?: string | null;
+  text?: string | null;
+};
+
 export type EmailDeliveryRecord = {
   deliveryId: string;
   organizationId: string;
@@ -52,30 +80,53 @@ export type EmailDeliveryRecord = {
   templateId: string | null;
   channel: "EMAIL";
   locale: string;
-  recipient: {
-    email?: string | null;
-    customerId?: string | null;
-  };
+  recipient: EmailDeliveryRecipient;
+  data: Record<string, unknown>;
+  attachments: EmailDeliveryAttachment[];
   idempotencyKey: string;
   sourceEventId: string | null;
+  renderedSnapshot: EmailRenderedSnapshot | null;
   status: EmailDeliveryStatus;
+  attempts: EmailDeliveryAttempt[];
   errorMessage: string | null;
   sentAt: string | null;
   failedAt: string | null;
+  skippedAt: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type EmailDeliveryList = {
+  items: EmailDeliveryRecord[];
+  total: number;
+  limit: number;
+  offset: number;
 };
 
 export type CommunicationsAdminData = {
   settings: BffResult<EmailProviderSettings>;
   authTemplates: BffResult<EmailTemplateList>;
+  deliveries: BffResult<EmailDeliveryList>;
+  selectedDelivery?: BffResult<EmailDeliveryRecord>;
 };
 
 export type CommunicationsAdminFilters = {
-  drawer?: "provider";
+  drawer?: "provider" | "delivery";
   status?: CommunicationsTemplateStatus;
+  deliveryId?: string;
+  deliveryStatus?: EmailDeliveryStatus;
+  deliveryTemplateKey?: string;
+  deliverySourceEventId?: string;
+  deliveryCustomerId?: string;
+  deliveriesLimit?: string;
+  deliveriesOffset?: string;
   notice?: string;
 };
+
+export type EmailDeliveryAuditFilters = Pick<
+  CommunicationsAdminFilters,
+  "deliveryStatus" | "deliveryTemplateKey" | "deliverySourceEventId" | "deliveryCustomerId" | "deliveriesLimit" | "deliveriesOffset"
+>;
 
 function scopedPath(path: string, context: AdminContext, extra?: Record<string, string | undefined>) {
   const params = new URLSearchParams({
@@ -107,10 +158,15 @@ export async function getCommunicationsAdminData(
     return {
       settings: skipped,
       authTemplates: skipped,
+      deliveries: skipped,
+      selectedDelivery: filters.drawer === "delivery" ? skipped : undefined,
     };
   }
 
-  const [settings, authTemplates] = await Promise.all([
+  const selectedDelivery = filters.drawer === "delivery" && filters.deliveryId
+    ? getEmailDelivery(context, filters.deliveryId)
+    : Promise.resolve(undefined);
+  const [settings, authTemplates, deliveries, selectedDeliveryResult] = await Promise.all([
     requestBff<EmailProviderSettings>(
       scopedPath("/admin/communications/settings/email-provider", context),
       { context },
@@ -124,12 +180,54 @@ export async function getCommunicationsAdminData(
       }),
       { context },
     ),
+    listEmailDeliveries(context, filters),
+    selectedDelivery,
   ]);
 
   return {
     settings,
     authTemplates,
+    deliveries,
+    selectedDelivery: selectedDeliveryResult,
   };
+}
+
+export async function listEmailDeliveries(
+  context: AdminContext,
+  filters: EmailDeliveryAuditFilters = {},
+) {
+  return requestBff<EmailDeliveryList>(
+    scopedPath("/admin/communications/deliveries", context, {
+      status: filters.deliveryStatus,
+      templateKey: filters.deliveryTemplateKey,
+      sourceEventId: filters.deliverySourceEventId,
+      customerId: filters.deliveryCustomerId,
+      limit: filters.deliveriesLimit ?? "20",
+      offset: filters.deliveriesOffset ?? "0",
+    }),
+    { context },
+  );
+}
+
+export async function getEmailDelivery(context: AdminContext, deliveryId: string) {
+  return requestBff<EmailDeliveryRecord>(
+    scopedPath(`/admin/communications/deliveries/${encodeURIComponent(deliveryId)}`, context),
+    { context },
+  );
+}
+
+export async function retryEmailDelivery(context: AdminContext, deliveryId: string) {
+  return requestBff<EmailDeliveryRecord>(
+    scopedPath(`/admin/communications/deliveries/${encodeURIComponent(deliveryId)}/retry`, context),
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      },
+    },
+  );
 }
 
 export async function patchEmailProviderSettings(

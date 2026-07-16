@@ -229,6 +229,40 @@ let authEmailTemplates = [{
   updatedAt: "2026-07-01T10:00:00.000Z",
   activatedAt: "2026-07-01T10:00:00.000Z",
 }];
+let communicationsDeliveries = [{
+  deliveryId: "delivery-failed-1",
+  organizationId: defaultOrganizationId,
+  shopId: barcelonaShopId,
+  templateKey: "shipping.delivered",
+  templateId: "template-shipping-delivered",
+  channel: "EMAIL",
+  locale: "es-ES",
+  recipient: { email: "guest@example.com", customerId: "customer-guest-1" },
+  data: {},
+  attachments: [],
+  idempotencyKey: "delivery-failed-1-idempotency",
+  sourceEventId: "shipping.fulfillment.delivered.v1:fulfillment-1",
+  renderedSnapshot: {
+    subject: "Tu pedido ha sido entregado",
+    html: "<p>Contenido privado</p>",
+    text: "Enlace privado tracking-token",
+  },
+  status: "FAILED",
+  attempts: [{
+    attemptId: "attempt-failed-1",
+    provider: "smtp",
+    status: "FAILED",
+    providerMessageId: null,
+    errorMessage: "SMTP temporalmente no disponible",
+    occurredAt: "2026-07-16T12:00:00.000Z",
+  }],
+  errorMessage: "SMTP temporalmente no disponible",
+  sentAt: null,
+  failedAt: "2026-07-16T12:00:00.000Z",
+  skippedAt: null,
+  createdAt: "2026-07-16T11:59:00.000Z",
+  updatedAt: "2026-07-16T12:00:00.000Z",
+}];
 const catalogSpecificationGroups = [{
   specificationGroupId: "spec-group-technical",
   categoryId: "category-bikes",
@@ -1070,6 +1104,78 @@ async function startBffMock() {
         limit: Number(url.searchParams.get("limit") ?? 20),
         offset: Number(url.searchParams.get("offset") ?? 0),
       });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/communications/deliveries") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      const status = url.searchParams.get("status");
+      const templateKey = url.searchParams.get("templateKey");
+      const sourceEventId = url.searchParams.get("sourceEventId");
+      const customerId = url.searchParams.get("customerId");
+      const items = communicationsDeliveries.filter((delivery) => (
+        (!status || delivery.status === status)
+        && (!templateKey || delivery.templateKey === templateKey)
+        && (!sourceEventId || delivery.sourceEventId === sourceEventId)
+        && (!customerId || delivery.recipient.customerId === customerId)
+      ));
+      const limit = Number(url.searchParams.get("limit") ?? 20);
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      sendJson(response, 200, {
+        items: items.slice(offset, offset + limit),
+        total: items.length,
+        limit,
+        offset,
+      });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname.startsWith("/api/v1/admin/communications/deliveries/")) {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const deliveryId = decodeURIComponent(url.pathname.slice("/api/v1/admin/communications/deliveries/".length));
+      const delivery = communicationsDeliveries.find((item) => item.deliveryId === deliveryId);
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      if (!delivery) {
+        sendJson(response, 404, { message: "Delivery no encontrada" });
+        return;
+      }
+      sendJson(response, 200, delivery);
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname.startsWith("/api/v1/admin/communications/deliveries/") && url.pathname.endsWith("/retry")) {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const deliveryId = decodeURIComponent(url.pathname.slice("/api/v1/admin/communications/deliveries/".length, -"/retry".length));
+      const current = communicationsDeliveries.find((item) => item.deliveryId === deliveryId);
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      capturedCommunicationsMutations.push({ method: request.method, path: url.pathname, body: await readJsonBody(request) });
+      if (!current) {
+        sendJson(response, 404, { message: "Delivery no encontrada" });
+        return;
+      }
+      const retriedAt = "2026-07-16T12:05:00.000Z";
+      const retried = {
+        ...current,
+        status: "SENT",
+        errorMessage: null,
+        sentAt: retriedAt,
+        failedAt: current.failedAt,
+        updatedAt: retriedAt,
+        attempts: [...current.attempts, {
+          attemptId: "attempt-sent-2",
+          provider: "smtp",
+          status: "SENT",
+          providerMessageId: "smtp-message-2",
+          errorMessage: null,
+          occurredAt: retriedAt,
+        }],
+      };
+      communicationsDeliveries = communicationsDeliveries.map((item) => item.deliveryId === deliveryId ? retried : item);
+      sendJson(response, 200, retried);
       return;
     }
 
@@ -2568,6 +2674,72 @@ test("communications configuration saves email provider and bootstraps auth temp
   expect(String(testEmailMutation?.body.sourceEventId)).toContain("admin.communications.test.");
   expect(capturedCommunicationsAdminRequests).toContain("GET /api/v1/admin/communications/settings/email-provider");
   expect(capturedCommunicationsAdminRequests).toContain("GET /api/v1/admin/communications/templates/email");
+});
+
+test("communications audit filters, inspects and retries a failed delivery", async ({ page }) => {
+  capturedCommunicationsAdminRequests.length = 0;
+  capturedCommunicationsMutations.length = 0;
+  communicationsDeliveries = [{
+    deliveryId: "delivery-failed-1",
+    organizationId: defaultOrganizationId,
+    shopId: barcelonaShopId,
+    templateKey: "shipping.delivered",
+    templateId: "template-shipping-delivered",
+    channel: "EMAIL",
+    locale: "es-ES",
+    recipient: { email: "guest@example.com", customerId: "customer-guest-1" },
+    data: {},
+    attachments: [],
+    idempotencyKey: "delivery-failed-1-idempotency",
+    sourceEventId: "shipping.fulfillment.delivered.v1:fulfillment-1",
+    renderedSnapshot: {
+      subject: "Tu pedido ha sido entregado",
+      html: "<p>Contenido privado</p>",
+      text: "Enlace privado tracking-token",
+    },
+    status: "FAILED",
+    attempts: [{
+      attemptId: "attempt-failed-1",
+      provider: "smtp",
+      status: "FAILED",
+      providerMessageId: null,
+      errorMessage: "SMTP temporalmente no disponible",
+      occurredAt: "2026-07-16T12:00:00.000Z",
+    }],
+    errorMessage: "SMTP temporalmente no disponible",
+    sentAt: null,
+    failedAt: "2026-07-16T12:00:00.000Z",
+    skippedAt: null,
+    createdAt: "2026-07-16T11:59:00.000Z",
+    updatedAt: "2026-07-16T12:00:00.000Z",
+  }];
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/configuracion/comunicaciones`);
+
+  const filtersPanel = page.locator("section.adminCard").filter({ has: page.getByRole("heading", { name: "Filtros de entregas" }) });
+  await filtersPanel.getByLabel("Estado").selectOption("FAILED");
+  await filtersPanel.getByRole("button", { name: "Aplicar filtros" }).click();
+  await expect(page).toHaveURL(/deliveryStatus=FAILED/);
+
+  const auditPanel = page.locator("section.adminCard").filter({ has: page.getByRole("heading", { name: "Auditoría de entregas" }) });
+  await expect(auditPanel.getByRole("row", { name: /shipping\.delivered.*guest@example\.com/ })).toBeVisible();
+  await auditPanel.getByRole("link", { name: "Ver detalle" }).click();
+
+  const detailPanel = page.getByRole("dialog", { name: "Detalle de entrega email" });
+  await expect(detailPanel.getByText("Intentos del proveedor")).toBeVisible();
+  await expect(detailPanel.locator(".adminBannerError", { hasText: "SMTP temporalmente no disponible" })).toBeVisible();
+  await expect(detailPanel).not.toContainText("tracking-token");
+  await detailPanel.getByRole("button", { name: "Reintentar email" }).click();
+
+  await expect(page.getByText("Entrega delivery-failed-1 reintentada. Estado actual: SENT.")).toBeVisible();
+  await expect(detailPanel.locator(".adminSection > .adminBadge.adminBadgeOk", { hasText: "SENT" })).toBeVisible();
+  await expect(detailPanel.getByRole("button", { name: "Reintentar email" })).toBeHidden();
+  await expect.poll(() => capturedCommunicationsMutations).toContainEqual({
+    method: "POST",
+    path: "/api/v1/admin/communications/deliveries/delivery-failed-1/retry",
+    body: {},
+  });
 });
 
 test("customers admin opens the 360 drawer with profile addresses and purchases", async ({ page }) => {

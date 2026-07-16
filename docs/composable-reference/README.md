@@ -224,8 +224,17 @@ Reglas UI Routing/SEO vigentes para Admin SEO global:
 - `POST /api/v1/admin/communications/templates/email?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/communications/templates/email/:templateId/preview?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/communications/templates/email/:templateId/activate?organizationId=:org&shopId=:shop`
-- `GET /api/v1/admin/communications/deliveries?organizationId=:org&shopId=:shop&status=:status&templateKey=:key&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/communications/deliveries?organizationId=:org&shopId=:shop&status=:optional&templateKey=:optional&sourceEventId=:optional&customerId=:optional&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/communications/deliveries/:deliveryId?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/communications/deliveries/:deliveryId/retry?organizationId=:org&shopId=:shop`
+
+Las deliveries son una auditoria operativa de emails por Organization y Shop.
+El listado admite exclusivamente los filtros `status`, `templateKey`, `sourceEventId`
+y `customerId`; no inferir filtros por destinatario, fecha u otros campos sin ampliar
+primero el contrato BFF. El detalle incluye destinatario, intentos del proveedor,
+error, timestamps y snapshot renderizado. La UI debe mostrar ese snapshot como texto
+seguro y no renderizar HTML remoto ni exponer datos sensibles por defecto. Solo una
+delivery en estado `FAILED` puede reintentarse; el BFF confirma el estado resultante.
 
 ### Admin: Customers
 

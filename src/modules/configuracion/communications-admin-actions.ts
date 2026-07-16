@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAdminContext } from "../../shared/config/admin-context";
-import { bootstrapAuthEmailTemplates, patchEmailProviderSettings, sendCommunicationsTestEmail } from "./communications-admin";
+import {
+  bootstrapAuthEmailTemplates,
+  getEmailDelivery,
+  patchEmailProviderSettings,
+  retryEmailDelivery,
+  sendCommunicationsTestEmail,
+} from "./communications-admin";
 
 function asString(value: FormDataEntryValue | null) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -30,6 +36,55 @@ function asNumber(value: FormDataEntryValue | null) {
 function finish(notice: string): never {
   revalidatePath("/admin/configuracion/comunicaciones");
   redirect(`/admin/configuracion/comunicaciones?notice=${encodeURIComponent(notice)}`);
+}
+
+function allowedValue(value: FormDataEntryValue | null, allowed: readonly string[]) {
+  const normalized = asString(value);
+  return normalized && allowed.includes(normalized) ? normalized : undefined;
+}
+
+function safeFilterValue(value: FormDataEntryValue | null) {
+  const normalized = asString(value);
+  return normalized && normalized.length <= 200 ? normalized : undefined;
+}
+
+function safeInteger(value: FormDataEntryValue | null, minimum: number, maximum?: number) {
+  const normalized = asString(value);
+  const parsed = Number.parseInt(normalized ?? "", 10);
+  return Number.isFinite(parsed) && parsed >= minimum && (typeof maximum === "undefined" || parsed <= maximum)
+    ? String(parsed)
+    : undefined;
+}
+
+function deliveryRetryReturnPath(formData: FormData, notice: string, deliveryId?: string) {
+  const params = new URLSearchParams();
+  const templateStatus = allowedValue(formData.get("status"), ["DRAFT", "ACTIVE", "INACTIVE", "ARCHIVED"]);
+  const deliveryStatus = allowedValue(formData.get("deliveryStatus"), ["PENDING", "SENT", "FAILED", "SKIPPED", "RETRYING"]);
+  const deliveryTemplateKey = safeFilterValue(formData.get("deliveryTemplateKey"));
+  const deliverySourceEventId = safeFilterValue(formData.get("deliverySourceEventId"));
+  const deliveryCustomerId = safeFilterValue(formData.get("deliveryCustomerId"));
+  const deliveriesLimit = safeInteger(formData.get("deliveriesLimit"), 1, 100);
+  const deliveriesOffset = safeInteger(formData.get("deliveriesOffset"), 0);
+
+  if (templateStatus) params.set("status", templateStatus);
+  if (deliveryStatus) params.set("deliveryStatus", deliveryStatus);
+  if (deliveryTemplateKey) params.set("deliveryTemplateKey", deliveryTemplateKey);
+  if (deliverySourceEventId) params.set("deliverySourceEventId", deliverySourceEventId);
+  if (deliveryCustomerId) params.set("deliveryCustomerId", deliveryCustomerId);
+  if (deliveriesLimit) params.set("deliveriesLimit", deliveriesLimit);
+  if (deliveriesOffset) params.set("deliveriesOffset", deliveriesOffset);
+  if (deliveryId) {
+    params.set("drawer", "delivery");
+    params.set("deliveryId", deliveryId);
+  }
+  params.set("notice", notice);
+
+  return `/admin/configuracion/comunicaciones?${params.toString()}`;
+}
+
+function finishDeliveryRetry(formData: FormData, notice: string, deliveryId?: string): never {
+  revalidatePath("/admin/configuracion/comunicaciones");
+  redirect(deliveryRetryReturnPath(formData, notice, deliveryId));
 }
 
 export async function updateEmailProviderSettingsAction(formData: FormData) {
@@ -108,4 +163,40 @@ export async function sendCommunicationsTestEmailAction(formData: FormData) {
   }
 
   finish(`Prueba de email procesada para ${recipientEmail}. Delivery ${result.data.deliveryId} en estado ${result.data.status}.`);
+}
+
+export async function retryEmailDeliveryAction(formData: FormData): Promise<never> {
+  const context = await getAdminContext();
+  const deliveryId = safeFilterValue(formData.get("deliveryId"));
+
+  if (!deliveryId) {
+    finishDeliveryRetry(formData, "Selecciona una entrega fallida para reintentar.");
+  }
+
+  const current = await getEmailDelivery(context, deliveryId);
+  if (!current.ok) {
+    finishDeliveryRetry(
+      formData,
+      current.status === 403 ? "Falta permiso communications.manage." : current.error,
+      deliveryId,
+    );
+  }
+  if (current.data.status !== "FAILED") {
+    finishDeliveryRetry(formData, "Solo se pueden reintentar entregas fallidas.", deliveryId);
+  }
+
+  const result = await retryEmailDelivery(context, deliveryId);
+  if (!result.ok) {
+    finishDeliveryRetry(
+      formData,
+      result.status === 403 ? "Falta permiso communications.manage." : result.error,
+      deliveryId,
+    );
+  }
+
+  finishDeliveryRetry(
+    formData,
+    `Entrega ${result.data.deliveryId} reintentada. Estado actual: ${result.data.status}.`,
+    result.data.deliveryId,
+  );
 }
