@@ -2,10 +2,12 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { StorefrontCategoryLink, StorefrontPlpBlock, StorefrontPlpData, StorefrontPlpProduct, StorefrontPlpResult } from "./plp";
-import { getStorefrontCustomerSession } from "./storefront-customer-session";
-import { StorefrontAuthEntry } from "./storefront-auth-drawer";
-import { StorefrontAddToCartButton, StorefrontCartStatus } from "./cart-client";
+import { StorefrontAddToCartButton } from "./cart-client";
 import { StorefrontSearchEventsClient } from "./search-events-client";
+import { StorefrontCmsBlockRenderer } from "./storefront-cms-page";
+import { StorefrontHeader } from "./storefront-header";
+
+export { StorefrontHeader } from "./storefront-header";
 
 type Props = {
   result: StorefrontPlpResult;
@@ -61,35 +63,6 @@ export function StorefrontPlpPage({ result, categorySlug, searchQuery }: Props) 
         </div>
       </div>
     </main>
-  );
-}
-
-export async function StorefrontHeader({ initialQuery }: { initialQuery?: string }) {
-  const customerSession = await getStorefrontCustomerSession();
-
-  return (
-    <header className="storefrontHeader">
-      <div className="storefrontHeaderTop">
-        <span>Contactenos</span>
-        <StorefrontAuthEntry customerEmail={customerSession?.email} />
-      </div>
-      <div className="storefrontHeaderMain">
-        <Link className="storefrontLogo" href="/">Ecommium</Link>
-        <form className="storefrontSearch" action="/search" method="get" role="search">
-          <span>Buscar</span>
-          <input name="q" defaultValue={initialQuery ?? ""} placeholder="Buscar en nuestra tienda" />
-          <button type="submit">Buscar</button>
-        </form>
-        <div className="storefrontHeaderActions">
-          <nav>
-            <Link href="/plp/bike-drivetrain">Catalogo</Link>
-            <Link href="/plp/clothes">Clothes</Link>
-            <Link href="/plp/accessories">Accessories</Link>
-          </nav>
-          <StorefrontCartStatus />
-        </div>
-      </div>
-    </header>
   );
 }
 
@@ -331,119 +304,7 @@ function BlockStack({ blocks }: { blocks: StorefrontPlpBlock[] }) {
 
   return (
     <div className="storefrontBlockStack">
-      {blocks.map((block) => <StorefrontBlock key={block.blockId} block={block} />)}
+      {blocks.map((block) => <StorefrontCmsBlockRenderer key={block.blockId} block={block} />)}
     </div>
   );
-}
-
-function StorefrontBlock({ block }: { block: StorefrontPlpBlock }) {
-  if (block.type === "banner.hero") {
-    return <HeroBlock block={block} />;
-  }
-
-  if (block.type === "slider.fullWidth") {
-    return <SliderBlock block={block} />;
-  }
-
-  if (block.type === "plp.categoryIntro") {
-    return <CategoryIntroBlock block={block} />;
-  }
-
-  if (block.type === "plp.subcategoryTiles") {
-    return <SubcategoryTilesBlock block={block} />;
-  }
-
-  if (block.type === "accordion") {
-    return <AccordionBlock block={block} />;
-  }
-
-  return <CarouselBlock block={block} />;
-}
-
-function HeroBlock({ block }: { block: StorefrontPlpBlock }) {
-  return (
-    <section className="storefrontCmsHero">
-      <span>{asText(block.props.eyebrow) ?? "Destacado"}</span>
-      <h2>{asText(block.props.title) ?? asText(block.props.heading) ?? "Bloque editorial"}</h2>
-      <p>{asText(block.props.subtitle) ?? asText(block.props.description) ?? "Contenido CMS publicado para esta PLP."}</p>
-    </section>
-  );
-}
-
-function SliderBlock({ block }: { block: StorefrontPlpBlock }) {
-  const slides = asItems(block.props.slides);
-  const first = slides[0] ?? {};
-
-  return (
-    <section className="storefrontCmsSlider">
-      <div>
-        <span>{asText(first.kicker) ?? "Coleccion"}</span>
-        <h2>{asText(first.title) ?? asText(block.props.title) ?? "Slider full width"}</h2>
-      </div>
-    </section>
-  );
-}
-
-function CategoryIntroBlock({ block }: { block: StorefrontPlpBlock }) {
-  return (
-    <section className="storefrontCmsIntro">
-      <h2>{asText(block.props.title) ?? "Categoria"}</h2>
-      <p>{asText(block.props.description) ?? "Texto editorial de categoria publicado desde CMS."}</p>
-    </section>
-  );
-}
-
-function SubcategoryTilesBlock({ block }: { block: StorefrontPlpBlock }) {
-  const items = asItems(block.props.items);
-
-  return (
-    <section className="storefrontCmsTiles">
-      {(items.length ? items : [{ title: "Subcategoria" }, { title: "Novedades" }, { title: "Ofertas" }]).map((item, index) => (
-        <article key={`${asText(item.title) ?? "tile"}-${index}`}>
-          <strong>{asText(item.title) ?? "Subcategoria"}</strong>
-          <span>{asText(item.subtitle) ?? "Ver productos"}</span>
-        </article>
-      ))}
-    </section>
-  );
-}
-
-function AccordionBlock({ block }: { block: StorefrontPlpBlock }) {
-  const items = asItems(block.props.items);
-
-  return (
-    <section className="storefrontCmsAccordion">
-      {(items.length ? items : [{ title: "Mas informacion", content: "Contenido editorial de apoyo." }]).map((item, index) => (
-        <details key={`${asText(item.title) ?? "faq"}-${index}`}>
-          <summary>{asText(item.title) ?? "Mas informacion"}</summary>
-          <p>{asText(item.content) ?? asText(item.text) ?? "Contenido editorial de apoyo."}</p>
-        </details>
-      ))}
-    </section>
-  );
-}
-
-function CarouselBlock({ block }: { block: StorefrontPlpBlock }) {
-  const items = asItems(block.props.items);
-
-  return (
-    <section className="storefrontCmsCarousel">
-      {(items.length ? items : [{ title: "Producto recomendado" }, { title: "Coleccion destacada" }]).map((item, index) => (
-        <article key={`${asText(item.title) ?? "item"}-${index}`}>
-          <span />
-          <strong>{asText(item.title) ?? "Elemento destacado"}</strong>
-        </article>
-      ))}
-    </section>
-  );
-}
-
-function asText(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-function asItems(value: unknown): Record<string, unknown>[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null && !Array.isArray(item))
-    : [];
 }

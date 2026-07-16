@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL ?? "http://localhost:5173",
+  ),
   title: "Ecommium UI",
   description: "Operational ecommerce dashboard built with Next.js.",
 };

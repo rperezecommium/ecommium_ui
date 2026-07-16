@@ -9138,6 +9138,168 @@ p {
   background: #f6f7f8;
 }
 
+.storefrontCmsPage {
+  padding-bottom: 44px;
+}
+
+.storefrontCmsPageHeader {
+  display: grid;
+  gap: 6px;
+  padding: 24px 0 8px;
+}
+
+.storefrontCmsPageHeader span {
+  color: #24b9d7;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.storefrontCmsPageHeader h1,
+.storefrontCmsSection h2,
+.storefrontCmsAccordion h2 {
+  margin: 0;
+}
+
+.storefrontCmsPageBlocks,
+.storefrontCmsChildren {
+  display: grid;
+  gap: 18px;
+}
+
+.storefrontCmsChildren {
+  padding-left: 18px;
+  border-left: 3px solid #e6e8ec;
+}
+
+.storefrontCmsWithMedia,
+.storefrontCmsSlide.storefrontCmsWithMedia,
+.storefrontCmsIntro.storefrontCmsWithMedia {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 42%);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.storefrontCmsCopy {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 12px;
+}
+
+.storefrontCmsMedia {
+  position: relative;
+  min-height: 180px;
+  overflow: hidden;
+  background: #f6f7f8;
+}
+
+.storefrontCmsMedia img {
+  object-fit: cover;
+}
+
+.storefrontCmsAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  background: #24b9d7;
+  color: #ffffff;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.storefrontCmsSlides {
+  display: grid;
+  grid-auto-columns: minmax(80%, 1fr);
+  grid-auto-flow: column;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.storefrontCmsSlide {
+  display: grid;
+  min-height: 220px;
+  padding: 28px;
+  scroll-snap-align: start;
+}
+
+.storefrontCmsSlide p,
+.storefrontCmsCarousel p,
+.storefrontCmsTiles p {
+  margin: 0;
+  color: #7a7a7a;
+  line-height: 1.55;
+}
+
+.storefrontCmsSlider .storefrontCmsSlide p {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.storefrontPublicState {
+  max-width: 720px;
+  margin: 54px auto;
+}
+
+.storefrontPublicActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.storefrontPublicActions button {
+  border: 0;
+  cursor: pointer;
+}
+
+.storefrontPublicLoading {
+  display: grid;
+  gap: 16px;
+  padding-top: 40px;
+}
+
+.storefrontPublicLoading div {
+  min-height: 72px;
+  background: linear-gradient(90deg, #ffffff 25%, #f1f2f4 50%, #ffffff 75%);
+  background-size: 200% 100%;
+  border: 1px solid #e6e8ec;
+  animation: storefrontPublicPulse 1.2s ease-in-out infinite;
+}
+
+.storefrontPublicLoading div:nth-child(2) {
+  min-height: 260px;
+}
+
+@keyframes storefrontPublicPulse {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.storefrontCmsSection {
+  display: grid;
+  gap: 14px;
+}
+
+.storefrontCmsTiles article,
+.storefrontCmsCarousel article {
+  align-content: start;
+}
+
+.storefrontCmsTiles .storefrontCmsMedia,
+.storefrontCmsCarousel .storefrontCmsMedia {
+  min-height: 150px;
+}
+
+.storefrontCmsTiles .storefrontCmsAction,
+.storefrontCmsCarousel .storefrontCmsAction {
+  width: fit-content;
+  margin-top: auto;
+}
+
 .pricingDangerForm {
   padding-top: 10px;
   border-top: 1px solid var(--admin-border-subtle);
@@ -10319,6 +10481,16 @@ p {
   .storefrontPdpTabs dl div,
   .storefrontPdpSpecsGrid div {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefrontCmsWithMedia,
+  .storefrontCmsSlide.storefrontCmsWithMedia,
+  .storefrontCmsIntro.storefrontCmsWithMedia {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storefrontCmsSlides {
+    grid-auto-columns: 94%;
   }
 
   .storefrontHeaderActions {

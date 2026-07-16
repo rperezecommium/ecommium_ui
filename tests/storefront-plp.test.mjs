@@ -84,13 +84,14 @@ test("storefront PLP route exists outside admin", () => {
 
 test("storefront PLP product cards expose availability ribbon and quick view", () => {
   const plpPageSource = readFileSync(path.resolve(root, "src/modules/storefront/plp-page.tsx"), "utf8");
+  const headerSource = readFileSync(path.resolve(root, "src/modules/storefront/storefront-header.tsx"), "utf8");
   const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
 
   assert.match(plpPageSource, /storefrontAvailabilityRibbon/);
-  assert.match(plpPageSource, /action="\/search"/);
-  assert.match(plpPageSource, /name="q"/);
+  assert.match(headerSource, /action="\/search"/);
+  assert.match(headerSource, /name="q"/);
   assert.match(plpPageSource, /StorefrontSearchEventsClient/);
-  assert.match(plpPageSource, /StorefrontCartStatus/);
+  assert.match(headerSource, /StorefrontCartStatus/);
   assert.match(plpPageSource, /StorefrontAddToCartButton/);
   assert.match(plpPageSource, /className="storefrontProductCartButton"/);
   assert.match(plpPageSource, /disabled=\{!product\.available \|\| !product\.variantId\}/);

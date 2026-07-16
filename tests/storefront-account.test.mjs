@@ -195,7 +195,7 @@ test("storefront account UI opens after-sales cases from authenticated purchases
 });
 
 test("storefront header switches authenticated customers to account entry", () => {
-  const headerSource = source("src/modules/storefront/plp-page.tsx");
+  const headerSource = source("src/modules/storefront/storefront-header.tsx");
   const authEntrySource = source("src/modules/storefront/storefront-auth-drawer.tsx");
 
   assert.match(headerSource, /getStorefrontCustomerSession/);

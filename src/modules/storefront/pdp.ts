@@ -130,6 +130,29 @@ type StorefrontPdpOverrides = Partial<StorefrontContext & {
   visitorId: string;
 }>;
 
+export type StorefrontPdpPayloadOptions = Partial<StorefrontContext> & {
+  fallbackSlug: string;
+  visitorId?: string;
+};
+
+export function mapStorefrontPdpPayload(
+  payload: unknown,
+  options: StorefrontPdpPayloadOptions,
+): StorefrontPdpData {
+  const context = {
+    ...storefrontContext,
+    ...compactContext(options),
+  };
+
+  return mapPdpPayload(
+    payload,
+    options.fallbackSlug,
+    context.currency,
+    "",
+    storefrontEventContext(context, options.visitorId),
+  );
+}
+
 export async function getStorefrontPdp(
   productSlug: string,
   overrides: StorefrontPdpOverrides = {},

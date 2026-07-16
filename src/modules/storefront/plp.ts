@@ -87,6 +87,33 @@ type StorefrontPlpOverrides = Partial<StorefrontContext & {
   visitorId: string;
 }>;
 
+export type StorefrontPlpPayloadOptions = Partial<StorefrontContext> & {
+  categorySlug: string;
+  page?: string;
+  publicPath: string;
+};
+
+export async function mapStorefrontPlpPayload(
+  payload: unknown,
+  options: StorefrontPlpPayloadOptions,
+): Promise<StorefrontPlpData> {
+  const context = {
+    ...getStorefrontContext(),
+    ...compactContext(options),
+  };
+  const currentPage = positiveInt(options.page, 1);
+  const categories = await getStorefrontCategories(context, options.categorySlug);
+
+  return mapPlpPayload(
+    payload,
+    options.categorySlug,
+    currentPage,
+    buildContextParams(context).toString(),
+    options.publicPath,
+    categories,
+  );
+}
+
 export async function getStorefrontPlp(
   categorySlug: string,
   overrides: StorefrontPlpOverrides = {},

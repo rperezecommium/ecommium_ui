@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { StorefrontPlpPage } from "../src/modules/storefront/plp-page";
 import { getStorefrontPlp } from "../src/modules/storefront/plp";
+import { getStorefrontPublicPage } from "../src/modules/storefront/public-page";
+import { buildStorefrontPublicMetadata } from "../src/modules/storefront/public-page-metadata";
+import { StorefrontResolvedPublicPage } from "../src/modules/storefront/public-page-view";
+import { normalizeStorefrontVisitorId, storefrontVisitorCookieName } from "../src/modules/storefront/visitor";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -18,10 +25,43 @@ const hiddenStorefrontParams = new Set([
   "routePath",
 ]);
 
+const loadPublicHome = cache((page?: string, limit?: string, visitorId?: string) =>
+  getStorefrontPublicPage("/", { page, limit, visitorId }),
+);
+
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const [query, cookieStore] = await Promise.all([searchParams, cookies()]);
+  const result = await loadPublicHome(
+    first(query?.page),
+    first(query?.limit),
+    normalizeStorefrontVisitorId(cookieStore.get(storefrontVisitorCookieName)?.value),
+  );
+  if (result.ok) return buildStorefrontPublicMetadata(result.data);
+  return {
+    title: "Ecommium",
+    description: "Compra online de forma sencilla y segura.",
+    alternates: { canonical: "/" },
+  };
+}
+
 export default async function Home({ searchParams }: PageProps) {
-  const query = await searchParams;
+  const [query, cookieStore] = await Promise.all([searchParams, cookies()]);
   if (hasHiddenStorefrontParams(query)) {
     redirect(cleanHref("/", query));
+  }
+
+  const visitorId = normalizeStorefrontVisitorId(cookieStore.get(storefrontVisitorCookieName)?.value);
+  const publicResult = await loadPublicHome(first(query?.page), first(query?.limit), visitorId);
+  if (publicResult.ok) {
+    return (
+      <StorefrontResolvedPublicPage
+        correlationId={publicResult.correlationId}
+        data={publicResult.data}
+        page={first(query?.page)}
+        status={publicResult.status}
+        visitorId={visitorId}
+      />
+    );
   }
 
   const result = await getStorefrontPlp(homeCategorySlug, {
