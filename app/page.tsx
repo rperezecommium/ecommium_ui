@@ -51,6 +51,7 @@ export default async function Home({ searchParams }: PageProps) {
   }
 
   const visitorId = normalizeStorefrontVisitorId(cookieStore.get(storefrontVisitorCookieName)?.value);
+  const openCustomerLogin = first(query?.customerLogin) === "1";
   const publicResult = await loadPublicHome(first(query?.page), first(query?.limit), visitorId);
   if (publicResult.ok) {
     return (
@@ -60,6 +61,7 @@ export default async function Home({ searchParams }: PageProps) {
         page={first(query?.page)}
         status={publicResult.status}
         visitorId={visitorId}
+        openCustomerLogin={openCustomerLogin}
       />
     );
   }
@@ -70,7 +72,7 @@ export default async function Home({ searchParams }: PageProps) {
     limit: first(query?.limit),
   });
 
-  return <StorefrontPlpPage result={result} categorySlug={homeCategorySlug} />;
+  return <StorefrontPlpPage result={result} categorySlug={homeCategorySlug} openCustomerLogin={openCustomerLogin} />;
 }
 
 function first(value: string | string[] | undefined): string | undefined {

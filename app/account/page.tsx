@@ -26,7 +26,12 @@ export default async function AccountPage({ searchParams }: PageProps) {
       <StorefrontHeader />
       <div className="storefrontAuthPage">
         {result.ok && result.data ? (
-          <StorefrontAccountClient data={result.data} />
+          <StorefrontAccountClient
+            data={result.data}
+            initialDrawer={
+              first(query?.section) === "invoices" ? "invoices" : undefined
+            }
+          />
         ) : (
           <section className="storefrontAuthPanel">
             <Link className="storefrontAuthBackLink" href="/">

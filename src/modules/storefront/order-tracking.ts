@@ -4,7 +4,6 @@ import { getStorefrontCustomerAuthorizationHeader } from "./storefront-customer-
 import { getStorefrontContext } from "./storefront-context";
 
 export type StorefrontOrderTracking = {
-  orderId: string;
   orderReference: string;
   status: "PAYMENT_PENDING" | "PREPARING" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED" | "REFUNDED" | "ISSUE" | string;
   title: string;
@@ -35,6 +34,37 @@ export type StorefrontOrderTracking = {
   };
 };
 
+export type StorefrontTrackingAccessRecoveryInput = {
+  orderReference: string;
+  email: string;
+};
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function invalidTrackingRequest<T>(error: string, status = 400): BffResult<T> {
+  return {
+    ok: false,
+    error,
+    status,
+    correlationId: "storefront-tracking-input",
+  };
+}
+
+function normalizeOrderReference(value: string) {
+  return value.trim();
+}
+
+function trackingParams() {
+  const context = getStorefrontContext();
+  return {
+    context,
+    params: new URLSearchParams({
+      organizationId: context.organizationId,
+      shopId: context.shopId,
+    }),
+  };
+}
+
 export async function getStorefrontOrderTracking(
   orderReference: string,
   accessToken: string | undefined,
@@ -51,11 +81,7 @@ export async function getStorefrontOrderTracking(
     };
   }
 
-  const context = getStorefrontContext();
-  const params = new URLSearchParams({
-    organizationId: context.organizationId,
-    shopId: context.shopId,
-  });
+  const { context, params } = trackingParams();
 
   if (token) {
     params.set("trackingAccessToken", token);
@@ -77,6 +103,31 @@ export async function getStorefrontOrderTracking(
       withAuth: false,
       context: { locale: context.locale },
       init: authorization ? { headers: { authorization } } : undefined,
+    },
+  );
+}
+
+export async function requestStorefrontTrackingAccessRecovery(
+  input: StorefrontTrackingAccessRecoveryInput,
+): Promise<BffResult<{ accepted: true }>> {
+  const orderReference = normalizeOrderReference(input.orderReference);
+  const email = input.email.trim().toLowerCase();
+
+  if (!orderReference || !emailPattern.test(email)) {
+    return invalidTrackingRequest("Indica una referencia y un email validos.");
+  }
+
+  const { context, params } = trackingParams();
+  return requestBff<{ accepted: true }>(
+    `/storefront/order-tracking/access-recovery?${params.toString()}`,
+    {
+      withAuth: false,
+      context: { locale: context.locale },
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ orderReference, email }),
+      },
     },
   );
 }

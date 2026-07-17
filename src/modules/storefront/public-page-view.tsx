@@ -14,6 +14,7 @@ type StorefrontResolvedPublicPageProps = {
   page?: string;
   status: number;
   visitorId: string;
+  openCustomerLogin?: boolean;
 };
 
 export async function StorefrontResolvedPublicPage({
@@ -22,6 +23,7 @@ export async function StorefrontResolvedPublicPage({
   page,
   status,
   visitorId,
+  openCustomerLogin,
 }: StorefrontResolvedPublicPageProps) {
   if (data.kind === "REDIRECT") {
     if (!isSafeStorefrontTarget(data.toPath)) notFound();
@@ -40,10 +42,10 @@ export async function StorefrontResolvedPublicPage({
       status,
       visitorId,
     });
-    return <StorefrontPlpPage result={result} categorySlug={result.data?.categorySlug ?? data.route.requestedPath} />;
+    return <StorefrontPlpPage result={result} categorySlug={result.data?.categorySlug ?? data.route.requestedPath} openCustomerLogin={openCustomerLogin} />;
   }
 
-  return <StorefrontCmsPage page={data.page} />;
+  return <StorefrontCmsPage page={data.page} openCustomerLogin={openCustomerLogin} />;
 }
 
 export function StorefrontPublicFailure({ status }: { status?: number }) {

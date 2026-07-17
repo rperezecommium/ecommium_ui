@@ -20,12 +20,28 @@ const initialState: StorefrontAuthActionState = {
 
 export function StorefrontAuthEntry({
   customerEmail,
+  initialMode,
+  redirectTo,
+  purpose,
 }: {
   customerEmail?: string;
+  initialMode?: AuthMode;
+  redirectTo?: string;
+  purpose?: "tracking";
 }) {
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<AuthMode>("login");
+  const [open, setOpen] = useState(initialMode === "login");
+  const [mode, setMode] = useState<AuthMode>(initialMode ?? "login");
   const [signupStartedAt, setSignupStartedAt] = useState("");
+
+  useEffect(() => {
+    if (initialMode !== "login") return;
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("customerLogin") !== "1") return;
+
+    url.searchParams.delete("customerLogin");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [initialMode]);
 
   function show(nextMode: AuthMode) {
     setMode(nextMode);
@@ -72,13 +88,15 @@ export function StorefrontAuthEntry({
         )}
       </div>
       {!customerEmail ? (
-        <AuthDrawer
-          mode={mode}
+          <AuthDrawer
+            mode={mode}
           onClose={() => setOpen(false)}
           open={open}
+          purpose={purpose}
+          redirectTo={redirectTo}
           setMode={changeMode}
           signupStartedAt={signupStartedAt}
-        />
+          />
       ) : null}
     </>
   );
@@ -88,12 +106,16 @@ function AuthDrawer({
   mode,
   onClose,
   open,
+  purpose,
+  redirectTo,
   setMode,
   signupStartedAt,
 }: {
   mode: AuthMode;
   onClose: () => void;
   open: boolean;
+  purpose?: "tracking";
+  redirectTo?: string;
   setMode: (mode: AuthMode) => void;
   signupStartedAt: string;
 }) {
@@ -119,7 +141,13 @@ function AuthDrawer({
           <div>
             <span>Cuenta cliente</span>
             <h2>{mode === "login" ? "Iniciar sesion" : "Crear cuenta"}</h2>
-            <p>{mode === "login" ? "Accede a tus pedidos y preferencias." : "Crea tu cuenta y activala desde tu email."}</p>
+            <p>{purpose === "tracking"
+              ? mode === "login"
+                ? "Inicia sesión para consultar este pedido y tus compras."
+                : "Crea una cuenta con el email usado al comprar; tras activarla, tus pedidos se añadirán automáticamente."
+              : mode === "login"
+                ? "Accede a tus pedidos y preferencias."
+                : "Crea tu cuenta y activala desde tu email."}</p>
           </div>
           <button aria-label="Cerrar" className="storefrontDrawerIconButton" onClick={onClose} type="button">
             <X aria-hidden="true" size={20} />
@@ -140,6 +168,7 @@ function AuthDrawer({
         ) : null}
         {mode === "login" ? (
           <form action={loginAction} className="storefrontAuthForm">
+            {redirectTo ? <input name="redirectTo" type="hidden" value={redirectTo} /> : null}
             <AuthField defaultValue={loginState.email} label="Email" name="email" type="email" />
             <PasswordField show={showPassword} toggle={() => setShowPassword(!showPassword)} />
             <button className="storefrontAuthSubmit" disabled={pending} type="submit">
@@ -151,6 +180,7 @@ function AuthDrawer({
           </form>
         ) : (
           <form action={signupAction} className="storefrontAuthForm">
+            {redirectTo ? <input name="redirectTo" type="hidden" value={redirectTo} /> : null}
             <div className="storefrontAuthGrid">
               <AuthField label="Nombre" name="firstName" type="text" />
               <AuthField label="Apellido" name="lastName" type="text" />

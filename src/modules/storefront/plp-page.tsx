@@ -13,6 +13,7 @@ type Props = {
   result: StorefrontPlpResult;
   categorySlug: string;
   searchQuery?: string;
+  openCustomerLogin?: boolean;
 };
 
 const titleFromSlug = (slug: string) =>
@@ -22,7 +23,7 @@ const titleFromSlug = (slug: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ") || "Categoria";
 
-export function StorefrontPlpPage({ result, categorySlug, searchQuery }: Props) {
+export function StorefrontPlpPage({ result, categorySlug, searchQuery, openCustomerLogin }: Props) {
   const activeSearchQuery = searchQuery ?? result.data?.searchQuery;
   const title = activeSearchQuery
     ? "Resultados de busqueda"
@@ -35,7 +36,7 @@ export function StorefrontPlpPage({ result, categorySlug, searchQuery }: Props) 
 
   return (
     <main className="storefrontPage">
-      <StorefrontHeader initialQuery={activeSearchQuery} />
+      <StorefrontHeader initialQuery={activeSearchQuery} openCustomerLogin={openCustomerLogin} />
       <div className="storefrontShell">
         <nav className="storefrontBreadcrumb">
           <Link href="/">Inicio</Link>

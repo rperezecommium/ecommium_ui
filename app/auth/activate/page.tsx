@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { activateStorefrontCustomer } from "../../../src/modules/storefront/storefront-auth-actions";
+import { StorefrontActivationForm } from "../../../src/modules/storefront/storefront-activation-form";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -7,7 +7,7 @@ type PageProps = {
 
 export default async function AccountActivatePage({ searchParams }: PageProps) {
   const query = await searchParams;
-  const result = await activateStorefrontCustomer(first(query?.token) ?? "");
+  const token = first(query?.token) ?? "";
 
   return (
     <main className="storefrontAuthPage">
@@ -15,11 +15,17 @@ export default async function AccountActivatePage({ searchParams }: PageProps) {
         <Link className="storefrontAuthBackLink" href="/">
           Ecommium
         </Link>
-        <h1>{result.status === "success" ? "Cuenta activada" : "No pudimos activar la cuenta"}</h1>
-        <p>{result.message}</p>
-        <Link className="storefrontAuthSubmit storefrontAuthPanelLink" href="/">
-          Volver a la tienda
-        </Link>
+        {token ? (
+          <StorefrontActivationForm token={token} />
+        ) : (
+          <>
+            <h1>No pudimos activar la cuenta</h1>
+            <p>El enlace de activación no contiene un token válido.</p>
+            <Link className="storefrontAuthSubmit storefrontAuthPanelLink" href="/">
+              Volver a la tienda
+            </Link>
+          </>
+        )}
       </section>
     </main>
   );

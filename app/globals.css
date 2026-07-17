@@ -144,8 +144,26 @@
 }
 
 .storefrontOrderTrackingStepCurrent > span {
+  position: relative;
   border-color: #1688a3;
   box-shadow: 0 0 0 5px rgb(22 136 163 / 14%);
+}
+
+.storefrontOrderTrackingStepCurrent > span::after {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 2px solid #1688a3;
+  content: "";
+  opacity: 0.25;
+  pointer-events: none;
+  animation: storefront-order-tracking-inner-ring-fade 1.8s ease-in-out infinite alternate;
+}
+
+.storefrontOrderTrackingStep:has(+ .storefrontOrderTrackingStepCurrent)::before {
+  background: linear-gradient(180deg, #36a85d 0%, #36a85d 38%, #9bd8ad 50%, #36a85d 62%, #36a85d 100%);
+  background-size: 100% 200%;
+  animation: storefront-order-tracking-arrival-line 1.8s linear infinite;
 }
 
 .storefrontOrderTrackingStep strong {
@@ -200,6 +218,57 @@
   text-decoration: none;
 }
 
+.storefrontOrderTrackingRecovery {
+  display: grid;
+  width: min(100%, 460px);
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e1e6eb;
+  border-radius: 8px;
+  background: #f9fbfc;
+}
+
+.storefrontOrderTrackingRecovery h2 {
+  margin: 0;
+  color: #26343a;
+  font-size: 18px;
+}
+
+.storefrontOrderTrackingRecovery > p {
+  color: #52626b;
+}
+
+.storefrontOrderTrackingClaim {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #ccebf1;
+  border-radius: 8px;
+  background: #f5fcfd;
+}
+
+.storefrontOrderTrackingClaim p {
+  margin: 0;
+  color: #26343a;
+}
+
+.storefrontOrderTrackingClaimError {
+  border-color: #efd2ca;
+  background: #fff8f6;
+}
+
+.storefrontOrderTrackingClaim button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  border: 1px solid #b9c6cd;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #3f5965;
+  font-weight: 800;
+}
+
 .storefrontOrderTrackingLoading {
   display: grid;
   gap: 18px;
@@ -224,6 +293,33 @@
 
 @keyframes storefront-order-tracking-shimmer {
   to { background-position: -200% 0; }
+}
+
+@keyframes storefront-order-tracking-arrival-line {
+  from {
+    background-position: 0 100%;
+  }
+
+  to {
+    background-position: 0 -100%;
+  }
+}
+
+@keyframes storefront-order-tracking-inner-ring-fade {
+  from {
+    opacity: 0.25;
+  }
+
+  to {
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefrontOrderTrackingStepCurrent > span::after,
+  .storefrontOrderTrackingStep:has(+ .storefrontOrderTrackingStepCurrent)::before {
+    animation: none;
+  }
 }
 
 @media (max-width: 640px) {

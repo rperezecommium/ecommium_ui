@@ -1,41 +1,57 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useActionState, useEffect } from "react";
 import { Check, CircleAlert, ExternalLink, PackageCheck, Truck } from "lucide-react";
 import type { StorefrontOrderTracking } from "./order-tracking";
+import { StorefrontAuthEntry } from "./storefront-auth-drawer";
+import { requestStorefrontTrackingRecoveryAction } from "./storefront-order-tracking-actions";
 
 type TrackingPageProps = {
   tracking?: StorefrontOrderTracking;
   error?: string;
   errorStatus?: number;
+  orderReference: string;
 };
 
-export function StorefrontOrderTrackingPage({ tracking, error, errorStatus }: TrackingPageProps) {
+export function StorefrontOrderTrackingPage({
+  tracking,
+  error,
+  errorStatus,
+  orderReference,
+}: TrackingPageProps) {
   useEffect(() => {
     if (!tracking && errorStatus === 503) {
       return;
     }
 
-    const url = new URL(window.location.href);
-    if (url.searchParams.has("access") || url.searchParams.has("trackingAccessToken")) {
+    const removePrivateAccessFromUrl = () => {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has("access") && !url.searchParams.has("trackingAccessToken")) {
+        return;
+      }
+
       url.searchParams.delete("access");
       url.searchParams.delete("trackingAccessToken");
       window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-    }
-  }, [tracking, errorStatus]);
+    };
+
+    removePrivateAccessFromUrl();
+  }, [errorStatus, tracking]);
 
   if (!tracking) {
     const expired = errorStatus === 404;
     const needsLogin = errorStatus === 401;
     const unavailable = errorStatus === 503 || !errorStatus;
+    const trackingReturnTo = `/pedido/${encodeURIComponent(orderReference)}/seguimiento`;
     return (
       <section className="storefrontOrderTrackingError">
         <CircleAlert aria-hidden="true" size={28} />
         <h1>{expired ? "Este enlace ya no esta disponible" : needsLogin ? "Inicia sesión para ver este pedido" : "El seguimiento no esta disponible ahora"}</h1>
         <p>{expired ? "Pide un nuevo enlace de seguimiento con la referencia de tu pedido y el email usado al comprar." : needsLogin ? "Entra en tu cuenta para consultar los pedidos que te pertenecen." : error || "Intentalo de nuevo en unos minutos."}</p>
+        {expired ? <TrackingAccessRecoveryForm orderReference={orderReference} /> : null}
         <div className="storefrontOrderTrackingErrorActions">
-          {needsLogin ? <Link href="/auth/login" className="storefrontOrderTrackingPrimaryAction">Iniciar sesión</Link> : null}
+          {needsLogin ? <StorefrontAuthEntry purpose="tracking" redirectTo={trackingReturnTo} /> : null}
           {unavailable ? <button onClick={() => window.location.reload()} type="button">Reintentar</button> : null}
           <Link href="/" className={needsLogin ? "storefrontOrderTrackingSecondaryAction" : "storefrontOrderTrackingPrimaryAction"}>Volver a la tienda</Link>
         </div>
@@ -96,6 +112,46 @@ export function StorefrontOrderTrackingPage({ tracking, error, errorStatus }: Tr
         </section>
       ) : null}
     </section>
+  );
+}
+
+type TrackingRecoveryState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
+
+const initialTrackingRecoveryState: TrackingRecoveryState = {
+  status: "idle",
+  message: "",
+};
+
+function TrackingAccessRecoveryForm({ orderReference }: { orderReference: string }) {
+  const [state, action, pending] = useActionState(
+    requestStorefrontTrackingRecoveryAction,
+    initialTrackingRecoveryState,
+  );
+
+  return (
+    <form action={action} className="storefrontOrderTrackingRecovery">
+      <h2>Recuperar acceso</h2>
+      <p>Te enviaremos un enlace solo si los datos corresponden a una compra.</p>
+      {state.message ? (
+        <p aria-live="polite" className={state.status === "error" ? "storefrontAuthNotice storefrontAuthNoticeError" : "storefrontAuthNotice storefrontAuthNoticeSuccess"}>
+          {state.message}
+        </p>
+      ) : null}
+      <label className="storefrontAuthField">
+        <span>Referencia de pedido</span>
+        <input defaultValue={orderReference} name="orderReference" required type="text" />
+      </label>
+      <label className="storefrontAuthField">
+        <span>Email usado al comprar</span>
+        <input autoComplete="email" name="email" required type="email" />
+      </label>
+      <button className="storefrontAuthSubmit" disabled={pending} type="submit">
+        {pending ? "Solicitando..." : "Enviar nuevo enlace"}
+      </button>
+    </form>
   );
 }
 

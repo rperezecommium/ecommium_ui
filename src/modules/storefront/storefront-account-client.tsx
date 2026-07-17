@@ -27,7 +27,7 @@ const initialState: StorefrontAccountActionState = {
   message: "",
 };
 
-type AccountDrawer = "profile" | "credentials" | "addresses" | "afterSales" | "invoices" | null;
+export type AccountDrawer = "profile" | "credentials" | "addresses" | "afterSales" | "invoices" | null;
 
 const avatarImagePath: Record<string, string> = {
   "human-01": "/storefront/avatars/human-01.jpg",
@@ -42,12 +42,18 @@ const avatarImagePath: Record<string, string> = {
   "animal-owl": "/storefront/avatars/animal-owl.jpg",
 };
 
-export function StorefrontAccountClient({ data }: { data: StorefrontAccountData }) {
+export function StorefrontAccountClient({
+  data,
+  initialDrawer,
+}: {
+  data: StorefrontAccountData;
+  initialDrawer?: Exclude<AccountDrawer, null>;
+}) {
   const [profileState, profileAction, profilePending] = useActionState(updateStorefrontAccountProfile, initialState);
   const [credentialsState, credentialsAction, credentialsPending] = useActionState(updateStorefrontAccountCredentials, initialState);
   const [addressState, addressAction, addressPending] = useActionState(submitStorefrontAccountAddress, initialState);
   const [afterSalesState, afterSalesAction, afterSalesPending] = useActionState(submitStorefrontAfterSalesCase, initialState);
-  const [drawer, setDrawer] = useState<AccountDrawer>(null);
+  const [drawer, setDrawer] = useState<AccountDrawer>(initialDrawer ?? null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const profile = data.profile;

@@ -26,6 +26,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
           tracking={result.ok ? result.data : undefined}
           error={result.ok ? undefined : result.error}
           errorStatus={result.ok ? undefined : result.status}
+          orderReference={orderReference}
         />
       </div>
     </main>

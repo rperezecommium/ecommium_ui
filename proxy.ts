@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { isSafeStorefrontTarget, resolveStorefrontPublicPath } from "./src/modules/storefront/public-path";
 
 const reservedFirstSegments = new Set([
-  "_next", "public-system", "account", "admin", "api", "assets", "auth", "cart", "checkout",
+  "_next", "public-system", "account", "admin", "api", "assets", "auth", "cart", "checkout", "storefront",
   "login", "logout", "pdp", "pedido", "plp", "search", "static",
 ]);
 

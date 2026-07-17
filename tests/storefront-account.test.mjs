@@ -115,6 +115,12 @@ test("storefront account UI exposes editable profile, credentials and 10 avatars
   assert.match(cssSource, /\.storefrontAvatarOption:has\(input:checked\) \.storefrontAvatarThumb[\s\S]*border-color: #25abc4/);
 });
 
+test("storefront avatar static files bypass the public-page proxy", () => {
+  const proxySource = source("proxy.ts");
+
+  assert.match(proxySource, /"storefront"/);
+});
+
 test("storefront account links each purchase to the canonical tracking view without recreating it", () => {
   const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
   const cssSource = source("app/globals.css");

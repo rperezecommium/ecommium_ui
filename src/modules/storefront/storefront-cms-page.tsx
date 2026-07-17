@@ -18,12 +18,18 @@ const supportedCmsBlockTypes = new Set([
 const maximumItemsPerBlock = 12;
 const maximumBlockDepth = 4;
 
-export function StorefrontCmsPage({ page }: { page: StorefrontCmsPublishedPage }) {
+export function StorefrontCmsPage({
+  page,
+  openCustomerLogin = false,
+}: {
+  page: StorefrontCmsPublishedPage;
+  openCustomerLogin?: boolean;
+}) {
   const blocks = page.blocks.filter(isFullPageBlock);
 
   return (
     <main className="storefrontPage">
-      <StorefrontHeader />
+      <StorefrontHeader openCustomerLogin={openCustomerLogin} />
       <div className="storefrontShell storefrontCmsPage">
         <nav className="storefrontBreadcrumb">
           <Link href="/">Inicio</Link>

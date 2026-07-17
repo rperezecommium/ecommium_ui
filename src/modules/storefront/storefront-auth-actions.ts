@@ -84,7 +84,10 @@ function publicAuthError(status?: number) {
   return "No se pudo completar la operacion. Intentalo de nuevo.";
 }
 
-function signupActivationMessage(activation: StorefrontSignupResponse["activation"]) {
+function signupActivationMessage(
+  activation: StorefrontSignupResponse["activation"],
+  hasReturnTo: boolean,
+) {
   if (activation?.status !== "pending") {
     return "Cuenta creada correctamente.";
   }
@@ -97,7 +100,9 @@ function signupActivationMessage(activation: StorefrontSignupResponse["activatio
     return "Cuenta creada pendiente de activacion. Solicita el email de activacion para continuar.";
   }
 
-  return "Cuenta creada. Revisa tu email para activarla antes de iniciar sesion.";
+  return hasReturnTo
+    ? "Cuenta creada. Revisa tu email para activarla; después inicia sesión y verás tus pedidos automáticamente."
+    : "Cuenta creada. Revisa tu email para activarla antes de iniciar sesion.";
 }
 
 async function deviceHeaders() {
@@ -270,7 +275,7 @@ export async function signupStorefrontCustomer(
 
   return {
     status: result.data.activation?.status === "pending" ? "activation_pending" : "success",
-    message: signupActivationMessage(result.data.activation),
+    message: signupActivationMessage(result.data.activation, Boolean(redirectTo)),
     email,
   };
 }
@@ -440,9 +445,16 @@ export async function activateStorefrontCustomer(token: string): Promise<Storefr
   });
 
   if (!result.ok) {
+    if (!result.status || result.status >= 500) {
+      return {
+        status: "error",
+        message: "No pudimos contactar el servicio de activación. Tu enlace no se ha consumido; inténtalo de nuevo en unos minutos.",
+      };
+    }
+
     return {
       status: "error",
-      message: "El enlace de activacion es invalido o expiro.",
+      message: "El enlace de activación es inválido, ya fue utilizado o expiró.",
     };
   }
 
@@ -450,4 +462,12 @@ export async function activateStorefrontCustomer(token: string): Promise<Storefr
     status: "success",
     message: result.data.status === "already_active" ? "Tu cuenta ya estaba activa." : "Cuenta activada. Ya puedes iniciar sesion.",
   };
+}
+
+export async function activateStorefrontCustomerAction(
+  previousState: StorefrontAuthActionState,
+  formData: FormData,
+): Promise<StorefrontAuthActionState> {
+  void previousState;
+  return activateStorefrontCustomer(formString(formData, "token"));
 }
