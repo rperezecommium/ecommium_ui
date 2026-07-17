@@ -40,6 +40,9 @@ export default function ConfiguracionPage() {
           <Link className="adminButton" href="/admin/configuracion/comunicaciones">
             Abrir comunicaciones
           </Link>
+          <Link className="adminButton" href="/admin/configuracion/checkout">
+            Abrir Checkout
+          </Link>
         </div>
       </section>
     </main>

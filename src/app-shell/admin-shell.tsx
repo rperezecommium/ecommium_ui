@@ -38,6 +38,7 @@ const configurationNavItems = [
   { href: "/admin/configuracion/seo", label: "SEO", description: "Rutas, redirects y sitemap", permission: "admin:catalog:view" as const },
   { href: "/admin/configuracion/automatizacion", label: "Automatizacion", description: "Reglas, ejecuciones y reintentos", permission: "admin:automation:view" as const },
   { href: "/admin/configuracion/comunicaciones", label: "Comunicaciones", description: "Email, SMTP y plantillas", permission: "admin:communications:view" as const },
+  { href: "/admin/configuracion/checkout", label: "Checkout", description: "OrderForm y reglas de compra", permission: "admin:checkout:view" as const },
 ];
 
 const catalogNavItems = [

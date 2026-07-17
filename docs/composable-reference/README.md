@@ -98,10 +98,27 @@ Estos endpoints son orientativos para construir UI. Si alguno no responde, regis
 - `GET /api/v1/storefront/pdp/:productSlug`
 - `GET /api/v1/storefront/pricing/products/:productId`
 - `GET /api/v1/storefront/pricing/variants/:variantId`
+- `GET /api/v1/storefront/order-tracking/:orderReference?organizationId=:org&shopId=:shop&trackingAccessToken=:optional`
+- `POST /api/v1/storefront/order-tracking/access-recovery?organizationId=:org&shopId=:shop`
 - `GET /api/v1/storefront/me/purchases?organizationId=:org&shopId=:shop&limit=:limit&offset=:offset`
 - `GET /api/v1/storefront/me/invoices`
 - `GET /api/v1/storefront/me/invoices/:invoiceId/document`
 - `POST /api/v1/storefront/me/after-sales/cases?organizationId=:org&shopId=:shop`
+
+Reglas para pedidos guest:
+
+- La recuperación recibe únicamente `{ orderReference, email }`, responde siempre
+  `202 { accepted: true }` y nunca revela si el pedido o el email existen.
+- El `trackingAccessToken` es opaco y solo autoriza el seguimiento guest. La UI
+  debe retirarlo de la URL después de usarlo y no guardarlo en `localStorage`,
+  logs ni estado persistente del navegador.
+- Cuando un invitado crea y verifica una cuenta con el mismo email, Sessions
+  vincula internamente los pedidos guest elegibles del tenant y los reproyecta
+  en `Mis compras`. La UI no persiste ni reenvía referencia, email o token para
+  asociar pedidos, ni muestra una acción de claim manual.
+- Los enlaces privados enviados por Orders usan
+  `ORDERS_STOREFRONT_PUBLIC_BASE_URL`: localmente `http://localhost:5173` y en
+  producción el dominio público real del Storefront.
 
 ### Admin: Organizations/Shops y contexto multistore
 
@@ -346,6 +363,7 @@ son cupones. Viven en `Admin > Configuracion > Precios`, consumen
 - `GET /api/v1/admin/shipping/pickup-points?organizationId=:org&shopId=:shop&includeInactive=false`
 - `PUT /api/v1/admin/shipping/pickup-points?organizationId=:org&shopId=:shop`
 - `GET /api/v1/admin/shipping/fulfillments?organizationId=:org&shopId=:shop&status=:status&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/shipping/fulfillments/:fulfillmentId?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/shipping/fulfillments/:fulfillmentId/status?organizationId=:org&shopId=:shop`
 - `GET /api/v1/admin/invoices`
 - `GET /api/v1/admin/invoices/:invoiceId`
@@ -366,6 +384,26 @@ Tambien incluye un simulador operativo de cotizacion que llama
 de cliente para validar que las reglas configuradas producen SLAs reales.
 La ficha de producto solo guarda atributos logisticos propios del producto y
 referencias a transportistas permitidos; no duplica reglas globales de Shipping.
+
+La operativa transversal de fulfillment pertenece a `Admin > Configuracion >
+Transporte`. La UI consume exclusivamente la fachada BFF para listar, filtrar
+por un unico `status`, paginar, inspeccionar y transicionar envios. El detalle
+devuelve el contexto logistico y de notificacion interno (`fulfillmentId`,
+`version`, `orderId`, `orderReference`, `customerId`); este ultimo no se
+traslada nunca a Storefront.
+
+- Las lecturas y transiciones de fulfillments requieren
+  `shipping.logistics.write`, ademas de sesion Admin, contexto
+  `organizationId/shopId` y los roles permitidos por BFF.
+- Estados admitidos: `PENDING_FULFILLMENT`, `READY_TO_PICK`, `PICKING`,
+  `PACKED`, `SHIPPED`, `DELIVERED` y `FAILED`.
+- La UI solo debe proponer transiciones validas para el estado actual; BFF y
+  Shipping conservan la validacion definitiva. `DELIVERED` y `FAILED` son
+  terminales.
+- El body de la transicion usa `{ "status", "trackingNumber?", "carrierId?" }`.
+  `trackingNumber` es obligatorio al enviar `SHIPPED`.
+- La bandeja no crea fulfillments ni reemplaza la operativa por pedido de
+  `Admin > Pedidos`; ambas superficies consumen sus contratos BFF respectivos.
 
 Guardado Admin de producto:
 

@@ -40,6 +40,11 @@ const capturedShippingActiveMutations: Array<{
   path: string;
   body: Record<string, unknown>;
 }> = [];
+const capturedShippingFulfillmentMutations: Array<{
+  method: string;
+  path: string;
+  body: Record<string, unknown>;
+}> = [];
 const capturedSeoAdminRequests: string[] = [];
 const capturedSeoMutations: Array<{
   method: string;
@@ -381,6 +386,55 @@ const shippingConfiguration = {
     active: true,
   }],
 };
+const shippingFulfillments = [{
+  fulfillmentId: "fulfillment-e2e-1",
+  version: 4,
+  orderId: "order-e2e-1",
+  orderReference: "#E2E-0001",
+  customerId: "customer-e2e-1",
+  organizationId: defaultOrganizationId,
+  shopId: barcelonaShopId,
+  warehouseId: "warehouse-main",
+  dockId: "dock-a",
+  carrierId: "carrier-standard",
+  status: "PACKED",
+  trackingNumber: null as string | null,
+  trackingUrl: null as string | null,
+  carrier: {
+    id: "carrier-standard",
+    label: "Carrier Standard",
+    logoUrl: null,
+    trackingUrlTemplate: "https://tracking.example.test/{{trackingNumber}}",
+  },
+  deliveryAddress: {
+    addressType: "residential",
+    receiverName: "Ada Lovelace",
+    addressId: "address-e2e-1",
+    isDisposable: false,
+    postalCode: "08001",
+    city: "Barcelona",
+    state: "Barcelona",
+    country: "ES",
+    street: "Carrer de la Pau",
+    number: "1",
+    neighborhood: null,
+    complement: "2º A",
+    reference: "Portería",
+    geoCoordinates: [2.17, 41.38] as [number, number],
+  },
+  logisticsSnapshot: { sourceOrderFormId: "orderform-e2e-1", items: [] },
+  items: [{
+    lineId: "line-e2e-1",
+    productId: "product-e2e-1",
+    variantId: "variant-e2e-1",
+    name: "Bicicleta E2E",
+    quantity: 2,
+  }],
+  createdAt: "2026-07-16T10:00:00.000Z",
+  updatedAt: "2026-07-16T11:00:00.000Z",
+  shippedAt: null as string | null,
+  deliveredAt: null as string | null,
+}];
 const seoRoutes = [{
   routeId: "route-product",
   organizationId: defaultOrganizationId,
@@ -1622,6 +1676,71 @@ async function startBffMock() {
         carrierServices: activeShippingItems(shippingConfiguration.carrierServices, includeInactive),
         rateRules: activeShippingItems(shippingConfiguration.rateRules, includeInactive),
       });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/admin/shipping/fulfillments") {
+      capturedShippingAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const status = url.searchParams.get("status");
+      const limit = Number(url.searchParams.get("limit") ?? 25);
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const items = shippingFulfillments.filter((fulfillment) => !status || fulfillment.status === status);
+      sendJson(response, 200, {
+        items: items.slice(offset, offset + limit),
+        total: items.length,
+        limit,
+        offset,
+      });
+      return;
+    }
+
+    const fulfillmentStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/shipping\/fulfillments\/([^/]+)\/status$/);
+    if (request.method === "PATCH" && fulfillmentStatusMatch) {
+      capturedShippingAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const fulfillmentId = decodeURIComponent(fulfillmentStatusMatch[1]);
+      const body = await readJsonBody(request);
+      const fulfillment = shippingFulfillments.find((candidate) => candidate.fulfillmentId === fulfillmentId);
+      const nextStatus = typeof body.status === "string" ? body.status : "";
+      if (!fulfillment || (fulfillment.status !== "PACKED" || nextStatus !== "SHIPPED")) {
+        sendJson(response, 409, { message: "invalid fulfillment transition" });
+        return;
+      }
+      if (typeof body.trackingNumber !== "string" || !body.trackingNumber.trim()) {
+        sendJson(response, 400, { message: "trackingNumber is required" });
+        return;
+      }
+
+      fulfillment.status = nextStatus;
+      fulfillment.trackingNumber = body.trackingNumber;
+      fulfillment.carrierId = typeof body.carrierId === "string" && body.carrierId ? body.carrierId : fulfillment.carrierId;
+      fulfillment.version += 1;
+      fulfillment.updatedAt = "2026-07-16T12:00:00.000Z";
+      fulfillment.shippedAt = fulfillment.updatedAt;
+      capturedShippingFulfillmentMutations.push({
+        method: request.method,
+        path: url.pathname,
+        body,
+      });
+      sendJson(response, 200, { fulfillment });
+      return;
+    }
+
+    const fulfillmentDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/shipping\/fulfillments\/([^/]+)$/);
+    if (request.method === "GET" && fulfillmentDetailMatch) {
+      capturedShippingAdminRequests.push(`${request.method} ${url.pathname}?${url.searchParams.toString()}`);
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const fulfillmentId = decodeURIComponent(fulfillmentDetailMatch[1]);
+      const fulfillment = shippingFulfillments.find((candidate) => candidate.fulfillmentId === fulfillmentId);
+      if (!fulfillment) {
+        sendJson(response, 404, { message: "fulfillment not found" });
+        return;
+      }
+      sendJson(response, 200, fulfillment);
       return;
     }
 
@@ -3182,6 +3301,61 @@ test("shipping configuration manages carriers with drawers and active actions th
 
   expect(capturedShippingAdminRequests).toContain(
     `GET /api/v1/admin/shipping/configuration?organizationId=${defaultOrganizationId}&shopId=${barcelonaShopId}&includeInactive=true`,
+  );
+  expect(browserExternalRequests).toEqual([]);
+});
+
+test("shipping fulfillment queue filters, inspects and transitions through BFF", async ({ page }) => {
+  capturedShippingAdminRequests.length = 0;
+  capturedShippingFulfillmentMutations.length = 0;
+  Object.assign(shippingFulfillments[0], {
+    version: 4,
+    status: "PACKED",
+    trackingNumber: null,
+    carrierId: "carrier-standard",
+    updatedAt: "2026-07-16T11:00:00.000Z",
+    shippedAt: null,
+    deliveredAt: null,
+  });
+  const browserExternalRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.hostname === "127.0.0.1" && url.port && Number(url.port) !== nextPort) {
+      browserExternalRequests.push(request.url());
+    }
+  });
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/configuracion/transporte?tab=fulfillments&fulfillmentStatus=PACKED&fulfillmentsLimit=25&fulfillmentsOffset=0`);
+
+  await expect(page.getByRole("link", { name: "Fulfillments" })).toHaveClass(/productEditorTabActive/);
+  await expect(page.getByRole("heading", { name: "Cola global de fulfillments" })).toBeVisible();
+  await expect(page.getByLabel("Estado")).toHaveValue("PACKED");
+  const fulfillmentRow = page.getByRole("row", { name: /E2E-0001.*Empaquetado.*Carrier Standard.*Sin tracking/ });
+  await expect(fulfillmentRow).toBeVisible();
+  await fulfillmentRow.getByRole("link", { name: "Ver envío" }).click();
+
+  const drawer = page.locator(".adminSideDrawer");
+  await expect(drawer.getByRole("heading", { name: "Detalle de fulfillment" })).toBeVisible();
+  await expect(drawer.getByText("Ada Lovelace")).toBeVisible();
+  await expect(drawer.getByText("Bicicleta E2E")).toBeVisible();
+  await drawer.getByLabel("Número de tracking").fill("TRACK-E2E-1");
+  await drawer.getByRole("button", { name: "Marcar como enviado" }).click();
+
+  await expect(page.getByText("Estado logístico actualizado a SHIPPED.")).toBeVisible();
+  await expect(drawer.locator(".adminBadge").filter({ hasText: "Enviado" })).toBeVisible();
+  await expect(drawer.getByText("TRACK-E2E-1", { exact: true })).toBeVisible();
+  await expect.poll(() => capturedShippingFulfillmentMutations).toContainEqual({
+    method: "PATCH",
+    path: "/api/v1/admin/shipping/fulfillments/fulfillment-e2e-1/status",
+    body: {
+      status: "SHIPPED",
+      trackingNumber: "TRACK-E2E-1",
+      carrierId: "carrier-standard",
+    },
+  });
+  expect(capturedShippingAdminRequests).toContain(
+    `GET /api/v1/admin/shipping/fulfillments?organizationId=${defaultOrganizationId}&shopId=${barcelonaShopId}&status=PACKED&limit=25&offset=0`,
   );
   expect(browserExternalRequests).toEqual([]);
 });

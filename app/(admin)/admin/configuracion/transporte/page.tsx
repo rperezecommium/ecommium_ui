@@ -1,5 +1,10 @@
 import { getAdminContext } from "../../../../../src/shared/config/admin-context";
-import { getShippingAdminData, type ShippingAdminTab } from "../../../../../src/modules/transporte/shipping-admin";
+import {
+  getShippingAdminData,
+  shippingFulfillmentStatuses,
+  type ShippingAdminTab,
+  type ShippingFulfillmentStatus,
+} from "../../../../../src/modules/transporte/shipping-admin";
 import { ShippingAdminPage } from "../../../../../src/modules/transporte/shipping-admin-page";
 
 type TransportePageProps = {
@@ -23,6 +28,10 @@ type TransportePageProps = {
     customerGroupId?: string;
     drawer?: string;
     recordId?: string;
+    fulfillmentStatus?: string;
+    fulfillmentsLimit?: string;
+    fulfillmentsOffset?: string;
+    fulfillmentId?: string;
   }>;
 };
 
@@ -33,7 +42,10 @@ const shippingTabs = new Set<ShippingAdminTab>([
   "services",
   "rules",
   "quote",
+  "fulfillments",
 ]);
+
+const fulfillmentStatuses = new Set<ShippingFulfillmentStatus>(shippingFulfillmentStatuses);
 
 function tabParam(value: string | undefined): ShippingAdminTab {
   return shippingTabs.has(value as ShippingAdminTab) ? value as ShippingAdminTab : "summary";
@@ -41,6 +53,26 @@ function tabParam(value: string | undefined): ShippingAdminTab {
 
 function drawerParam(value: string | undefined): "create" | "edit" | undefined {
   return value === "create" || value === "edit" ? value : undefined;
+}
+
+function fulfillmentStatusParam(value: string | undefined): ShippingFulfillmentStatus | undefined {
+  return fulfillmentStatuses.has(value as ShippingFulfillmentStatus)
+    ? value as ShippingFulfillmentStatus
+    : undefined;
+}
+
+function nonNegativeIntegerParam(value: string | undefined, fallback: number) {
+  if (!value || !/^\d+$/.test(value)) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : fallback;
+}
+
+function fulfillmentIdParam(value: string | undefined) {
+  const fulfillmentId = value?.trim();
+  return fulfillmentId || undefined;
 }
 
 export default async function TransportePage({ searchParams }: TransportePageProps) {
@@ -66,6 +98,10 @@ export default async function TransportePage({ searchParams }: TransportePagePro
     customerGroupId: params?.customerGroupId,
     drawer: drawerParam(params?.drawer),
     recordId: params?.recordId,
+    fulfillmentStatus: fulfillmentStatusParam(params?.fulfillmentStatus),
+    fulfillmentsLimit: nonNegativeIntegerParam(params?.fulfillmentsLimit, 25),
+    fulfillmentsOffset: nonNegativeIntegerParam(params?.fulfillmentsOffset, 0),
+    fulfillmentId: fulfillmentIdParam(params?.fulfillmentId),
   };
   const data = await getShippingAdminData(context, filters);
 

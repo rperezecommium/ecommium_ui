@@ -3,8 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAdminContext } from "../../shared/config/admin-context";
-import { mutateShipping, patchShippingActive } from "./shipping-admin";
-import type { ShippingAdminTab } from "./shipping-admin";
+import {
+  shippingFulfillmentStatuses,
+  mutateShipping,
+  patchShippingActive,
+  transitionShippingFulfillment,
+} from "./shipping-admin";
+import type { ShippingAdminTab, ShippingFulfillmentStatus } from "./shipping-admin";
 
 function asString(value: FormDataEntryValue | null) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -66,6 +71,34 @@ function mutationMessage(result: Awaited<ReturnType<typeof mutateShipping>>, suc
   }
 
   return result.status === 403 ? "Falta permiso shipping.logistics.write." : result.error;
+}
+
+function isShippingFulfillmentStatus(value: string | undefined): value is ShippingFulfillmentStatus {
+  return Boolean(value && shippingFulfillmentStatuses.includes(value as ShippingFulfillmentStatus));
+}
+
+function fulfillmentFinish(formData: FormData, message: string): never {
+  const params = new URLSearchParams({ tab: "fulfillments", shippingMessage: message });
+  const fulfillmentStatus = asString(formData.get("fulfillmentStatus"));
+  const fulfillmentsLimit = asString(formData.get("fulfillmentsLimit"));
+  const fulfillmentsOffset = asString(formData.get("fulfillmentsOffset"));
+  const fulfillmentId = asString(formData.get("fulfillmentId"));
+
+  if (fulfillmentStatus && isShippingFulfillmentStatus(fulfillmentStatus)) {
+    params.set("fulfillmentStatus", fulfillmentStatus);
+  }
+  if (fulfillmentsLimit && /^\d+$/.test(fulfillmentsLimit)) {
+    params.set("fulfillmentsLimit", fulfillmentsLimit);
+  }
+  if (fulfillmentsOffset && /^\d+$/.test(fulfillmentsOffset)) {
+    params.set("fulfillmentsOffset", fulfillmentsOffset);
+  }
+  if (fulfillmentId) {
+    params.set("fulfillmentId", fulfillmentId);
+  }
+
+  revalidatePath("/admin/configuracion/transporte");
+  redirect(`/admin/configuracion/transporte?${params.toString()}`);
 }
 
 export async function upsertShippingZoneAction(formData: FormData) {
@@ -209,4 +242,35 @@ export async function setShippingResourceActiveAction(formData: FormData) {
     active,
   );
   finish(tab, mutationMessage(result, active ? "Recurso reactivado." : "Recurso desactivado."), includeInactive);
+}
+
+export async function transitionShippingFulfillmentAction(formData: FormData) {
+  const context = await getAdminContext();
+  const fulfillmentId = asString(formData.get("fulfillmentId"));
+  const status = asString(formData.get("status"));
+  const trackingNumber = asString(formData.get("trackingNumber"));
+  const carrierId = asString(formData.get("carrierId"));
+
+  if (!context.organizationId || !context.shopId) {
+    fulfillmentFinish(formData, "Selecciona Organization y Shop antes de actualizar el envío.");
+  }
+  if (!fulfillmentId || !isShippingFulfillmentStatus(status)) {
+    fulfillmentFinish(formData, "Falta fulfillmentId o el estado logístico no es válido.");
+  }
+  if (status === "SHIPPED" && !trackingNumber) {
+    fulfillmentFinish(formData, "Número de tracking requerido para marcar como enviado.");
+  }
+
+  const result = await transitionShippingFulfillment(context, fulfillmentId, {
+    status,
+    ...(trackingNumber ? { trackingNumber } : {}),
+    ...(carrierId ? { carrierId } : {}),
+  });
+
+  const message = result.ok
+    ? `Estado logístico actualizado a ${status}.`
+    : result.status === 403
+      ? "Falta permiso shipping.logistics.write."
+      : result.error;
+  fulfillmentFinish(formData, message);
 }

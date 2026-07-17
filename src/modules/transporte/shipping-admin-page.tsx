@@ -2,13 +2,23 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
-import type { ShippingAdminData, ShippingAdminResult, ShippingAdminTab, ShippingRecord, ShippingScalar } from "./shipping-admin";
+import { nextShippingFulfillmentStatuses, shippingFulfillmentStatuses } from "./shipping-admin";
+import type {
+  ShippingAdminData,
+  ShippingAdminResult,
+  ShippingAdminTab,
+  ShippingFulfillment,
+  ShippingFulfillmentStatus,
+  ShippingRecord,
+  ShippingScalar,
+} from "./shipping-admin";
 import {
   upsertShippingCarrierAction,
   upsertShippingCarrierServiceAction,
   upsertShippingRateRuleAction,
   upsertShippingZoneAction,
   setShippingResourceActiveAction,
+  transitionShippingFulfillmentAction,
 } from "./shipping-admin-actions";
 
 type ShippingAdminPageProps = {
@@ -34,6 +44,10 @@ type ShippingAdminPageProps = {
     customerGroupId?: string;
     drawer?: "create" | "edit";
     recordId?: string;
+    fulfillmentStatus?: string;
+    fulfillmentsLimit?: number;
+    fulfillmentsOffset?: number;
+    fulfillmentId?: string;
   };
 };
 
@@ -44,6 +58,7 @@ const tabs: Array<{ id: ShippingAdminTab; label: string }> = [
   { id: "services", label: "Servicios" },
   { id: "rules", label: "Reglas de tarifa" },
   { id: "quote", label: "Simulador" },
+  { id: "fulfillments", label: "Fulfillments" },
 ];
 
 function tabHref(tab: ShippingAdminTab, filters: ShippingAdminPageProps["filters"]) {
@@ -62,6 +77,29 @@ function drawerHref(tab: ShippingAdminTab, filters: ShippingAdminPageProps["filt
   }
   if (id) {
     params.set("recordId", id);
+  }
+
+  return `/admin/configuracion/transporte?${params.toString()}`;
+}
+
+function fulfillmentHref(
+  filters: ShippingAdminPageProps["filters"],
+  overrides: Partial<Pick<ShippingAdminPageProps["filters"], "fulfillmentStatus" | "fulfillmentsLimit" | "fulfillmentsOffset" | "fulfillmentId">>,
+) {
+  const next = { ...filters, ...overrides };
+  const params = new URLSearchParams({ tab: "fulfillments" });
+
+  if (next.fulfillmentStatus) {
+    params.set("fulfillmentStatus", next.fulfillmentStatus);
+  }
+  if (typeof next.fulfillmentsLimit === "number") {
+    params.set("fulfillmentsLimit", String(next.fulfillmentsLimit));
+  }
+  if (typeof next.fulfillmentsOffset === "number") {
+    params.set("fulfillmentsOffset", String(next.fulfillmentsOffset));
+  }
+  if (next.fulfillmentId) {
+    params.set("fulfillmentId", next.fulfillmentId);
   }
 
   return `/admin/configuracion/transporte?${params.toString()}`;
@@ -160,6 +198,214 @@ function ResultBanner<T>({ result }: { result: ShippingAdminResult<T> }) {
   );
 }
 
+function fulfillmentStatusBadge(status: string) {
+  if (status === "SHIPPED" || status === "DELIVERED") {
+    return "adminBadge adminBadgeOk";
+  }
+  if (status === "FAILED" || status === "UNKNOWN") {
+    return "adminBadge adminBadgeError";
+  }
+  return "adminBadge adminBadgeWarn";
+}
+
+function fulfillmentStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    PENDING_FULFILLMENT: "Pendiente de preparar",
+    READY_TO_PICK: "Listo para recoger",
+    PICKING: "En preparación",
+    PACKED: "Empaquetado",
+    SHIPPED: "Enviado",
+    DELIVERED: "Entregado",
+    FAILED: "Fallido",
+    UNKNOWN: "Estado no reconocido",
+  };
+
+  return labels[status] ?? status;
+}
+
+function dateTimeText(value: string | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("es-ES", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function fulfillmentCarrierText(fulfillment: ShippingFulfillment) {
+  return fulfillment.carrier?.label ?? fulfillment.carrierId ?? "-";
+}
+
+function fulfillmentOrderText(fulfillment: ShippingFulfillment) {
+  return fulfillment.orderReference ?? fulfillment.orderId ?? "-";
+}
+
+const fulfillmentPageSizeOptions = [25, 50, 100] as const;
+
+function FulfillmentFilters({ filters }: { filters: ShippingAdminPageProps["filters"] }) {
+  const clearHref = fulfillmentHref(filters, {
+    fulfillmentStatus: undefined,
+    fulfillmentsOffset: 0,
+    fulfillmentId: undefined,
+  });
+
+  return (
+    <section className="pricingPanel">
+      <div className="pricingPanelHeader">
+        <div>
+          <h2>Filtrar fulfillments</h2>
+          <p>El BFF permite filtrar por un estado logístico exacto dentro de la tienda activa.</p>
+        </div>
+        <Link className="adminButton adminButtonTiny" href={clearHref}>Limpiar</Link>
+      </div>
+      <form className="pricingDenseForm" method="get">
+        <input name="tab" type="hidden" value="fulfillments" />
+        <input name="fulfillmentsLimit" type="hidden" value={filters.fulfillmentsLimit ?? 25} />
+        <input name="fulfillmentsOffset" type="hidden" value="0" />
+        <DrawerField label="Estado">
+          <select name="fulfillmentStatus" defaultValue={filters.fulfillmentStatus ?? ""}>
+            <option value="">Todos los estados</option>
+            {shippingFulfillmentStatuses.map((status: ShippingFulfillmentStatus) => (
+              <option key={status} value={status}>{fulfillmentStatusLabel(status)}</option>
+            ))}
+          </select>
+        </DrawerField>
+        <button className="adminButton adminButtonPrimary" type="submit">Aplicar filtro</button>
+      </form>
+    </section>
+  );
+}
+
+function FulfillmentPagination({
+  count,
+  filters,
+  limit,
+  offset,
+  total,
+}: {
+  count: number;
+  filters: ShippingAdminPageProps["filters"];
+  limit: number;
+  offset: number;
+  total: number;
+}) {
+  const currentLimit = Number.isInteger(limit) && limit > 0 ? limit : count || 25;
+  const currentOffset = Number.isInteger(offset) && offset >= 0 ? offset : 0;
+  const firstItem = total > 0 ? currentOffset + 1 : 0;
+  const lastItem = Math.min(currentOffset + count, total);
+  const hasPrevious = currentOffset > 0;
+  const nextOffset = currentOffset + currentLimit;
+  const hasNext = nextOffset < total;
+  const pageHref = (nextLimit: number, nextOffsetValue: number) => fulfillmentHref(filters, {
+    fulfillmentId: undefined,
+    fulfillmentsLimit: nextLimit,
+    fulfillmentsOffset: nextOffsetValue,
+  });
+
+  return (
+    <nav className="productListPagination" aria-label="Paginacion de fulfillments">
+      <p>Mostrando {firstItem}-{lastItem} de {total} envíos</p>
+      <div className="productListPaginationControls">
+        <Link aria-disabled={!hasPrevious} className={`adminButton adminButtonTiny${hasPrevious ? "" : " adminButtonDisabled"}`} href={pageHref(currentLimit, hasPrevious ? Math.max(0, currentOffset - currentLimit) : currentOffset)}>Anterior</Link>
+        <Link aria-disabled={!hasNext} className={`adminButton adminButtonTiny${hasNext ? "" : " adminButtonDisabled"}`} href={pageHref(currentLimit, hasNext ? nextOffset : currentOffset)}>Siguiente</Link>
+      </div>
+      <div className="productListPaginationControls" aria-label="Tamano de pagina de fulfillments">
+        {fulfillmentPageSizeOptions.map((pageSize) => (
+          <Link className={`adminButton adminButtonTiny${currentLimit === pageSize ? " adminButtonDisabled" : ""}`} href={pageHref(pageSize, 0)} key={pageSize}>{pageSize} por página</Link>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+function orderHref(orderId: string) {
+  const params = new URLSearchParams({ orderId, orderTab: "operacion" });
+  return `/admin/pedidos?${params.toString()}`;
+}
+
+function FulfillmentsQueue({ data, filters }: Pick<ShippingAdminPageProps, "data" | "filters">) {
+  const fulfillments = data.fulfillments;
+
+  if (!fulfillments) {
+    return null;
+  }
+
+  return (
+    <>
+      <FulfillmentFilters filters={filters} />
+      <section className="pricingPanel">
+        <div className="pricingPanelHeader">
+          <div>
+            <h2>Cola global de fulfillments</h2>
+            <p>{fulfillments.data.total} envíos registrados para la tienda activa.</p>
+          </div>
+          <Link className="adminButton adminButtonTiny" href={fulfillmentHref(filters, { fulfillmentStatus: "FAILED", fulfillmentsOffset: 0, fulfillmentId: undefined })}>Ver fallidos</Link>
+        </div>
+        <ResultBanner result={fulfillments} />
+        {fulfillments.data.items.length ? (
+          <div className="adminTableScroller">
+            <table className="adminTable pricingTable shippingTable">
+              <thead>
+                <tr>
+                  <th scope="col">Pedido</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Transportista</th>
+                  <th scope="col">Tracking</th>
+                  <th scope="col">Almacén / muelle</th>
+                  <th scope="col">Artículos</th>
+                  <th scope="col">Actualizado</th>
+                  <th scope="col">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fulfillments.data.items.map((fulfillment) => {
+                  const totalQuantity = fulfillment.items.reduce((total, item) => total + item.quantity, 0);
+
+                  return (
+                    <tr key={fulfillment.fulfillmentId}>
+                      <td>
+                        <strong>{fulfillmentOrderText(fulfillment)}</strong>
+                        <div className="adminMuted">{fulfillment.orderId}</div>
+                      </td>
+                      <td><span className={fulfillmentStatusBadge(fulfillment.status)}>{fulfillmentStatusLabel(fulfillment.status)}</span></td>
+                      <td>
+                        <strong>{fulfillmentCarrierText(fulfillment)}</strong>
+                        <div className="adminMuted">{fulfillment.carrierId || "Sin transportista"}</div>
+                      </td>
+                      <td>{fulfillment.trackingNumber ?? "Sin tracking"}</td>
+                      <td>{fulfillment.warehouseId || "-"}<div className="adminMuted">{fulfillment.dockId || "-"}</div></td>
+                      <td>{fulfillment.items.length} líneas<div className="adminMuted">{totalQuantity} unidades</div></td>
+                      <td>{dateTimeText(fulfillment.updatedAt)}<div className="adminMuted">Creado {dateTimeText(fulfillment.createdAt)}</div></td>
+                      <td>
+                        <div className="adminButtonRow">
+                          <Link className="adminButton adminButtonTiny" href={fulfillmentHref(filters, { fulfillmentId: fulfillment.fulfillmentId })}>Ver envío</Link>
+                          <Link className="adminButton adminButtonTiny" href={orderHref(fulfillment.orderId)}>Abrir pedido</Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="adminEmptyState">No hay envíos para el filtro seleccionado.</div>
+        )}
+        <FulfillmentPagination
+          count={fulfillments.data.items.length}
+          filters={filters}
+          limit={fulfillments.data.limit}
+          offset={fulfillments.data.offset}
+          total={fulfillments.data.total}
+        />
+      </section>
+    </>
+  );
+}
+
 function RecordTable({
   title,
   result,
@@ -248,6 +494,223 @@ function ShippingDrawer({
   );
 }
 
+function safeTrackingUrl(value: string | null) {
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function deliveryAddressLines(fulfillment: ShippingFulfillment) {
+  const address = fulfillment.deliveryAddress;
+  if (!address) {
+    return [];
+  }
+
+  return [
+    address.receiverName,
+    [address.street, address.number].filter(Boolean).join(" "),
+    address.complement,
+    [address.postalCode, address.city].filter(Boolean).join(" "),
+    [address.state, address.country].filter(Boolean).join(", "),
+    address.reference ? `Referencia: ${address.reference}` : null,
+  ].filter((line): line is string => Boolean(line));
+}
+
+function FulfillmentDetailDrawer({ data, filters }: Pick<ShippingAdminPageProps, "data" | "filters">) {
+  if (filters.tab !== "fulfillments" || !filters.fulfillmentId) {
+    return null;
+  }
+
+  const closeHref = fulfillmentHref(filters, { fulfillmentId: undefined });
+  const result = data.selectedFulfillment;
+
+  return (
+    <ShippingDrawer
+      closeHref={closeHref}
+      description="Inspección logística interna del envío seleccionado. No modifica su estado."
+      title="Detalle de fulfillment"
+    >
+      {!result ? <div className="adminBanner adminBannerError"><p>No se pudo preparar el detalle del envío.</p></div> : null}
+      {result?.source === "unavailable" ? <ResultBanner result={result} /> : null}
+      {result?.source === "bff" && !result.data ? <div className="adminBanner adminBannerError"><p>No se encontró el envío seleccionado.</p></div> : null}
+      {result?.source === "bff" && result.data ? <FulfillmentDetail fulfillment={result.data} filters={filters} /> : null}
+    </ShippingDrawer>
+  );
+}
+
+function FulfillmentDetail({
+  fulfillment,
+  filters,
+}: {
+  fulfillment: ShippingFulfillment;
+  filters: ShippingAdminPageProps["filters"];
+}) {
+  const trackingUrl = safeTrackingUrl(fulfillment.trackingUrl);
+  const addressLines = deliveryAddressLines(fulfillment);
+  const timeline = [
+    { label: "Creado", occurredAt: fulfillment.createdAt },
+    ...(fulfillment.shippedAt ? [{ label: "Enviado", occurredAt: fulfillment.shippedAt }] : []),
+    ...(fulfillment.deliveredAt ? [{ label: "Entregado", occurredAt: fulfillment.deliveredAt }] : []),
+    ...(fulfillment.updatedAt !== fulfillment.createdAt ? [{ label: "Última actualización", occurredAt: fulfillment.updatedAt }] : []),
+  ];
+
+  return (
+    <div className="pricingDenseForm">
+      <section className="adminSection">
+        <div className="adminCardHeader">
+          <div>
+            <h3>{fulfillmentOrderText(fulfillment)}</h3>
+            <p>{fulfillment.fulfillmentId}</p>
+          </div>
+          <span className={fulfillmentStatusBadge(fulfillment.status)}>{fulfillmentStatusLabel(fulfillment.status)}</span>
+        </div>
+        <dl className="adminDefinitionList">
+          <div><dt>Pedido</dt><dd><Link href={orderHref(fulfillment.orderId)}>{fulfillment.orderId}</Link></dd></div>
+          <div><dt>Versión</dt><dd>{fulfillment.version}</dd></div>
+          <div><dt>Almacén</dt><dd>{fulfillment.warehouseId || "-"}</dd></div>
+          <div><dt>Muelle</dt><dd>{fulfillment.dockId || "-"}</dd></div>
+        </dl>
+      </section>
+
+      <section className="adminSection">
+        <h3>Transporte y tracking</h3>
+        <dl className="adminDefinitionList">
+          <div><dt>Transportista</dt><dd>{fulfillmentCarrierText(fulfillment)}</dd></div>
+          <div><dt>Tracking</dt><dd>{fulfillment.trackingNumber ?? "Sin tracking"}</dd></div>
+          <div><dt>Seguimiento externo</dt><dd>{trackingUrl ? <a href={trackingUrl} rel="noreferrer" target="_blank">Abrir seguimiento</a> : "No disponible"}</dd></div>
+        </dl>
+      </section>
+
+      <section className="adminSection">
+        <h3>Entrega</h3>
+        {addressLines.length ? <address className="adminMuted">{addressLines.map((line) => <div key={line}>{line}</div>)}</address> : <p className="adminMuted">Shipping no devolvió una dirección de entrega para este envío.</p>}
+      </section>
+
+      <section className="adminSection">
+        <h3>Artículos</h3>
+        {fulfillment.items.length ? (
+          <div className="adminTableScroller">
+            <table className="adminTable adminTableCompact">
+              <thead><tr><th>Artículo</th><th>Variante</th><th>Cantidad</th></tr></thead>
+              <tbody>
+                {fulfillment.items.map((item, index) => (
+                  <tr key={item.lineId ?? `${item.variantId}-${index}`}>
+                    <td>{item.name ?? item.productId ?? "Sin nombre"}</td>
+                    <td>{item.variantId || "-"}</td>
+                    <td>{item.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <p className="adminMuted">Shipping no devolvió artículos para este envío.</p>}
+      </section>
+
+      <section className="adminSection">
+        <h3>Timeline</h3>
+        <div className="adminStatusList">
+          {timeline.map((event) => <div className="adminStatusRow" key={`${event.label}-${event.occurredAt}`}><strong>{event.label}</strong><span>{dateTimeText(event.occurredAt)}</span></div>)}
+        </div>
+      </section>
+
+      <FulfillmentTransitionActions fulfillment={fulfillment} filters={filters} />
+    </div>
+  );
+}
+
+function FulfillmentTransitionFields({
+  fulfillment,
+  filters,
+  target,
+}: {
+  fulfillment: ShippingFulfillment;
+  filters: ShippingAdminPageProps["filters"];
+  target: ShippingFulfillmentStatus;
+}) {
+  return (
+    <>
+      <input name="fulfillmentId" type="hidden" value={fulfillment.fulfillmentId} />
+      <input name="status" type="hidden" value={target} />
+      <input name="fulfillmentStatus" type="hidden" value={filters.fulfillmentStatus ?? ""} />
+      <input name="fulfillmentsLimit" type="hidden" value={filters.fulfillmentsLimit ?? 25} />
+      <input name="fulfillmentsOffset" type="hidden" value={filters.fulfillmentsOffset ?? 0} />
+    </>
+  );
+}
+
+function FulfillmentTransitionActions({
+  fulfillment,
+  filters,
+}: {
+  fulfillment: ShippingFulfillment;
+  filters: ShippingAdminPageProps["filters"];
+}) {
+  const targets = nextShippingFulfillmentStatuses(fulfillment.status);
+
+  if (!targets.length) {
+    return (
+      <section className="adminSection">
+        <h3>Actualizar estado</h3>
+        <p className="adminMuted">Este fulfillment está en un estado terminal y no admite más transiciones.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="adminSection">
+      <h3>Actualizar estado</h3>
+      <p className="adminMuted">Solo se muestran las transiciones admitidas por Shipping para el estado actual.</p>
+      <div className="adminButtonRow">
+        {targets.map((target) => {
+          if (target === "FAILED") {
+            return (
+              <details className="productDangerMenu" key={target}>
+                <summary className="adminButton adminButtonDanger adminButtonTiny">Marcar fallido</summary>
+                <div className="productDangerPanel">
+                  <p>Esta acción deja el fulfillment en estado terminal. Confirma únicamente si el envío no puede continuar.</p>
+                  <form action={transitionShippingFulfillmentAction}>
+                    <FulfillmentTransitionFields fulfillment={fulfillment} filters={filters} target={target} />
+                    <button className="adminButton adminButtonDanger adminButtonTiny" type="submit">Confirmar envío fallido</button>
+                  </form>
+                </div>
+              </details>
+            );
+          }
+
+          if (target === "SHIPPED") {
+            return (
+              <form action={transitionShippingFulfillmentAction} className="pricingDenseForm" key={target}>
+                <FulfillmentTransitionFields fulfillment={fulfillment} filters={filters} target={target} />
+                <DrawerField label="Número de tracking">
+                  <input name="trackingNumber" required placeholder="TRACK-001" />
+                </DrawerField>
+                <DrawerField label="Transportista (opcional)">
+                  <input name="carrierId" defaultValue={fulfillment.carrierId} placeholder="carrier-standard" />
+                </DrawerField>
+                <button className="adminButton adminButtonPrimary adminButtonTiny" type="submit">Marcar como enviado</button>
+              </form>
+            );
+          }
+
+          return (
+            <form action={transitionShippingFulfillmentAction} key={target}>
+              <FulfillmentTransitionFields fulfillment={fulfillment} filters={filters} target={target} />
+              <button className="adminButton adminButtonPrimary adminButtonTiny" type="submit">Marcar como {fulfillmentStatusLabel(target).toLowerCase()}</button>
+            </form>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function ShippingResourceDrawer({
   context,
   filters,
@@ -331,7 +794,7 @@ function ShippingResourceDrawer({
 }
 
 function ShippingFilters({ filters }: { filters: ShippingAdminPageProps["filters"] }) {
-  if (filters.tab === "quote") {
+  if (filters.tab === "quote" || filters.tab === "fulfillments") {
     return null;
   }
 
@@ -830,7 +1293,10 @@ export function ShippingAdminPage({ context, data, filters }: ShippingAdminPageP
         </>
       ) : null}
 
+      {activeTab === "fulfillments" ? <FulfillmentsQueue data={data} filters={filters} /> : null}
+
       <ShippingResourceDrawer context={context} filters={filters} configuration={configuration} />
+      <FulfillmentDetailDrawer data={data} filters={filters} />
     </main>
   );
 }

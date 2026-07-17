@@ -1138,6 +1138,44 @@ p {
   margin-top: 16px;
 }
 
+.adminDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.adminDetailGrid > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.adminDetailGrid span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.adminCheckboxField {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.adminCheckboxField input {
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  accent-color: var(--admin-primary);
+}
+
 .adminTableScroller {
   overflow-x: auto;
   scrollbar-gutter: stable;
@@ -4030,6 +4068,61 @@ p {
   grid-template-columns: 1fr;
   align-content: start;
   align-items: stretch;
+}
+
+.checkoutConfigurationDrawer {
+  grid-template-rows: auto 1fr;
+}
+
+.checkoutConfigurationDrawerForm {
+  grid-template-columns: 1fr;
+  align-content: start;
+  align-items: stretch;
+}
+
+.checkoutConfigurationDrawerForm > .adminSection {
+  margin: 0;
+}
+
+.checkoutConfigurationDrawerForm .adminFormGrid {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.checkoutConfigurationDrawerForm .adminCheckboxField {
+  gap: 10px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.checkoutConfigurationReadonlyValue {
+  display: grid;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.checkoutConfigurationReadonlyValue span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.checkoutConfigurationReadonlyValue strong {
+  color: var(--admin-text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.checkoutConfigurationDrawerFooter {
+  position: sticky;
+  bottom: -18px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 0 2px;
+  border-top: 1px solid var(--admin-border-subtle);
+  background: var(--admin-surface);
 }
 
 .adminSideDrawer .adminField span {
