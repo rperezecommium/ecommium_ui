@@ -144,6 +144,24 @@ function configuredTemplateKey(action: AutomationRule["actions"][number]) {
   return typeof templateKey === "string" && templateKey.trim() ? templateKey : undefined;
 }
 
+function visualEmailOptions(data: AutomationAdminData) {
+  if (!data.emailTemplates.ok) {
+    return [];
+  }
+
+  const activeTemplates = data.emailTemplates.data.items.filter((template) => (
+    template.status === "ACTIVE" && template.locale === data.context.locale
+  ));
+
+  return recommendedAutomationDrafts.flatMap((draft) => activeTemplates.map((template) => ({
+    eventType: draft.payload.trigger.eventType,
+    templateKey: template.templateKey,
+    templateLabel: template.subjectTemplate
+      ? `${template.templateKey} — ${template.subjectTemplate}`
+      : template.templateKey,
+  })));
+}
+
 function ruleConditionText(rule: AutomationRule) {
   if (!rule.conditions.length) {
     return "siempre";
@@ -1721,11 +1739,7 @@ function AutomationRuleMigrationDrawer({
       advancedHref={advancedHref}
       cancelHref={closeHref}
       country={data.context.country}
-      emailOptions={recommendedAutomationDrafts.map((draft) => ({
-        eventType: draft.payload.trigger.eventType,
-        templateKey: draft.templateKey,
-        templateLabel: draft.templateLabel,
-      }))}
+      emailOptions={visualEmailOptions(data)}
       events={automationBusinessEvents}
       initialRule={compatibility.migration}
       locale={data.context.locale}
@@ -1759,11 +1773,7 @@ function AutomationDetailDrawer({ data, filters }: Props) {
             advancedHref={advancedHref}
             cancelHref={closeHref}
             country={data.context.country}
-            emailOptions={recommendedAutomationDrafts.map((draft) => ({
-              eventType: draft.payload.trigger.eventType,
-              templateKey: draft.templateKey,
-              templateLabel: draft.templateLabel,
-            }))}
+            emailOptions={visualEmailOptions(data)}
             events={automationBusinessEvents}
             locale={data.context.locale}
             shopLabel={shopLabel}

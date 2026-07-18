@@ -1152,12 +1152,122 @@ async function startBffMock() {
       expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
       expect(url.searchParams.get("locale")).toBe("es-ES");
       capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      const status = url.searchParams.get("status");
+      const limit = Number(url.searchParams.get("limit") ?? 20);
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const items = authEmailTemplates.filter((template) => !status || template.status === status);
       sendJson(response, 200, {
-        items: authEmailTemplates,
-        total: authEmailTemplates.length,
-        limit: Number(url.searchParams.get("limit") ?? 20),
-        offset: Number(url.searchParams.get("offset") ?? 0),
+        items: items.slice(offset, offset + limit),
+        total: items.length,
+        limit,
+        offset,
       });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/v1/admin/communications/templates/email") {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const body = await readJsonBody(request);
+      const template = {
+        templateId: `template-${String(body.templateKey).replace(/[^a-z0-9]+/gi, "-")}`,
+        templateKey: String(body.templateKey),
+        channel: "EMAIL",
+        locale: String(body.locale),
+        subjectTemplate: typeof body.subjectTemplate === "string" ? body.subjectTemplate : null,
+        htmlTemplate: typeof body.htmlTemplate === "string" ? body.htmlTemplate : null,
+        textTemplate: typeof body.textTemplate === "string" ? body.textTemplate : null,
+        status: "DRAFT",
+        requiredVariables: Array.isArray(body.requiredVariables) ? body.requiredVariables : [],
+        previewData: body.previewData ?? {},
+        version: 1,
+        createdAt: "2026-07-18T12:00:00.000Z",
+        updatedAt: "2026-07-18T12:00:00.000Z",
+        activatedAt: null,
+        archivedAt: null,
+      };
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      capturedCommunicationsMutations.push({ method: request.method, path: url.pathname, body });
+      authEmailTemplates = [...authEmailTemplates, template];
+      sendJson(response, 201, template);
+      return;
+    }
+
+    const emailTemplatePreviewMatch = url.pathname.match(/^\/api\/v1\/admin\/communications\/templates\/email\/([^/]+)\/preview$/);
+    if (request.method === "POST" && emailTemplatePreviewMatch) {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const templateId = decodeURIComponent(emailTemplatePreviewMatch[1]);
+      const template = authEmailTemplates.find((item) => item.templateId === templateId);
+      const body = await readJsonBody(request);
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      capturedCommunicationsMutations.push({ method: request.method, path: url.pathname, body });
+      if (!template) {
+        sendJson(response, 404, { message: "Plantilla no encontrada" });
+        return;
+      }
+      sendJson(response, 200, {
+        templateId,
+        templateKey: template.templateKey,
+        locale: template.locale,
+        status: template.status,
+        rendered: {
+          subject: template.subjectTemplate ?? "Sin asunto",
+          html: template.htmlTemplate ?? "<p>Sin HTML</p>",
+          text: template.textTemplate ?? "Sin texto",
+        },
+        usedVariables: Object.keys((body.data ?? {}) as Record<string, unknown>),
+      });
+      return;
+    }
+
+    const emailTemplateTransitionMatch = url.pathname.match(/^\/api\/v1\/admin\/communications\/templates\/email\/([^/]+)\/(activate|deactivate|archive)$/);
+    if (request.method === "POST" && emailTemplateTransitionMatch) {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const templateId = decodeURIComponent(emailTemplateTransitionMatch[1]);
+      const transition = emailTemplateTransitionMatch[2];
+      const current = authEmailTemplates.find((item) => item.templateId === templateId);
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      capturedCommunicationsMutations.push({ method: request.method, path: url.pathname, body: await readJsonBody(request) });
+      if (!current) {
+        sendJson(response, 404, { message: "Plantilla no encontrada" });
+        return;
+      }
+      const next = {
+        ...current,
+        status: transition === "activate" ? "ACTIVE" : transition === "deactivate" ? "DRAFT" : "ARCHIVED",
+        activatedAt: transition === "activate" ? "2026-07-18T12:05:00.000Z" : current.activatedAt ?? null,
+        archivedAt: transition === "archive" ? "2026-07-18T12:05:00.000Z" : current.archivedAt ?? null,
+        updatedAt: "2026-07-18T12:05:00.000Z",
+      };
+      authEmailTemplates = authEmailTemplates.map((item) => item.templateId === templateId ? next : item);
+      sendJson(response, 200, next);
+      return;
+    }
+
+    const emailTemplateMatch = url.pathname.match(/^\/api\/v1\/admin\/communications\/templates\/email\/([^/]+)$/);
+    if (request.method === "PATCH" && emailTemplateMatch) {
+      expect(url.searchParams.get("organizationId")).toBe(defaultOrganizationId);
+      expect(url.searchParams.get("shopId")).toBe(barcelonaShopId);
+      const templateId = decodeURIComponent(emailTemplateMatch[1]);
+      const current = authEmailTemplates.find((item) => item.templateId === templateId);
+      const body = await readJsonBody(request);
+      capturedCommunicationsAdminRequests.push(`${request.method} ${url.pathname}`);
+      capturedCommunicationsMutations.push({ method: request.method, path: url.pathname, body });
+      if (!current) {
+        sendJson(response, 404, { message: "Plantilla no encontrada" });
+        return;
+      }
+      const next = {
+        ...current,
+        ...body,
+        status: "DRAFT",
+        version: Number(current.version ?? 0) + 1,
+        updatedAt: "2026-07-18T12:04:00.000Z",
+      };
+      authEmailTemplates = authEmailTemplates.map((item) => item.templateId === templateId ? next : item);
+      sendJson(response, 200, next);
       return;
     }
 
@@ -2859,6 +2969,56 @@ test("communications audit filters, inspects and retries a failed delivery", asy
     path: "/api/v1/admin/communications/deliveries/delivery-failed-1/retry",
     body: {},
   });
+});
+
+test("communications template editor creates, previews and activates an email template", async ({ page }) => {
+  capturedCommunicationsAdminRequests.length = 0;
+  capturedCommunicationsMutations.length = 0;
+  authEmailTemplates = [];
+
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/configuracion/comunicaciones`);
+  await page.getByRole("link", { name: "Crear plantilla" }).click();
+
+  const createDrawer = page.getByRole("dialog", { name: "Crear plantilla email" });
+  await expect(createDrawer.getByLabel("Formato de bloque")).toBeVisible();
+  await expect(createDrawer.getByRole("button", { name: "Negrita" })).toBeVisible();
+  await expect(createDrawer.getByRole("button", { name: "Cursiva" })).toBeVisible();
+  await expect(createDrawer.getByRole("button", { name: "Tachado" })).toBeVisible();
+  await expect(createDrawer.getByRole("button", { name: "Lista con vinetas" })).toBeVisible();
+  await expect(createDrawer.getByRole("button", { name: "Lista numerada" })).toBeVisible();
+  await expect(createDrawer.getByRole("button", { name: "Añadir enlace" })).toBeVisible();
+  await expect(createDrawer.getByRole("button", { name: "Alinear a la izquierda" })).toBeVisible();
+  await expect(createDrawer.getByRole("button", { name: "Centrar texto" })).toBeVisible();
+  await expect(createDrawer.getByRole("button", { name: "Subir imagen" })).toBeDisabled();
+  await createDrawer.getByLabel("Clave de plantilla").fill("shipping.delivery-custom");
+  await createDrawer.getByLabel("Asunto").fill("Pedido entregado: ");
+  await createDrawer.getByRole("button", { name: "{{customer.name}}" }).click();
+  await expect(createDrawer.getByLabel("Asunto")).toHaveValue("Pedido entregado: {{customer.name}}");
+  await createDrawer.getByLabel("HTML fuente de la plantilla").fill("<p>Hola {{customer.name}}</p>");
+  await createDrawer.getByLabel("Texto plano").fill("Hola {{customer.name}}");
+  await createDrawer.getByLabel("Datos de preview (JSON)").fill('{"customer":{"name":"Ada"}}');
+  await createDrawer.getByRole("button", { name: "Crear borrador" }).click();
+
+  await expect(page.getByText("Plantilla shipping.delivery-custom creada como borrador.")).toBeVisible();
+  const templateRow = page.getByRole("row", { name: /shipping\.delivery-custom/ });
+  await expect(templateRow.getByText("DRAFT")).toBeVisible();
+  await templateRow.getByRole("link", { name: "Editar" }).click();
+
+  const editDrawer = page.getByRole("dialog", { name: "Editar plantilla email" });
+  await expect(editDrawer.getByRole("button", { name: "Subir imagen" })).toBeEnabled();
+  await editDrawer.getByRole("button", { name: "Actualizar preview" }).click();
+  const previewPanel = editDrawer.locator(".emailTemplatePreview");
+  await expect(previewPanel.getByText("Preview desde Communications")).toBeVisible();
+  await expect(previewPanel.locator("iframe")).toHaveAttribute("srcdoc", /Hola {{customer\.name}}/);
+  await editDrawer.getByRole("button", { name: "Activar plantilla" }).click();
+
+  await expect(page.getByText("Plantilla shipping.delivery-custom activada.")).toBeVisible();
+  await expect(page.getByRole("row", { name: /shipping\.delivery-custom/ }).getByText("ACTIVE")).toBeVisible();
+  await expect.poll(() => capturedCommunicationsMutations.some((mutation) => (
+    mutation.method === "POST"
+    && mutation.path.endsWith("/activate")
+  ))).toBe(true);
 });
 
 test("customers admin opens the 360 drawer with profile addresses and purchases", async ({ page }) => {

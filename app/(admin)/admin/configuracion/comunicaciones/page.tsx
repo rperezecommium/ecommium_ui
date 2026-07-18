@@ -18,6 +18,9 @@ export default async function ComunicacionesPage({ searchParams }: PageProps) {
     drawer: normalizeDrawer(first(query?.drawer)),
     notice: first(query?.notice),
     status: normalizeStatus(first(query?.status)),
+    templateId: normalizeFilterValue(first(query?.templateId)),
+    templatesLimit: normalizeLimit(first(query?.templatesLimit)),
+    templatesOffset: normalizeOffset(first(query?.templatesOffset)),
     deliveryId: normalizeFilterValue(first(query?.deliveryId)),
     deliveryStatus: normalizeDeliveryStatus(first(query?.deliveryStatus)),
     deliveryTemplateKey: normalizeFilterValue(first(query?.deliveryTemplateKey)),
@@ -36,13 +39,13 @@ function first(value: string | string[] | undefined): string | undefined {
 }
 
 function normalizeStatus(value: string | undefined): CommunicationsTemplateStatus | undefined {
-  return value === "DRAFT" || value === "ACTIVE" || value === "INACTIVE" || value === "ARCHIVED"
+  return value === "DRAFT" || value === "ACTIVE" || value === "ARCHIVED"
     ? value
     : undefined;
 }
 
 function normalizeDrawer(value: string | undefined): CommunicationsAdminFilters["drawer"] {
-  return value === "provider" || value === "delivery" ? value : undefined;
+  return value === "provider" || value === "delivery" || value === "template" ? value : undefined;
 }
 
 function normalizeDeliveryStatus(value: string | undefined): EmailDeliveryStatus | undefined {

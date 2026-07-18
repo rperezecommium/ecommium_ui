@@ -383,11 +383,11 @@ export async function createVisualAutomationRuleAction(formData: FormData): Prom
     }];
   } else {
     const templateKey = asString(formData.get("templateKey"));
-    const selectedDraft = recommendedAutomationDrafts.find((draft) => (
-      draft.payload.trigger.eventType === event.eventType && draft.templateKey === templateKey
+    const eventDraft = recommendedAutomationDrafts.find((draft) => (
+      draft.payload.trigger.eventType === event.eventType
     ));
 
-    if (!selectedDraft) {
+    if (!eventDraft) {
       finish("Esta combinación de situación y plantilla todavía no está preparada. Usa el modo avanzado.", {
         drawer: "rule-visual-create",
       });
@@ -400,20 +400,20 @@ export async function createVisualAutomationRuleAction(formData: FormData): Prom
         : templates.error, { drawer: "rule-visual-create" });
     }
 
-    const templateReady = templates.data.items.some((template) => (
-      template.templateKey === selectedDraft.templateKey
+    const selectedTemplate = templates.data.items.find((template) => (
+      template.templateKey === templateKey
       && template.locale === context.locale
       && template.status === "ACTIVE"
     ));
-    if (!templateReady) {
-      finish(`Activa la plantilla ${selectedDraft.templateLabel} en Comunicaciones antes de crear este borrador.`, {
+    if (!selectedTemplate) {
+      finish("Selecciona una plantilla activa de Comunicaciones para crear este borrador.", {
         drawer: "rule-visual-create",
       });
     }
 
-    actions = selectedDraft.payload.actions.map((action) => ({
+    actions = eventDraft.payload.actions.map((action) => ({
       ...action,
-      config: { ...action.config, locale: context.locale },
+      config: { ...action.config, locale: context.locale, templateKey: selectedTemplate.templateKey },
     }));
   }
 

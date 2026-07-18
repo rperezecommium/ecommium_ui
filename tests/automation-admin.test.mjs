@@ -340,13 +340,19 @@ test("automation phase three creates recommended email rules as drafts only when
   const dataSource = source("src/modules/configuracion/automation-admin.ts");
   const actionsSource = source("src/modules/configuracion/automation-admin-actions.ts");
   const pageSource = source("src/modules/configuracion/automation-admin-page.tsx");
+  const builderSource = source("src/modules/configuracion/automation-visual-rule-builder.tsx");
 
   assert.match(dataSource, /recommendedAutomationDrafts/);
   assert.match(dataSource, /shipping\.delivered/);
   assert.match(dataSource, /invoice\.available/);
   assert.match(dataSource, /listAutomationEmailTemplates/);
+  assert.match(dataSource, /status: "ACTIVE"/);
+  assert.doesNotMatch(dataSource, /"INACTIVE"/);
   assert.match(actionsSource, /createRecommendedAutomationDraftAction/);
   assert.match(actionsSource, /template\.status === "ACTIVE"/);
+  assert.match(actionsSource, /selectedTemplate\.templateKey/);
+  assert.match(pageSource, /visualEmailOptions/);
+  assert.match(builderSource, /Plantilla de email activa/);
   assert.match(pageSource, /Automatizaciones recomendadas/);
   assert.match(pageSource, /Crear borrador para revisar/);
   assert.match(pageSource, /Revisar lo que se creará/);
@@ -537,7 +543,7 @@ test("automation admin data layer uses scoped BFF endpoints for health rules exe
     "/admin/automation/health",
     "/admin/automation/rules?organizationId=org-1&shopId=shop-1&status=ACTIVE&eventType=shipping.fulfillment.shipped.v1&limit=10&offset=5",
     "/admin/automation/executions?organizationId=org-1&shopId=shop-1&status=FAILED&ruleId=rule-1&eventType=shipping.fulfillment.shipped.v1&limit=30&offset=2",
-    "/admin/communications/templates/email?organizationId=org-1&shopId=shop-1&locale=es-ES&limit=100&offset=0",
+    "/admin/communications/templates/email?organizationId=org-1&shopId=shop-1&locale=es-ES&limit=100&offset=0&status=ACTIVE",
   ]);
   assert.equal(data.health.data.service, "automation");
   assert.equal(data.rules.data.items[0].actions[0].type, "SEND_EMAIL");
@@ -1025,7 +1031,7 @@ test("recommended automation draft does not create a rule when its template is i
           templateId: "template-1",
           templateKey: "shipping.delivered",
           locale: "es-ES",
-          status: "INACTIVE",
+          status: "DRAFT",
           subjectTemplate: "Pedido entregado",
           updatedAt: "2026-07-15T10:00:00.000Z",
         }],
@@ -1074,6 +1080,44 @@ test("visual rule builder creates an email draft only after template verificatio
   assert.equal(actions.calls[1][2].trigger.eventType, "shipping.fulfillment.delivered.v1");
   assert.deepEqual(JSON.parse(JSON.stringify(actions.calls[1][2].conditions)), [{ field: "payload.customerId", operator: "exists" }]);
   assert.equal(actions.calls[1][2].actions[0].config.templateKey, "shipping.delivered");
+  assert.equal(actions.calls[1][2].actions[0].config.locale, "es-ES");
+});
+
+test("visual rule builder accepts any active template for a supported fulfillment event", async () => {
+  const actions = loadAutomationActionsModule({
+    emailTemplatesResult: {
+      ok: true,
+      status: 200,
+      correlationId: "corr-templates",
+      data: {
+        items: [{
+          templateId: "template-custom",
+          templateKey: "shipping.delivery-custom",
+          locale: "es-ES",
+          status: "ACTIVE",
+          subjectTemplate: "Tu pedido ya llegó",
+          updatedAt: "2026-07-18T10:00:00.000Z",
+        }],
+        total: 1,
+        limit: 100,
+        offset: 0,
+      },
+    },
+  });
+  const form = new FormData();
+  form.set("name", "Entrega con contenido personalizado");
+  form.set("eventType", "shipping.fulfillment.delivered.v1");
+  form.set("conditionMode", "always");
+  form.set("actionType", "SEND_EMAIL");
+  form.set("templateKey", "shipping.delivery-custom");
+
+  await assert.rejects(() => actions.createVisualAutomationRuleAction(form), (error) => {
+    const url = new URL(error.url, "http://admin.test");
+    assert.match(url.searchParams.get("notice"), /Borrador creado/);
+    return true;
+  });
+
+  assert.equal(actions.calls[1][2].actions[0].config.templateKey, "shipping.delivery-custom");
   assert.equal(actions.calls[1][2].actions[0].config.locale, "es-ES");
 });
 

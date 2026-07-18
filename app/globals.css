@@ -4070,6 +4070,177 @@ p {
   align-items: stretch;
 }
 
+.emailTemplateDrawer {
+  width: min(860px, calc(100vw - 24px));
+}
+
+.emailTemplateVariableLibrary {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.emailTemplateVariableLibrary strong,
+.emailTemplateVariableLibrary p {
+  margin: 0;
+}
+
+.emailTemplateVariableLibrary p {
+  margin-top: 4px;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.emailTemplateVariableChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.emailTemplateHtmlEditor .richTextEditable {
+  min-height: 220px;
+}
+
+.emailTemplateLinkEditor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid var(--admin-border-subtle);
+  background: var(--admin-surface-muted);
+}
+
+.emailTemplateLinkEditor input {
+  flex: 1 1 250px;
+  min-width: 0;
+}
+
+.emailTemplateUploadFeedback,
+.emailTemplateUploadError {
+  margin: 0;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--admin-border-subtle);
+  font-size: 12px;
+}
+
+.emailTemplateUploadFeedback {
+  color: var(--admin-text-muted);
+  background: var(--admin-surface-muted);
+}
+
+.emailTemplateUploadError {
+  color: var(--admin-danger, #b42318);
+  background: #fef3f2;
+}
+
+.emailTemplateMediaLibrary {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid var(--admin-border-subtle);
+  background: var(--admin-surface-muted);
+}
+
+.emailTemplateMediaLibrary p {
+  margin: 3px 0 0;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.emailTemplateMediaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.emailTemplateMediaItem {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.emailTemplateMediaItem img {
+  width: 100%;
+  height: 86px;
+  object-fit: contain;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.emailTemplateMediaItem span {
+  overflow: hidden;
+  color: var(--admin-text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.emailTemplatePreview {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.emailTemplatePreview h3,
+.emailTemplatePreview p {
+  margin: 0;
+}
+
+.emailTemplatePreview .adminCardHeader p {
+  margin-top: 4px;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.emailTemplatePreviewResult {
+  display: grid;
+  gap: 10px;
+}
+
+.emailTemplatePreviewResult iframe {
+  width: 100%;
+  min-height: 360px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.emailTemplatePreviewResult pre {
+  max-height: 180px;
+  overflow: auto;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+  font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  white-space: pre-wrap;
+}
+
 .checkoutConfigurationDrawer {
   grid-template-rows: auto 1fr;
 }

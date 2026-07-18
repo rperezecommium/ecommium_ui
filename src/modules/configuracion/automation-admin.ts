@@ -139,7 +139,7 @@ export type AutomationEmailDefaultsResponse = {
   items: AutomationEmailDefaultsResultItem[];
 };
 
-export type AutomationEmailTemplateStatus = "DRAFT" | "ACTIVE" | "INACTIVE" | "ARCHIVED";
+export type AutomationEmailTemplateStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 
 export type AutomationEmailTemplate = {
   templateId: string;
@@ -384,6 +384,7 @@ export async function listAutomationEmailTemplates(context: AdminContext): Promi
       locale: context.locale,
       limit: "100",
       offset: "0",
+      status: "ACTIVE",
     }),
     { context },
   );

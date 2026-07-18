@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { AdminContext } from "../../shared/config/admin-context";
+import { CommunicationsTemplateEditor } from "./communications-template-editor-client";
 import type {
   CommunicationsAdminData,
   CommunicationsAdminFilters,
@@ -36,6 +37,7 @@ const authTemplateKeys = new Set([
 ]);
 const deliveryStatuses: EmailDeliveryStatus[] = ["PENDING", "SENT", "FAILED", "SKIPPED", "RETRYING"];
 const deliveryPageSizeOptions = ["10", "20", "50"];
+const templatePageSizeOptions = ["20", "50", "100"];
 
 function valueText(value: string | number | boolean | null | undefined) {
   if (typeof value === "boolean") {
@@ -121,6 +123,15 @@ function communicationsHref(filters: CommunicationsAdminFilters, overrides: Part
   }
   if (next.status) {
     params.set("status", next.status);
+  }
+  if (next.templateId) {
+    params.set("templateId", next.templateId);
+  }
+  if (next.templatesLimit) {
+    params.set("templatesLimit", next.templatesLimit);
+  }
+  if (next.templatesOffset) {
+    params.set("templatesOffset", next.templatesOffset);
   }
   if (next.deliveryStatus) {
     params.set("deliveryStatus", next.deliveryStatus);
@@ -466,12 +477,114 @@ function DeliveryDrawer({ data, filters, closeHref }: { data: CommunicationsAdmi
   );
 }
 
+function TemplateTable({ data, filters }: Pick<Props, "data" | "filters">) {
+  if (!data.authTemplates.ok) {
+    return <div className="adminBanner adminBannerError">No se pudieron cargar las plantillas: {data.authTemplates.error}</div>;
+  }
+
+  const templates = data.authTemplates.data;
+  const createHref = communicationsHref(filters, {
+    drawer: "template",
+    templateId: undefined,
+    notice: undefined,
+  });
+  const clearHref = communicationsHref(filters, {
+    drawer: undefined,
+    status: undefined,
+    templateId: undefined,
+    templatesLimit: undefined,
+    templatesOffset: undefined,
+    notice: undefined,
+  });
+  const currentOffset = Number.parseInt(filters.templatesOffset ?? String(templates.offset), 10) || 0;
+  const currentLimit = Number.parseInt(filters.templatesLimit ?? String(templates.limit), 10) || templates.limit;
+  const hasPrevious = currentOffset > 0;
+  const hasNext = currentOffset + currentLimit < templates.total;
+
+  return (
+    <section className="adminCard">
+      <div className="adminCardHeader">
+        <div>
+          <h2>Plantillas email</h2>
+          <p>{templates.total} plantillas para el locale activo. Edita contenido y lifecycle sin salir de Comunicaciones.</p>
+        </div>
+        <Link className="adminButton adminButtonPrimary" href={createHref}>Crear plantilla</Link>
+      </div>
+      <form className="pricingDenseForm adminSection" method="get">
+        <div className="adminFormGrid">
+          <label className="adminField">
+            <span>Estado</span>
+            <select name="status" defaultValue={filters.status ?? ""}>
+              <option value="">Todos</option>
+              <option value="DRAFT">Borrador</option>
+              <option value="ACTIVE">Activa</option>
+              <option value="ARCHIVED">Archivada</option>
+            </select>
+          </label>
+          <label className="adminField">
+            <span>Por página</span>
+            <select name="templatesLimit" defaultValue={String(currentLimit)}>
+              {templatePageSizeOptions.map((size) => <option key={size} value={size}>{size}</option>)}
+            </select>
+          </label>
+        </div>
+        <input name="templatesOffset" type="hidden" value="0" />
+        <div className="adminButtonRow">
+          <button className="adminButton adminButtonPrimary" type="submit">Aplicar filtro</button>
+          <Link className="adminButton adminButtonTiny" href={clearHref}>Limpiar</Link>
+        </div>
+      </form>
+      {templates.items.length ? (
+        <div className="adminTableScroller">
+          <table className="adminTable">
+            <thead><tr><th>Plantilla</th><th>Locale</th><th>Estado</th><th>Versión</th><th>Actualizada</th><th>Acción</th></tr></thead>
+            <tbody>{templates.items.map((template) => (
+              <tr key={template.templateId}>
+                <td><strong>{template.templateKey}</strong><div className="adminMuted">{truncateText(template.subjectTemplate, 88)}</div></td>
+                <td>{template.locale}</td>
+                <td><span className={statusBadge(template.status)}>{template.status}</span></td>
+                <td>{template.version}</td>
+                <td>{dateText(template.updatedAt)}</td>
+                <td><Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { drawer: "template", templateId: template.templateId, notice: undefined })}>Editar</Link></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      ) : <div className="adminEmptyState">No hay plantillas para los filtros seleccionados.</div>}
+      {templates.total > currentLimit ? (
+        <div className="adminPagination">
+          <span className="adminMuted">Mostrando {Math.min(currentOffset + 1, templates.total)}–{Math.min(currentOffset + currentLimit, templates.total)} de {templates.total}</span>
+          <div className="adminButtonRow">
+            {hasPrevious ? <Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { templatesOffset: String(Math.max(0, currentOffset - currentLimit)), notice: undefined })}>Anterior</Link> : null}
+            {hasNext ? <Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { templatesOffset: String(currentOffset + currentLimit), notice: undefined })}>Siguiente</Link> : null}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function CommunicationsAdminPage({ context, data, filters }: Props) {
   const settings = data.settings.ok ? data.settings.data : defaultSettings(context);
-  const providerDrawerHref = communicationsHref(filters, { drawer: "provider", deliveryId: undefined, notice: undefined });
-  const closeDrawerHref = communicationsHref(filters, { drawer: undefined, deliveryId: undefined, notice: undefined });
+  const providerDrawerHref = communicationsHref(filters, {
+    drawer: "provider",
+    deliveryId: undefined,
+    templateId: undefined,
+    notice: undefined,
+  });
+  const closeDrawerHref = communicationsHref(filters, {
+    drawer: undefined,
+    deliveryId: undefined,
+    templateId: undefined,
+    notice: undefined,
+  });
+  const allTemplates = data.authTemplates.ok ? data.authTemplates.data.items : [];
+  const authTemplates = allTemplates.filter((item) => authTemplateKeys.has(item.templateKey));
+  const selectedTemplate = filters.drawer === "template" && filters.templateId
+    ? allTemplates.find((item) => item.templateId === filters.templateId)
+    : undefined;
   const templates = data.authTemplates.ok
-    ? data.authTemplates.data.items.filter((item) => authTemplateKeys.has(item.templateKey))
+    ? authTemplates
     : [];
   const testTemplateOptions = Array.from(new Set([
     ...templates.filter((template) => template.status === "ACTIVE").map((template) => template.templateKey),
@@ -608,7 +721,9 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
                 {templates.length ? templates.map((template) => (
                   <tr key={template.templateId}>
                     <td>
-                      <strong>{template.templateKey}</strong>
+                      <Link href={communicationsHref(filters, { drawer: "template", templateId: template.templateId, notice: undefined })}>
+                        <strong>{template.templateKey}</strong>
+                      </Link>
                       <div className="adminMuted">{template.subjectTemplate ?? "Sin asunto"}</div>
                     </td>
                     <td><span className={statusBadge(template.status)}>{template.status}</span></td>
@@ -627,6 +742,7 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
         </aside>
       </section>
 
+      <TemplateTable data={data} filters={filters} />
       <DeliveryFilters filters={filters} />
       <DeliveryAuditTable data={data} filters={filters} />
 
@@ -647,6 +763,9 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
         <ProviderDrawer settings={settings} closeHref={closeDrawerHref} />
       ) : null}
       {filters.drawer === "delivery" ? <DeliveryDrawer data={data} filters={filters} closeHref={closeDrawerHref} /> : null}
+      {filters.drawer === "template" ? (
+        <CommunicationsTemplateEditor contextLocale={context.locale} filters={filters} template={selectedTemplate} closeHref={closeDrawerHref} />
+      ) : null}
     </main>
   );
 }

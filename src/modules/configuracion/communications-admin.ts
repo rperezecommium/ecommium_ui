@@ -4,7 +4,7 @@ import { requestBff } from "../../shared/bff/client";
 import type { BffResult } from "../../shared/bff/types";
 
 export type CommunicationsProvider = "stub" | "smtp" | "sendgrid" | "resend";
-export type CommunicationsTemplateStatus = "DRAFT" | "ACTIVE" | "INACTIVE" | "ARCHIVED";
+export type CommunicationsTemplateStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 
 export type EmailProviderSettings = {
   organizationId: string;
@@ -26,13 +26,49 @@ export type EmailProviderSettings = {
 export type EmailTemplateRecord = {
   templateId: string;
   templateKey: string;
+  channel: "EMAIL";
   locale: string;
   subjectTemplate: string | null;
+  htmlTemplate: string | null;
+  textTemplate: string | null;
   status: CommunicationsTemplateStatus;
   requiredVariables: string[];
+  previewData: Record<string, unknown>;
   version: number;
+  createdAt: string;
   updatedAt: string;
   activatedAt: string | null;
+  archivedAt: string | null;
+};
+
+export type EmailTemplateWritePayload = {
+  templateKey?: string;
+  locale?: string;
+  subjectTemplate?: string | null;
+  htmlTemplate?: string | null;
+  textTemplate?: string | null;
+  requiredVariables?: string[];
+  previewData?: Record<string, unknown>;
+};
+
+export type EmailTemplatePreview = {
+  templateId: string;
+  templateKey: string;
+  locale: string;
+  status: CommunicationsTemplateStatus;
+  rendered: {
+    subject: string;
+    html: string;
+    text: string;
+  };
+  usedVariables: string[];
+};
+
+export type EmailTemplateImageUpload = {
+  mediaCollectionId: string;
+  mediaAssetId: string;
+  url: string;
+  alt: string;
 };
 
 export type EmailTemplateList = {
@@ -111,8 +147,11 @@ export type CommunicationsAdminData = {
 };
 
 export type CommunicationsAdminFilters = {
-  drawer?: "provider" | "delivery";
+  drawer?: "provider" | "delivery" | "template";
   status?: CommunicationsTemplateStatus;
+  templateId?: string;
+  templatesLimit?: string;
+  templatesOffset?: string;
   deliveryId?: string;
   deliveryStatus?: EmailDeliveryStatus;
   deliveryTemplateKey?: string;
@@ -141,6 +180,175 @@ function scopedPath(path: string, context: AdminContext, extra?: Record<string, 
   });
 
   return `${path}?${params.toString()}`;
+}
+
+function recordOf(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function nonEmptyString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function collectionIdFrom(value: unknown) {
+  const root = recordOf(value);
+  const collection = recordOf(root.collection ?? root.data ?? value);
+  return nonEmptyString(collection.mediaCollectionId) ?? nonEmptyString(collection.collectionId);
+}
+
+function collectionItems(value: unknown) {
+  const root = recordOf(value);
+  const collection = recordOf(root.collection ?? root.data ?? value);
+  return Array.isArray(collection.items) ? collection.items : [];
+}
+
+function imageFromMediaItem(
+  value: unknown,
+  mediaCollectionId: string,
+  fallbackAlt: string,
+): EmailTemplateImageUpload | null {
+  const record = recordOf(value);
+  const mediaAssetId = nonEmptyString(record.idImage) ?? nonEmptyString(record.mediaAssetId) ?? nonEmptyString(record.assetId);
+  const url = nonEmptyString(record.public) ?? nonEmptyString(record.publicUrl);
+  if (!mediaAssetId || !url || !/^https?:\/\//i.test(url)) {
+    return null;
+  }
+
+  return {
+    mediaCollectionId,
+    mediaAssetId,
+    url,
+    alt: nonEmptyString(record.originalFileName) ?? nonEmptyString(record.fileName) ?? fallbackAlt,
+  };
+}
+
+function imagesFromCollection(value: unknown, fallbackAlt: string) {
+  const mediaCollectionId = collectionIdFrom(value);
+  if (!mediaCollectionId) {
+    return [];
+  }
+
+  return collectionItems(value)
+    .map((item) => imageFromMediaItem(item, mediaCollectionId, fallbackAlt))
+    .filter((item): item is EmailTemplateImageUpload => Boolean(item));
+}
+
+function collectionList(value: unknown) {
+  const root = recordOf(value);
+  return Array.isArray(root.items) ? root.items : [];
+}
+
+export async function uploadEmailTemplateImage(
+  context: AdminContext,
+  input: {
+    templateId: string;
+    templateKey: string;
+    locale: string;
+    file: File;
+  },
+): Promise<BffResult<EmailTemplateImageUpload>> {
+  const list = await requestBff<unknown>(
+    scopedPath("/admin/media/collections", context, {
+      productId: input.templateId,
+      limit: "1",
+    }),
+    { context },
+  );
+  if (!list.ok) {
+    return list;
+  }
+
+  const existingCollectionId = collectionIdFrom(collectionList(list.data)[0]);
+  const formData = new FormData();
+  formData.append("files", input.file);
+  formData.set("organizationId", context.organizationId);
+  formData.set("shopId", context.shopId);
+  formData.set("defaultLocale", input.locale);
+  formData.set("metadata", JSON.stringify([{ alt: { [input.locale]: input.file.name } }]));
+
+  const response = existingCollectionId
+    ? await requestBff<unknown>(
+      scopedPath(`/admin/media/collections/${encodeURIComponent(existingCollectionId)}/items`, context),
+      { context, init: { method: "POST", body: formData } },
+    )
+    : await requestBff<unknown>(
+      scopedPath("/admin/media/collections", context),
+      {
+        context,
+        init: {
+          method: "POST",
+          body: (() => {
+            formData.set("productId", input.templateId);
+            formData.set("title", `Email template ${input.templateKey}`);
+            return formData;
+          })(),
+        },
+      },
+    );
+
+  if (!response.ok) {
+    return response;
+  }
+
+  const uploaded = imagesFromCollection(response.data, input.file.name).at(-1);
+  if (!uploaded) {
+    return {
+      ok: false,
+      status: 502,
+      correlationId: response.correlationId,
+      error: "Media no devolvió una URL pública HTTP para la imagen.",
+    };
+  }
+
+  return {
+    ok: true,
+    status: response.status,
+    correlationId: response.correlationId,
+    data: uploaded,
+  };
+}
+
+export async function listEmailTemplateImages(
+  context: AdminContext,
+  templateId: string,
+): Promise<BffResult<EmailTemplateImageUpload[]>> {
+  const result = await requestBff<unknown>(
+    scopedPath("/admin/media/collections", context, {
+      productId: templateId,
+      limit: "1",
+    }),
+    { context },
+  );
+  if (!result.ok) {
+    return result;
+  }
+
+  return {
+    ok: true,
+    status: result.status,
+    correlationId: result.correlationId,
+    data: imagesFromCollection(collectionList(result.data)[0], "Imagen de plantilla"),
+  };
+}
+
+export async function hardDeleteEmailTemplateImage(
+  context: AdminContext,
+  input: Pick<EmailTemplateImageUpload, "mediaCollectionId" | "mediaAssetId">,
+): Promise<BffResult<{ deleted?: boolean }>> {
+  return requestBff(
+    scopedPath(
+      `/admin/media/collections/${encodeURIComponent(input.mediaCollectionId)}/items/${encodeURIComponent(input.mediaAssetId)}`,
+      context,
+      { mode: "hard" },
+    ),
+    {
+      context,
+      init: { method: "DELETE" },
+      parse: (value) => recordOf(value) as { deleted?: boolean },
+    },
+  );
 }
 
 export async function getCommunicationsAdminData(
@@ -174,8 +382,8 @@ export async function getCommunicationsAdminData(
     requestBff<EmailTemplateList>(
       scopedPath("/admin/communications/templates/email", context, {
         locale: context.locale,
-        limit: "20",
-        offset: "0",
+        limit: filters.templatesLimit ?? "50",
+        offset: filters.templatesOffset ?? "0",
         status: filters.status,
       }),
       { context },
@@ -219,6 +427,77 @@ export async function getEmailDelivery(context: AdminContext, deliveryId: string
 export async function retryEmailDelivery(context: AdminContext, deliveryId: string) {
   return requestBff<EmailDeliveryRecord>(
     scopedPath(`/admin/communications/deliveries/${encodeURIComponent(deliveryId)}/retry`, context),
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      },
+    },
+  );
+}
+
+export async function createEmailTemplate(
+  context: AdminContext,
+  payload: Required<Pick<EmailTemplateWritePayload, "templateKey" | "locale">> & EmailTemplateWritePayload,
+) {
+  return requestBff<EmailTemplateRecord>(
+    scopedPath("/admin/communications/templates/email", context),
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    },
+  );
+}
+
+export async function patchEmailTemplate(
+  context: AdminContext,
+  templateId: string,
+  payload: EmailTemplateWritePayload,
+) {
+  return requestBff<EmailTemplateRecord>(
+    scopedPath(`/admin/communications/templates/email/${encodeURIComponent(templateId)}`, context),
+    {
+      context,
+      init: {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    },
+  );
+}
+
+export async function previewEmailTemplate(
+  context: AdminContext,
+  templateId: string,
+  data?: Record<string, unknown>,
+) {
+  return requestBff<EmailTemplatePreview>(
+    scopedPath(`/admin/communications/templates/email/${encodeURIComponent(templateId)}/preview`, context),
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(data ? { data } : {}),
+      },
+    },
+  );
+}
+
+export async function transitionEmailTemplate(
+  context: AdminContext,
+  templateId: string,
+  transition: "activate" | "deactivate" | "archive",
+) {
+  return requestBff<EmailTemplateRecord>(
+    scopedPath(`/admin/communications/templates/email/${encodeURIComponent(templateId)}/${transition}`, context),
     {
       context,
       init: {

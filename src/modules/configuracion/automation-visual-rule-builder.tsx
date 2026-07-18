@@ -115,10 +115,11 @@ export function AutomationVisualRuleBuilder({
 
         {actionType === "SEND_EMAIL" && emailChoices.length ? (
           <label className="adminField">
-            <span>Plantilla de email</span>
+            <span>Plantilla de email activa</span>
             <select name="templateKey" value={selectedTemplate?.templateKey ?? ""} onChange={(event) => setTemplateKey(event.target.value)}>
               {emailChoices.map((option) => <option key={option.templateKey} value={option.templateKey}>{option.templateLabel}</option>)}
             </select>
+            <small className="adminMuted">Solo se muestran plantillas activas del locale de la tienda. Verifica que sus variables existan en el evento elegido.</small>
           </label>
         ) : null}
 

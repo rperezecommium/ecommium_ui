@@ -22,6 +22,8 @@ function loadCommunicationsAdminModule(requestBff) {
   });
   const commonJsExports = {};
   const moduleContext = {
+    File,
+    FormData,
     URLSearchParams,
     exports: commonJsExports,
     module: { exports: commonJsExports },
@@ -45,7 +47,19 @@ function loadCommunicationsAdminModule(requestBff) {
   return moduleContext.module.exports;
 }
 
-function loadCommunicationsActionsModule({ getEmailDelivery, retryEmailDelivery }) {
+function loadCommunicationsActionsModule({
+  bootstrapAuthEmailTemplates = async () => ({ ok: true, data: {} }),
+  createEmailTemplate = async () => ({ ok: true, data: { templateKey: "customer.account.activation" } }),
+  getEmailDelivery = async () => ({ ok: true, data: { status: "FAILED" } }),
+  hardDeleteEmailTemplateImage = async () => ({ ok: true, data: { deleted: true } }),
+  listEmailTemplateImages = async () => ({ ok: true, data: [] }),
+  patchEmailProviderSettings = async () => ({ ok: true, data: {} }),
+  patchEmailTemplate = async () => ({ ok: true, data: { templateKey: "customer.account.activation" } }),
+  previewEmailTemplate = async () => ({ ok: true, data: {} }),
+  retryEmailDelivery = async () => ({ ok: true, data: { status: "SENT" } }),
+  sendCommunicationsTestEmail = async () => ({ ok: true, data: {} }),
+  transitionEmailTemplate = async () => ({ ok: true, data: { templateKey: "customer.account.activation" } }),
+} = {}) {
   const moduleSource = source("src/modules/configuracion/communications-admin-actions.ts");
   const { outputText } = ts.transpileModule(moduleSource, {
     compilerOptions: {
@@ -57,6 +71,8 @@ function loadCommunicationsActionsModule({ getEmailDelivery, retryEmailDelivery 
   const calls = [];
   const commonJsExports = {};
   const moduleContext = {
+    File,
+    FormData,
     URLSearchParams,
     exports: commonJsExports,
     module: { exports: commonJsExports },
@@ -74,11 +90,17 @@ function loadCommunicationsActionsModule({ getEmailDelivery, retryEmailDelivery 
       }
       if (specifier === "./communications-admin") {
         return {
-          bootstrapAuthEmailTemplates: async () => ({ ok: true, data: {} }),
+          bootstrapAuthEmailTemplates,
+          createEmailTemplate,
           getEmailDelivery,
-          patchEmailProviderSettings: async () => ({ ok: true, data: {} }),
+          hardDeleteEmailTemplateImage,
+          listEmailTemplateImages,
+          patchEmailProviderSettings,
+          patchEmailTemplate,
+          previewEmailTemplate,
           retryEmailDelivery,
-          sendCommunicationsTestEmail: async () => ({ ok: true, data: {} }),
+          sendCommunicationsTestEmail,
+          transitionEmailTemplate,
         };
       }
 
@@ -107,11 +129,19 @@ test("communications admin uses BFF endpoints for email provider and auth templa
   const dataSource = source("src/modules/configuracion/communications-admin.ts");
   const actionsSource = source("src/modules/configuracion/communications-admin-actions.ts");
   const pageSource = source("src/modules/configuracion/communications-admin-page.tsx");
+  const editorSource = source("src/modules/configuracion/communications-template-editor-client.tsx");
 
   assert.match(dataSource, /\/admin\/communications\/settings\/email-provider/);
   assert.match(dataSource, /\/admin\/communications\/templates\/email/);
   assert.match(dataSource, /\/admin\/communications\/templates\/email\/auth-defaults/);
   assert.match(dataSource, /\/admin\/communications\/email\/send/);
+  assert.match(dataSource, /createEmailTemplate/);
+  assert.match(dataSource, /patchEmailTemplate/);
+  assert.match(dataSource, /previewEmailTemplate/);
+  assert.match(dataSource, /transitionEmailTemplate/);
+  assert.match(dataSource, /uploadEmailTemplateImage/);
+  assert.match(dataSource, /listEmailTemplateImages/);
+  assert.match(dataSource, /hardDeleteEmailTemplateImage/);
   assert.match(actionsSource, /secret/);
   assert.match(actionsSource, /clearSecret/);
   assert.match(actionsSource, /sendCommunicationsTestEmailAction/);
@@ -119,6 +149,30 @@ test("communications admin uses BFF endpoints for email provider and auth templa
   assert.match(actionsSource, /admin-communications-test/);
   assert.match(actionsSource, /communications\.manage/);
   assert.match(pageSource, /drawer: "provider"/);
+  assert.match(pageSource, /function TemplateTable/);
+  assert.match(pageSource, /CommunicationsTemplateEditor/);
+  assert.match(pageSource, /Crear plantilla/);
+  assert.match(pageSource, /Plantillas email/);
+  assert.match(pageSource, /templatesLimit/);
+  assert.match(pageSource, /Mostrando/);
+  assert.match(editorSource, /transitionEmailTemplateAction/);
+  assert.match(editorSource, /@tiptap\/react/);
+  assert.match(editorSource, /EditorContent/);
+  assert.match(editorSource, /\{\{emitter\.name\}\}/);
+  assert.match(editorSource, /previewEmailTemplateAction/);
+  assert.match(editorSource, /sandbox=""/);
+  assert.match(editorSource, /HTML fuente de la plantilla/);
+  assert.match(editorSource, /@tiptap\/extension-link/);
+  assert.match(editorSource, /@tiptap\/extension-text-align/);
+  assert.match(editorSource, /@tiptap\/extension-image/);
+  assert.match(editorSource, /Añadir enlace/);
+  assert.match(editorSource, /Alinear a la izquierda/);
+  assert.match(editorSource, /Subir imagen/);
+  assert.match(editorSource, /Imagen insertada\. Guarda la plantilla para conservarla/);
+  assert.match(editorSource, /onChange\(editor\.getHTML\(\)\)/);
+  assert.match(editorSource, /Eliminar definitivamente/);
+  assert.match(editorSource, /deleteEmailTemplateImageAction/);
+  assert.match(actionsSource, /uploadEmailTemplateImageAction/);
   assert.match(pageSource, /adminSideDrawer/);
   assert.match(pageSource, /Configurar proveedor/);
   assert.match(pageSource, /Secret ya configurado/);
@@ -130,6 +184,205 @@ test("communications admin uses BFF endpoints for email provider and auth templa
   assert.doesNotMatch(pageSource, /adminBadge">test/);
   assert.doesNotMatch(pageSource, /adminBadge">auth/);
   assert.doesNotMatch(dataSource, /localStorage/);
+});
+
+test("communications template client calls the scoped BFF CRUD, preview and lifecycle routes", async () => {
+  const calls = [];
+  const requestBff = async (pathValue, options = {}) => {
+    calls.push({ path: pathValue, context: options.context, init: options.init });
+    return {
+      ok: true,
+      status: 200,
+      correlationId: "corr-template",
+      data: { templateId: "template-1", templateKey: "shipping.delivered", status: "DRAFT" },
+    };
+  };
+  const context = { organizationId: "org-1", shopId: "shop-1", locale: "es-ES" };
+  const {
+    createEmailTemplate,
+    patchEmailTemplate,
+    previewEmailTemplate,
+    transitionEmailTemplate,
+  } = loadCommunicationsAdminModule(requestBff);
+
+  await createEmailTemplate(context, {
+    templateKey: "shipping.delivered",
+    locale: "es-ES",
+    subjectTemplate: "Pedido {{orderReference}} entregado",
+    htmlTemplate: "<p>{{orderReference}}</p>",
+    textTemplate: "{{orderReference}}",
+    requiredVariables: ["orderReference"],
+    previewData: { orderReference: "#10058" },
+  });
+  await patchEmailTemplate(context, "template/1", { subjectTemplate: "Actualizado" });
+  await previewEmailTemplate(context, "template/1", { orderReference: "#10058" });
+  await transitionEmailTemplate(context, "template/1", "activate");
+
+  assert.equal(calls[0].path, "/admin/communications/templates/email?organizationId=org-1&shopId=shop-1");
+  assert.equal(calls[0].init.method, "POST");
+  assert.deepEqual(JSON.parse(calls[0].init.body), {
+    templateKey: "shipping.delivered",
+    locale: "es-ES",
+    subjectTemplate: "Pedido {{orderReference}} entregado",
+    htmlTemplate: "<p>{{orderReference}}</p>",
+    textTemplate: "{{orderReference}}",
+    requiredVariables: ["orderReference"],
+    previewData: { orderReference: "#10058" },
+  });
+  assert.equal(calls[1].path, "/admin/communications/templates/email/template%2F1?organizationId=org-1&shopId=shop-1");
+  assert.equal(calls[1].init.method, "PATCH");
+  assert.equal(calls[2].path, "/admin/communications/templates/email/template%2F1/preview?organizationId=org-1&shopId=shop-1");
+  assert.deepEqual(JSON.parse(calls[2].init.body), { data: { orderReference: "#10058" } });
+  assert.equal(calls[3].path, "/admin/communications/templates/email/template%2F1/activate?organizationId=org-1&shopId=shop-1");
+  assert.equal(calls[3].init.method, "POST");
+  assert.deepEqual(calls[3].context, context);
+});
+
+test("communications template uploader reuses Media and returns only a public image URL", async () => {
+  const calls = [];
+  const requestBff = async (pathValue, options = {}) => {
+    calls.push({ path: pathValue, init: options.init });
+    if (options.init?.method === "POST") {
+      return {
+        ok: true,
+        status: 201,
+        correlationId: "corr-upload",
+        data: {
+          collection: {
+            mediaCollectionId: "collection-1",
+            items: [{ idImage: "asset-1", public: "https://cdn.example.test/email/header.png", originalFileName: "header.png" }],
+          },
+        },
+      };
+    }
+    return { ok: true, status: 200, correlationId: "corr-list", data: { items: [] } };
+  };
+  const { uploadEmailTemplateImage } = loadCommunicationsAdminModule(requestBff);
+
+  const result = await uploadEmailTemplateImage(
+    { organizationId: "org-1", shopId: "shop-1", locale: "es-ES" },
+    {
+      templateId: "11111111-1111-4111-8111-111111111111",
+      templateKey: "shipping.delivered",
+      locale: "es-ES",
+      file: new File(["image"], "header.png", { type: "image/png" }),
+    },
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.data.url, "https://cdn.example.test/email/header.png");
+  assert.equal(result.data.mediaCollectionId, "collection-1");
+  assert.equal(result.data.mediaAssetId, "asset-1");
+  assert.equal(calls[0].path, "/admin/media/collections?organizationId=org-1&shopId=shop-1&productId=11111111-1111-4111-8111-111111111111&limit=1");
+  assert.equal(calls[1].path, "/admin/media/collections?organizationId=org-1&shopId=shop-1");
+  assert.equal(calls[1].init.method, "POST");
+  assert.equal(calls[1].init.body.get("productId"), "11111111-1111-4111-8111-111111111111");
+  assert.equal(calls[1].init.body.get("title"), "Email template shipping.delivered");
+});
+
+test("communications template actions validate editor data and delegate through the client", async () => {
+  const createCalls = [];
+  const previewCalls = [];
+  const transitionCalls = [];
+  const {
+    createEmailTemplateAction,
+    previewEmailTemplateAction,
+    transitionEmailTemplateAction,
+  } = loadCommunicationsActionsModule({
+    createEmailTemplate: async (_context, payload) => {
+      createCalls.push(payload);
+      return { ok: true, status: 201, correlationId: "corr-create", data: { templateKey: payload.templateKey } };
+    },
+    previewEmailTemplate: async (_context, templateId, data) => {
+      previewCalls.push({ templateId, data });
+      return {
+        ok: true,
+        status: 200,
+        correlationId: "corr-preview",
+        data: { templateId, templateKey: "shipping.delivered", rendered: { subject: "Preview", html: "<p>Preview</p>", text: "Preview" } },
+      };
+    },
+    transitionEmailTemplate: async (_context, templateId, transition) => {
+      transitionCalls.push({ templateId, transition });
+      return { ok: true, status: 200, correlationId: "corr-transition", data: { templateKey: "shipping.delivered" } };
+    },
+  });
+  const createForm = new FormData();
+  createForm.set("templateKey", "shipping.delivered");
+  createForm.set("locale", "es-ES");
+  createForm.set("subjectTemplate", "Pedido {{orderReference}}");
+  createForm.set("htmlTemplate", "<p>{{orderReference}}</p>");
+  createForm.set("textTemplate", "{{orderReference}}");
+  createForm.set("requiredVariables", "orderReference\ncustomer.name");
+  createForm.set("previewData", '{"orderReference":"#10058","customer":{"name":"Ana"}}');
+
+  await assert.rejects(() => createEmailTemplateAction(createForm), (error) => {
+    assert.match(error.url, /Plantilla%20shipping.delivered%20creada/);
+    return true;
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(createCalls)), [{
+    templateKey: "shipping.delivered",
+    locale: "es-ES",
+    subjectTemplate: "Pedido {{orderReference}}",
+    htmlTemplate: "<p>{{orderReference}}</p>",
+    textTemplate: "{{orderReference}}",
+    requiredVariables: ["customer.name", "orderReference"],
+    previewData: { orderReference: "#10058", customer: { name: "Ana" } },
+  }]);
+
+  const previewForm = new FormData();
+  previewForm.set("templateId", "template-1");
+  previewForm.set("previewData", '{"orderReference":"#10058"}');
+  const preview = await previewEmailTemplateAction(previewForm);
+  assert.equal(preview.ok, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(previewCalls)), [{ templateId: "template-1", data: { orderReference: "#10058" } }]);
+
+  const transitionForm = new FormData();
+  transitionForm.set("templateId", "template-1");
+  transitionForm.set("transition", "activate");
+  await assert.rejects(() => transitionEmailTemplateAction(transitionForm), (error) => {
+    assert.match(error.url, /Plantilla%20shipping.delivered%20activada/);
+    return true;
+  });
+  assert.deepEqual(transitionCalls, [{ templateId: "template-1", transition: "activate" }]);
+});
+
+test("communications image deletion removes the template reference before hard-deleting Media", async () => {
+  const calls = [];
+  const { deleteEmailTemplateImageAction, calls: actionCalls } = loadCommunicationsActionsModule({
+    listEmailTemplateImages: async () => ({
+      ok: true,
+      status: 200,
+      correlationId: "corr-list",
+      data: [{
+        mediaCollectionId: "collection-1",
+        mediaAssetId: "asset-1",
+        url: "https://cdn.example.test/email/header.png",
+        alt: "header.png",
+      }],
+    }),
+    patchEmailTemplate: async (_context, templateId, payload) => {
+      calls.push({ type: "template", templateId, payload });
+      return { ok: true, status: 200, correlationId: "corr-template", data: { status: "DRAFT" } };
+    },
+    hardDeleteEmailTemplateImage: async (_context, image) => {
+      calls.push({ type: "media", image });
+      return { ok: true, status: 200, correlationId: "corr-media", data: { deleted: true } };
+    },
+  });
+  const formData = new FormData();
+  formData.set("templateId", "template-1");
+  formData.set("mediaCollectionId", "collection-1");
+  formData.set("mediaAssetId", "asset-1");
+  formData.set("htmlTemplate", "<p>Sin imagen</p>");
+
+  const result = await deleteEmailTemplateImageAction(formData);
+  assert.equal(result.ok, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)), [
+    { type: "template", templateId: "template-1", payload: { htmlTemplate: "<p>Sin imagen</p>" } },
+    { type: "media", image: { mediaCollectionId: "collection-1", mediaAssetId: "asset-1" } },
+  ]);
+  assert.deepEqual(actionCalls, [["revalidatePath", "/admin/configuracion/comunicaciones"]]);
 });
 
 test("communications admin models the full email delivery audit response", () => {
@@ -177,7 +430,9 @@ test("communications audit opens a safe delivery detail drawer", () => {
   const pageSource = source("src/modules/configuracion/communications-admin-page.tsx");
 
   assert.match(routeSource, /deliveryId: normalizeFilterValue/);
-  assert.match(routeSource, /value === "provider" \|\| value === "delivery"/);
+  assert.match(routeSource, /templateId: normalizeFilterValue/);
+  assert.match(routeSource, /templatesOffset: normalizeOffset/);
+  assert.match(routeSource, /value === "provider" \|\| value === "delivery" \|\| value === "template"/);
   assert.match(dataSource, /selectedDelivery/);
   assert.match(pageSource, /function DeliveryDrawer/);
   assert.match(pageSource, /Detalle de entrega/);
