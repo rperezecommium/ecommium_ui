@@ -4032,6 +4032,19 @@ p {
   background: rgb(245 248 249 / 78%);
 }
 
+.customersFilterBar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(108px, 132px) max-content max-content;
+  align-items: end;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.customersFilterBar .adminButton {
+  align-self: end;
+  white-space: nowrap;
+}
+
 .customersDrawerBackdropLink {
   position: absolute;
   inset: 0;
@@ -5864,6 +5877,28 @@ p {
   opacity: 0.62;
 }
 
+.storefrontAccountDangerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  width: 100%;
+  border: 1px solid #d84032;
+  border-radius: 4px;
+  background: #d84032;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.storefrontAccountDangerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .storefrontAccountPanel {
   display: grid;
   gap: 18px;
@@ -6104,6 +6139,124 @@ p {
 .storefrontAccountEmpty p {
   margin: 0;
   color: #7a7a7a;
+}
+
+.storefrontSessionsPanel {
+  display: grid;
+  gap: 14px;
+}
+
+.storefrontSessionsSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  background: #f6f7f8;
+}
+
+.storefrontSessionsSummary span {
+  color: #7a7a7a;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.storefrontSessionsSummary strong {
+  color: #1688a3;
+  font-size: 18px;
+}
+
+.storefrontSessionsList {
+  display: grid;
+  gap: 12px;
+}
+
+.storefrontSessionCard {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.storefrontSessionCardCurrent {
+  border-color: #25abc4;
+  box-shadow: 0 0 0 1px rgba(37, 171, 196, 0.16);
+}
+
+.storefrontSessionCardHeader {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.storefrontSessionCardHeader h3 {
+  margin: 0;
+  color: #232323;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.storefrontSessionCardHeader p {
+  margin: 2px 0 0;
+  color: #7a7a7a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.storefrontSessionIcon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  background: #eaf8fb;
+  color: #1688a3;
+}
+
+.storefrontSessionBadge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #eaf8fb;
+  color: #1688a3;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.storefrontSessionCard dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.storefrontSessionCard dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #7a7a7a;
+  font-size: 13px;
+}
+
+.storefrontSessionCard dt {
+  font-weight: 800;
+}
+
+.storefrontSessionCard dd {
+  margin: 0;
+  color: #232323;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.storefrontSessionsActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .storefrontAddressBookPanel {
@@ -10885,6 +11038,14 @@ p {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .customersFilterBar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customersFilterBar .adminButton {
+    justify-content: center;
+  }
+
   .productEditorToolbar {
     align-items: stretch;
     flex-direction: column;
@@ -11087,6 +11248,10 @@ p {
 
   .storefrontAccountSummary {
     position: static;
+  }
+
+  .storefrontSessionsActions {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .storefrontAvatarPicker > div {

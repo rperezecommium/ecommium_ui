@@ -27,6 +27,7 @@ test("storefront account route uses BFF customer profile and avatar contracts", 
   assert.match(accountSource, /\/storefront\/me\/purchases/);
   assert.match(accountSource, /\/storefront\/me\/invoices/);
   assert.match(accountSource, /\/storefront\/me\/after-sales\/cases/);
+  assert.match(accountSource, /\/auth\/sessions/);
   assert.match(accountSource, /withAuth: false/);
   assert.match(accountSource, /authorization/);
   assert.match(actionsSource, /patchStorefrontCustomerProfile/);
@@ -113,6 +114,47 @@ test("storefront account UI exposes editable profile, credentials and 10 avatars
   assert.match(cssSource, /\.storefrontAvatarThumb img[\s\S]*object-fit: cover/);
   assert.match(cssSource, /\.storefrontAvatarPicker > div[\s\S]*repeat\(5, minmax\(0, 20%\)\)/);
   assert.match(cssSource, /\.storefrontAvatarOption:has\(input:checked\) \.storefrontAvatarThumb[\s\S]*border-color: #25abc4/);
+});
+
+test("storefront account UI lets customers manage their own active sessions", () => {
+  const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
+  const actionsSource = source("src/modules/storefront/storefront-account-actions.ts");
+  const accountSource = source("src/modules/storefront/storefront-account.ts");
+  const routeSource = source("app/account/page.tsx");
+  const cssSource = source("app/globals.css");
+
+  assert.match(routeSource, /accountSection/);
+  assert.match(routeSource, /value === "invoices" \|\| value === "sessions"/);
+  assert.match(accountSource, /StorefrontDeviceSessionsData/);
+  assert.match(accountSource, /StorefrontLogoutAllSessionsResponse/);
+  assert.match(accountSource, /requestBff<StorefrontDeviceSessionsData>\("\/auth\/sessions"/);
+  assert.match(accountSource, /logoutCurrentStorefrontSession/);
+  assert.match(accountSource, /\/auth\/sessions\/logout-current/);
+  assert.match(accountSource, /logoutAllStorefrontSessions/);
+  assert.match(accountSource, /\/auth\/sessions\/logout-all/);
+  assert.match(accountSource, /JSON\.stringify\(\{ includeCurrent \}\)/);
+  assert.match(actionsSource, /closeStorefrontAccountSessions/);
+  assert.match(actionsSource, /type SessionOperation = "current" \| "others" \| "all"/);
+  assert.match(actionsSource, /operation === "current"/);
+  assert.match(actionsSource, /operation === "all"/);
+  assert.match(actionsSource, /logoutAllStorefrontSessions\(operation === "all"\)/);
+  assert.match(actionsSource, /clearStorefrontCustomerSession/);
+  assert.match(clientSource, /Sesiones y dispositivos/);
+  assert.match(clientSource, /setDrawer\("sessions"\)/);
+  assert.match(clientSource, /SessionsPanel/);
+  assert.match(clientSource, /SessionCard/);
+  assert.match(clientSource, /name="operation" type="hidden" value="current"/);
+  assert.match(clientSource, /name="operation" type="hidden" value="others"/);
+  assert.match(clientSource, /name="operation" type="hidden" value="all"/);
+  assert.match(clientSource, /window\.confirm/);
+  assert.match(clientSource, /Este dispositivo/);
+  assert.match(clientSource, /Cerrar otros dispositivos/);
+  assert.match(clientSource, /Cerrar todas/);
+  assert.match(cssSource, /\.storefrontSessionsPanel/);
+  assert.match(cssSource, /\.storefrontSessionCardCurrent/);
+  assert.match(cssSource, /\.storefrontAccountDangerButton/);
+  assert.doesNotMatch(clientSource + actionsSource + accountSource, /admin\/customers\/.*sessions/);
+  assert.doesNotMatch(clientSource + actionsSource + accountSource, /localStorage|app\/api\/storefront\/sessions/);
 });
 
 test("storefront avatar static files bypass the public-page proxy", () => {

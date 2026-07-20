@@ -7,6 +7,8 @@ import {
   createStorefrontAfterSalesCase,
   createStorefrontCustomerAddress,
   deleteStorefrontCustomerAddress,
+  logoutAllStorefrontSessions,
+  logoutCurrentStorefrontSession,
   patchStorefrontCustomerAddress,
   patchStorefrontCustomerProfile,
   setStorefrontCustomerAddressDefault,
@@ -18,6 +20,7 @@ export type StorefrontAccountActionState = {
 };
 
 type AddressOperation = "create" | "update" | "delete" | "default-shipping" | "default-billing";
+type SessionOperation = "current" | "others" | "all";
 
 function formString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -31,6 +34,12 @@ function formBoolean(formData: FormData, key: string) {
 function addressOperation(value: string): AddressOperation | null {
   return ["create", "update", "delete", "default-shipping", "default-billing"].includes(value)
     ? value as AddressOperation
+    : null;
+}
+
+function sessionOperation(value: string): SessionOperation | null {
+  return ["current", "others", "all"].includes(value)
+    ? value as SessionOperation
     : null;
 }
 
@@ -242,6 +251,53 @@ export async function submitStorefrontAccountAddress(
   return addressActionResult(result.ok, result.status, operation === "create" ? "Direccion guardada." : "Direccion actualizada.");
 }
 
+export async function closeStorefrontAccountSessions(
+  previousState: StorefrontAccountActionState,
+  formData: FormData,
+): Promise<StorefrontAccountActionState> {
+  void previousState;
+  const operation = sessionOperation(formString(formData, "operation"));
+
+  if (!operation) {
+    return {
+      status: "error",
+      message: "Accion de sesion no soportada.",
+    };
+  }
+
+  if (operation === "current") {
+    const result = await logoutCurrentStorefrontSession();
+    if (!result.ok) {
+      return sessionActionResult(false, result.status, "No pudimos cerrar esta sesion.");
+    }
+
+    await clearStorefrontCustomerSession();
+    revalidatePath("/");
+    redirect("/");
+  }
+
+  const result = await logoutAllStorefrontSessions(operation === "all");
+
+  if (!result.ok) {
+    return sessionActionResult(false, result.status, "No pudimos cerrar las sesiones.");
+  }
+
+  if (result.data.currentSessionRevoked) {
+    await clearStorefrontCustomerSession();
+    revalidatePath("/");
+    redirect("/");
+  }
+
+  revalidatePath("/account");
+
+  return {
+    status: "success",
+    message: result.data.revokedSessions > 0
+      ? `${result.data.revokedSessions} sesion(es) cerrada(s).`
+      : "No habia otras sesiones activas que cerrar.",
+  };
+}
+
 export async function logoutStorefrontCustomer(): Promise<void> {
   await clearStorefrontCustomerSession();
   revalidatePath("/");
@@ -308,5 +364,21 @@ function addressActionResult(ok: boolean, status: number | undefined, successMes
   return {
     status: "error",
     message: "No se pudo guardar la libreta de direcciones.",
+  };
+}
+
+function sessionActionResult(ok: boolean, status: number | undefined, fallbackError: string): StorefrontAccountActionState {
+  if (ok) {
+    return {
+      status: "success",
+      message: "Sesiones actualizadas.",
+    };
+  }
+
+  return {
+    status: "error",
+    message: status === 401
+      ? "Vuelve a iniciar sesion para gestionar tus dispositivos."
+      : fallbackError,
   };
 }

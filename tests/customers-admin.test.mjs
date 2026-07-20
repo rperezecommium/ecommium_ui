@@ -176,6 +176,15 @@ test("customers admin route renders the module instead of the placeholder", () =
   assert.match(pageSource, /Paginacion de clientes/);
   assert.match(pageSource, /Ver producto/);
   assert.match(pageSource, /purchasePageHref/);
+  assert.match(pageSource, /className="customersFilterBar"/);
+});
+
+test("customers filters keep search controls and actions in one desktop row", () => {
+  const styles = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
+
+  assert.match(styles, /\.customersFilterBar\s*\{[\s\S]*grid-template-columns:\s*minmax\(180px, 1fr\) minmax\(180px, 1fr\) minmax\(108px, 132px\) max-content max-content/);
+  assert.match(styles, /\.customersFilterBar \.adminButton\s*\{[\s\S]*align-self:\s*end/);
+  assert.match(styles, /@media \(max-width: 680px\)\s*\{[\s\S]*\.customersFilterBar\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/);
 });
 
 test("customers admin capabilities map granular session permissions", () => {

@@ -1612,7 +1612,7 @@ export function CustomersAdminPage({ capabilities, data, filters }: CustomersAdm
             <strong>{summary.newsletter}</strong>
           </div>
         </div>
-        <form className="adminToolbar" action={applyCustomersFiltersAction}>
+        <form className="customersFilterBar" action={applyCustomersFiltersAction}>
           <label className="adminField">
             <span>Buscar</span>
             <input name="q" defaultValue={filters.q ?? ""} />

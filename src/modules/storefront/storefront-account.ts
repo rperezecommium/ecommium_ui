@@ -1,5 +1,7 @@
 import { requestBff } from "../../shared/bff/client";
 import type { BffResult } from "../../shared/bff/types";
+import { createBffHeaders } from "../../shared/bff/headers";
+import { bffBaseUrl } from "../../shared/config/env";
 import {
   getStorefrontCustomerAuthorizationHeader,
   getStorefrontCustomerSession,
@@ -142,6 +144,33 @@ export type StorefrontInvoicesData = {
   items: StorefrontInvoice[];
 };
 
+export type StorefrontDeviceSession = {
+  sessionId: string;
+  organizationId?: string;
+  shopId?: string;
+  principalType: "CUSTOMER" | "EMPLOYEE" | string;
+  createdAt: string;
+  lastSeenAt: string;
+  isCurrent: boolean;
+  device: {
+    deviceId: string | null;
+    deviceName: string | null;
+    userAgent: string | null;
+    ipAddress: string | null;
+  };
+};
+
+export type StorefrontDeviceSessionsData = {
+  sessions: StorefrontDeviceSession[];
+  total: number;
+};
+
+export type StorefrontLogoutAllSessionsResponse = {
+  revokedSessions: number;
+  includeCurrent: boolean;
+  currentSessionRevoked: boolean;
+};
+
 export type StorefrontAfterSalesCaseResponse = {
   caseId?: string;
   status?: string;
@@ -153,6 +182,7 @@ export type StorefrontAccountData = {
   addresses: BffResult<StorefrontAddressBook>;
   purchases: BffResult<StorefrontPurchasesData>;
   invoices: BffResult<StorefrontInvoicesData>;
+  sessions: BffResult<StorefrontDeviceSessionsData>;
 };
 
 type ProfileResponse = {
@@ -202,6 +232,35 @@ async function storefrontAuthHeaders() {
   return authorization ? { authorization } : null;
 }
 
+function makeAuthUrl(path: string) {
+  const base = bffBaseUrl.endsWith("/") ? bffBaseUrl.slice(0, -1) : bffBaseUrl;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${normalizedPath}`;
+}
+
+function makeCorrelationId() {
+  return `ui-storefront-session-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+async function readMutationError(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    const payload = (await response.json().catch(() => undefined)) as unknown;
+    if (typeof payload === "object" && payload !== null && "message" in payload) {
+      const message = (payload as { message?: unknown }).message;
+      if (Array.isArray(message)) {
+        return message.map(String).join("; ");
+      }
+      if (typeof message === "string" && message.trim()) {
+        return message.trim();
+      }
+    }
+  }
+
+  return response.text().catch(() => "");
+}
+
 export async function getStorefrontAccountData({
   invoicesLimit = "5",
   invoicesOffset = "0",
@@ -226,7 +285,7 @@ export async function getStorefrontAccountData({
     };
   }
 
-  const [profileResult, avatarResult, addressesResult, purchasesResult, invoicesResult] = await Promise.all([
+  const [profileResult, avatarResult, addressesResult, purchasesResult, invoicesResult, sessionsResult] = await Promise.all([
     requestBff<ProfileResponse>(accountPath("/storefront/me/profile"), {
       withAuth: false,
       context: { locale: context.locale },
@@ -258,6 +317,11 @@ export async function getStorefrontAccountData({
       context: { locale: context.locale },
       init: { headers },
     }),
+    requestBff<StorefrontDeviceSessionsData>("/auth/sessions", {
+      withAuth: false,
+      context: { locale: context.locale },
+      init: { headers },
+    }),
   ]);
 
   if (!profileResult.ok) {
@@ -276,6 +340,7 @@ export async function getStorefrontAccountData({
       addresses: addressesResult,
       purchases: purchasesResult,
       invoices: invoicesResult,
+      sessions: sessionsResult,
     },
   };
 }
@@ -422,11 +487,91 @@ export async function setStorefrontCustomerAddressDefault(
   });
 }
 
+export async function logoutCurrentStorefrontSession(): Promise<BffResult<void>> {
+  const headers = await storefrontAuthHeaders();
+  const correlationId = makeCorrelationId();
+
+  if (!headers) {
+    return unauthenticatedSessionMutationResult(correlationId);
+  }
+
+  try {
+    const response = await fetch(makeAuthUrl("/auth/sessions/logout-current"), {
+      method: "POST",
+      cache: "no-store",
+      headers: createBffHeaders({
+        correlationId,
+        initHeaders: headers,
+        locale: getStorefrontContext().locale,
+      }),
+    });
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        status: response.status,
+        error: await readMutationError(response) || `BFF responded with ${response.status}`,
+        correlationId,
+      };
+    }
+
+    return {
+      ok: true,
+      status: response.status,
+      data: undefined,
+      correlationId,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "BFF request failed",
+      correlationId,
+    };
+  }
+}
+
+export async function logoutAllStorefrontSessions(
+  includeCurrent: boolean,
+): Promise<BffResult<StorefrontLogoutAllSessionsResponse>> {
+  const headers = await storefrontAuthHeaders();
+
+  if (!headers) {
+    return {
+      ok: false,
+      status: 401,
+      error: "Cliente no autenticado.",
+      correlationId: "storefront-sessions-local",
+    };
+  }
+
+  return requestBff<StorefrontLogoutAllSessionsResponse>("/auth/sessions/logout-all", {
+    withAuth: false,
+    context: { locale: getStorefrontContext().locale },
+    init: {
+      method: "POST",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ includeCurrent }),
+    },
+  });
+}
+
 function unauthenticatedAddressResult(): BffResult<StorefrontAddressBook> {
   return {
     ok: false,
     status: 401,
     error: "Cliente no autenticado.",
     correlationId: "storefront-address-book-local",
+  };
+}
+
+function unauthenticatedSessionMutationResult(correlationId: string): BffResult<void> {
+  return {
+    ok: false,
+    status: 401,
+    error: "Cliente no autenticado.",
+    correlationId,
   };
 }

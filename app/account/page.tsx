@@ -29,7 +29,7 @@ export default async function AccountPage({ searchParams }: PageProps) {
           <StorefrontAccountClient
             data={result.data}
             initialDrawer={
-              first(query?.section) === "invoices" ? "invoices" : undefined
+              accountSection(first(query?.section))
             }
           />
         ) : (
@@ -58,4 +58,8 @@ export default async function AccountPage({ searchParams }: PageProps) {
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function accountSection(value: string | undefined) {
+  return value === "invoices" || value === "sessions" ? value : undefined;
 }

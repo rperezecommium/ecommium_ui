@@ -4,16 +4,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { useActionState, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Download, Eye, EyeOff, FileText, LifeBuoy, MapPin, PackageCheck, ShieldCheck, Star, Trash2, UserRound, X } from "lucide-react";
+import { Download, Eye, EyeOff, FileText, LifeBuoy, LogOut, MapPin, MonitorSmartphone, PackageCheck, ShieldCheck, Star, Trash2, UserRound, X } from "lucide-react";
 import type {
   StorefrontAccountData,
   StorefrontAvatarOption,
   StorefrontCustomerAddress,
+  StorefrontDeviceSession,
   StorefrontInvoice,
   StorefrontPurchase,
   StorefrontPurchaseLine,
 } from "./storefront-account";
 import {
+  closeStorefrontAccountSessions,
   logoutStorefrontCustomer,
   submitStorefrontAfterSalesCase,
   submitStorefrontAccountAddress,
@@ -27,7 +29,7 @@ const initialState: StorefrontAccountActionState = {
   message: "",
 };
 
-export type AccountDrawer = "profile" | "credentials" | "addresses" | "afterSales" | "invoices" | null;
+export type AccountDrawer = "profile" | "credentials" | "sessions" | "addresses" | "afterSales" | "invoices" | null;
 
 const avatarImagePath: Record<string, string> = {
   "human-01": "/storefront/avatars/human-01.jpg",
@@ -53,6 +55,7 @@ export function StorefrontAccountClient({
   const [credentialsState, credentialsAction, credentialsPending] = useActionState(updateStorefrontAccountCredentials, initialState);
   const [addressState, addressAction, addressPending] = useActionState(submitStorefrontAccountAddress, initialState);
   const [afterSalesState, afterSalesAction, afterSalesPending] = useActionState(submitStorefrontAfterSalesCase, initialState);
+  const [sessionsState, sessionsAction, sessionsPending] = useActionState(closeStorefrontAccountSessions, initialState);
   const [drawer, setDrawer] = useState<AccountDrawer>(initialDrawer ?? null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -71,6 +74,7 @@ export function StorefrontAccountClient({
         <nav aria-label="Gestion de cuenta" className="storefrontAccountMenu">
           <button onClick={() => setDrawer("profile")} type="button">Editar datos</button>
           <button onClick={() => setDrawer("credentials")} type="button">Cambiar Contrasena</button>
+          <button onClick={() => setDrawer("sessions")} type="button">Sesiones y dispositivos</button>
           <button onClick={() => setDrawer("addresses")} type="button">Direcciones</button>
           <button onClick={() => setDrawer("afterSales")} type="button">Postventa</button>
           <button onClick={() => setDrawer("invoices")} type="button">Mis Facturas</button>
@@ -164,6 +168,19 @@ export function StorefrontAccountClient({
               </form>
             </>
           ) : null}
+          {drawer === "sessions" ? (
+            <>
+              <div className="storefrontAccountPanelHeader">
+                <MonitorSmartphone aria-hidden="true" size={20} />
+                <div>
+                  <h2>Sesiones y dispositivos</h2>
+                  <p>Revisa donde esta abierta tu cuenta y cierra accesos que ya no uses.</p>
+                </div>
+              </div>
+              <ActionNotice state={sessionsState} />
+              <SessionsPanel action={sessionsAction} pending={sessionsPending} sessions={data.sessions} />
+            </>
+          ) : null}
           {drawer === "addresses" ? (
             <>
               <div className="storefrontAccountPanelHeader">
@@ -215,6 +232,9 @@ function drawerTitle(drawer: Exclude<AccountDrawer, null>) {
   if (drawer === "credentials") {
     return "Cambiar Contrasena";
   }
+  if (drawer === "sessions") {
+    return "Sesiones y dispositivos";
+  }
   if (drawer === "addresses") {
     return "Direcciones";
   }
@@ -245,6 +265,126 @@ function AccountSideDrawer({
         </div>
       </aside>
     </div>
+  );
+}
+
+function SessionsPanel({
+  action,
+  pending,
+  sessions,
+}: {
+  action: (payload: FormData) => void;
+  pending: boolean;
+  sessions: StorefrontAccountData["sessions"];
+}) {
+  if (!sessions.ok) {
+    return (
+      <div className="storefrontAccountEmpty">
+        <strong>No pudimos cargar tus sesiones</strong>
+        <p>{sessions.status === 401 ? "Vuelve a iniciar sesion para revisar tus dispositivos." : sessions.error}</p>
+      </div>
+    );
+  }
+
+  const activeSessions = sessions.data.sessions;
+  const hasOtherSessions = activeSessions.some((session) => !session.isCurrent);
+
+  if (activeSessions.length === 0) {
+    return (
+      <div className="storefrontAccountEmpty">
+        <strong>Sin sesiones activas</strong>
+        <p>Cuando inicies sesion en esta tienda, tus dispositivos apareceran aqui.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="storefrontSessionsPanel">
+      <div className="storefrontSessionsSummary">
+        <span>Sesiones activas</span>
+        <strong>{sessions.data.total}</strong>
+      </div>
+      <div className="storefrontSessionsList">
+        {activeSessions.map((session) => (
+          <SessionCard action={action} key={session.sessionId} pending={pending} session={session} />
+        ))}
+      </div>
+      <div className="storefrontSessionsActions">
+        <form
+          action={action}
+          onSubmit={(event) => {
+            if (!window.confirm("Cerrar las otras sesiones activas de tu cuenta?")) {
+              event.preventDefault();
+            }
+          }}
+        >
+          <input name="operation" type="hidden" value="others" />
+          <button className="storefrontAccountGhostButton" disabled={pending || !hasOtherSessions} type="submit">
+            Cerrar otros dispositivos
+          </button>
+        </form>
+        <form
+          action={action}
+          onSubmit={(event) => {
+            if (!window.confirm("Cerrar todas las sesiones, incluida esta?")) {
+              event.preventDefault();
+            }
+          }}
+        >
+          <input name="operation" type="hidden" value="all" />
+          <button className="storefrontAccountDangerButton" disabled={pending} type="submit">
+            <LogOut aria-hidden="true" size={16} />
+            Cerrar todas
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function SessionCard({
+  action,
+  pending,
+  session,
+}: {
+  action: (payload: FormData) => void;
+  pending: boolean;
+  session: StorefrontDeviceSession;
+}) {
+  return (
+    <article className={session.isCurrent ? "storefrontSessionCard storefrontSessionCardCurrent" : "storefrontSessionCard"}>
+      <div className="storefrontSessionCardHeader">
+        <span className="storefrontSessionIcon">
+          <MonitorSmartphone aria-hidden="true" size={18} />
+        </span>
+        <div>
+          <h3>{sessionDeviceLabel(session)}</h3>
+          <p>{session.isCurrent ? "Este dispositivo" : "Sesion activa"}</p>
+        </div>
+        {session.isCurrent ? <span className="storefrontSessionBadge">Actual</span> : null}
+      </div>
+      <dl>
+        <div><dt>Ultima actividad</dt><dd>{dateTimeText(session.lastSeenAt)}</dd></div>
+        <div><dt>Inicio</dt><dd>{dateTimeText(session.createdAt)}</dd></div>
+        <div><dt>IP</dt><dd>{session.device.ipAddress || "No disponible"}</dd></div>
+      </dl>
+      {session.isCurrent ? (
+        <form
+          action={action}
+          onSubmit={(event) => {
+            if (!window.confirm("Cerrar esta sesion ahora?")) {
+              event.preventDefault();
+            }
+          }}
+        >
+          <input name="operation" type="hidden" value="current" />
+          <button className="storefrontAccountDangerButton" disabled={pending} type="submit">
+            <LogOut aria-hidden="true" size={16} />
+            Cerrar esta sesion
+          </button>
+        </form>
+      ) : null}
+    </article>
   );
 }
 
@@ -739,6 +879,34 @@ function moneyText(amountMinor: number, currency: string) {
     style: "currency",
     currency: currency || "EUR",
   }).format(amountMinor / 100);
+}
+
+function sessionDeviceLabel(session: StorefrontDeviceSession) {
+  if (session.device.deviceName?.trim()) {
+    return session.device.deviceName.trim();
+  }
+
+  if (session.device.userAgent?.trim()) {
+    return session.device.userAgent.trim().slice(0, 80);
+  }
+
+  return session.sessionId.length > 18
+    ? `${session.sessionId.slice(0, 8)}...${session.sessionId.slice(-6)}`
+    : session.sessionId;
+}
+
+function dateTimeText(value: string) {
+  if (!value || Number.isNaN(Date.parse(value))) {
+    return "Fecha pendiente";
+  }
+
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function dateText(value: string) {
