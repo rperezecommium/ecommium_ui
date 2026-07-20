@@ -193,7 +193,7 @@ export function ContextSettingsPage({
       ) : null}
 
       {directory.loadWarnings?.length ? (
-        <div className="adminBanner">
+        <div className="adminBanner adminBannerInfo">
           <strong>El BFF respondio parcialmente.</strong>
           <p>Algunos listados secundarios no pudieron cargarse.</p>
           <ul className="adminPlainList">
@@ -597,7 +597,7 @@ export function ContextSettingsPage({
       </section>
 
       {tab === "inheritance" && inheritance.source === "fallback" ? (
-        <div className="adminBanner adminSection">
+        <div className="adminBanner adminBannerInfo adminSection">
           Settings heredables en modo fallback. Contrato esperado: GET
           /api/v1/admin/organizations-shops/shops/context/resolve?organizationId=:org&amp;shopId=:shop
           o &amp;shopAlias=:alias.

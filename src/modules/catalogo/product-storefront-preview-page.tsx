@@ -101,7 +101,7 @@ export async function ProductStorefrontPreviewPage({ context, productId }: Produ
         </div>
       </div>
 
-      <div className="adminBanner">
+      <div className="adminBanner adminBannerInfo">
         <p>Esta pantalla Admin declara `noindex, nofollow` y consulta Storefront desde servidor. No crea rutas publicas indexables.</p>
       </div>
 

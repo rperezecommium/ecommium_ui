@@ -28,13 +28,6 @@ const providerLabels: Record<string, string> = {
   resend: "Resend",
 };
 
-const authTemplateKeys = new Set([
-  "customer.account.activation",
-  "customer.account.activation.reminder",
-  "customer.account.activation.expiring",
-  "customer.account.password-reset",
-  "customer.account.password-changed",
-]);
 const deliveryStatuses: EmailDeliveryStatus[] = ["PENDING", "SENT", "FAILED", "SKIPPED", "RETRYING"];
 const deliveryPageSizeOptions = ["10", "20", "50"];
 const templatePageSizeOptions = ["20", "50", "100"];
@@ -93,6 +86,10 @@ function truncateText(value: string | null | undefined, max = 96) {
   }
 
   return value.length > max ? `${value.slice(0, max)}...` : value;
+}
+
+function isCustomerTemplate(templateKey: string) {
+  return templateKey.startsWith("customer.");
 }
 
 function defaultSettings(context: AdminContext): EmailProviderSettings {
@@ -171,7 +168,10 @@ function deliveryStatusDate(delivery: EmailDeliveryRecord) {
   return delivery.sentAt ?? delivery.failedAt ?? delivery.skippedAt ?? delivery.updatedAt;
 }
 
-function DeliveryFilters({ filters }: { filters: CommunicationsAdminFilters }) {
+function DeliveryFilters({ data, filters }: Pick<Props, "data" | "filters">) {
+  const templateKeys = data.authTemplates.ok
+    ? Array.from(new Set(data.authTemplates.data.items.map((template) => template.templateKey))).sort()
+    : [];
   const clearHref = communicationsHref(filters, {
     drawer: undefined,
     notice: undefined,
@@ -205,7 +205,10 @@ function DeliveryFilters({ filters }: { filters: CommunicationsAdminFilters }) {
           </label>
           <label className="adminField">
             <span>Plantilla</span>
-            <input name="deliveryTemplateKey" placeholder="shipping.delivered" defaultValue={filters.deliveryTemplateKey ?? ""} />
+            <select name="deliveryTemplateKey" defaultValue={filters.deliveryTemplateKey ?? ""}>
+              <option value="">Todas las plantillas</option>
+              {templateKeys.map((templateKey) => <option key={templateKey} value={templateKey}>{templateKey}</option>)}
+            </select>
           </label>
           <label className="adminField">
             <span>Evento origen</span>
@@ -483,6 +486,7 @@ function TemplateTable({ data, filters }: Pick<Props, "data" | "filters">) {
   }
 
   const templates = data.authTemplates.data;
+  const emailTemplates = templates.items.filter((template) => !isCustomerTemplate(template.templateKey));
   const createHref = communicationsHref(filters, {
     drawer: "template",
     templateId: undefined,
@@ -502,65 +506,92 @@ function TemplateTable({ data, filters }: Pick<Props, "data" | "filters">) {
   const hasNext = currentOffset + currentLimit < templates.total;
 
   return (
-    <section className="adminCard">
+    <details className="adminCard communicationsCollapsible">
+      <summary className="communicationsCollapsibleSummary">
+        <div>
+          <h2>Plantillas de fulfillment</h2>
+          <p>{emailTemplates.length} plantillas operativas cargadas para el locale activo. Edita contenido y lifecycle sin salir de Comunicaciones.</p>
+        </div>
+        <span className="communicationsCollapsibleHint">Mostrar / ocultar</span>
+      </summary>
+      <div className="communicationsCollapsibleContent">
+        <div className="adminButtonRow communicationsTemplateActions">
+          <Link className="adminButton adminButtonPrimary" href={createHref}>Crear plantilla</Link>
+        </div>
+        <form className="pricingDenseForm adminSection" method="get">
+          <div className="adminFormGrid">
+            <label className="adminField">
+              <span>Estado</span>
+              <select name="status" defaultValue={filters.status ?? ""}>
+                <option value="">Todos</option>
+                <option value="DRAFT">Borrador</option>
+                <option value="ACTIVE">Activa</option>
+                <option value="ARCHIVED">Archivada</option>
+              </select>
+            </label>
+            <label className="adminField">
+              <span>Por página</span>
+              <select name="templatesLimit" defaultValue={String(currentLimit)}>
+                {templatePageSizeOptions.map((size) => <option key={size} value={size}>{size}</option>)}
+              </select>
+            </label>
+          </div>
+          <input name="templatesOffset" type="hidden" value="0" />
+          <div className="adminButtonRow">
+            <button className="adminButton adminButtonPrimary" type="submit">Aplicar filtro</button>
+            <Link className="adminButton adminButtonTiny" href={clearHref}>Limpiar</Link>
+          </div>
+        </form>
+        {emailTemplates.length ? (
+          <div className="adminTableScroller">
+            <table className="adminTable">
+              <thead><tr><th>Plantilla</th><th>Locale</th><th>Estado</th><th>Versión</th><th>Actualizada</th><th>Acción</th></tr></thead>
+              <tbody>{emailTemplates.map((template) => (
+                <tr key={template.templateId}>
+                  <td><strong>{template.templateKey}</strong><div className="adminMuted">{truncateText(template.subjectTemplate, 88)}</div></td>
+                  <td>{template.locale}</td>
+                  <td><span className={statusBadge(template.status)}>{template.status}</span></td>
+                  <td>{template.version}</td>
+                  <td>{dateText(template.updatedAt)}</td>
+                  <td><Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { drawer: "template", templateId: template.templateId, notice: undefined })}>Editar</Link></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        ) : <div className="adminEmptyState">No hay plantillas de fulfillment para los filtros seleccionados.</div>}
+        {templates.total > currentLimit ? (
+          <div className="adminPagination">
+            <span className="adminMuted">Mostrando {Math.min(currentOffset + 1, templates.total)}–{Math.min(currentOffset + currentLimit, templates.total)} de {templates.total}</span>
+            <div className="adminButtonRow">
+              {hasPrevious ? <Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { templatesOffset: String(Math.max(0, currentOffset - currentLimit)), notice: undefined })}>Anterior</Link> : null}
+              {hasNext ? <Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { templatesOffset: String(currentOffset + currentLimit), notice: undefined })}>Siguiente</Link> : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </details>
+  );
+}
+
+function TechnicalStatus({ context, settings }: Pick<Props, "context"> & { settings: EmailProviderSettings }) {
+  return (
+    <aside className="adminCard communicationsTechnicalStatus">
       <div className="adminCardHeader">
         <div>
-          <h2>Plantillas email</h2>
-          <p>{templates.total} plantillas para el locale activo. Edita contenido y lifecycle sin salir de Comunicaciones.</p>
+          <h2>Estado técnico</h2>
+          <p>Contexto y conexión activa de Communications.</p>
         </div>
-        <Link className="adminButton adminButtonPrimary" href={createHref}>Crear plantilla</Link>
       </div>
-      <form className="pricingDenseForm adminSection" method="get">
-        <div className="adminFormGrid">
-          <label className="adminField">
-            <span>Estado</span>
-            <select name="status" defaultValue={filters.status ?? ""}>
-              <option value="">Todos</option>
-              <option value="DRAFT">Borrador</option>
-              <option value="ACTIVE">Activa</option>
-              <option value="ARCHIVED">Archivada</option>
-            </select>
-          </label>
-          <label className="adminField">
-            <span>Por página</span>
-            <select name="templatesLimit" defaultValue={String(currentLimit)}>
-              {templatePageSizeOptions.map((size) => <option key={size} value={size}>{size}</option>)}
-            </select>
-          </label>
-        </div>
-        <input name="templatesOffset" type="hidden" value="0" />
-        <div className="adminButtonRow">
-          <button className="adminButton adminButtonPrimary" type="submit">Aplicar filtro</button>
-          <Link className="adminButton adminButtonTiny" href={clearHref}>Limpiar</Link>
-        </div>
-      </form>
-      {templates.items.length ? (
-        <div className="adminTableScroller">
-          <table className="adminTable">
-            <thead><tr><th>Plantilla</th><th>Locale</th><th>Estado</th><th>Versión</th><th>Actualizada</th><th>Acción</th></tr></thead>
-            <tbody>{templates.items.map((template) => (
-              <tr key={template.templateId}>
-                <td><strong>{template.templateKey}</strong><div className="adminMuted">{truncateText(template.subjectTemplate, 88)}</div></td>
-                <td>{template.locale}</td>
-                <td><span className={statusBadge(template.status)}>{template.status}</span></td>
-                <td>{template.version}</td>
-                <td>{dateText(template.updatedAt)}</td>
-                <td><Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { drawer: "template", templateId: template.templateId, notice: undefined })}>Editar</Link></td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
-      ) : <div className="adminEmptyState">No hay plantillas para los filtros seleccionados.</div>}
-      {templates.total > currentLimit ? (
-        <div className="adminPagination">
-          <span className="adminMuted">Mostrando {Math.min(currentOffset + 1, templates.total)}–{Math.min(currentOffset + currentLimit, templates.total)} de {templates.total}</span>
-          <div className="adminButtonRow">
-            {hasPrevious ? <Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { templatesOffset: String(Math.max(0, currentOffset - currentLimit)), notice: undefined })}>Anterior</Link> : null}
-            {hasNext ? <Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { templatesOffset: String(currentOffset + currentLimit), notice: undefined })}>Siguiente</Link> : null}
-          </div>
-        </div>
-      ) : null}
-    </section>
+      <table className="adminTable adminTableCompact">
+        <tbody>
+          <tr><th>Organization</th><td>{context.organizationId || "Pendiente"}</td></tr>
+          <tr><th>Shop</th><td>{context.shopId || "Pendiente"}</td></tr>
+          <tr><th>Host SMTP</th><td>{valueText(settings.smtpHost)}</td></tr>
+          <tr><th>Usuario SMTP</th><td>{valueText(settings.smtpUser)}</td></tr>
+          <tr><th>Última actualización</th><td>{valueText(settings.updatedAt)}</td></tr>
+        </tbody>
+      </table>
+    </aside>
   );
 }
 
@@ -579,12 +610,12 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
     notice: undefined,
   });
   const allTemplates = data.authTemplates.ok ? data.authTemplates.data.items : [];
-  const authTemplates = allTemplates.filter((item) => authTemplateKeys.has(item.templateKey));
+  const customerTemplates = allTemplates.filter((item) => isCustomerTemplate(item.templateKey));
   const selectedTemplate = filters.drawer === "template" && filters.templateId
     ? allTemplates.find((item) => item.templateId === filters.templateId)
     : undefined;
   const templates = data.authTemplates.ok
-    ? authTemplates
+    ? customerTemplates
     : [];
   const testTemplateOptions = Array.from(new Set([
     ...templates.filter((template) => template.status === "ACTIVE").map((template) => template.templateKey),
@@ -593,7 +624,7 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
   ]));
 
   return (
-    <main className="adminPage">
+    <main className="adminPage communicationsAdminPage">
       <div className="adminPageHeader">
         <div>
           <div className="adminBreadcrumb">Admin / Configuracion / Comunicaciones</div>
@@ -610,7 +641,7 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
       </div>
 
       {filters.notice ? <div className="adminBanner">{filters.notice}</div> : null}
-      {!data.settings.ok ? <div className="adminBanner">{data.settings.error}</div> : null}
+      {!data.settings.ok ? <div className="adminBanner adminBannerError">{data.settings.error}</div> : null}
 
       <section className="adminKpiGrid" aria-label="Resumen comunicaciones">
         <article className="adminKpi">
@@ -629,13 +660,13 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
           <div className="adminMuted">{settings.secretUpdatedAt || "No expuesto en UI"}</div>
         </article>
         <article className="adminKpi">
-          <span>Plantillas auth</span>
+          <span>Plantillas Customer</span>
           <strong>{templates.length}</strong>
-          <div className="adminMuted">Activacion y recuperacion</div>
+          <div className="adminMuted">Activación y recuperación</div>
         </article>
       </section>
 
-      <section className="adminGrid">
+      <section className="communicationsTopGrid">
         <article className="adminCard">
           <div className="adminCardHeader">
             <div>
@@ -687,13 +718,18 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
           </div>
         </article>
 
-        <aside className="adminCard">
-          <div className="adminCardHeader">
-            <div>
-              <h2>Plantillas de cuenta</h2>
-              <p>Activacion, recordatorios y recuperacion de password.</p>
-            </div>
+        <TechnicalStatus context={context} settings={settings} />
+      </section>
+
+      <details className="adminCard communicationsCollapsible">
+        <summary className="communicationsCollapsibleSummary">
+          <div>
+            <h2>Plantillas de Customer</h2>
+            <p>Activación, recordatorios y recuperación de contraseña.</p>
           </div>
+          <span className="communicationsCollapsibleHint">Mostrar / ocultar</span>
+        </summary>
+        <div className="communicationsCollapsibleContent">
           <form action={bootstrapAuthEmailTemplatesAction} className="pricingDenseForm">
             <label className="adminField">
               <span>Locale</span>
@@ -715,6 +751,7 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
                   <th>Template</th>
                   <th>Estado</th>
                   <th>Version</th>
+                  <th>Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -728,10 +765,11 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
                     </td>
                     <td><span className={statusBadge(template.status)}>{template.status}</span></td>
                     <td>{template.version}</td>
+                    <td><Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { drawer: "template", templateId: template.templateId, notice: undefined })}>Editar</Link></td>
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={3}>No hay plantillas auth para {context.locale}.</td>
+                    <td colSpan={4}>No hay plantillas Customer para {context.locale}.</td>
                   </tr>
                 )}
               </tbody>
@@ -739,25 +777,12 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
           ) : (
             <div className="adminEmptyState">{data.authTemplates.error}</div>
           )}
-        </aside>
-      </section>
+        </div>
+      </details>
 
       <TemplateTable data={data} filters={filters} />
-      <DeliveryFilters filters={filters} />
+      <DeliveryFilters data={data} filters={filters} />
       <DeliveryAuditTable data={data} filters={filters} />
-
-      <section className="adminCard">
-        <h2>Estado tecnico</h2>
-        <table className="adminTable">
-          <tbody>
-            <tr><th>Organization</th><td>{context.organizationId || "Pendiente"}</td></tr>
-            <tr><th>Shop</th><td>{context.shopId || "Pendiente"}</td></tr>
-            <tr><th>Host SMTP</th><td>{valueText(settings.smtpHost)}</td></tr>
-            <tr><th>Usuario SMTP</th><td>{valueText(settings.smtpUser)}</td></tr>
-            <tr><th>Ultima actualizacion</th><td>{valueText(settings.updatedAt)}</td></tr>
-          </tbody>
-        </table>
-      </section>
 
       {filters.drawer === "provider" ? (
         <ProviderDrawer settings={settings} closeHref={closeDrawerHref} />

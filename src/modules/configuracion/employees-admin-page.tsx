@@ -157,7 +157,7 @@ export function EmployeesAdminPage({
         </div>
       ) : null}
       {data.errors.length > 0 ? (
-        <div className="adminBanner">
+        <div className="adminBanner adminBannerInfo">
           <strong>El BFF respondio parcialmente.</strong>
           <ul className="adminPlainList">
             {data.errors.map((item) => (

@@ -117,7 +117,7 @@ export async function ProductEditorPage({
   return (
     <>
       {result.data.warnings.length > 0 ? (
-        <div className="adminBanner">
+        <div className="adminBanner adminBannerInfo">
           {result.data.warnings.map((warning) => <p key={warning}>{warning}</p>)}
         </div>
       ) : null}

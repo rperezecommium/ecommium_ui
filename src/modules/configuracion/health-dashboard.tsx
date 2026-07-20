@@ -50,7 +50,7 @@ export function HealthDashboard({ context, health }: HealthDashboardProps) {
       </div>
 
       {missingContext ? (
-        <div className="adminBanner">
+        <div className="adminBanner adminBannerInfo">
           Falta organizationId o shopId. Definelos en el selector superior para
           habilitar pantallas Admin scopeadas por tienda.
         </div>

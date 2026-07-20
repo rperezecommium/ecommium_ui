@@ -59,7 +59,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         ) : null}
 
         {devSessionRequested && !devSessionEnabled ? (
-          <div className="adminBanner">
+          <div className="adminBanner adminBannerInfo">
             <strong>Sesion local deshabilitada.</strong>
             <p>
               <code>ECOMMIUM_ADMIN_DEV_SESSION=1</code> esta activo, pero falta

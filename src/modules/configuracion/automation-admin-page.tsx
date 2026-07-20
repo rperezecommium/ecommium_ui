@@ -733,7 +733,7 @@ function AutomationGuidedPreview({ data, filters }: Props) {
           <Link className="adminButton adminButtonTiny" href={closeHref}>Cerrar</Link>
         </div>
 
-        <div className="adminBanner">
+        <div className="adminBanner adminBannerInfo">
           Este es un recorrido de revisión. No crea, modifica ni activa una regla.
         </div>
 
@@ -1362,7 +1362,7 @@ function RuleEditorForm({
       <input name="mode" type="hidden" value={mode} />
       {rule ? <input name="ruleId" type="hidden" value={rule.ruleId} /> : null}
 
-      <div className="adminBanner">
+      <div className="adminBanner adminBannerInfo">
         Las reglas nuevas quedan listas para revisar. Activalas desde el detalle cuando la definicion este correcta.
       </div>
 

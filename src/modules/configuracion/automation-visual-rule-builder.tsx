@@ -65,7 +65,7 @@ export function AutomationVisualRuleBuilder({
 
   return (
     <form action={createVisualAutomationRuleAction} className="pricingDenseForm">
-      <div className="adminBanner">
+      <div className="adminBanner adminBannerInfo">
         {migrationSourceRuleId
           ? "Crearás una copia en borrador para revisarla. La regla original no se modifica ni se desactiva."
           : "Crea una primera versión de la regla con palabras sencillas. Se guardará como borrador y no se activará sola."}

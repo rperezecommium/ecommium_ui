@@ -264,7 +264,7 @@ function DetailSummary({ selectedCase }: { selectedCase: AfterSalesAdminCase }) 
         <div><dt>Enviado</dt><dd>{dateText(selectedCase.submittedAt ?? selectedCase.createdAt)}</dd></div>
       </dl>
       {selectedCase.customerMessage ? (
-        <div className="adminBanner">
+        <div className="adminBanner adminBannerInfo">
           <p>{selectedCase.customerMessage}</p>
         </div>
       ) : null}
@@ -562,7 +562,7 @@ function CaseDetail({ capabilities, data }: Pick<Props, "capabilities" | "data">
 
 export function AfterSalesAdminPage({ capabilities, data, filters }: Props) {
   return (
-    <main className="adminPage">
+    <main className="adminPage afterSalesAdminPage">
       <div className="adminBreadcrumb">Admin / Postventa</div>
       <div className="adminPageHeader">
         <div>
@@ -576,54 +576,53 @@ export function AfterSalesAdminPage({ capabilities, data, filters }: Props) {
         </div>
       ) : null}
       <CasesKpis data={data} />
-      <div className="adminGrid">
-        <div className="adminStatusList">
-          <FiltersPanel filters={filters} />
-          <section className="adminCard">
-            <div className="adminCardHeader">
-              <div>
-                <h2>Bandeja de casos</h2>
-                <p>Casos storefront y operativos pendientes de atencion.</p>
-              </div>
-              <ClipboardCheck aria-hidden="true" size={18} />
+      <div className="adminStatusList">
+        <FiltersPanel filters={filters} />
+        <section className="adminCard">
+          <div className="adminCardHeader">
+            <div>
+              <h2>Bandeja de casos</h2>
+              <p>Casos storefront y operativos pendientes de atencion.</p>
             </div>
-            <CasesTable data={data} filters={filters} />
-          </section>
-          <CaseDetail capabilities={capabilities} data={data} />
-        </div>
-        <div className="adminStatusList">
-          <section className="adminCard">
-            <div className="adminCardHeader">
-              <div>
-                <h2>Flujo esperado</h2>
-                <p>Secuencia operativa conectada con Payments, Inventory e Invoice.</p>
-              </div>
-              <RotateCcw aria-hidden="true" size={18} />
-            </div>
-            <div className="customersOverviewList">
-              <div className="customersOverviewListItem"><strong>1. Revision</strong><span>UNDER_REVIEW</span></div>
-              <div className="customersOverviewListItem"><strong>2. Decision</strong><span>APPROVED / REJECTED</span></div>
-              <div className="customersOverviewListItem"><strong>3. Retorno</strong><span>AWAITING_RETURN / RETURN_RECEIVED</span></div>
-              <div className="customersOverviewListItem"><strong>4. Impactos</strong><span>Refund, inventario, documento</span></div>
-              <div className="customersOverviewListItem"><strong>5. Cierre</strong><span>RESOLVED / CLOSED</span></div>
-            </div>
-          </section>
-          <section className="adminCard">
-            <div className="adminCardHeader">
-              <div>
-                <h2>Continuidad</h2>
-                <p>Atajos al resto del backoffice.</p>
-              </div>
-              <PackageCheck aria-hidden="true" size={18} />
-            </div>
-            <div className="adminButtonRow">
-              <Link className="adminButton" href="/admin/clientes">Clientes</Link>
-              <Link className="adminButton" href="/admin/pedidos">Pedidos</Link>
-              <Link className="adminButton" href="/admin/pagos">Facturas</Link>
-            </div>
-          </section>
-        </div>
+            <ClipboardCheck aria-hidden="true" size={18} />
+          </div>
+          <CasesTable data={data} filters={filters} />
+        </section>
+        <CaseDetail capabilities={capabilities} data={data} />
       </div>
+
+      <section className="adminGrid afterSalesSupportGrid">
+        <section className="adminCard">
+          <div className="adminCardHeader">
+            <div>
+              <h2>Flujo esperado</h2>
+              <p>Secuencia operativa conectada con Payments, Inventory e Invoice.</p>
+            </div>
+            <RotateCcw aria-hidden="true" size={18} />
+          </div>
+          <div className="customersOverviewList">
+            <div className="customersOverviewListItem"><strong>1. Revision</strong><span>UNDER_REVIEW</span></div>
+            <div className="customersOverviewListItem"><strong>2. Decision</strong><span>APPROVED / REJECTED</span></div>
+            <div className="customersOverviewListItem"><strong>3. Retorno</strong><span>AWAITING_RETURN / RETURN_RECEIVED</span></div>
+            <div className="customersOverviewListItem"><strong>4. Impactos</strong><span>Refund, inventario, documento</span></div>
+            <div className="customersOverviewListItem"><strong>5. Cierre</strong><span>RESOLVED / CLOSED</span></div>
+          </div>
+        </section>
+        <section className="adminCard">
+          <div className="adminCardHeader">
+            <div>
+              <h2>Continuidad</h2>
+              <p>Atajos al resto del backoffice.</p>
+            </div>
+            <PackageCheck aria-hidden="true" size={18} />
+          </div>
+          <div className="adminButtonRow">
+            <Link className="adminButton" href="/admin/clientes">Clientes</Link>
+            <Link className="adminButton" href="/admin/pedidos">Pedidos</Link>
+            <Link className="adminButton" href="/admin/pagos">Facturas</Link>
+          </div>
+        </section>
+      </section>
     </main>
   );
 }

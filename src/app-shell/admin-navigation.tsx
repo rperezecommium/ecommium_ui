@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Boxes,
+  ChartColumn,
   CreditCard,
   FileText,
   Home,
@@ -32,6 +33,7 @@ const iconsByHref = {
   "/admin/catalogo": ShoppingBasket,
   "/admin/cms": FileText,
   "/admin/promociones": Megaphone,
+  "/admin/analitica": ChartColumn,
   "/admin/pedidos": Boxes,
   "/admin/postventa": LifeBuoy,
   "/admin/clientes": UsersRound,

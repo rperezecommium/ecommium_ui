@@ -204,7 +204,7 @@ function StockDetail({
       </section>
 
       {detail.warnings.length > 0 ? (
-        <div className="adminBanner">
+        <div className="adminBanner adminBannerInfo">
           {detail.warnings.map((warning) => <p key={warning}>{warning}</p>)}
         </div>
       ) : null}

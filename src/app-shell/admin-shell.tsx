@@ -1,5 +1,6 @@
 import {
   Boxes,
+  ChartColumn,
   CreditCard,
   FileText,
   Home,
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/admin/catalogo", label: "Catalogo", description: "Productos y contenido comercial", permission: "admin:catalog:view" as const, icon: ShoppingBasket },
   { href: "/admin/cms", label: "CMS", description: "Paginas y bloques", permission: "admin:cms:view" as const, icon: FileText },
   { href: "/admin/promociones", label: "Promociones", description: "Cupones y reglas de carrito", permission: "admin:promotions:view" as const, icon: Megaphone },
+  { href: "/admin/analitica", label: "Analitica", description: "Eventos y rendimiento comercial", permission: "admin:analytics:view" as const, icon: ChartColumn },
   { href: "/admin/pedidos", label: "Pedidos", description: "Operacion y fulfillment", permission: "admin:orders:view" as const, icon: Boxes },
   { href: "/admin/postventa", label: "Postventa", description: "Soporte, retornos y refunds", permission: "admin:after-sales:view" as const, icon: LifeBuoy },
   { href: "/admin/clientes", label: "Clientes", description: "Customer 360", permission: "admin:customers:view" as const, icon: UsersRound },

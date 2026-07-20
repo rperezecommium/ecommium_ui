@@ -1250,7 +1250,10 @@ function ProductEditorClientInner({
   const [pendingGeneratedVariants, setPendingGeneratedVariants] = useState<ProductDraftVariant[] | null>(null);
   const [variantMessage, setVariantMessage] = useState<string | null>(null);
   const [brokenMediaPreviewIds, setBrokenMediaPreviewIds] = useState<Record<string, true>>({});
-  const [offeringMessage, setOfferingMessage] = useState<string | null>(null);
+  const [offeringMessage, setOfferingMessage] = useState<{
+    text: string;
+    tone: "error" | "info" | "success";
+  } | null>(null);
   const [offeringPrerequisiteNoticeDismissed, setOfferingPrerequisiteNoticeDismissed] = useState(false);
   const [offeringPickerOpen, setOfferingPickerOpen] = useState(false);
   const [offeringPickerStep, setOfferingPickerStep] = useState<OfferingPickerStep>("list");
@@ -3283,11 +3286,11 @@ function ProductEditorClientInner({
   function assignExistingOfferingToSelectedVariant(offeringId: string) {
     const variantId = offeringTargetVariant?.variantId;
     if (!offeringId) {
-      setOfferingMessage("Selecciona un offering existente.");
+      setOfferingMessage({ text: "Selecciona un offering existente.", tone: "info" });
       return;
     }
     if (!variantId) {
-      setOfferingMessage("Guarda el producto y la variante antes de asignar offerings.");
+      setOfferingMessage({ text: "Guarda el producto y la variante antes de asignar offerings.", tone: "info" });
       return;
     }
 
@@ -3301,7 +3304,10 @@ function ProductEditorClientInner({
         setOfferingPickerStep("list");
         setOfferingPickerOfferingId(null);
       }
-      setOfferingMessage(result.message ?? (result.ok ? "Offering asignado." : "No se pudo asignar el offering."));
+      setOfferingMessage({
+        text: result.message ?? (result.ok ? "Offering asignado." : "No se pudo asignar el offering."),
+        tone: result.ok ? "success" : "error",
+      });
     });
   }
 
@@ -3338,7 +3344,10 @@ function ProductEditorClientInner({
       if (result.ok) {
         setOfferingsForVariant(offeringTargetKey, result.offerings);
       }
-      setOfferingMessage(result.message ?? (result.ok ? "Offering desasignado." : "No se pudo desasignar el offering."));
+      setOfferingMessage({
+        text: result.message ?? (result.ok ? "Offering desasignado." : "No se pudo desasignar el offering."),
+        tone: result.ok ? "success" : "error",
+      });
     });
   }
 
@@ -3350,7 +3359,10 @@ function ProductEditorClientInner({
       if (result.ok) {
         setOfferingsForVariant(offeringTargetKey, result.offerings);
       }
-      setOfferingMessage(result.message ?? (result.ok ? "Offering actualizado." : "No se pudo actualizar el offering."));
+      setOfferingMessage({
+        text: result.message ?? (result.ok ? "Offering actualizado." : "No se pudo actualizar el offering."),
+        tone: result.ok ? "success" : "error",
+      });
     });
   }
 
@@ -3397,7 +3409,7 @@ function ProductEditorClientInner({
       </div>
 
       {initialNotice ? (
-        <section className="adminBanner" aria-live="polite">
+        <section className="adminBanner adminBannerInfo" aria-live="polite">
           <p>{initialNotice}</p>
         </section>
       ) : null}
@@ -3438,7 +3450,7 @@ function ProductEditorClientInner({
       ) : null}
 
       {storedDraft && !dirty ? (
-        <section className="adminBanner" aria-live="polite">
+        <section className="adminBanner adminBannerInfo" aria-live="polite">
           <p>Hay un borrador local guardado para esta ficha.</p>
           <div className="adminButtonRow">
             <button
@@ -3467,7 +3479,7 @@ function ProductEditorClientInner({
       ) : null}
 
       {lookups.warnings.length > 0 ? (
-        <section className="adminBanner" aria-live="polite">
+        <section className="adminBanner adminBannerInfo" aria-live="polite">
           {lookups.warnings.map((warning) => <p key={warning}>{warning}</p>)}
         </section>
       ) : null}
@@ -4219,7 +4231,7 @@ function ProductEditorClientInner({
                   </button>
                 </div>
                 {!offeringTargetVariant?.variantId && !offeringPrerequisiteNoticeDismissed ? (
-                  <div className="adminBanner adminBannerDismissible">
+                  <div className="adminBanner adminBannerInfo adminBannerDismissible">
                     <p>Guarda primero esta variante para asociar servicios adicionales.</p>
                     <button
                       aria-label="Cerrar aviso de servicios adicionales"
@@ -4232,8 +4244,8 @@ function ProductEditorClientInner({
                   </div>
                 ) : null}
                 {offeringMessage ? (
-                  <div className="adminBanner" aria-live="polite">
-                    <p>{offeringMessage}</p>
+                  <div className={`adminBanner adminBanner${offeringMessage.tone[0].toUpperCase()}${offeringMessage.tone.slice(1)}`} aria-live="polite">
+                    <p>{offeringMessage.text}</p>
                   </div>
                 ) : null}
                 <div className="productOfferingSummary">
@@ -4422,7 +4434,7 @@ function ProductEditorClientInner({
                 <span>Reglas especificas: <strong>{visibleSpecificPrices.length}</strong></span>
               </div>
               {lookups.warnings.filter((warning) => warning.startsWith("Pricing")).map((warning) => (
-                <div className="adminBanner" key={warning}><p>{warning}</p></div>
+                <div className="adminBanner adminBannerInfo" key={warning}><p>{warning}</p></div>
               ))}
               <div className="adminFormGrid adminFormGridTwo">
                 <label className="adminField">
@@ -5732,7 +5744,7 @@ function ProductEditorClientInner({
                     ))}
                   </div>
                 ) : (
-                  <div className="adminBanner">
+                  <div className="adminBanner adminBannerInfo">
                     <p>Sin aliases configurados.</p>
                   </div>
                 )}
@@ -6135,8 +6147,8 @@ function ProductEditorClientInner({
 
             <div className="productOfferingDrawerBody">
               {offeringMessage ? (
-                <div className="adminBanner" aria-live="polite">
-                  <p>{offeringMessage}</p>
+                <div className={`adminBanner adminBanner${offeringMessage.tone[0].toUpperCase()}${offeringMessage.tone.slice(1)}`} aria-live="polite">
+                  <p>{offeringMessage.text}</p>
                 </div>
               ) : null}
 
@@ -6188,7 +6200,7 @@ function ProductEditorClientInner({
                       </Link>
                     </div>
                     {!offeringTargetVariant?.variantId ? (
-                      <div className="adminBanner">
+                      <div className="adminBanner adminBannerInfo">
                         <p>Guarda primero esta variante para asociar servicios adicionales.</p>
                       </div>
                     ) : null}

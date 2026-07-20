@@ -900,6 +900,249 @@ p {
   display: block;
 }
 
+.analyticsAdminPage {
+  display: grid;
+  gap: 16px;
+}
+
+.analyticsFilterForm {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.analyticsEventBreakdown {
+  max-width: 520px;
+  padding-top: 14px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.analyticsEventBreakdown ul {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.analyticsEventBreakdown li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--admin-text-muted);
+}
+
+.analyticsEventBreakdown li strong {
+  color: var(--admin-text);
+}
+
+.analyticsEventGroups {
+  display: grid;
+  gap: 16px;
+}
+
+.analyticsEventGroup {
+  padding: 0;
+  overflow: hidden;
+}
+
+.analyticsEventGroupSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.analyticsEventGroupSummary::-webkit-details-marker {
+  display: none;
+}
+
+.analyticsEventGroupSummary h2 {
+  margin: 0;
+}
+
+.analyticsEventGroupSummary p {
+  margin: 4px 0 0;
+  color: var(--admin-text-muted);
+}
+
+.analyticsEventGroupSummary > span {
+  color: var(--admin-primary-pressed);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.analyticsEventGroupContent {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.analyticsProductPreview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 180px;
+}
+
+.analyticsProductPreview > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.analyticsProductPreview strong {
+  font-weight: 700;
+}
+
+.analyticsProductPreview small,
+.analyticsProductStack > small {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.analyticsProductPreviewCompact {
+  min-width: 0;
+}
+
+.analyticsProductPreviewCompact .analyticsProductImage {
+  width: 32px;
+  height: 32px;
+}
+
+.analyticsProductImage {
+  position: relative;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.analyticsProductImageFallback {
+  display: grid;
+  place-items: center;
+  color: var(--admin-text-muted);
+}
+
+.analyticsProductStack {
+  display: grid;
+  gap: 6px;
+}
+
+.analyticsDrawerProducts {
+  display: grid;
+  gap: 10px;
+}
+
+.analyticsDrawerProducts h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.analyticsDrawerBackdrop {
+  align-items: stretch;
+  padding-left: 64px;
+  background: rgb(245 248 249 / 78%);
+}
+
+.analyticsDrawerBackdropLink {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.adminSideDrawer.analyticsSideDrawer {
+  position: relative;
+  z-index: 1;
+  grid-template-rows: auto;
+  align-content: start;
+}
+
+.analyticsDefinitionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.analyticsDefinitionGrid dt {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.analyticsDefinitionGrid dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.analyticsDetailTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.analyticsDetailTable th,
+.analyticsDetailTable td {
+  padding: 6px 8px;
+  border: 1px solid var(--admin-border);
+  text-align: left;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+  line-height: 1.3;
+}
+
+.analyticsDetailTable th {
+  color: var(--admin-text-muted);
+  font-weight: 700;
+  background: var(--admin-surface-muted);
+  white-space: nowrap;
+}
+
+.analyticsTechnicalTable {
+  margin-top: 10px;
+}
+
+.analyticsTechnicalDetails {
+  align-self: start;
+}
+
+.analyticsTechnicalDetails summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.analyticsPayload {
+  max-height: 280px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  background: var(--admin-surface-muted);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .analyticsFilterForm {
+    grid-template-columns: 1fr;
+  }
+
+  .analyticsEventGroupSummary {
+    align-items: flex-start;
+  }
+
+  .analyticsEventGroupSummary > span {
+    white-space: normal;
+    text-align: right;
+  }
+
+}
+
 .adminStatusList {
   display: grid;
   gap: 8px;
@@ -1084,9 +1327,10 @@ p {
 .adminBanner {
   margin-bottom: 16px;
   padding: 12px 14px;
-  border: 1px solid var(--admin-warning);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--admin-warning) 16%, var(--admin-surface));
+  border: .5px solid #89d5b682;
+  border-left: solid 3px #a0d2a0;
+  border-radius: 0;
+  background: color-mix(in srgb, #78bd96 16%, var(--admin-surface));
 }
 
 .adminBannerDismissible {
@@ -1115,23 +1359,31 @@ p {
 }
 
 .adminBannerError {
-  border-color: var(--admin-danger);
+  border: .5px solid color-mix(in srgb, var(--admin-danger) 52%, var(--admin-surface));
+  border-left: solid 3px var(--admin-danger);
+  border-radius: 0;
   background: color-mix(in srgb, var(--admin-danger) 10%, var(--admin-surface));
 }
 
 .adminBannerInfo {
-  border-color: var(--admin-info);
-  background: color-mix(in srgb, var(--admin-info) 12%, var(--admin-surface));
+  border: .5px solid #e7ca7f82;
+  border-left: solid 3px #e7c96d;
+  border-radius: 0;
+  background: color-mix(in srgb, #fbbb22 12%, var(--admin-surface));
 }
 
 .adminBannerSuccess {
-  border-color: var(--admin-success);
-  background: color-mix(in srgb, var(--admin-success) 14%, var(--admin-surface));
+  border: .5px solid #89d5b682;
+  border-left: solid 3px #a0d2a0;
+  border-radius: 0;
+  background: color-mix(in srgb, #78bd96 16%, var(--admin-surface));
 }
 
 .adminBannerWarning {
-  border-color: var(--admin-warning);
-  background: color-mix(in srgb, var(--admin-warning) 16%, var(--admin-surface));
+  border: .5px solid #e7ca7f82;
+  border-left: solid 3px #e7c96d;
+  border-radius: 0;
+  background: color-mix(in srgb, #fbbb22 12%, var(--admin-surface));
 }
 
 .adminSection {
@@ -3454,6 +3706,80 @@ p {
 .communicationsTestForm .adminButton {
   min-height: 44px;
   white-space: nowrap;
+}
+
+.communicationsTopGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.communicationsAdminPage {
+  display: grid;
+  gap: 16px;
+}
+
+.communicationsAdminPage .adminBanner {
+  margin-bottom: 0;
+}
+
+.afterSalesAdminPage {
+  display: grid;
+  gap: 16px;
+}
+
+.afterSalesAdminPage .adminBanner {
+  margin-bottom: 0;
+}
+
+.communicationsCollapsible {
+  padding: 0;
+  overflow: hidden;
+}
+
+.communicationsCollapsibleSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.communicationsCollapsibleSummary::-webkit-details-marker {
+  display: none;
+}
+
+.communicationsCollapsibleSummary h2 {
+  margin: 0;
+}
+
+.communicationsCollapsibleSummary p {
+  margin: 4px 0 0;
+  color: var(--admin-text-muted);
+}
+
+.communicationsCollapsibleHint {
+  color: var(--admin-primary-pressed);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.communicationsCollapsibleContent {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.communicationsTemplateActions {
+  justify-content: flex-end;
+  padding-top: 16px;
+}
+
+.communicationsTechnicalStatus .adminTable {
+  margin: 0;
 }
 
 .ordersSearchToolbar {
@@ -10407,6 +10733,7 @@ p {
   }
 
   .adminGrid,
+  .communicationsTopGrid,
   .adminCatalogAreaGrid,
   .adminKpiGrid,
   .adminSplit,

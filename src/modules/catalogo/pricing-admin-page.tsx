@@ -675,27 +675,27 @@ export function PricingAdminPage({ context, data, filters }: PricingAdminPagePro
       ) : null}
       {activeTab === "rules" ? (
         <>
-          {!filters.priceTableId ? <div className="adminBanner"><p>Selecciona priceTableId para listar reglas.</p></div> : null}
+          {!filters.priceTableId ? <div className="adminBanner adminBannerInfo"><p>Selecciona priceTableId para listar reglas.</p></div> : null}
           <RecordTable title="Rules" result={data.rules} columns={["ruleId", "active", "priority", "source", "tradePolicy", "channel", "customerGroup", "country"]} empty="No hay reglas para la tabla seleccionada." actions={(record) => <RuleActions record={record} priceTableId={filters.priceTableId} />} />
         </>
       ) : null}
       {activeTab === "fixed" ? (
         <>
           <FixedPriceForms filters={filters} data={data} />
-          {!filters.itemId ? <div className="adminBanner"><p>Informa variantId para consultar fixed prices existentes.</p></div> : null}
+          {!filters.itemId ? <div className="adminBanner adminBannerInfo"><p>Informa variantId para consultar fixed prices existentes.</p></div> : null}
           <RecordTable title="Fixed prices" result={data.fixedPrices} columns={["itemId", "productId", "priceTableId", "fixedPriceMinor", "basePriceMinor", "listPriceMinor", "currency", "taxIncluded", "active"]} empty="No hay fixed prices para la variante." />
         </>
       ) : null}
       {activeTab === "computed" ? (
         <>
-          {!filters.itemId || !filters.priceTableId ? <div className="adminBanner"><p>Informa itemId y priceTableId para consultar computed price.</p></div> : null}
+          {!filters.itemId || !filters.priceTableId ? <div className="adminBanner adminBannerInfo"><p>Informa itemId y priceTableId para consultar computed price.</p></div> : null}
           <RecordDetails title="Computed item/table" result={data.computed} />
           <RecordTable title="Computed batch" result={data.computedBatch} columns={["itemId", "priceTableId", "netMinor", "taxMinor", "grossMinor", "currency", "source"]} empty="Sin resultado batch." />
         </>
       ) : null}
       {activeTab === "computed-auto" ? (
         <>
-          {!filters.itemId ? <div className="adminBanner"><p>Informa itemId para consultar computed-auto.</p></div> : null}
+          {!filters.itemId ? <div className="adminBanner adminBannerInfo"><p>Informa itemId para consultar computed-auto.</p></div> : null}
           <RecordDetails title="Computed auto item" result={data.computedAuto} />
           <RecordTable title="Computed auto batch" result={data.computedAutoBatch} columns={["itemId", "priceTableId", "netMinor", "taxMinor", "grossMinor", "currency", "source"]} empty="Sin resultado batch." />
         </>

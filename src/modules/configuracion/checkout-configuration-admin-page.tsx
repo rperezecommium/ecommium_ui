@@ -101,7 +101,7 @@ export function CheckoutConfigurationAdminPage({ context, drawerOpen, notice, re
       {response && configuration && state ? (
         <>
           {state === "INITIAL" ? (
-            <div className="adminBanner">
+            <div className="adminBanner adminBannerInfo">
               Aún no hay configuración guardada para esta tienda. Guarda una vez para fijar estas reglas.
             </div>
           ) : null}
