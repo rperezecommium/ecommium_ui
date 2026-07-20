@@ -98,16 +98,34 @@ Estos endpoints son orientativos para construir UI. Si alguno no responde, regis
 - `GET /api/v1/storefront/pdp/:productSlug`
 - `GET /api/v1/storefront/pricing/products/:productId`
 - `GET /api/v1/storefront/pricing/variants/:variantId`
+- `GET /api/v1/storefront/order-tracking/:orderReference?organizationId=:org&shopId=:shop&trackingAccessToken=:optional`
+- `POST /api/v1/storefront/order-tracking/access-recovery?organizationId=:org&shopId=:shop`
 - `GET /api/v1/storefront/me/purchases?organizationId=:org&shopId=:shop&limit=:limit&offset=:offset`
 - `GET /api/v1/storefront/me/invoices`
 - `GET /api/v1/storefront/me/invoices/:invoiceId/document`
 - `POST /api/v1/storefront/me/after-sales/cases?organizationId=:org&shopId=:shop`
 
+Reglas para pedidos guest:
+
+- La recuperación recibe únicamente `{ orderReference, email }`, responde siempre
+  `202 { accepted: true }` y nunca revela si el pedido o el email existen.
+- El `trackingAccessToken` es opaco y solo autoriza el seguimiento guest. La UI
+  debe retirarlo de la URL después de usarlo y no guardarlo en `localStorage`,
+  logs ni estado persistente del navegador.
+- Cuando un invitado crea y verifica una cuenta con el mismo email, Sessions
+  vincula internamente los pedidos guest elegibles del tenant y los reproyecta
+  en `Mis compras`. La UI no persiste ni reenvía referencia, email o token para
+  asociar pedidos, ni muestra una acción de claim manual.
+- Los enlaces privados enviados por Orders usan
+  `ORDERS_STOREFRONT_PUBLIC_BASE_URL`: localmente `http://localhost:5173` y en
+  producción el dominio público real del Storefront.
+
 ### Admin: Organizations/Shops y contexto multistore
 
-- `POST /api/v1/admin/sessions/login`
-- `GET /api/v1/admin/sessions/me`
-- `POST /api/v1/admin/sessions/logout`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
 - `GET /api/v1/admin/organizations-shops/organizations?limit=:limit&offset=:offset`
 - `POST /api/v1/admin/organizations-shops/organizations`
 - `GET /api/v1/admin/organizations-shops/organizations/:organizationId`
@@ -123,12 +141,13 @@ Estos endpoints son orientativos para construir UI. Si alguno no responde, regis
 
 Flujo UI obligatorio:
 
-1. Listar Organizations.
-2. Listar Shops por `organizationId`.
-3. Mostrar nombre de tienda, `shopAlias`, dominio y estado operativo; evitar usar UUID como texto principal.
-4. Permitir escribir `shopAlias` si el usuario no encuentra la tienda en el selector.
-5. Resolver contexto por `shops/context/resolve`.
-6. Persistir el `shopId` devuelto como identidad canonica del Admin.
+1. Autenticar Admin con `email`, `password` y `scope=admin`, sin pedir `organizationId` ni `shopId` en el formulario.
+2. Listar Organizations disponibles para el empleado autenticado.
+3. Listar Shops por `organizationId`.
+4. Mostrar nombre de tienda, `shopAlias`, dominio y estado operativo; evitar usar UUID como texto principal.
+5. Permitir escribir `shopAlias` si el usuario no encuentra la tienda en el selector.
+6. Resolver contexto por `shops/context/resolve`.
+7. Persistir el `shopId` devuelto como identidad canonica del Admin.
 
 `shopId` es tecnico y lo genera backend. La UI no lo pide al crear tienda ni lo presenta como dato principal para operar. Crear tienda usa datos humanos/configurables: `name`, `shopAlias`, `primaryDomain`, `shopGroupId`, `status` y `settingsOverride`.
 
@@ -140,6 +159,15 @@ La sesion visual de desarrollo no autentica contra el BFF. Las llamadas Admin
 reales requieren `Authorization`, obtenido desde BFF Sessions y persistido en
 cookie httpOnly por la UI, o desde `ECOMMIUM_ADMIN_BFF_TOKEN` como fallback
 server-side de desarrollo.
+
+Gap confirmado el 2026-06-16 contra el BFF local: los endpoints
+`/api/v1/admin/sessions/login`, `/api/v1/admin/sessions/me` y
+`/api/v1/admin/sessions/logout` devolvieron `404`. El contrato operativo
+observable para login Admin es `/api/v1/auth/login`, `/api/v1/auth/me`,
+`/api/v1/auth/refresh` y `/api/v1/auth/logout`, enviando `scope=admin`.
+`organizationId` y `shopId` solo se envian si ya existe contexto activo; la UI
+debe llevar al selector de contexto cuando el login devuelva una sesion Admin
+sin tienda activa canonica.
 
 Estados UI obligatorios para multistore:
 
@@ -162,6 +190,29 @@ Estados UI obligatorios para multistore:
 - `GET /api/v1/admin/routing-seo/redirects?organizationId=:org&shopId=:shop&locale=:locale`
 - `GET /api/v1/admin/routing-seo/resolve?organizationId=:org&shopId=:shop&locale=:locale&path=:path`
 - `GET /api/v1/admin/routing-seo/sitemap?organizationId=:org&shopId=:shop&locale=:locale`
+
+Reglas UI Routing/SEO vigentes para producto:
+
+- `canonicalRouteId` es solo lectura; la UI no debe enviarlo en `POST routes`,
+  `PATCH routes` ni en `draft.routingSeo`.
+- `includeInSitemap` solo aplica a rutas `CANONICAL`. Los aliases se muestran y
+  editan como rutas alternativas, pero siempre se envian con
+  `includeInSitemap=false`.
+- `createRedirectFromPreviousPath` solo aplica al cambio de canonical path.
+- Un alias eliminado se envia como baja logica (`status=INACTIVE`,
+  `includeInSitemap=false`) si ya tiene `routeId`.
+
+Reglas UI Routing/SEO vigentes para Admin SEO global:
+
+- La pantalla global puede mostrar `canonicalRouteId` como dato de lectura, pero
+  no debe enviarlo en creacion ni actualizacion de rutas.
+- Las rutas `ALIAS` se normalizan como no indexables al leer del BFF y antes de
+  mutar contra el BFF.
+- `PATCH routes/:routeId` no envia `routeKind`; si la UI lo usa para decidir
+  comportamiento local, debe eliminarlo antes del request.
+- Los redirects `302` manuales requieren `reason` y `expiresAt` futuro antes de
+  llamar al BFF. El backend conserva la validacion final de ruta activa destino
+  y evita cadenas de redirects.
 
 ### Admin: Search y Analytics
 
@@ -190,8 +241,17 @@ Estados UI obligatorios para multistore:
 - `POST /api/v1/admin/communications/templates/email?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/communications/templates/email/:templateId/preview?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/communications/templates/email/:templateId/activate?organizationId=:org&shopId=:shop`
-- `GET /api/v1/admin/communications/deliveries?organizationId=:org&shopId=:shop&status=:status&templateKey=:key&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/communications/deliveries?organizationId=:org&shopId=:shop&status=:optional&templateKey=:optional&sourceEventId=:optional&customerId=:optional&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/communications/deliveries/:deliveryId?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/communications/deliveries/:deliveryId/retry?organizationId=:org&shopId=:shop`
+
+Las deliveries son una auditoria operativa de emails por Organization y Shop.
+El listado admite exclusivamente los filtros `status`, `templateKey`, `sourceEventId`
+y `customerId`; no inferir filtros por destinatario, fecha u otros campos sin ampliar
+primero el contrato BFF. El detalle incluye destinatario, intentos del proveedor,
+error, timestamps y snapshot renderizado. La UI debe mostrar ese snapshot como texto
+seguro y no renderizar HTML remoto ni exponer datos sensibles por defecto. Solo una
+delivery en estado `FAILED` puede reintentarse; el BFF confirma el estado resultante.
 
 ### Admin: Customers
 
@@ -216,8 +276,47 @@ Estados UI obligatorios para multistore:
 - `PATCH /api/v1/admin/payments/rules/:ruleId?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/payments/card-lookup?organizationId=:org&shopId=:shop`
 
+### Admin: Pricing
+
+- `GET /api/v1/admin/pricing/taxes?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/pricing/taxes?organizationId=:org&shopId=:shop`
+- `PATCH /api/v1/admin/pricing/taxes/:taxCode?organizationId=:org&shopId=:shop`
+- `DELETE /api/v1/admin/pricing/taxes/:taxCode?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/pricing/price-tables?organizationId=:org&shopId=:shop&includeInactive=:optional`
+- `POST /api/v1/admin/pricing/price-tables?organizationId=:org&shopId=:shop`
+- `PATCH /api/v1/admin/pricing/price-tables/:priceTableId?organizationId=:org&shopId=:shop`
+- `DELETE /api/v1/admin/pricing/price-tables/:priceTableId?organizationId=:org&shopId=:shop`
+- `GET|POST /api/v1/admin/pricing/customer-groups?organizationId=:org&shopId=:shop&includeInactive=:optional`
+- `PATCH|DELETE /api/v1/admin/pricing/customer-groups/:code?organizationId=:org&shopId=:shop`
+- `GET|POST /api/v1/admin/pricing/channels?organizationId=:org&shopId=:shop&includeInactive=:optional`
+- `PATCH|DELETE /api/v1/admin/pricing/channels/:code?organizationId=:org&shopId=:shop`
+- `GET|POST /api/v1/admin/pricing/trade-policies?organizationId=:org&shopId=:shop&includeInactive=:optional`
+- `PATCH|DELETE /api/v1/admin/pricing/trade-policies/:code?organizationId=:org&shopId=:shop`
+- `GET|POST /api/v1/admin/pricing/countries?organizationId=:org&shopId=:shop&includeInactive=:optional`
+- `PATCH|DELETE /api/v1/admin/pricing/countries/:code?organizationId=:org&shopId=:shop`
+
+`Admin > Configuracion > Precios` consume estas listas maestras por BFF para
+alimentar selectores de impuestos, price tables, grupos de cliente, canales,
+politicas comerciales y paises. La UI no debe aceptar listas locales inventadas
+que luego no hagan match con el motor de Pricing.
+
+Certificacion UI 2026-06-26: Playwright valida
+`/admin/configuracion/precios?tab=references`, muestra `default-iva`,
+`vip-table`, `vip`, `web`, `default` y `ES`, crea `playwright-vip` via BFF y
+comprueba que el navegador no llama servicios internos. La grilla de Pricing
+usa columnas densas responsivas para evitar que tablas y formularios se
+superpongan sobre botones de accion.
+
+`Producto > Precio` consume esas mismas listas maestras como selects en el
+contexto avanzado de precio base, precios especificos y simulador aplicado.
+Los valores legacy se muestran como opcion actual si todavia no existen en
+`Configuracion > Precios`.
+
 ### Admin: Media, Shipping, Invoice y After Sales
 
+- `POST /api/v1/admin/product-save-operations?organizationId=:org&shopId=:shop&locale=:locale`
+- `GET /api/v1/admin/product-drafts/:clientDraftId?organizationId=:org&shopId=:shop&locale=:locale`
+- `POST /api/v1/admin/product-drafts/:clientDraftId/media?organizationId=:org&shopId=:shop&locale=:locale`
 - `POST /api/v1/admin/media/collections`
 - `POST /api/v1/admin/media/collections/:mediaCollectionId/items`
 - `GET /api/v1/admin/media/collections`
@@ -226,13 +325,45 @@ Estados UI obligatorios para multistore:
 - `PATCH /api/v1/admin/media/collections/:mediaCollectionId`
 - `DELETE /api/v1/admin/media/collections/:mediaCollectionId?mode=soft|hard`
 - `GET /api/v1/admin/media/assets/:mediaAssetId/content?variant=original|small_default|medium_default|large_default`
+
+`Admin > Catalogo > Media` lista colecciones por BFF con scope
+`organizationId/shopId/locale`, permite revisar detalle de assets, alt/title,
+estado y preview por el proxy server-side `/api/admin/media-assets/:mediaAssetId/content`.
+La UI solo expone baja segura de coleccion con `DELETE ...?mode=soft`; no expone
+borrado hard ni subida libre fuera del flujo de producto hasta tener contrato
+Admin de metadata y ownership suficientemente cerrado.
+
+`Admin > Catalogo > Stock` no usa un listado global inventado de Inventory. Lee
+productos por `GET /admin/products`, abre `GET /admin/products/:productId/editor-state`
+para obtener variantes y disponibilidad, y actualiza cada fila con
+`PUT /admin/inventory/stock-levels`. La pantalla no crea reservas, no edita
+warehouses globales y no mezcla reglas de Shipping/Logistics con disponibilidad
+comercial.
+
+`Admin > Promociones` es el punto de entrada para cupones y reglas de carrito
+gobernadas por `Promotions`. La UI no debe llamar directo a `services/promotions`;
+consume la fachada BFF Admin estable para CRUD de cupones:
+
+- `GET /api/v1/admin/promotions/coupons?organizationId=:org&shopId=:shop&includeInactive=:bool`
+- `POST /api/v1/admin/promotions/coupons?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/promotions/coupons/:couponCode?organizationId=:org&shopId=:shop`
+- `PATCH /api/v1/admin/promotions/coupons/:couponCode?organizationId=:org&shopId=:shop`
+- `DELETE /api/v1/admin/promotions/coupons/:couponCode?organizationId=:org&shopId=:shop&mode=soft`
+
+Las reglas de precio de catalogo, price tables, fixed prices y computed-auto no
+son cupones. Viven en `Admin > Configuracion > Precios`, consumen
+`/api/v1/admin/pricing/*` y pertenecen a `Pricing`.
+
 - `GET /api/v1/admin/shipping/warehouses?organizationId=:org&shopId=:shop&includeInactive=false`
+- `GET /api/v1/admin/shipping/configuration?organizationId=:org&shopId=:shop&includeInactive=false`
+- `POST /api/v1/shipping/options/resolve?organizationId=:org&shopId=:shop`
 - `PUT /api/v1/admin/shipping/warehouses?organizationId=:org&shopId=:shop`
 - `GET /api/v1/admin/shipping/sla-policies?organizationId=:org&shopId=:shop&includeInactive=false`
 - `PUT /api/v1/admin/shipping/sla-policies?organizationId=:org&shopId=:shop`
 - `GET /api/v1/admin/shipping/pickup-points?organizationId=:org&shopId=:shop&includeInactive=false`
 - `PUT /api/v1/admin/shipping/pickup-points?organizationId=:org&shopId=:shop`
 - `GET /api/v1/admin/shipping/fulfillments?organizationId=:org&shopId=:shop&status=:status&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/shipping/fulfillments/:fulfillmentId?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/shipping/fulfillments/:fulfillmentId/status?organizationId=:org&shopId=:shop`
 - `GET /api/v1/admin/invoices`
 - `GET /api/v1/admin/invoices/:invoiceId`
@@ -244,6 +375,58 @@ Estados UI obligatorios para multistore:
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/approve?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/after-sales/cases/:caseId/refund-requests?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/resolve?organizationId=:org&shopId=:shop`
+
+`Admin > Transporte` consume la configuracion global de Shipping/Logistics por
+BFF con `GET /admin/shipping/configuration` y edita zonas, transportistas,
+servicios y reglas tarifarias con `PUT /admin/shipping/{zones,carriers,carrier-services,rate-rules}`.
+Tambien incluye un simulador operativo de cotizacion que llama
+`POST /shipping/options/resolve` con direccion, item, peso, dimensiones y grupo
+de cliente para validar que las reglas configuradas producen SLAs reales.
+La ficha de producto solo guarda atributos logisticos propios del producto y
+referencias a transportistas permitidos; no duplica reglas globales de Shipping.
+
+La operativa transversal de fulfillment pertenece a `Admin > Configuracion >
+Transporte`. La UI consume exclusivamente la fachada BFF para listar, filtrar
+por un unico `status`, paginar, inspeccionar y transicionar envios. El detalle
+devuelve el contexto logistico y de notificacion interno (`fulfillmentId`,
+`version`, `orderId`, `orderReference`, `customerId`); este ultimo no se
+traslada nunca a Storefront.
+
+- Las lecturas y transiciones de fulfillments requieren
+  `shipping.logistics.write`, ademas de sesion Admin, contexto
+  `organizationId/shopId` y los roles permitidos por BFF.
+- Estados admitidos: `PENDING_FULFILLMENT`, `READY_TO_PICK`, `PICKING`,
+  `PACKED`, `SHIPPED`, `DELIVERED` y `FAILED`.
+- La UI solo debe proponer transiciones validas para el estado actual; BFF y
+  Shipping conservan la validacion definitiva. `DELIVERED` y `FAILED` son
+  terminales.
+- El body de la transicion usa `{ "status", "trackingNumber?", "carrierId?" }`.
+  `trackingNumber` es obligatorio al enviar `SHIPPED`.
+- La bandeja no crea fulfillments ni reemplaza la operativa por pedido de
+  `Admin > Pedidos`; ambas superficies consumen sus contratos BFF respectivos.
+
+Guardado Admin de producto:
+
+- La UI genera `clientDraftId` estable antes de persistir el producto y lo conserva en el borrador local.
+- Las imagenes nuevas se suben por `POST /admin/product-drafts/:clientDraftId/media` con multipart, `idempotency-key`, `fileLocalId`, metadata y archivo binario. Media persiste el asset; Catalog solo recibe referencias `mediaAssetId`.
+- Al abrir o restaurar un borrador con `clientDraftId`, la UI consulta `GET /admin/product-drafts/:clientDraftId` y rehidrata `productId`, `defaultVariantId`, `mediaCollectionId` y `mediaItems[]` persistidos.
+- El guardado general usa una sola operacion `POST /admin/product-save-operations` con `draft` JSON, archivos locales pendientes y `idempotency-key`.
+- La respuesta BFF incluye `blocks.catalog|variants|media|variantMedia|pricing|inventory|shipping|publish`, `fieldErrors`, `retryable`, `draftPatch`, `correlationIds` y `recoveryActions`.
+- Las `recoveryActions` se muestran como acciones reales: las de revision navegan al tab del bloque afectado y las de reintento vuelven a ejecutar el guardado canonico. La UI no crea endpoints de reintento paralelos ni borra bloques exitosos.
+- Las especificaciones tecnicas se gestionan dentro del draft: la UI lee grupos/valores desde `GET /admin/specifications/groups`, rehidrata selecciones desde `editor-state`, normaliza un valor por caracteristica y envia `draft.specifications.selections` al guardado general.
+- Si `publish` queda `blocked`, la UI debe mantener el producto como borrador/guardado sin publicar y mostrar las acciones de recuperacion devueltas por BFF. La UI puede anticipar validaciones, pero el BFF decide el estado final.
+- La publicacion desde UI se prepara en el draft con una accion explicita. La UI solo marca `isActive=true` e `isVisible=true` si el checklist local de portada, precio base y stock esta completo; la persistencia ocurre siempre al guardar por `POST /admin/product-save-operations` y el BFF conserva la validacion final.
+- Las variantes se filtran y se operan masivamente solo dentro del draft de la ficha. Activar/desactivar/mostrar/ocultar variantes filtradas no llama a endpoints propios: se persiste despues con `POST /admin/product-save-operations`, que actualiza variantes persistidas por `PATCH` y no por `DELETE`.
+- La pestana `Auditoria` de producto es solo lectura: muestra `productId`, `defaultVariantId`, `mediaCollectionId`, `clientDraftId`, bloques, `operationId`, mensajes, errores, acciones de recuperacion y `correlationIds` ya devueltos por BFF o presentes en el draft.
+
+Listado Admin de productos:
+
+- Las acciones reales disponibles en el listado son editar, previsualizar en el editor local y abrir preview Storefront real. La previsualizacion local usa `/admin/products/:productId?preview=1` y abre el drawer PDP del editor con datos Admin ya hidratados por BFF.
+- La preview Storefront usa `/admin/products/:productId/storefront-preview`: es una pantalla Admin `noindex,nofollow`, consulta `GET /storefront/pdp/:productSlug` por BFF desde servidor con `withAuth=false`, y no crea una URL publica indexable de preview. Si Storefront no devuelve PDP, la UI debe mostrar el fallo real y no rellenar con datos Admin como sustituto.
+- La seleccion de columnas y los ajustes de tamano de pagina se expresan por query string (`columns`, `limit`, `offset`) para que la vista sea reproducible sin estado cliente paralelo.
+- Duplicar producto usa `/admin/products/new?duplicateFrom=:productId`: la UI lee `editor-state` por BFF y abre un borrador nuevo que se guardara por `POST /admin/product-save-operations`. La copia se genera fuera de linea, no visible, sin sitemap, sin aliases, sin media compartida, sin EANs, sin stock vendible, sin ofertas y sin specific prices para evitar duplicidad publica o venta accidental.
+- Desactivar producto es la unica accion destructiva disponible mientras `apps/bff` no exponga borrado de producto. La UI exige confirmacion, llama `PATCH /admin/products/:productId` por BFF con `isActive=false` e `isVisible=false`, y despues intenta inactivar canonical y aliases en Routing/SEO con `includeInSitemap=false`.
+- Las acciones agrupadas del listado quedan limitadas a desactivacion segura de productos seleccionados. La UI exige confirmacion, reutiliza el mismo flujo BFF de desactivacion individual y no expone borrado masivo, publicacion masiva ni llamadas directas a Catalog.
 
 ## UX PrestaShop-like aplicable
 

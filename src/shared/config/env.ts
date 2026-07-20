@@ -3,6 +3,9 @@ export const bffBaseUrl =
 
 export const adminBffToken = process.env.ECOMMIUM_ADMIN_BFF_TOKEN ?? "";
 
+export const searchGcsBucket =
+  process.env.ECOMMIUM_SEARCH_GCS_BUCKET ?? "ecommium_media";
+
 export const defaultAdminContext = {
   organizationId: process.env.ECOMMIUM_DEFAULT_ORGANIZATION_ID ?? "",
   shopId: process.env.ECOMMIUM_DEFAULT_SHOP_ID ?? "",

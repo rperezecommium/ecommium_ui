@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { AdminShell } from "../../../src/app-shell/admin-shell";
+import { runWithAdminRequestSession } from "../../../src/shared/auth/admin-request-session";
 import { getAdminContext } from "../../../src/shared/config/admin-context";
-import { getAdminSession } from "../../../src/shared/auth/session";
+import { refreshAdminEmployeeSession } from "../../../src/modules/auth/admin-session-actions";
 import { getOrganizationShopDirectory } from "../../../src/modules/configuracion/organization-shop";
 
 export default async function AdminLayout({
@@ -9,18 +10,20 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getAdminSession();
+  const session = await refreshAdminEmployeeSession();
 
   if (!session) {
     redirect("/auth/login?next=/admin");
   }
 
-  const context = await getAdminContext();
-  const directory = await getOrganizationShopDirectory();
+  return runWithAdminRequestSession(session, async () => {
+    const context = await getAdminContext();
+    const directory = await getOrganizationShopDirectory();
 
-  return (
-    <AdminShell context={context} directory={directory} session={session}>
-      {children}
-    </AdminShell>
-  );
+    return (
+      <AdminShell context={context} directory={directory} session={session}>
+        {children}
+      </AdminShell>
+    );
+  });
 }

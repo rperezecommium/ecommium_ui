@@ -2,139 +2,205 @@
 
 import { redirect } from "next/navigation";
 import { requestBff } from "../../shared/bff/client";
+import { adminBffToken } from "../../shared/config/env";
+import { hasUsableAdminBearer } from "../../shared/auth/admin-bearer";
+import { clearAdminContext, getAdminContext, saveAdminContext } from "../../shared/config/admin-context";
 import {
   clearAdminSession,
   getAdminSession,
   saveAdminSession,
   type AdminSession,
 } from "../../shared/auth/session";
+import { getAvailableAdminContexts, shopToContext } from "../configuracion/organization-shop";
+import { buildAdminLoginPayload } from "./admin-login-payload";
+import { mergeAuthSessions, parseAuthSessionPayload } from "./auth-session-payload";
 
-type LoginResult = {
-  accessToken: string;
-  employee: {
-    employeeId: string;
-    name: string;
-    email: string;
-    profile: AdminSession["profile"];
-    permissions: string[];
-  };
-};
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
-}
-
-function asString(value: unknown) {
-  return typeof value === "string" ? value : "";
-}
-
-function asStringArray(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
-
-function normalizeProfile(value: unknown): AdminSession["profile"] {
-  const profile = asString(value);
-
-  if (profile === "SuperAdmin" || profile === "Admin" || profile === "Operator" || profile === "Viewer") {
-    return profile;
-  }
-
-  if (profile.toUpperCase() === "SUPER_ADMIN") {
-    return "SuperAdmin";
-  }
-
-  return "Operator";
-}
-
-function parseLoginResult(value: unknown): LoginResult {
-  const record = asRecord(value);
-  const session = asRecord(record.session);
-  const employee = asRecord(record.employee ?? record.user ?? record.employeeSession);
-  const accessToken =
-    asString(record.accessToken) ||
-    asString(record.token) ||
-    asString(session.accessToken) ||
-    asString(session.token);
-
-  return {
-    accessToken,
-    employee: {
-      employeeId: asString(employee.employeeId) || asString(employee.id) || "employee",
-      name: asString(employee.name) || asString(employee.displayName) || asString(employee.email) || "Employee",
-      email: asString(employee.email),
-      profile: normalizeProfile(employee.profile ?? employee.role),
-      permissions: asStringArray(employee.permissions).length
-        ? asStringArray(employee.permissions)
-        : ["admin:view"],
-    },
-  };
-}
-
-function parseMeResult(value: unknown): AdminSession {
-  const record = asRecord(value);
-  const employee = asRecord(record.employee ?? record.user ?? record);
-  const session = asRecord(record.session);
-
-  return {
-    accessToken: asString(record.accessToken) || asString(session.accessToken) || undefined,
-    employeeId: asString(employee.employeeId) || asString(employee.id) || "employee",
-    name: asString(employee.name) || asString(employee.displayName) || asString(employee.email) || "Employee",
-    email: asString(employee.email),
-    profile: normalizeProfile(employee.profile ?? employee.role),
-    permissions: asStringArray(employee.permissions).length
-      ? asStringArray(employee.permissions)
-      : ["admin:view"],
-  };
+function asString(value: FormDataEntryValue | null) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function safeNextPath(value: FormDataEntryValue | null) {
-  const nextPath = typeof value === "string" && value.startsWith("/admin") ? value : "/admin";
-  return nextPath;
+  return typeof value === "string" && value.startsWith("/admin") ? value : "/admin";
 }
 
-export async function loginAdminEmployee(formData: FormData) {
-  const email = asString(formData.get("email")).trim();
-  const password = asString(formData.get("password"));
-  const nextPath = safeNextPath(formData.get("next"));
+function loginRedirect(nextPath: string, authError: string): never {
+  redirect(`/auth/login?next=${encodeURIComponent(nextPath)}&authError=${encodeURIComponent(authError)}`);
+}
 
-  if (!email || !password) {
-    redirect(`/auth/login?next=${encodeURIComponent(nextPath)}&authError=${encodeURIComponent("Email y password son obligatorios.")}`);
+function genericAuthError(status?: number) {
+  if (status === 429) {
+    return "Demasiados intentos. Espera unos minutos e intentalo de nuevo.";
   }
 
-  const result = await requestBff("/admin/sessions/login", {
+  if (status === 401 || status === 403) {
+    return "No se pudo iniciar sesion. Revisa tus credenciales o permisos e intentalo de nuevo.";
+  }
+
+  return "No se pudo iniciar sesion. Intentalo de nuevo.";
+}
+
+function genericOperationalAccessError(status?: number) {
+  if (status === 429) {
+    return "Demasiados intentos. Espera unos minutos e intentalo de nuevo.";
+  }
+
+  if (status === 401 || status === 403) {
+    return "No se pudo validar el acceso operativo al Admin.";
+  }
+
+  return "No se pudo cargar el contexto operativo del Admin.";
+}
+
+type LoginCredentials = {
+  email: string;
+  password: string;
+  nextPath: string;
+};
+
+function parseLoginResult(value: unknown): AdminSession {
+  return parseAuthSessionPayload(value, { requireAccessToken: true });
+}
+
+function parseMeResult(value: unknown): AdminSession {
+  return parseAuthSessionPayload(value, { requireAccessToken: false });
+}
+
+function makeAuthHeader(accessToken: string) {
+  return {
+    authorization: `Bearer ${accessToken}`,
+  };
+}
+
+function contextFromDefault(
+  defaultContext: { organizationId: string; shopId: string },
+  currentContext: Awaited<ReturnType<typeof getAdminContext>>,
+) {
+  return {
+    ...currentContext,
+    organizationId: defaultContext.organizationId,
+    shopId: defaultContext.shopId,
+  };
+}
+
+async function fetchCurrentSessionWithToken(accessToken: string) {
+  return await requestBff("/auth/me", {
+    withAuth: false,
+    init: {
+      headers: makeAuthHeader(accessToken),
+    },
+    parse: parseMeResult,
+  });
+}
+
+async function refreshAccessToken(refreshToken: string) {
+  return await requestBff("/auth/refresh", {
+    withAuth: false,
     init: {
       method: "POST",
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ refreshToken }),
+    },
+    parse: parseLoginResult,
+  });
+}
+
+async function loginAdminWithCredentials({
+  email,
+  password,
+  nextPath,
+}: LoginCredentials) {
+  if (!email || !password) {
+    loginRedirect(nextPath, "Email y password son obligatorios.");
+  }
+
+  const loginResult = await requestBff("/auth/login", {
+    withAuth: false,
+    init: {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(buildAdminLoginPayload(email, password)),
     },
     parse: parseLoginResult,
   });
 
-  if (!result.ok || !result.data.accessToken) {
-    redirect(`/auth/login?next=${encodeURIComponent(nextPath)}&authError=${encodeURIComponent(result.ok ? "El BFF no devolvio accessToken." : result.error)}`);
+  if (!loginResult.ok || !loginResult.data.accessToken) {
+    loginRedirect(nextPath, loginResult.ok ? "No se pudo iniciar sesion. Intentalo de nuevo." : genericAuthError(loginResult.status));
   }
 
-  await saveAdminSession({
-    accessToken: result.data.accessToken,
-    ...result.data.employee,
+  const meResult = await fetchCurrentSessionWithToken(loginResult.data.accessToken);
+
+  if (!meResult.ok) {
+    loginRedirect(nextPath, genericAuthError(meResult.status));
+  }
+
+  const session = mergeAuthSessions(loginResult.data, meResult.data);
+  const availableContexts = await getAvailableAdminContexts({
+    accessToken: loginResult.data.accessToken,
   });
 
-  redirect(nextPath);
+  if (!availableContexts.ok) {
+    loginRedirect(nextPath, genericOperationalAccessError(availableContexts.status));
+  }
+
+  const shops = availableContexts.directory.organizations.flatMap((organization) => organization.shops);
+  const currentContext = await getAdminContext();
+  const selectedDefaultShop = availableContexts.defaultContext
+    ? shops.find((shop) => (
+        shop.organizationId === availableContexts.defaultContext?.organizationId &&
+        shop.id === availableContexts.defaultContext?.shopId
+      ))
+    : null;
+
+  if (shops.length === 0 && !availableContexts.defaultContext) {
+    await clearAdminContext();
+    await clearAdminSession();
+    loginRedirect(nextPath, "Acceso denegado operativo: tu usuario no tiene tiendas disponibles para operar el Admin.");
+  }
+
+  const selectedShop = selectedDefaultShop ?? (shops.length === 1 ? shops[0] : null);
+
+  await saveAdminSession(session);
+
+  if (selectedShop) {
+    await saveAdminContext(shopToContext(selectedShop, currentContext));
+    redirect(nextPath);
+  }
+
+  if (availableContexts.defaultContext) {
+    await saveAdminContext(contextFromDefault(availableContexts.defaultContext, currentContext));
+    redirect(nextPath);
+  }
+
+  await clearAdminContext();
+  redirect(
+    `/admin/configuracion/contexto?contextNotice=${encodeURIComponent("Selecciona una tienda para continuar.")}`,
+  );
+}
+
+export async function loginAdminEmployee(formData: FormData) {
+  await loginAdminWithCredentials({
+    email: asString(formData.get("email")),
+    password: asString(formData.get("password")),
+    nextPath: safeNextPath(formData.get("next")),
+  });
 }
 
 export async function logoutAdminEmployee() {
   const session = await getAdminSession();
 
   if (session?.accessToken) {
-    await requestBff("/admin/sessions/logout", {
+    await requestBff("/auth/logout", {
       init: {
         method: "POST",
       },
     });
   }
 
+  await clearAdminContext();
   await clearAdminSession();
   redirect("/auth/login");
 }
@@ -142,23 +208,51 @@ export async function logoutAdminEmployee() {
 export async function refreshAdminEmployeeSession() {
   const current = await getAdminSession();
 
-  if (!current?.accessToken) {
+  if (!current) {
+    return null;
+  }
+
+  if (!hasUsableAdminBearer(current)) {
+    return null;
+  }
+
+  if (!current.accessToken) {
     return current;
   }
 
-  const result = await requestBff("/admin/sessions/me", {
+  const meResult = await requestBff("/auth/me", {
     parse: parseMeResult,
   });
 
-  if (!result.ok) {
-    return current;
+  if (meResult.ok) {
+    const nextSession = mergeAuthSessions(current, meResult.data);
+    return nextSession;
   }
 
-  const nextSession = {
-    ...result.data,
-    accessToken: result.data.accessToken ?? current.accessToken,
-  };
+  if (!current.refreshToken) {
+    if (adminBffToken) {
+      return {
+        ...current,
+        accessToken: undefined,
+      };
+    }
 
-  await saveAdminSession(nextSession);
+    return null;
+  }
+
+  const refreshResult = await refreshAccessToken(current.refreshToken);
+
+  if (!refreshResult.ok || !refreshResult.data.accessToken) {
+    return null;
+  }
+
+  const refreshed = mergeAuthSessions(current, refreshResult.data);
+  const refreshedMeResult = await fetchCurrentSessionWithToken(refreshed.accessToken ?? "");
+
+  if (!refreshedMeResult.ok) {
+    return null;
+  }
+
+  const nextSession = mergeAuthSessions(refreshed, refreshedMeResult.data);
   return nextSession;
 }

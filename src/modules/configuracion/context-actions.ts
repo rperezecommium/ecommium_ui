@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requestBff } from "../../shared/bff/client";
 import type { AdminContext } from "../../shared/config/admin-context";
@@ -18,8 +19,23 @@ function asString(value: FormDataEntryValue | null) {
 
 function safeRedirect(path: string, params?: Record<string, string>): never {
   const target = path.startsWith("/admin") ? path : "/admin/configuracion/contexto";
-  const query = new URLSearchParams(params);
-  redirect(query.size ? `${target}?${query.toString()}` : target);
+  const [pathname, existingQuery = ""] = target.split("?");
+  const query = new URLSearchParams(existingQuery);
+
+  for (const [key, value] of Object.entries(params ?? {})) {
+    query.set(key, value);
+  }
+
+  redirect(query.size ? `${pathname}?${query.toString()}` : pathname);
+}
+
+function revalidateAdminContextRoutes(redirectTo: string) {
+  const [path] = redirectTo.split("?");
+
+  revalidatePath("/admin", "layout");
+  if (path.startsWith("/admin")) {
+    revalidatePath(path);
+  }
 }
 
 function makeContextFromForm(formData: FormData, current: AdminContext): AdminContext {
@@ -91,6 +107,7 @@ export async function updateAdminContext(formData: FormData) {
 
     if (resolved.ok) {
       await saveAdminContext(shopToContext(resolved.shop, nextContext));
+      revalidateAdminContextRoutes(redirectTo);
       safeRedirect(redirectTo, { contextNotice: "Contexto activo actualizado." });
     }
   }
@@ -105,6 +122,7 @@ export async function updateAdminContext(formData: FormData) {
     }
 
     await saveAdminContext(shopToContext(resolved.shop, nextContext));
+    revalidateAdminContextRoutes(redirectTo);
     safeRedirect(redirectTo, { contextNotice: "Contexto activo actualizado por shopAlias." });
   }
 
@@ -113,6 +131,7 @@ export async function updateAdminContext(formData: FormData) {
   }
 
   await saveAdminContext(nextContext);
+  revalidateAdminContextRoutes(redirectTo);
   safeRedirect(redirectTo, { contextNotice: "Contexto activo actualizado." });
 }
 
@@ -151,6 +170,7 @@ export async function createShopAction(formData: FormData) {
 
   if (formData.get("setActive") === "on") {
     await saveAdminContext(shopToContext(createdShop, current));
+    revalidateAdminContextRoutes(redirectTo);
   }
 
   safeRedirect(redirectTo, {
@@ -200,6 +220,7 @@ export async function updateShopAction(formData: FormData) {
 
   if (isCurrent) {
     await saveAdminContext(shopToContext(updatedShop, current));
+    revalidateAdminContextRoutes(redirectTo);
   }
 
   safeRedirect(redirectTo, {

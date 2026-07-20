@@ -16,11 +16,11 @@ Run the development server:
 npm run dev
 ```
 
-Open http://localhost:3000 to view the app.
+Open http://localhost:5173 to view the app.
 
 ## Scripts
 
-- `npm run dev` starts the local development server.
+- `npm run dev` starts the local development server on port `5173`.
 - `npm run build` creates a production build.
 - `npm run start` runs the production server after building.
 - `npm run lint` runs the Next.js ESLint configuration.
@@ -45,11 +45,22 @@ Environment variables:
 - `ECOMMIUM_ADMIN_DEV_SESSION=1`, enables a local httpOnly development session
   button on `/auth/login`.
 
+Admin authentication uses the BFF Auth/Sessions contract observed locally:
+
+- `POST /api/v1/auth/login`, with `email`, `password`, and `scope=admin`.
+  `organizationId` and `shopId` are optional when an Admin context is already
+  active, but the login form must not require operators to know those IDs.
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+
+The legacy `/api/v1/admin/sessions/*` endpoints documented in the first UI
+snapshot returned `404` against the local BFF on 2026-06-16, while `/auth/*`
+responded with validation/auth errors as expected. Tokens are stored only in the
+server-side httpOnly UI cookie.
+
 Admin configuration expects these BFF contracts for multistore context:
 
-- `POST /api/v1/admin/sessions/login`
-- `GET /api/v1/admin/sessions/me`
-- `POST /api/v1/admin/sessions/logout`
 - `GET /api/v1/admin/organizations-shops/organizations?limit=:limit&offset=:offset`
 - `GET /api/v1/admin/organizations-shops/shops?organizationId=:org&shopGroupId=:optional&status=:optional&limit=:limit&offset=:offset`
 - `GET /api/v1/admin/organizations-shops/shop-groups?organizationId=:org&limit=:limit&offset=:offset`
@@ -58,4 +69,47 @@ Admin configuration expects these BFF contracts for multistore context:
 
 The Admin selector must list existing organizations first, then list shops for
 the selected organization, display `shopAlias` as a human identifier, and persist
-the resolved `shopId` as the canonical context for the rest of the Admin.
+the resolved `shopId` as the canonical context for the rest of the Admin. These
+discovery reads are available after Admin authentication so the operator can
+select only shops allowed by their employee scopes.
+
+Irrompible: despues del login Admin, `GET /api/v1/admin/context/available` es
+el resolvedor de contexto propiedad del sistema. Si devuelve `defaultContext`,
+la UI debe guardar ese contexto y entrar automaticamente a la ruta Admin
+solicitada, aunque el empleado tenga acceso a mas de una tienda. El selector
+manual solo es fallback cuando el BFF no puede entregar un contexto por defecto.
+
+## Storefront signup human verification
+
+The Storefront signup form always sends passive anti-abuse signals to the BFF:
+`startedAt`, honeypot `company`, and action `customer_signup`.
+
+Optional Turnstile verification is controlled only with browser-safe public
+configuration:
+
+- `NEXT_PUBLIC_ECOMMIUM_SIGNUP_HUMAN_VERIFICATION=off|turnstile`, defaults to
+  `off`.
+- `NEXT_PUBLIC_ECOMMIUM_TURNSTILE_SITE_KEY`, public Cloudflare Turnstile site
+  key used only when signup verification is `turnstile`.
+
+Never expose the Turnstile secret key in this repo or any `NEXT_PUBLIC_*`
+variable. The secret belongs only to the BFF/Sessions runtime.
+
+Configuration matrix:
+
+- `off`: no Turnstile widget is rendered, signup remains available, and only
+  passive signals are sent in `humanVerification`.
+- `turnstile` with `NEXT_PUBLIC_ECOMMIUM_TURNSTILE_SITE_KEY`: the signup UI
+  renders Cloudflare Turnstile, stores the resulting token in `turnstileToken`,
+  and posts `provider: "turnstile"` plus the token to the BFF.
+- `turnstile` without `NEXT_PUBLIC_ECOMMIUM_TURNSTILE_SITE_KEY`: signup fails
+  closed. The UI keeps submit disabled, shows a configuration error, and the
+  server action refuses requests without `turnstileToken` before calling the
+  BFF.
+
+Manual local checks:
+
+```bash
+NEXT_PUBLIC_ECOMMIUM_SIGNUP_HUMAN_VERIFICATION=off npm run dev
+NEXT_PUBLIC_ECOMMIUM_SIGNUP_HUMAN_VERIFICATION=turnstile NEXT_PUBLIC_ECOMMIUM_TURNSTILE_SITE_KEY=<site-key> npm run dev
+```

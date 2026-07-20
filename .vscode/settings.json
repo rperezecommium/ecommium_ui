@@ -1,0 +1,18 @@
+{
+  "workbench.colorCustomizations": {
+    // Fondo de la barra lateral izquierda (donde están los íconos de archivos y buscar)
+    "activityBar.background": "#3b3b3b",
+
+    // Fondo de la barra superior cuando estás usando esta ventana de VS Code
+    "titleBar.activeBackground": "#282d2c",
+
+    // Color del texto y botones de la barra superior cuando la ventana está activa
+    "titleBar.activeForeground": "#1d8393",
+
+    // Color del texto y botones de la barra superior cuando cambias a otra aplicación
+    "titleBar.inactiveForeground": "#b81c1c",
+
+    // Fondo de la barra superior cuando cambias a otra aplicación (ventana inactiva)
+    "titleBar.inactiveBackground": "#d9a743"
+  }
+}

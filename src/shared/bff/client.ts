@@ -1,4 +1,5 @@
 import { adminBffToken, bffBaseUrl } from "../config/env";
+import { getAdminRequestAuthorizationToken } from "../auth/admin-request-session";
 import { getAdminAuthorizationToken } from "../auth/session";
 import { createBffHeaders } from "./headers";
 import type { BffRequestContext, BffResult } from "./types";
@@ -7,6 +8,7 @@ type RequestOptions<T> = {
   context?: Partial<BffRequestContext>;
   init?: RequestInit;
   parse?: (value: unknown) => T;
+  withAuth?: boolean;
 };
 
 function makeCorrelationId() {
@@ -19,14 +21,36 @@ function makeUrl(path: string) {
   return `${base}${normalizedPath}`;
 }
 
+async function readErrorMessage(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    const payload = await response.json().catch(() => undefined) as unknown;
+    if (typeof payload === "object" && payload !== null && "message" in payload) {
+      const message = (payload as { message?: unknown }).message;
+      if (Array.isArray(message)) {
+        return message.map(String).join("; ");
+      }
+      if (typeof message === "string" && message.trim()) {
+        return message.trim();
+      }
+    }
+  }
+
+  const text = await response.text().catch(() => "");
+  return text.trim();
+}
+
 export async function requestBff<T>(
   path: string,
   options: RequestOptions<T> = {},
 ): Promise<BffResult<T>> {
   const correlationId = options.context?.correlationId ?? makeCorrelationId();
-  const sessionToken = await getAdminAuthorizationToken();
+  const shouldSendAuth = options.withAuth !== false;
+  const requestSessionToken = shouldSendAuth ? getAdminRequestAuthorizationToken() : undefined;
+  const sessionToken = shouldSendAuth ? requestSessionToken ?? await getAdminAuthorizationToken() : undefined;
   const headers = createBffHeaders({
-    adminToken: sessionToken ?? adminBffToken,
+    adminToken: shouldSendAuth ? sessionToken ?? adminBffToken : undefined,
     correlationId,
     initHeaders: options.init?.headers,
     locale: options.context?.locale,
@@ -42,10 +66,11 @@ export async function requestBff<T>(
     });
 
     if (!response.ok) {
+      const detail = await readErrorMessage(response);
       const authMessage =
         response.status === 401
-          ? "BFF responded with 401. Admin BFF authorization is required; configure ECOMMIUM_ADMIN_BFF_TOKEN server-side."
-          : `BFF responded with ${response.status}`;
+          ? detail || "BFF responded with 401. Admin BFF authorization is required; configure ECOMMIUM_ADMIN_BFF_TOKEN server-side."
+          : detail || `BFF responded with ${response.status}`;
 
       return {
         ok: false,

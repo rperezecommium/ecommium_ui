@@ -23,6 +23,7 @@ La IA no debe trasladarse al repo backend para leer documentacion o codigo, salv
 - Si falta un endpoint BFF, la IA debe documentar el gap y proponer el contrato; no debe saltarse el BFF ni crear un backend alterno en Next.js.
 - Las rutas `app/api/*` de Next.js no deben usarse como BFF paralelo. Solo se permiten para necesidades tecnicas propias de UI, como health local, web-vitals beacon, preview proxy sin dominio o integraciones de plataforma que no pertenezcan al ecommerce.
 - Toda pantalla Admin debe exigir sesion de employee y permisos. La UI debe ocultar acciones no autorizadas, pero la seguridad real pertenece al BFF/Sessions.
+- Regla irrompible de contexto Admin: despues de login, si el BFF devuelve `defaultContext` en `/admin/context/available`, la UI debe guardarlo automaticamente y entrar al Admin. No se debe depender de que exista una sola tienda, ni mandar al selector cuando hay `defaultContext`; el selector solo aplica si el BFF no devuelve contexto por defecto y realmente hace falta eleccion humana.
 - Toda pantalla Storefront debe tratar `organizationId`, `shopId`, `locale`, `currency`, `country`, `channel`, `guestSessionId` y `visitorId` como contexto explicito o resuelto, nunca como constantes invisibles.
 - Los payloads enviados al BFF deben validarse con schemas en el borde UI antes de enviar y de nuevo al recibir.
 - No se deben guardar tokens en `localStorage`. Usar cookies httpOnly gestionadas por BFF cuando el contrato lo permita.
