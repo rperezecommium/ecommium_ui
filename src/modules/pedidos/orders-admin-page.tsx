@@ -5,8 +5,6 @@ import type {
   AdminOrderDetail,
   AdminOrderOperation,
   AdminOrderSummary,
-  AfterSalesCase,
-  InvoiceTemplatePreview,
   OrdersAdminDrawerTab,
   OrdersAdminAuditEvent,
   OrdersAdminCapabilities,
@@ -20,7 +18,6 @@ import {
   createOrderFulfillmentAction,
   createInvoiceAdjustmentAction,
   issueOrderInvoiceAction,
-  requestOrderRefundAction,
   transitionFulfillmentStatusAction,
 } from "./orders-admin-actions";
 
@@ -32,9 +29,10 @@ type Props = {
 
 const orderDrawerTabs: Array<{ id: OrdersAdminDrawerTab; label: string }> = [
   { id: "operacion", label: "Operacion" },
-  { id: "datos", label: "Datos" },
-  { id: "documentos", label: "Documentos" },
-  { id: "soporte", label: "Soporte" },
+  { id: "pedido", label: "Pedido" },
+  { id: "pagos", label: "Pagos" },
+  { id: "documentos", label: "Documentos fiscales" },
+  { id: "postventa", label: "Postventa" },
   { id: "auditoria", label: "Auditoria" },
 ];
 
@@ -108,6 +106,27 @@ function orderShortReference(orderId: string | undefined) {
   return `#${normalized.slice(-7).toUpperCase()}`;
 }
 
+function customerLabel(order: AdminOrderSummary | null | undefined) {
+  const kind = order?.customer?.kind?.toUpperCase();
+
+  if (kind === "REGISTERED" && order?.customer?.reference) {
+    return order.customer.reference;
+  }
+  if (kind === "GUEST") {
+    return "Invitado";
+  }
+
+  return "No disponible";
+}
+
+function selectedOrderSummary(data: OrdersAdminData, orderId: string | undefined) {
+  if (!data.orders.ok || !orderId) {
+    return null;
+  }
+
+  return data.orders.data.items.find((order) => order.orderId === orderId) ?? null;
+}
+
 function statusBadgeClass(status: string | undefined) {
   const value = status?.toUpperCase();
   if (value === "PAID" || value === "PAYMENT_SETTLED" || value === "SETTLED" || value === "ISSUED" || value === "DELIVERED" || value === "APPROVED") {
@@ -162,6 +181,25 @@ function orderPaymentLabel(order: AdminOrderSummary) {
   }
 
   return isOrderPaid(order) ? "Pago confirmado" : "-";
+}
+
+function paymentStatusLabel(status: unknown) {
+  switch (String(status ?? "").toUpperCase()) {
+    case "PAID":
+    case "SETTLED":
+    case "PAYMENT_SETTLED":
+    case "APPROVED":
+      return "Cobro confirmado";
+    case "PENDING":
+    case "PAYMENT_REQUIRED":
+      return "Pago pendiente";
+    case "FAILED":
+      return "Pago fallido";
+    case "CANCELED":
+      return "Pago cancelado";
+    default:
+      return valueText(status);
+  }
 }
 
 function orderNextStep(order: AdminOrderSummary) {
@@ -347,7 +385,6 @@ function OrdersTable({ data, filters }: Props) {
               <th>Cliente</th>
               <th>Estado</th>
               <th>Pago</th>
-              <th>Envio</th>
               <th>Siguiente paso</th>
               <th>Total</th>
               <th>Acciones</th>
@@ -363,10 +400,9 @@ function OrdersTable({ data, filters }: Props) {
                     <strong>{orderShortReference(order.orderId)}</strong>
                     <div className="adminMuted">{dateText(order.createdAt)}</div>
                   </td>
-                  <td>{valueText(order.customerId)}</td>
+                  <td>{customerLabel(order)}</td>
                   <td><span className={statusBadgeClass(order.status)}>{valueText(order.status)}</span></td>
                   <td><span className={isOrderPaid(order) ? "adminBadge adminBadgeOk" : statusBadgeClass(order.paymentStatus)}>{orderPaymentLabel(order)}</span></td>
-                  <td><span className={statusBadgeClass(order.fulfillmentStatus)}>{valueText(order.fulfillmentStatus)}</span></td>
                   <td>
                     <span className={nextStep.badgeClass}>{nextStep.label}</span>
                     <div className="adminMuted">{nextStep.detail}</div>
@@ -416,71 +452,54 @@ function DetailSection({
   );
 }
 
-function OrderCoreDetail({ order }: { order: AdminOrderSummary | null }) {
+function OrderCoreDetail({
+  customerSummary,
+  order,
+}: {
+  customerSummary: AdminOrderSummary | null;
+  order: AdminOrderSummary | null;
+}) {
   return (
-    <dl className="adminDefinitionList">
+    <dl className="adminDefinitionList ordersDetailFields">
       <div><dt>Referencia</dt><dd>{orderShortReference(order?.orderId)}</dd></div>
-      <div><dt>ID interno</dt><dd>{valueText(order?.orderId)}</dd></div>
-      <div><dt>Cliente</dt><dd>{valueText(order?.customerId)}</dd></div>
+      <div className="ordersDetailFieldWide"><dt>ID interno</dt><dd>{valueText(order?.orderId)}</dd></div>
+      <div><dt>Cliente</dt><dd>{customerLabel(customerSummary ?? order)}</dd></div>
       <div><dt>Estado</dt><dd>{valueText(order?.status)}</dd></div>
       <div><dt>Total</dt><dd>{moneyText(order?.totalAmountMinor, order?.currency)}</dd></div>
     </dl>
   );
 }
 
-function firstRecordField(items: unknown[], keys: string[]) {
-  for (const item of items) {
-    const value = recordField(typeof item === "object" && item !== null ? item as Record<string, unknown> : null, keys);
-    if (value) {
-      return value;
-    }
-  }
-
-  return undefined;
-}
-
-function PaymentDetail({
-  capabilities,
-  detail,
-}: {
-  capabilities: OrdersAdminCapabilities;
-  detail: AdminOrderDetail;
-}) {
+function PaymentDetail({ detail }: { detail: AdminOrderDetail }) {
   const payment = detail.payment;
   const afterSales = detail.afterSales;
   const orderId = detail.order?.orderId;
   const caseId = String(recordField(afterSales, ["caseId"]) ?? "");
   const transactionId = String(recordField(payment, ["transactionId", "paymentId", "authorizationId"]) ?? "");
-  const resolutionId = String(firstRecordField(recordArray(afterSales, ["resolutions"]), ["resolutionId", "id"]) ?? "");
+  const postSalesHref = caseId
+    ? `/admin/postventa?caseId=${encodeURIComponent(caseId)}`
+    : orderId
+      ? `/admin/postventa?orderId=${encodeURIComponent(orderId)}`
+      : null;
 
   return (
     <>
-      <dl className="adminDefinitionList">
+      <dl className="adminDefinitionList ordersDetailFields">
         <div><dt>Estado</dt><dd>{valueText(recordField(payment, ["status", "transactionStatus", "paymentStatus"]))}</dd></div>
-        <div><dt>Transaction</dt><dd>{valueText(transactionId)}</dd></div>
+        <div className="ordersDetailFieldWide"><dt>Transaccion</dt><dd>{valueText(transactionId)}</dd></div>
         <div><dt>PSP</dt><dd>{valueText(recordField(payment, ["provider", "psp", "gateway"]))}</dd></div>
-        <div><dt>Refunds</dt><dd>{valueText(recordField(payment, ["refundsCount", "refundCount"]))}</dd></div>
+        <div><dt>Reembolsos</dt><dd>{valueText(recordField(payment, ["refundsCount", "refundCount"]))}</dd></div>
       </dl>
-      {capabilities.canManageAfterSales && caseId && transactionId ? (
-        <form action={requestOrderRefundAction} className="pricingDenseForm">
-          <input name="caseId" type="hidden" value={caseId} />
-          <input name="orderId" type="hidden" value={orderId ?? ""} />
-          <input name="transactionId" type="hidden" value={transactionId} />
-          <label className="adminField">
-            <span>Resolucion</span>
-            <input name="resolutionId" placeholder="resolutionId" defaultValue={resolutionId} />
-          </label>
-          <button className="adminButton" type="submit">Solicitar refund</button>
-        </form>
-      ) : (
+      <div className="adminBanner adminBannerInfo">
+        <p>Un reembolso devuelve dinero al cliente. Se solicita desde Postventa, donde se valida el caso y su resolucion; aqui solo se consulta el cobro y su transaccion.</p>
+      </div>
+      {postSalesHref ? (
         <div className="adminButtonRow">
-          {orderId ? (
-            <Link className="adminButton adminButtonTiny" href={`/admin/postventa?orderId=${encodeURIComponent(orderId)}`}>
-              Abrir postventa para refund
-            </Link>
-          ) : null}
+          <Link className="adminButton adminButtonTiny" href={postSalesHref}>
+            Gestionar reembolso en Postventa
+          </Link>
         </div>
-      )}
+      ) : null}
     </>
   );
 }
@@ -522,6 +541,25 @@ function sectionStatusBadgeClass(status: string | undefined) {
   }
 
   return "adminBadge";
+}
+
+function sectionStatusLabel(status: string | undefined) {
+  switch (status) {
+    case "ready":
+      return "Listo";
+    case "attention":
+      return "Requiere atencion";
+    case "degraded":
+      return "Con incidencia";
+    case "pending":
+      return "Pendiente";
+    case "empty":
+      return "Sin elementos";
+    case "completed":
+      return "Completado";
+    default:
+      return valueText(status);
+  }
 }
 
 function OperationPrimaryAction({
@@ -649,6 +687,9 @@ function OrderOperationWorkspace({
 }) {
   const operation = detail.operation;
   const orderId = detail.order?.orderId;
+  const primaryAction = operation?.primaryAction;
+  const hasPendingAction = Boolean(primaryAction && primaryAction.type !== "NONE");
+  const attentionSections = operation?.sections?.filter((section) => section.status !== "ready" && section.status !== "empty") ?? [];
 
   if (!operation) {
     return (
@@ -675,17 +716,19 @@ function OrderOperationWorkspace({
         <span className={statusBadgeClass(operation.status)}>{operationStatusLabel(operation.status)}</span>
       </div>
       <div className="customersOverviewSubsection">
-        <h3>Siguiente paso</h3>
+        <h3>{hasPendingAction ? "Siguiente paso" : "Estado operativo"}</h3>
         <div className="ordersFulfillmentNext">
-          <span>{operation.primaryAction?.type ?? "NONE"}</span>
-          <strong>{operation.primaryAction?.label ?? operationStatusLabel(operation.status)}</strong>
+          {hasPendingAction ? <span>{primaryAction?.type}</span> : null}
+          <strong>{hasPendingAction ? primaryAction?.label ?? operationStatusLabel(operation.status) : "Sin acciones pendientes"}</strong>
         </div>
-        <OperationPrimaryAction
-          canManageShipping={canManageShipping}
-          operation={operation}
-          orderId={orderId}
-          shipping={detail.shipping}
-        />
+        {hasPendingAction ? (
+          <OperationPrimaryAction
+            canManageShipping={canManageShipping}
+            operation={operation}
+            orderId={orderId}
+            shipping={detail.shipping}
+          />
+        ) : null}
       </div>
       {operation.blockers?.length ? (
         <div className="customersOverviewSubsection">
@@ -697,28 +740,15 @@ function OrderOperationWorkspace({
           ))}
         </div>
       ) : null}
-      {operation.sections?.length ? (
+      {attentionSections.length ? (
         <div className="customersOverviewSubsection">
-          <h3>Checklist operativo</h3>
-          <div className="customersOverviewList">
-            {operation.sections.map((section) => (
-              <div className="customersOverviewListItem" key={section.code ?? section.label}>
+          <h3>Requiere atencion</h3>
+          <div className="ordersOperationChecklist">
+            {attentionSections.map((section) => (
+              <div className="ordersOperationChecklistItem" key={section.code ?? section.label}>
                 <strong>{section.label ?? section.code}</strong>
                 <span>{section.message ?? "-"}</span>
-                <span className={sectionStatusBadgeClass(section.status)}>{valueText(section.status)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      {operation.timeline?.length ? (
-        <div className="customersOverviewSubsection">
-          <h3>Linea operativa</h3>
-          <div className="customersOverviewList">
-            {operation.timeline.map((step) => (
-              <div className="customersOverviewListItem" key={step.code ?? step.label}>
-                <strong>{step.label ?? step.code}</strong>
-                <span className={sectionStatusBadgeClass(step.state)}>{valueText(step.state)}</span>
+                <span className={sectionStatusBadgeClass(section.status)}>{sectionStatusLabel(section.status)}</span>
               </div>
             ))}
           </div>
@@ -733,10 +763,10 @@ function ShippingDetail({ detail }: { detail: AdminOrderDetail }) {
 
   return (
     <>
-      <dl className="adminDefinitionList">
+      <dl className="adminDefinitionList ordersDetailFields">
         <div><dt>Estado</dt><dd>{valueText(recordField(shipping, ["status", "fulfillmentStatus"]))}</dd></div>
         <div><dt>Transportista</dt><dd>{valueText(shippingCarrierLabel(shipping))}</dd></div>
-        <div><dt>Seguimiento</dt><dd>{valueText(recordField(shipping, ["trackingNumber", "trackingUrl"]))}</dd></div>
+        <div className="ordersDetailFieldWide"><dt>Seguimiento</dt><dd>{valueText(recordField(shipping, ["trackingNumber", "trackingUrl"]))}</dd></div>
         <div><dt>Entrega</dt><dd>{valueText(recordField(shipping, ["estimatedDeliveryAt", "deliveredAt"]))}</dd></div>
       </dl>
     </>
@@ -758,34 +788,39 @@ function InvoiceDetail({
 
   return (
     <>
-      <dl className="adminDefinitionList">
+      <div className="adminBanner adminBannerInfo">
+        <p>Las facturas, notas de credito y ajustes fiscales son documentos legales. Registran una correccion fiscal, pero no ejecutan por si mismos un movimiento de dinero.</p>
+      </div>
+      <dl className="adminDefinitionList ordersDetailFields">
         <div><dt>Factura</dt><dd>{valueText(recordField(invoice, ["invoiceNumber", "invoiceId"]))}</dd></div>
         <div><dt>Estado</dt><dd>{valueText(recordField(invoice, ["status"]))}</dd></div>
         <div><dt>Total</dt><dd>{valueText(recordField(invoice, ["totalAmountMinor", "amountMinor"]))}</dd></div>
         <div><dt>Emitida</dt><dd>{valueText(recordField(invoice, ["issuedAt", "createdAt"]))}</dd></div>
       </dl>
-      <div className="adminButtonRow">
-        {invoiceId ? (
-          <>
-            <Link className="adminButton adminButtonTiny" href={`/admin/pagos?invoiceId=${encodeURIComponent(invoiceId)}`}>
-              Abrir factura fiscal
+      <section className="invoiceDocumentActions" aria-label="Acciones de factura">
+        <div className="adminButtonRow">
+          {invoiceId ? (
+            <>
+              <Link className="adminButton" href={`/admin/pagos?invoiceId=${encodeURIComponent(invoiceId)}`}>
+                Abrir factura fiscal
+              </Link>
+              <Link className="adminButton" href={`/admin/pagos/invoices/${encodeURIComponent(invoiceId)}/document`} target="_blank">
+                Ver documento
+              </Link>
+            </>
+          ) : orderId ? (
+            <Link className="adminButton" href={`/admin/pagos?orderId=${encodeURIComponent(orderId)}`}>
+              Buscar facturas del pedido
             </Link>
-            <Link className="adminButton adminButtonTiny" href={`/admin/pagos/invoices/${encodeURIComponent(invoiceId)}/document`} target="_blank">
-              Ver documento
-            </Link>
-          </>
-        ) : orderId ? (
-          <Link className="adminButton adminButtonTiny" href={`/admin/pagos?orderId=${encodeURIComponent(orderId)}`}>
-            Buscar facturas del pedido
-          </Link>
-        ) : null}
-      </div>
-      {capabilities.canManageInvoices && orderId ? (
-        <form action={issueOrderInvoiceAction} className="adminButtonRow">
-          <input name="orderId" type="hidden" value={orderId} />
-          <button className="adminButton adminButtonPrimary" type="submit">Emitir factura</button>
-        </form>
-      ) : null}
+          ) : null}
+          {capabilities.canManageInvoices && orderId ? (
+            <form action={issueOrderInvoiceAction}>
+              <input name="orderId" type="hidden" value={orderId} />
+              <button className="adminButton adminButtonPrimary" type="submit">Emitir factura</button>
+            </form>
+          ) : null}
+        </div>
+      </section>
       {adjustments.length ? (
         <div className="customersOverviewSubsection">
           <h3>Ajustes fiscales</h3>
@@ -809,27 +844,30 @@ function InvoiceDetail({
         </div>
       ) : null}
       {capabilities.canManageInvoices && orderId && invoiceId ? (
-        <form action={createInvoiceAdjustmentAction} className="pricingDenseForm">
-          <input name="orderId" type="hidden" value={orderId} />
-          <input name="invoiceId" type="hidden" value={invoiceId} />
-          <input name="currency" type="hidden" value={currency} />
-          <label className="adminField">
-            <span>Documento</span>
-            <select name="adjustmentType" required>
-              <option value="CREDIT_NOTE">Nota de credito</option>
-              <option value="FISCAL_ADJUSTMENT">Ajuste fiscal</option>
-            </select>
-          </label>
-          <label className="adminField">
-            <span>Importe menor</span>
-            <input name="amountMinor" min="1" placeholder="1299" required type="number" />
-          </label>
-          <label className="adminField">
-            <span>Motivo</span>
-            <input name="reason" placeholder="Devolucion parcial, correccion fiscal..." required />
-          </label>
-          <button className="adminButton" type="submit">Crear nota/ajuste</button>
-        </form>
+        <section className="invoiceDocumentAdjustment">
+          <h3>Emitir documento fiscal</h3>
+          <form action={createInvoiceAdjustmentAction} className="pricingDenseForm">
+            <input name="orderId" type="hidden" value={orderId} />
+            <input name="invoiceId" type="hidden" value={invoiceId} />
+            <input name="currency" type="hidden" value={currency} />
+            <label className="adminField">
+              <span>Tipo de documento fiscal</span>
+              <select name="adjustmentType" required>
+                <option value="CREDIT_NOTE">Nota de credito</option>
+                <option value="FISCAL_ADJUSTMENT">Ajuste fiscal</option>
+              </select>
+            </label>
+            <label className="adminField">
+              <span>Importe menor</span>
+              <input name="amountMinor" min="1" placeholder="1299" required type="number" />
+            </label>
+            <label className="adminField">
+              <span>Motivo</span>
+              <input name="reason" placeholder="Devolucion parcial, correccion fiscal..." required />
+            </label>
+            <button className="adminButton" type="submit">Emitir documento fiscal</button>
+          </form>
+        </section>
       ) : null}
     </>
   );
@@ -848,7 +886,7 @@ function AfterSalesDetail({
 
   return (
     <>
-      <dl className="adminDefinitionList">
+      <dl className="adminDefinitionList ordersDetailFields">
         <div><dt>Caso</dt><dd>{valueText(caseId)}</dd></div>
         <div><dt>Estado</dt><dd>{valueText(recordField(afterSales, ["status"]))}</dd></div>
         <div><dt>Tipo</dt><dd>{valueText(recordField(afterSales, ["caseType", "type"]))}</dd></div>
@@ -919,6 +957,23 @@ function OrderAuditTimelinePanel({ events }: { events: OrdersAdminAuditEvent[] }
   );
 }
 
+function OrderOperationTimelinePanel({ operation }: { operation: AdminOrderOperation | null }) {
+  if (!operation?.timeline?.length) {
+    return <div className="adminEmptyState">Sin progreso operativo disponible.</div>;
+  }
+
+  return (
+    <div className="customersOverviewList">
+      {operation.timeline.map((step) => (
+        <div className="customersOverviewListItem" key={step.code ?? step.label}>
+          <strong>{step.label ?? step.code}</strong>
+          <span className={sectionStatusBadgeClass(step.state)}>{sectionStatusLabel(step.state)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function OrderDrawerTabs({ current, filters }: { current: OrdersAdminDrawerTab; filters: OrdersAdminFilters }) {
   return (
     <nav className="adminTabs pricingTabs ordersDrawerTabs" aria-label="Secciones del pedido">
@@ -940,7 +995,6 @@ function OrderDrawerSummary({ detail }: { detail: AdminOrderDetail }) {
   const operation = detail.operation;
   const paymentStatus = recordField(detail.payment, ["status", "transactionStatus", "paymentStatus"]) ?? detail.order?.paymentStatus;
   const shippingStatus = recordField(detail.shipping, ["status", "fulfillmentStatus"]) ?? detail.order?.fulfillmentStatus;
-  const nextAction = operation?.primaryAction?.label ?? operationStatusLabel(operation?.status);
   const blockersCount = operation?.blockers?.length ?? 0;
   const warningsCount = detail.warnings.length;
   const healthLabel = blockersCount ? "Bloqueado" : warningsCount ? "Con avisos" : "Operable";
@@ -961,16 +1015,12 @@ function OrderDrawerSummary({ detail }: { detail: AdminOrderDetail }) {
           <dd>{orderShortReference(detail.order?.orderId)}</dd>
         </div>
         <div>
-          <dt>Siguiente accion</dt>
-          <dd>{valueText(nextAction)}</dd>
-        </div>
-        <div>
           <dt>Pago</dt>
-          <dd>{valueText(paymentStatus)}</dd>
+          <dd>{paymentStatusLabel(paymentStatus)}</dd>
         </div>
         <div>
           <dt>Envio</dt>
-          <dd>{valueText(shippingStatus)}</dd>
+          <dd>{fulfillmentStepLabel(typeof shippingStatus === "string" ? shippingStatus : undefined)}</dd>
         </div>
         <div>
           <dt>Bloqueos</dt>
@@ -996,53 +1046,50 @@ function OrderDetailPanel({ capabilities, data, filters }: Pick<Props, "capabili
   const detail = data.selectedOrder.data;
   const auditEvents = buildOrderAuditTimeline(detail);
   const currentTab = activeOrderDrawerTab(filters);
+  const customerSummary = selectedOrderSummary(data, detail.order?.orderId ?? filters.orderId);
 
   return (
     <>
       <OrderDrawerSummary detail={detail} />
       <OrderDrawerTabs current={currentTab} filters={filters} />
       {currentTab === "operacion" ? (
-        <>
+        <div className="ordersDrawerTabPanel">
           <OrderOperationWorkspace canManageShipping={capabilities.canManageShipping} detail={detail} />
-          <section className="adminGrid">
-            <DetailSection icon={<Boxes aria-hidden="true" size={18} />} title="Pedido">
-              <OrderCoreDetail order={detail.order} />
-            </DetailSection>
-            <DetailSection icon={<Truck aria-hidden="true" size={18} />} title="Envio">
-              <ShippingDetail detail={detail} />
-            </DetailSection>
-          </section>
-        </>
+        </div>
       ) : null}
-      {currentTab === "datos" ? (
-        <section className="adminGrid">
+      {currentTab === "pedido" ? (
+        <section className="adminGrid ordersDetailGrid ordersDrawerTabPanel">
           <DetailSection icon={<Boxes aria-hidden="true" size={18} />} title="Pedido">
-            <OrderCoreDetail order={detail.order} />
-          </DetailSection>
-          <DetailSection icon={<CreditCard aria-hidden="true" size={18} />} title="Pago">
-            <PaymentDetail capabilities={capabilities} detail={detail} />
+            <OrderCoreDetail customerSummary={customerSummary} order={detail.order} />
           </DetailSection>
           <DetailSection icon={<Truck aria-hidden="true" size={18} />} title="Envio">
             <ShippingDetail detail={detail} />
           </DetailSection>
         </section>
       ) : null}
+      {currentTab === "pagos" ? (
+        <section className="adminGrid ordersDrawerTabPanel">
+          <DetailSection icon={<CreditCard aria-hidden="true" size={18} />} title="Cobro y reembolsos">
+            <PaymentDetail detail={detail} />
+          </DetailSection>
+        </section>
+      ) : null}
       {currentTab === "documentos" ? (
-        <section className="adminGrid">
-          <DetailSection icon={<FileText aria-hidden="true" size={18} />} title="Factura">
+        <section className="adminGrid ordersDrawerTabPanel">
+          <DetailSection icon={<FileText aria-hidden="true" size={18} />} title="Facturacion y documentos fiscales">
             <InvoiceDetail capabilities={capabilities} detail={detail} />
           </DetailSection>
         </section>
       ) : null}
-      {currentTab === "soporte" ? (
-        <section className="adminGrid">
+      {currentTab === "postventa" ? (
+        <section className="adminGrid ordersDrawerTabPanel">
           <DetailSection icon={<LifeBuoy aria-hidden="true" size={18} />} title="Postventa">
             <AfterSalesDetail capabilities={capabilities} detail={detail} />
           </DetailSection>
         </section>
       ) : null}
       {currentTab === "auditoria" ? (
-        <section className="adminGrid">
+        <section className="adminGrid ordersDrawerTabPanel">
           {detail.warnings.length ? (
             <DetailSection icon={<Search aria-hidden="true" size={18} />} title="Warnings">
               {detail.warnings.map((warning) => (
@@ -1052,6 +1099,9 @@ function OrderDetailPanel({ capabilities, data, filters }: Pick<Props, "capabili
               ))}
             </DetailSection>
           ) : null}
+          <DetailSection icon={<Search aria-hidden="true" size={18} />} title="Progreso operativo">
+            <OrderOperationTimelinePanel operation={detail.operation} />
+          </DetailSection>
           <DetailSection icon={<Search aria-hidden="true" size={18} />} title="Auditoria del pedido">
             <OrderAuditTimelinePanel events={auditEvents} />
           </DetailSection>
@@ -1071,6 +1121,7 @@ function OrderDetailDrawer({
   }
 
   const selectedOrder = data.selectedOrder.ok ? data.selectedOrder.data?.order : null;
+  const customerSummary = selectedOrderSummary(data, selectedOrder?.orderId ?? filters.orderId);
   const title = `Operar pedido ${orderShortReference(selectedOrder?.orderId ?? filters.orderId)}`;
   const closeHref = ordersHref(filters, { orderId: undefined, orderTab: undefined });
 
@@ -1081,7 +1132,7 @@ function OrderDetailDrawer({
         <div className="adminSideDrawerHeader">
           <div>
             <h2>{title}</h2>
-            <p>{valueText(selectedOrder?.customerId)} - {moneyText(selectedOrder?.totalAmountMinor, selectedOrder?.currency)}</p>
+            <p>{customerLabel(customerSummary ?? selectedOrder)} - {moneyText(selectedOrder?.totalAmountMinor, selectedOrder?.currency)}</p>
           </div>
           <Link className="adminIconButton" href={closeHref} title="Cerrar">
             <X aria-hidden="true" size={16} />
@@ -1096,98 +1147,6 @@ function OrderDetailDrawer({
   );
 }
 
-function InvoiceTemplatePanel({
-  capabilities,
-  preview,
-}: {
-  capabilities: OrdersAdminCapabilities;
-  preview: { ok: boolean; data?: InvoiceTemplatePreview | null; error?: string };
-}) {
-  if (!capabilities.canManageInvoices) {
-    return null;
-  }
-
-  return (
-    <section className="adminCard">
-      <div className="adminCardHeader">
-        <div>
-          <h2>Preview plantilla factura</h2>
-          <p>Inspecciona la plantilla fiscal sin emitir documento ni consumir numeracion.</p>
-        </div>
-        <span className="adminBadge">invoices.manage</span>
-      </div>
-      {!preview.ok ? <div className="adminBanner adminBannerError">{preview.error}</div> : null}
-      {preview.ok && preview.data ? (
-        <div className="adminCodePreview">
-          {preview.data.html ? preview.data.html.slice(0, 700) : JSON.stringify(preview.data.json ?? {}, null, 2).slice(0, 700)}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function AfterSalesQueue({
-  capabilities,
-  cases,
-}: {
-  capabilities: OrdersAdminCapabilities;
-  cases: { ok: boolean; data?: { items: AfterSalesCase[]; total: number }; error?: string };
-}) {
-  return (
-    <section className="adminCard">
-      <div className="adminCardHeader">
-        <div>
-          <h2>Bandeja postventa</h2>
-          <p>Casos relacionados por pedido/cliente para saber quien atiende cada soporte.</p>
-        </div>
-        <span className="adminBadge">{cases.ok ? `${cases.data?.total ?? 0} casos` : "degradado"}</span>
-      </div>
-      {!cases.ok ? <div className="adminBanner adminBannerError">{cases.error}</div> : null}
-      {cases.ok && cases.data?.items.length ? (
-        <div className="adminTableScroller">
-          <table className="adminTable adminTableCompact">
-            <thead>
-              <tr>
-                <th>Caso</th>
-                <th>Pedido</th>
-                <th>Estado</th>
-                <th>Responsable</th>
-                {capabilities.canManageAfterSales ? <th>Asignar</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {cases.data.items.map((caseItem) => (
-                <tr key={caseItem.caseId}>
-                  <td>
-                    <Link className="adminButton adminButtonTiny" href={`/admin/postventa?caseId=${encodeURIComponent(caseItem.caseId)}`}>
-                      {caseItem.caseId}
-                    </Link>
-                  </td>
-                  <td>{valueText(caseItem.orderId)}</td>
-                  <td><span className={statusBadgeClass(caseItem.status)}>{valueText(caseItem.status)}</span></td>
-                  <td>{valueText(caseItem.assignedEmployeeId)}</td>
-                  {capabilities.canManageAfterSales ? (
-                    <td>
-                      <form action={assignAfterSalesCaseAction} className="adminButtonRow">
-                        <input name="caseId" type="hidden" value={caseItem.caseId} />
-                        <input name="orderId" type="hidden" value={caseItem.orderId ?? ""} />
-                        <input name="assignedEmployeeId" placeholder="employeeId" required />
-                        <button className="adminButton adminButtonTiny" type="submit">Asignar</button>
-                      </form>
-                    </td>
-                  ) : null}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : cases.ok ? (
-        <div className="adminEmptyState">No hay casos postventa para el filtro actual.</div>
-      ) : null}
-    </section>
-  );
-}
-
 export function OrdersAdminPage({ capabilities, data, filters }: Props) {
   const total = data.orders.ok ? data.orders.data.total : 0;
   const selectedOrderId = filters.orderId;
@@ -1198,7 +1157,7 @@ export function OrdersAdminPage({ capabilities, data, filters }: Props) {
         <div>
           <div className="adminBreadcrumb">Admin / Pedidos</div>
           <h1 className="adminPageTitle">Pedidos</h1>
-          <p className="adminPageIntro">Centro operativo para pedido, pago, shipping, facturas y postventa.</p>
+          <p className="adminPageIntro">Gestiona cada parte del pedido en su contexto: operacion, pedido, pagos, documentos fiscales y postventa.</p>
         </div>
         <div className="adminButtonRow">
           <Link className="adminButton" href="/admin/clientes">Customer 360</Link>
@@ -1216,17 +1175,7 @@ export function OrdersAdminPage({ capabilities, data, filters }: Props) {
         <article className="adminKpi">
           <span>Detalle</span>
           <strong>{selectedOrderId ?? "Sin seleccionar"}</strong>
-          <div className="adminMuted">Pago + shipping + invoice + postventa</div>
-        </article>
-        <article className="adminKpi">
-          <span>Invoice preview</span>
-          <strong>{capabilities.canManageInvoices ? "Disponible" : "Sin permiso"}</strong>
-          <div className="adminMuted">Plantilla documental</div>
-        </article>
-        <article className="adminKpi">
-          <span>Postventa</span>
-          <strong>{data.afterSalesCases.ok ? data.afterSalesCases.data.total : "-"}</strong>
-          <div className="adminMuted">Casos asociados</div>
+          <div className="adminMuted">Operacion, pagos, documentos y postventa</div>
         </article>
       </section>
 
@@ -1247,10 +1196,6 @@ export function OrdersAdminPage({ capabilities, data, filters }: Props) {
             <input name="customerId" defaultValue={filters.customerId ?? ""} />
           </label>
           <label className="adminField">
-            <span>Estado postventa</span>
-            <input name="status" defaultValue={filters.status ?? ""} placeholder="OPEN" />
-          </label>
-          <label className="adminField">
             <span>Limite</span>
             <select name="limit" defaultValue={filters.limit ?? "25"}>
               <option value="10">10</option>
@@ -1268,10 +1213,6 @@ export function OrdersAdminPage({ capabilities, data, filters }: Props) {
       </section>
 
       <OrderDetailDrawer capabilities={capabilities} data={data} filters={filters} />
-      <section className="adminGrid">
-        <InvoiceTemplatePanel capabilities={capabilities} preview={data.invoicePreview} />
-        <AfterSalesQueue capabilities={capabilities} cases={data.afterSalesCases} />
-      </section>
     </main>
   );
 }

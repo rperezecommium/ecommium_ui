@@ -4,12 +4,11 @@ import type { AdminSession } from "../../shared/auth/session";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 
-export type OrdersAdminDrawerTab = "operacion" | "datos" | "documentos" | "soporte" | "auditoria";
+export type OrdersAdminDrawerTab = "operacion" | "pedido" | "pagos" | "documentos" | "postventa" | "auditoria";
 
 export type OrdersAdminFilters = {
   orderId?: string;
   customerId?: string;
-  status?: string;
   limit?: string;
   offset?: string;
   orderTab?: OrdersAdminDrawerTab;
@@ -27,6 +26,10 @@ export type OrdersAdminCapabilities = {
 export type AdminOrderSummary = {
   orderId: string;
   customerId?: string | null;
+  customer?: {
+    kind?: "REGISTERED" | "GUEST" | "UNAVAILABLE" | string;
+    reference?: string | null;
+  };
   status?: string;
   paymentStatus?: string;
   fulfillmentStatus?: string;
@@ -87,35 +90,10 @@ export type AdminOrderOperation = {
   timeline?: AdminOrderOperationTimelineStep[];
 };
 
-export type InvoiceTemplatePreview = {
-  html?: string;
-  json?: Record<string, unknown>;
-  generatedAt?: string;
-};
-
-export type AfterSalesCase = {
-  caseId: string;
-  orderId?: string;
-  customerId?: string;
-  caseType?: string;
-  status?: string;
-  assignedEmployeeId?: string | null;
-  createdAt?: string;
-};
-
-export type AfterSalesCasesList = {
-  items: AfterSalesCase[];
-  total: number;
-  limit: number;
-  offset: number;
-};
-
 export type OrdersAdminData = {
   context: AdminContext;
   orders: BffResult<AdminOrdersList>;
   selectedOrder: BffResult<AdminOrderDetail | null>;
-  invoicePreview: BffResult<InvoiceTemplatePreview | null>;
-  afterSalesCases: BffResult<AfterSalesCasesList>;
 };
 
 export type OrdersAdminAuditEvent = {
@@ -231,10 +209,17 @@ function unavailable<T>(error: string): BffResult<T> {
 
 function normalizeOrderSummary(value: unknown): AdminOrderSummary {
   const record = asRecord(value);
+  const customer = asRecord(record.customer);
 
   return {
     orderId: asString(record.orderId) ?? asString(record.id) ?? "",
     customerId: asNullableString(record.customerId),
+    customer: Object.keys(customer).length
+      ? {
+          kind: asString(customer.kind),
+          reference: asNullableString(customer.reference),
+        }
+      : undefined,
     status: asString(record.status),
     paymentStatus: asString(record.paymentStatus),
     fulfillmentStatus: asString(record.fulfillmentStatus),
@@ -332,42 +317,6 @@ function normalizeOrderDetail(value: unknown): AdminOrderDetail {
       };
     }),
     generatedAt: asString(record.generatedAt),
-  };
-}
-
-function normalizeInvoicePreview(value: unknown): InvoiceTemplatePreview {
-  const record = asRecord(value);
-
-  return {
-    html: asString(record.html),
-    json: record.json ? asRecord(record.json) : record,
-    generatedAt: asString(record.generatedAt),
-  };
-}
-
-function normalizeAfterSalesCase(value: unknown): AfterSalesCase {
-  const record = asRecord(value);
-
-  return {
-    caseId: asString(record.caseId) ?? "",
-    orderId: asString(record.orderId),
-    customerId: asString(record.customerId),
-    caseType: asString(record.caseType),
-    status: asString(record.status),
-    assignedEmployeeId: asNullableString(record.assignedEmployeeId),
-    createdAt: asString(record.createdAt),
-  };
-}
-
-function normalizeAfterSalesCases(value: unknown): AfterSalesCasesList {
-  const record = asRecord(value);
-  const items = asArray(record.items ?? record.data ?? value).map(normalizeAfterSalesCase);
-
-  return {
-    items,
-    total: asNumber(record.total) ?? items.length,
-    limit: asNumber(record.limit) ?? items.length,
-    offset: asNumber(record.offset) ?? 0,
   };
 }
 
@@ -512,14 +461,11 @@ export async function getOrdersAdminData(
   if (!hasRequiredAdminContext(context)) {
     const skipped = unavailable<null>("Selecciona organization y shop para operar pedidos.");
     const emptyOrders = unavailable<AdminOrdersList>("Selecciona organization y shop para operar pedidos.");
-    const emptyCases = unavailable<AfterSalesCasesList>("Selecciona organization y shop para operar pedidos.");
 
     return {
       context,
       orders: emptyOrders,
       selectedOrder: skipped,
-      invoicePreview: skipped,
-      afterSalesCases: emptyCases,
     };
   }
 
@@ -528,7 +474,7 @@ export async function getOrdersAdminData(
   const orderId = filters.orderId?.trim();
   const customerId = filters.customerId?.trim();
 
-  const [orders, selectedOrder, invoicePreview, afterSalesCases] = await Promise.all([
+  const [orders, selectedOrder] = await Promise.all([
     capabilities.canReadOrders
       ? requestBff<AdminOrdersList>(
           scopedPath("/admin/orders", context, { customerId, limit, offset }),
@@ -541,29 +487,11 @@ export async function getOrdersAdminData(
           { context, parse: normalizeOrderDetail },
         )
       : Promise.resolve({ ok: true as const, data: null, status: 200, correlationId: "orders-admin-no-selection" }),
-    capabilities.canManageInvoices
-      ? requestBff<InvoiceTemplatePreview | null>(
-          scopedPath("/admin/invoices/document-template/preview", context, { currency: context.currency }),
-          { context, parse: normalizeInvoicePreview },
-        )
-      : Promise.resolve({ ok: true as const, data: null, status: 200, correlationId: "orders-admin-invoice-preview-skipped" }),
-    requestBff<AfterSalesCasesList>(
-      scopedPath("/admin/after-sales/cases", context, {
-        orderId,
-        customerId,
-        status: filters.status,
-        limit: "10",
-        offset: "0",
-      }),
-      { context, parse: normalizeAfterSalesCases },
-    ),
   ]);
 
   return {
     context,
     orders,
     selectedOrder,
-    invoicePreview,
-    afterSalesCases,
   };
 }

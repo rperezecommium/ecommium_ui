@@ -17,7 +17,6 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
   const filters: OrdersAdminFilters = {
     orderId: params?.orderId,
     customerId: params?.customerId,
-    status: params?.status,
     limit: params?.limit,
     offset: params?.offset,
     orderTab: params?.orderTab,

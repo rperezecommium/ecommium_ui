@@ -113,19 +113,18 @@ test("orders admin route replaces placeholder with operative module", () => {
   assert.match(routeSource, /orderTab/);
   assert.match(routeSource, /OrdersAdminPage/);
   assert.doesNotMatch(routeSource, /Modulo pendiente de implementar/);
-  assert.match(pageSource, /Centro operativo para pedido, pago, shipping, facturas y postventa/);
+  assert.match(pageSource, /Gestiona cada parte del pedido en su contexto/);
   assert.match(pageSource, /noticeBannerClass/);
   assert.match(pageSource, /adminBannerSuccess/);
-  assert.match(pageSource, /Preview plantilla factura/);
-  assert.match(pageSource, /Bandeja postventa/);
+  assert.doesNotMatch(pageSource, /Preview plantilla factura/);
+  assert.doesNotMatch(pageSource, /Bandeja postventa/);
   assert.match(pageSource, /assignAfterSalesCaseAction/);
   assert.match(pageSource, /issueOrderInvoiceAction/);
   assert.match(pageSource, /createInvoiceAdjustmentAction/);
-  assert.match(pageSource, /requestOrderRefundAction/);
   assert.match(pageSource, /transitionFulfillmentStatusAction/);
   assert.match(pageSource, /createOrderFulfillmentAction/);
-  assert.match(pageSource, /Solicitar refund/);
-  assert.match(pageSource, /Abrir postventa para refund/);
+  assert.match(pageSource, /Gestionar reembolso en Postventa/);
+  assert.match(pageSource, /Un reembolso devuelve dinero al cliente/);
   assert.match(pageSource, /Nota de credito/);
   assert.match(pageSource, /\/admin\/pagos\?invoiceId=/);
   assert.match(pageSource, /\/admin\/pagos\/invoices\/.*\/document/);
@@ -134,6 +133,9 @@ test("orders admin route replaces placeholder with operative module", () => {
   assert.match(pageSource, /Auditoria del pedido/);
   assert.match(pageSource, /OrderAuditTimelinePanel/);
   assert.match(pageSource, /orderShortReference/);
+  assert.match(pageSource, /customerLabel/);
+  assert.match(pageSource, /Invitado/);
+  assert.doesNotMatch(pageSource, /<td>\{valueText\(order\.customerId\)\}<\/td>/);
   assert.match(pageSource, /orderNextStep/);
   assert.match(pageSource, /isOrderPaid/);
   assert.match(pageSource, /orderStatus === "PAYMENT_SETTLED"/);
@@ -143,7 +145,6 @@ test("orders admin route replaces placeholder with operative module", () => {
   assert.match(pageSource, /OrderDetailDrawer/);
   assert.match(pageSource, /OrderDrawerSummary/);
   assert.match(pageSource, /Resumen operativo/);
-  assert.match(pageSource, /Siguiente accion/);
   assert.match(pageSource, /Bloqueos/);
   assert.match(pageSource, /Avisos/);
   assert.match(pageSource, /OrderDrawerTabs/);
@@ -156,8 +157,12 @@ test("orders admin route replaces placeholder with operative module", () => {
   assert.match(pageSource, /ordersSideDrawer/);
   assert.match(pageSource, /Cerrar panel de pedido/);
   assert.match(pageSource, /aria-modal="true"/);
-  assert.match(pageSource, /Documentos/);
-  assert.match(pageSource, /Soporte/);
+  assert.match(pageSource, /Documentos fiscales/);
+  assert.match(pageSource, /Postventa/);
+  assert.match(pageSource, /Cobro y reembolsos/);
+  assert.match(pageSource, /Facturacion y documentos fiscales/);
+  assert.match(pageSource, /invoiceDocumentActions/);
+  assert.match(pageSource, /Emitir documento fiscal/);
   assert.match(pageSource, /Auditoria/);
   assert.match(pageSource, /Siguiente paso/);
   assert.match(pageSource, /Iniciar preparacion/);
@@ -170,8 +175,9 @@ test("orders admin route replaces placeholder with operative module", () => {
   assert.match(pageSource, /OperationPrimaryAction/);
   assert.match(pageSource, /targetFulfillmentStatus/);
   assert.match(pageSource, /canManageShipping/);
-  assert.match(pageSource, /Checklist operativo/);
-  assert.match(pageSource, /Linea operativa/);
+  assert.match(pageSource, /Sin acciones pendientes/);
+  assert.match(pageSource, /Requiere atencion/);
+  assert.match(pageSource, /Progreso operativo/);
   assert.match(pageSource, /CREATE_FULFILLMENT/);
   assert.match(pageSource, /requiresTracking/);
   assert.match(pageSource, /Transportista actual/);
@@ -191,15 +197,13 @@ test("orders admin route replaces placeholder with operative module", () => {
   assert.match(pageSource, /Anterior/);
   assert.match(pageSource, /Siguiente/);
   assert.match(dataSource, /\/admin\/orders/);
-  assert.match(dataSource, /\/admin\/invoices\/document-template\/preview/);
-  assert.match(dataSource, /\/admin\/after-sales\/cases/);
+  assert.doesNotMatch(dataSource, /\/admin\/invoices\/document-template\/preview/);
+  assert.doesNotMatch(dataSource, /\/admin\/after-sales\/cases/);
   assert.match(dataSource, /buildOrderAuditTimeline/);
   assert.match(dataSource, /PAYMENT_STATUS/);
   assert.match(dataSource, /INVOICE_ADJUSTMENT/);
   assert.match(dataSource, /COMPOSITION_WARNING/);
   const actionsSource = readFileSync(path.resolve(root, "src/modules/pedidos/orders-admin-actions.ts"), "utf8");
-  assert.match(actionsSource, /refund-requests/);
-  assert.match(actionsSource, /admin-order-refund/);
   assert.match(actionsSource, /createOrderFulfillmentAction/);
   assert.match(actionsSource, /transitionFulfillmentStatusAction/);
   assert.match(actionsSource, /admin\/orders\/.*\/fulfillment/);
@@ -249,7 +253,7 @@ test("orders admin fulfillment UI uses BFF primaryAction as the operation source
   assert.doesNotMatch(workspace, /Carrier ID/);
 });
 
-test("orders admin loads list detail invoice preview and after-sales through BFF", async () => {
+test("orders admin loads solo lista y detalle del pedido mediante BFF", async () => {
   const calls = [];
   const requestBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
@@ -326,11 +330,18 @@ test("orders admin loads list detail invoice preview and after-sales through BFF
           warnings: [{ section: "payment", message: "partial" }],
           generatedAt: "2026-07-07T09:30:00.000Z",
         }
-      : pathValue.includes("/document-template/preview")
-        ? { html: "<html>Factura</html>", generatedAt: "2026-07-07T10:00:00.000Z" }
-        : pathValue.includes("/after-sales/cases")
-          ? { items: [{ caseId: "case-1", orderId: "order-1", assignedEmployeeId: "employee-1" }], total: 1, limit: 10, offset: 0 }
-          : { items: [{ orderId: "order-1", customerId: "customer-1", totalAmountMinor: 1234, currency: "EUR" }], total: 1, limit: 25, offset: 0 };
+      : {
+              items: [{
+                orderId: "order-1",
+                customerId: "customer-1",
+                customer: { kind: "REGISTERED", reference: "C-4K7M2P" },
+                totalAmountMinor: 1234,
+                currency: "EUR",
+              }],
+              total: 1,
+              limit: 25,
+              offset: 0,
+            };
 
     return { ok: true, data: options.parse ? options.parse(raw) : raw, status: 200, correlationId: "corr-orders" };
   };
@@ -342,14 +353,13 @@ test("orders admin loads list detail invoice preview and after-sales through BFF
   const timeline = buildOrderAuditTimeline(data.selectedOrder.data);
 
   assert.equal(data.orders.data.items[0].orderId, "order-1");
+  assert.equal(data.orders.data.items[0].customer.reference, "C-4K7M2P");
   assert.equal(data.selectedOrder.data.payment.status, "SETTLED");
   assert.equal(data.selectedOrder.data.shipping.trackingNumber, "TRACK-1");
   assert.equal(data.selectedOrder.data.operation.primaryAction.targetFulfillmentStatus, "SHIPPED");
   assert.equal(data.selectedOrder.data.operation.sections[0].status, "ready");
   assert.equal(data.selectedOrder.data.invoice.invoiceId, "invoice-1");
   assert.equal(data.selectedOrder.data.afterSales.caseId, "case-1");
-  assert.equal(data.invoicePreview.data.html, "<html>Factura</html>");
-  assert.equal(data.afterSalesCases.data.items[0].assignedEmployeeId, "employee-1");
   assert.equal(timeline[0].eventType, "COMPOSITION_WARNING");
   assert.equal(timeline.some((event) => event.eventType === "PAYMENT_STATUS" && event.referenceId === "tx-1"), true);
   assert.equal(timeline.some((event) => event.eventType === "INVOICE_ADJUSTMENT" && event.referenceId === "adjustment-1"), true);
@@ -357,12 +367,10 @@ test("orders admin loads list detail invoice preview and after-sales through BFF
   assert.deepEqual(calls.map((call) => call.path), [
     "/admin/orders?organizationId=org-1&shopId=shop-1&customerId=customer-1&limit=25&offset=0",
     "/admin/orders/order-1?organizationId=org-1&shopId=shop-1",
-    "/admin/invoices/document-template/preview?organizationId=org-1&shopId=shop-1&currency=EUR",
-    "/admin/after-sales/cases?organizationId=org-1&shopId=shop-1&orderId=order-1&customerId=customer-1&limit=10&offset=0",
   ]);
 });
 
-test("orders admin actions assign after-sales, issue invoice, refund and create fiscal adjustments through scoped BFF", async () => {
+test("orders admin actions assign after-sales, issue invoice and create fiscal adjustments through scoped BFF", async () => {
   const calls = [];
   const requestBff = async (pathValue, options = {}) => {
     calls.push({
@@ -377,15 +385,12 @@ test("orders admin actions assign after-sales, issue invoice, refund and create 
     createOrderFulfillmentAction,
     createInvoiceAdjustmentAction,
     issueOrderInvoiceAction,
-    requestOrderRefundAction,
     transitionFulfillmentStatusAction,
   } = loadOrdersActionsModule({ requestBff });
   const formData = new FormData();
   formData.set("caseId", "case-1");
   formData.set("orderId", "order-1");
   formData.set("assignedEmployeeId", "employee-2");
-  formData.set("transactionId", "tx-1");
-  formData.set("resolutionId", "resolution-1");
   formData.set("invoiceId", "invoice-1");
   formData.set("adjustmentType", "CREDIT_NOTE");
   formData.set("amountMinor", "1299");
@@ -397,7 +402,6 @@ test("orders admin actions assign after-sales, issue invoice, refund and create 
 
   await assert.rejects(() => assignAfterSalesCaseAction(formData), { url: "/admin/pedidos?notice=Caso+postventa+asignado.&orderId=order-1" });
   await assert.rejects(() => issueOrderInvoiceAction(formData), { url: "/admin/pedidos?notice=Factura+solicitada.&orderId=order-1" });
-  await assert.rejects(() => requestOrderRefundAction(formData), { url: "/admin/pedidos?notice=Refund+solicitado.&orderId=order-1" });
   await assert.rejects(() => createInvoiceAdjustmentAction(formData), { url: "/admin/pedidos?notice=Ajuste+fiscal+solicitado.&orderId=order-1" });
   await assert.rejects(() => createOrderFulfillmentAction(formData), { url: "/admin/pedidos?notice=Pedido+en+preparacion.&orderId=order-1&noticeKind=success" });
   await assert.rejects(() => transitionFulfillmentStatusAction(formData), { url: "/admin/pedidos?notice=Estado+logistico+actualizado+a+SHIPPED.&orderId=order-1&noticeKind=success" });
@@ -417,16 +421,6 @@ test("orders admin actions assign after-sales, issue invoice, refund and create 
       body: {
         orderId: "order-1",
         idempotencyKey: "admin-order-invoice-order-1",
-      },
-    },
-    {
-      path: "/admin/after-sales/cases/case-1/refund-requests?organizationId=org-1&shopId=shop-1",
-      method: "POST",
-      body: {
-        transactionId: "tx-1",
-        resolutionId: "resolution-1",
-        source: "admin-orders",
-        idempotencyKey: "admin-order-refund-case-1-tx-1",
       },
     },
     {

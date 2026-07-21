@@ -829,6 +829,7 @@ p {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  margin-top: 16px;
 }
 
 .adminButton {
@@ -4192,9 +4193,29 @@ p {
 
 .ordersSideDrawerBody {
   display: grid;
+  align-content: start;
   gap: 14px;
   min-width: 0;
   padding: 12px;
+}
+
+.ordersDrawerTabPanel {
+  padding-top: 8px;
+}
+
+.ordersDrawerTabs {
+  align-self: start;
+  min-height: 0;
+  height: 40px;
+}
+
+.ordersDrawerTabs .productEditorTab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 0;
+  height: 40px;
+  padding: 0 14px;
+  white-space: nowrap;
 }
 
 .ordersDrawerSummary {
@@ -4207,6 +4228,107 @@ p {
 
 .ordersSideDrawerBody > .adminGrid {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.ordersDetailFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+}
+
+.ordersDetailFields > div {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.55fr) minmax(0, 1fr);
+  min-width: 0;
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.ordersDetailFields > div:last-child {
+  border-bottom: 0;
+}
+
+.ordersDetailFields dt {
+  padding: 8px 10px;
+  border-right: 1px solid var(--admin-border-subtle);
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.ordersDetailFields dd {
+  margin: 0;
+  padding: 8px 10px;
+  overflow-wrap: anywhere;
+}
+
+.ordersDetailFieldWide {
+  grid-column: 1 / -1;
+}
+
+.ordersOperationChecklist {
+  display: grid;
+  gap: 6px;
+}
+
+.ordersOperationChecklistItem {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.5fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.ordersOperationChecklistItem strong,
+.ordersOperationChecklistItem span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ordersOperationChecklistItem > span:first-of-type {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.invoiceDocumentActions {
+  margin: 20px 0;
+  padding: 16px 0;
+  border-top: 1px solid var(--admin-border-subtle);
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.invoiceDocumentActions .adminButtonRow {
+  gap: 12px;
+}
+
+.invoiceDocumentActions .adminButton {
+  min-height: 40px;
+  padding: 0 14px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.invoiceDocumentActions .adminButton:not(.adminButtonPrimary):hover {
+  border-color: var(--admin-primary);
+  background: var(--admin-surface-muted);
+  color: var(--admin-primary-pressed);
+}
+
+.invoiceDocumentAdjustment {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.invoiceDocumentAdjustment h3 {
+  margin: 0 0 12px;
 }
 
 .customersSideDrawer {
@@ -4470,6 +4592,14 @@ p {
   .customersSideDrawerBody > .adminFormGrid,
   .customersSideDrawer .adminSummaryGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ordersOperationChecklistItem {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ordersDetailFieldWide {
+    grid-column: auto;
   }
 
   .customersOverviewListItem {
