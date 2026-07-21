@@ -41,6 +41,7 @@ const configurationNavItems = [
   { href: "/admin/configuracion/automatizacion", label: "Automatizacion", description: "Reglas, ejecuciones y reintentos", permission: "admin:automation:view" as const },
   { href: "/admin/configuracion/comunicaciones", label: "Comunicaciones", description: "Email, SMTP y plantillas", permission: "admin:communications:view" as const },
   { href: "/admin/configuracion/checkout", label: "Checkout", description: "OrderForm y reglas de compra", permission: "admin:checkout:view" as const },
+  { href: "/admin/configuracion/seguridad", label: "Seguridad", description: "Sesiones y confirmación de identidad", permission: "admin:configuration:view" as const },
 ];
 
 const catalogNavItems = [

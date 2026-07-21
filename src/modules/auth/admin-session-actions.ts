@@ -92,20 +92,6 @@ async function fetchCurrentSessionWithToken(accessToken: string) {
   });
 }
 
-async function refreshAccessToken(refreshToken: string) {
-  return await requestBff("/auth/refresh", {
-    withAuth: false,
-    init: {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ refreshToken }),
-    },
-    parse: parseLoginResult,
-  });
-}
-
 async function loginAdminWithCredentials({
   email,
   password,
@@ -240,19 +226,5 @@ export async function refreshAdminEmployeeSession() {
     return null;
   }
 
-  const refreshResult = await refreshAccessToken(current.refreshToken);
-
-  if (!refreshResult.ok || !refreshResult.data.accessToken) {
-    return null;
-  }
-
-  const refreshed = mergeAuthSessions(current, refreshResult.data);
-  const refreshedMeResult = await fetchCurrentSessionWithToken(refreshed.accessToken ?? "");
-
-  if (!refreshedMeResult.ok) {
-    return null;
-  }
-
-  const nextSession = mergeAuthSessions(refreshed, refreshedMeResult.data);
-  return nextSession;
+  return null;
 }

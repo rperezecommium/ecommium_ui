@@ -20,6 +20,113 @@
   --admin-shadow-popover: 0 8px 24px rgba(54, 58, 65, 0.16);
 }
 
+.adminSessionRecovery {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: min(100% - 32px, 560px);
+  padding: 14px 16px;
+  border: 1px solid #d7b263;
+  border-radius: 10px;
+  background: #fff9eb;
+  box-shadow: var(--admin-shadow-popover);
+}
+
+.adminSessionRecovery strong,
+.adminSessionRecovery p {
+  margin: 0;
+}
+
+.adminSessionRecovery p,
+.adminSessionWarningHint {
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}
+
+.adminSessionRecoveryActions,
+.adminSessionWarningActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adminSessionWarningLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(19 30 36 / 58%);
+}
+
+.adminSessionWarning {
+  width: min(100%, 520px);
+  padding: 28px;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 12px;
+  background: var(--admin-surface);
+  box-shadow: 0 24px 64px rgb(0 15 68 / 30%);
+}
+
+.adminSessionWarningEyebrow {
+  margin: 0 0 6px;
+  color: #0a6278;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.adminSessionWarning h2 {
+  margin: 0;
+  color: var(--admin-text);
+}
+
+.adminSessionWarning > p:not(.adminSessionWarningEyebrow) {
+  line-height: 1.5;
+}
+
+.adminSessionWarningActions {
+  margin-top: 22px;
+}
+
+.adminSessionWarningError {
+  padding: 10px 12px;
+  border-left: 3px solid var(--admin-danger);
+  background: #fff1ef;
+  color: #9f2d22;
+}
+
+.adminSessionNotice {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 70;
+  max-width: min(100% - 32px, 520px);
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-popover);
+}
+
+@media (max-width: 640px) {
+  .adminSessionRecovery {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .adminSessionWarning {
+    padding: 22px;
+  }
+}
+
 .storefrontOrderTrackingPage {
   width: min(100% - 32px, 760px);
   margin: 40px auto 72px;

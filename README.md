@@ -58,6 +58,18 @@ The legacy `/api/v1/admin/sessions/*` endpoints documented in the first UI
 snapshot returned `404` against the local BFF on 2026-06-16, while `/auth/*`
 responded with validation/auth errors as expected. Tokens are stored only in the
 server-side httpOnly UI cookie.
+The UI rotates Admin tokens through a technical Route Handler before expiry.
+Browser tabs coordinate the request without reading the httpOnly cookie or
+writing tokens to `localStorage`.
+
+The Admin layout also mounts a session guardian. It reads the minimal state via
+same-origin Route Handlers, records real human interaction at a bounded rate,
+and shows an accessible warning only when the server enables an idle limit. The
+browser never approves an expired session: `continue` and `close` are validated
+by BFF/Sessions. Before an explicit close or page unload, the guardian keeps a
+small recovery copy in `sessionStorage`, scoped to the employee and current
+page, for up to 12 hours. It excludes passwords, secrets, tokens, payment data
+and email fields; recovery is always an explicit user action.
 
 Admin configuration expects these BFF contracts for multistore context:
 

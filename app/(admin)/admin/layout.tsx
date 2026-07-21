@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { AdminShell } from "../../../src/app-shell/admin-shell";
+import { AdminSessionRefresher } from "../../../src/app-shell/admin-session-refresher";
+import { AdminSessionGuardian } from "../../../src/app-shell/admin-session-guardian";
 import { runWithAdminRequestSession } from "../../../src/shared/auth/admin-request-session";
 import { getAdminContext } from "../../../src/shared/config/admin-context";
 import { refreshAdminEmployeeSession } from "../../../src/modules/auth/admin-session-actions";
@@ -21,9 +23,21 @@ export default async function AdminLayout({
     const directory = await getOrganizationShopDirectory();
 
     return (
-      <AdminShell context={context} directory={directory} session={session}>
-        {children}
-      </AdminShell>
+      <>
+        <AdminSessionRefresher
+          expiresAt={session.expiresAt}
+          sessionId={session.sessionId}
+        />
+        {session.sessionId ? (
+          <AdminSessionGuardian
+            employeeId={session.employeeId}
+            sessionId={session.sessionId}
+          />
+        ) : null}
+        <AdminShell context={context} directory={directory} session={session}>
+          {children}
+        </AdminShell>
+      </>
     );
   });
 }

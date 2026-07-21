@@ -43,6 +43,9 @@ export default function ConfiguracionPage() {
           <Link className="adminButton" href="/admin/configuracion/checkout">
             Abrir Checkout
           </Link>
+          <Link className="adminButton" href="/admin/configuracion/seguridad">
+            Abrir seguridad de cuenta
+          </Link>
         </div>
       </section>
     </main>
