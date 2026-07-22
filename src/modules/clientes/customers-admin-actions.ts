@@ -6,7 +6,7 @@ import { requestBff } from "../../shared/bff/client";
 import { getAdminSession } from "../../shared/auth/session";
 import { getAdminContext } from "../../shared/config/admin-context";
 
-function asString(value: FormDataEntryValue | null) {
+function asString(value: FormDataEntryValue | null | undefined) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
@@ -41,7 +41,29 @@ function scopedPath(path: string, organizationId: string, shopId: string) {
   return `${path}?${new URLSearchParams({ organizationId, shopId }).toString()}`;
 }
 
-function customersReturnPath(message: string, customerId?: string) {
+function customerDetailReturnPath(value: FormDataEntryValue | null | undefined) {
+  const returnTo = asString(value);
+  if (!returnTo?.startsWith("/admin/clientes/")) {
+    return undefined;
+  }
+
+  const [pathname, query = ""] = returnTo.split("?", 2);
+  if (!pathname.startsWith("/admin/clientes/")) {
+    return undefined;
+  }
+
+  return `${pathname}${query ? `?${query}` : ""}`;
+}
+
+function customersReturnPath(message: string, customerId?: string, returnTo?: FormDataEntryValue | null) {
+  const detailPath = customerDetailReturnPath(returnTo);
+  if (detailPath) {
+    const [pathname, query = ""] = detailPath.split("?", 2);
+    const params = new URLSearchParams(query);
+    params.set("customerMessage", message);
+    return `${pathname}?${params.toString()}`;
+  }
+
   const params = new URLSearchParams({ customerMessage: message });
   if (customerId) {
     params.set("drawer", "detail");
@@ -92,10 +114,10 @@ async function customerJsonMutation(
 
   revalidatePath("/admin/clientes");
   if (!result.ok) {
-    redirect(customersReturnPath(customerMutationMessage(result.status, result.error, permission), customerId));
+    redirect(customersReturnPath(customerMutationMessage(result.status, result.error, permission), customerId, formData.get("returnTo")));
   }
 
-  redirect(customersReturnPath(successMessage, customerId));
+  redirect(customersReturnPath(successMessage, customerId, formData.get("returnTo")));
 }
 
 async function customerEmptyMutation(
@@ -117,28 +139,33 @@ async function customerEmptyMutation(
 
   revalidatePath("/admin/clientes");
   if (!result.ok) {
-    redirect(customersReturnPath(customerMutationMessage(result.status, result.error, permission), customerId));
+    redirect(customersReturnPath(customerMutationMessage(result.status, result.error, permission), customerId, formData.get("returnTo")));
   }
 
-  redirect(customersReturnPath(successMessage, customerId));
+  redirect(customersReturnPath(successMessage, customerId, formData.get("returnTo")));
 }
 
 function profilePayload(formData: FormData) {
+  const preferences: { locale?: string; optinNewsLetter?: boolean } = {
+    locale: asString(formData.get("locale")),
+  };
+  if (formData.has("optinNewsLetter")) {
+    preferences.optinNewsLetter = asBoolean(formData.get("optinNewsLetter"));
+  }
+
   return {
     firstName: requiredString(formData.get("firstName"), "Nombre"),
     lastName: requiredString(formData.get("lastName"), "Apellido"),
     documentNumber: asNullableString(formData.get("documentNumber")),
     phone: asNullableString(formData.get("phone")),
     buyerType: buyerType(formData.get("buyerType")),
-    clientPreferencesData: {
-      locale: asString(formData.get("locale")),
-      optinNewsLetter: asBoolean(formData.get("optinNewsLetter")),
-    },
+    clientPreferencesData: preferences,
   };
 }
 
 function addressPayload(formData: FormData) {
   return {
+    alias: requiredString(formData.get("alias"), "Nombre de la dirección"),
     addressType: asString(formData.get("addressType")) ?? "residential",
     addressRole: addressRole(formData.get("addressRole")),
     receiverName: requiredString(formData.get("receiverName"), "Receptor"),
@@ -220,10 +247,10 @@ export async function updateCustomerProfileAction(formData: FormData): Promise<n
 
   revalidatePath("/admin/clientes");
   if (!result.ok) {
-    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId));
+    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId, formData.get("returnTo")));
   }
 
-  redirect(customersReturnPath("Cliente actualizado.", customerId));
+  redirect(customersReturnPath("Cliente actualizado.", customerId, formData.get("returnTo")));
 }
 
 export async function createCustomerAddressAction(formData: FormData): Promise<never> {
@@ -243,10 +270,10 @@ export async function createCustomerAddressAction(formData: FormData): Promise<n
 
   revalidatePath("/admin/clientes");
   if (!result.ok) {
-    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId));
+    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId, formData.get("returnTo")));
   }
 
-  redirect(customersReturnPath("Direccion creada.", customerId));
+  redirect(customersReturnPath("Direccion creada.", customerId, formData.get("returnTo")));
 }
 
 export async function updateCustomerAddressAction(formData: FormData): Promise<never> {
@@ -271,10 +298,10 @@ export async function updateCustomerAddressAction(formData: FormData): Promise<n
 
   revalidatePath("/admin/clientes");
   if (!result.ok) {
-    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId));
+    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId, formData.get("returnTo")));
   }
 
-  redirect(customersReturnPath("Direccion actualizada.", customerId));
+  redirect(customersReturnPath("Direccion actualizada.", customerId, formData.get("returnTo")));
 }
 
 export async function deleteCustomerAddressAction(formData: FormData): Promise<never> {
@@ -295,10 +322,10 @@ export async function deleteCustomerAddressAction(formData: FormData): Promise<n
 
   revalidatePath("/admin/clientes");
   if (!result.ok) {
-    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId));
+    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId, formData.get("returnTo")));
   }
 
-  redirect(customersReturnPath("Direccion eliminada.", customerId));
+  redirect(customersReturnPath("Direccion eliminada.", customerId, formData.get("returnTo")));
 }
 
 export async function setDefaultShippingAddressAction(formData: FormData): Promise<never> {
@@ -319,10 +346,10 @@ export async function setDefaultShippingAddressAction(formData: FormData): Promi
 
   revalidatePath("/admin/clientes");
   if (!result.ok) {
-    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId));
+    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId, formData.get("returnTo")));
   }
 
-  redirect(customersReturnPath("Direccion de envio actualizada.", customerId));
+  redirect(customersReturnPath("Direccion de envio actualizada.", customerId, formData.get("returnTo")));
 }
 
 export async function setDefaultBillingAddressAction(formData: FormData): Promise<never> {
@@ -343,10 +370,10 @@ export async function setDefaultBillingAddressAction(formData: FormData): Promis
 
   revalidatePath("/admin/clientes");
   if (!result.ok) {
-    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId));
+    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId, formData.get("returnTo")));
   }
 
-  redirect(customersReturnPath("Direccion fiscal actualizada.", customerId));
+  redirect(customersReturnPath("Direccion fiscal actualizada.", customerId, formData.get("returnTo")));
 }
 
 export async function setCustomerAccountActivationAction(formData: FormData): Promise<never> {

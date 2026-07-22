@@ -130,7 +130,7 @@ function normalizeAddress(value: unknown) {
   return {
     addressId: asString(record.addressId) ?? asString(record.id) ?? "",
     addressType: asString(record.addressType),
-    addressName: asString(record.addressName) ?? asString(record.name),
+    addressName: asString(record.addressName) ?? asString(record.alias) ?? asString(record.name),
     receiverName: asString(record.receiverName),
     addressRole: asString(record.addressRole),
     street: asString(record.street),
@@ -156,11 +156,13 @@ function normalizeCustomer(value: unknown): CustomerProfile {
 
   return {
     customerId: asString(record.customerId) ?? asString(record.id) ?? "",
+    customerReference: asString(record.customerReference),
     organizationId: asString(record.organizationId) ?? "",
     shopId: asString(record.shopId) ?? "",
     email: asString(record.email) ?? "",
     firstName: asString(record.firstName),
     lastName: asString(record.lastName),
+    avatarId: asNullableString(record.avatarId),
     documentNumber: asNullableString(record.documentNumber),
     phone: asNullableString(record.phone),
     buyerType: asString(record.buyerType),
@@ -832,6 +834,29 @@ export async function getCustomerDetail(
     : unavailable(endpoint, null, result);
 }
 
+export async function getCustomerByReference(
+  context: AdminContext,
+  customerReference: string | undefined,
+): Promise<CustomersAdminResult<CustomerProfile | null>> {
+  if (!customerReference?.trim()) {
+    return { source: "bff", data: null };
+  }
+  if (!hasRequiredAdminContext(context)) {
+    return unavailableContext(null);
+  }
+
+  const params = makeScopedParams(context, { customerReference });
+  const endpoint = `/admin/customers/by-reference?${params.toString()}`;
+  const result = await requestBff(endpoint, {
+    context,
+    parse: normalizeCustomer,
+  });
+
+  return result.ok
+    ? { source: "bff", data: result.data }
+    : unavailable(endpoint, null, result);
+}
+
 export async function getCustomerAddresses(
   context: AdminContext,
   customerId: string | undefined,
@@ -918,6 +943,50 @@ export async function getCustomersAdminData(
   return {
     context,
     list,
+    overview,
+    selectedCustomer,
+    addresses,
+    purchases,
+  };
+}
+
+export async function getCustomerDetailAdminData(
+  context: AdminContext,
+  customerId: string,
+  filters: CustomersAdminFilters,
+  options: { includePurchases?: boolean } = {},
+): Promise<CustomersAdminData> {
+  const overview = await getCustomerOverview(context, customerId, filters);
+  const emptyList: CustomersAdminResult<CustomersListData> = {
+    source: "bff",
+    data: { items: [], total: 0, limit: 0, offset: 0 },
+  };
+
+  if (overview.source === "bff" && overview.data) {
+    return {
+      context,
+      list: emptyList,
+      overview,
+      selectedCustomer: { source: "bff", data: overview.data.customer },
+      addresses: { source: "bff", data: overview.data.addresses },
+      purchases: options.includePurchases === false
+        ? unavailablePermission(emptyPurchases(customerId, filters), "customers.purchases.read")
+        : { source: "bff", data: overview.data.purchases },
+    };
+  }
+
+  const purchasesPromise = options.includePurchases === false
+    ? Promise.resolve(unavailablePermission(emptyPurchases(customerId, filters), "customers.purchases.read"))
+    : getCustomerPurchases(context, customerId, filters);
+  const [selectedCustomer, addresses, purchases] = await Promise.all([
+    getCustomerDetail(context, customerId),
+    getCustomerAddresses(context, customerId),
+    purchasesPromise,
+  ]);
+
+  return {
+    context,
+    list: emptyList,
     overview,
     selectedCustomer,
     addresses,

@@ -14,6 +14,7 @@ export type CustomersAdminFilters = {
   addressId?: string;
   purchasesLimit?: string;
   purchasesOffset?: string;
+  activitySource?: string;
   customerMessage?: string;
 };
 
@@ -79,11 +80,13 @@ export type CustomerAddress = {
 
 export type CustomerProfile = {
   customerId: string;
+  customerReference?: string;
   organizationId: string;
   shopId: string;
   email: string;
   firstName?: string;
   lastName?: string;
+  avatarId?: string | null;
   documentNumber?: string | null;
   phone?: string | null;
   buyerType?: string;

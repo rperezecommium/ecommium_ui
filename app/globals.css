@@ -4365,6 +4365,301 @@ p {
   padding: 14px 16px 20px;
 }
 
+.customerDetailShell {
+  display: grid;
+  gap: 18px;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.customerDetailHeader {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.customerDetailHeader .adminBreadcrumb {
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.customerDetailHeader .adminPageTitle {
+  margin: 0;
+}
+
+.customerDetailIdentity {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.customerDetailAvatar {
+  display: grid;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--admin-primary);
+  color: white;
+  font-weight: 800;
+  overflow: hidden;
+}
+
+.customerDetailAvatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.customerDetailMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 8px;
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}
+
+.customerDetailTabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 1px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.customerDetailTab {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  border-bottom: 2px solid transparent;
+  color: var(--admin-text-muted);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.customerDetailTab:hover {
+  color: var(--admin-text);
+}
+
+.customerDetailTabActive {
+  border-bottom-color: var(--admin-primary);
+  color: var(--admin-text);
+  font-weight: 700;
+}
+
+.customerDetailBody {
+  display: grid;
+  gap: 14px;
+}
+
+.customerDetailBody > .adminStack {
+  display: grid;
+  gap: 14px;
+}
+
+.customerDetailBody .pricingPanel {
+  min-width: 0;
+}
+
+.customerSummaryPanel {
+  padding: 18px;
+}
+
+.customerSummaryDomains {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.customerSummaryDomain {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-surface-muted);
+}
+
+.customerSummaryDomain:last-child {
+  grid-column: span 2;
+}
+
+.customerSummaryDomain h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.customerSummaryDomain dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin: 0;
+}
+
+.customerSummaryDomain dt {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.customerSummaryDomain dd {
+  min-width: 0;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.customerProfileFieldset {
+  grid-column: 1 / -1;
+}
+
+.customerDataTableFullWidth,
+.customerProfileActions {
+  grid-column: 1 / -1;
+}
+
+.customerProfileFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.customerReadOnlyField {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-height: 42px;
+}
+
+.customerReadOnlyField > span,
+.customerReadOnlyField small {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.customerReadOnlyField strong {
+  overflow-wrap: anywhere;
+}
+
+.customerActivityFilters {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+}
+
+.customerActivityFilters .adminField {
+  min-width: 220px;
+}
+
+.customerActivityTimeline {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.customerActivityTimeline > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 64px;
+}
+
+.customerActivityTimeline > li:not(:last-child)::before {
+  position: absolute;
+  top: 17px;
+  bottom: -1px;
+  left: 8px;
+  width: 1px;
+  background: var(--admin-border);
+  content: "";
+}
+
+.customerActivityTimelineMarker {
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  margin-top: 4px;
+  border: 2px solid var(--admin-primary);
+  border-radius: 50%;
+  background: var(--admin-surface);
+}
+
+.customerActivityTimelineContent,
+.customerActivityTimelineContent > div {
+  display: flex;
+  gap: 8px;
+}
+
+.customerActivityTimelineContent {
+  justify-content: space-between;
+  padding-bottom: 14px;
+}
+
+.customerActivityTimelineContent > div {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.customerActivityTimelineContent span:not(.adminBadge),
+.customerActivityTimelineContent time {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.customerActivityTimelineCompact > li {
+  min-height: 54px;
+}
+
+.adminFieldFull,
+.customerUnavailableField {
+  grid-column: 1 / -1;
+}
+
+.customerUnavailableField {
+  display: grid;
+  gap: 4px;
+}
+
+.customerUnavailableField span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 860px) {
+  .customerSummaryDomains {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customerSummaryDomain:last-child {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .customerSummaryDomains,
+  .customerSummaryDomain dl,
+  .customerProfileFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customerActivityFilters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .customerActivityFilters .adminField {
+    min-width: 0;
+  }
+}
+
 .customersSideDrawerBody > .adminFormGrid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }

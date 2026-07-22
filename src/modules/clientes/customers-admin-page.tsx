@@ -1,6 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
-  AlertTriangle,
   ClipboardList,
   Clock,
   Edit3,
@@ -17,10 +17,8 @@ import {
   Star,
   Tag,
   Trash2,
-  RotateCcw,
   UserCheck,
   UserRound,
-  UsersRound,
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -29,7 +27,7 @@ import type {
   CustomerOverviewData,
   CustomerProfile,
   CustomerPurchase,
-  CustomerPurchaseItem,
+  CustomerPurchasesData,
   CustomersAdminCapabilities,
   CustomersAdminData,
   CustomersAdminFilters,
@@ -55,7 +53,6 @@ import {
   setDefaultBillingAddressAction,
   setDefaultShippingAddressAction,
   setCustomerAccountActivationAction,
-  testResetCustomerAction,
   updateCustomerPrivacyRequestStatusAction,
   updateCustomerProfileAction,
   updateCustomerAddressAction,
@@ -68,11 +65,52 @@ type CustomersAdminPageProps = {
   capabilities: CustomersAdminCapabilities;
 };
 
+export type CustomerDetailTab =
+  | "resumen"
+  | "perfil"
+  | "compras"
+  | "facturacion"
+  | "comunicaciones"
+  | "soporte"
+  | "cuenta"
+  | "privacidad"
+  | "actividad"
+  | "backoffice";
+
+const customerDetailTabs: Array<{ id: CustomerDetailTab; label: string }> = [
+  { id: "resumen", label: "Resumen" },
+  { id: "perfil", label: "Perfil" },
+  { id: "compras", label: "Compras" },
+  { id: "facturacion", label: "Facturación" },
+  { id: "comunicaciones", label: "Comunicaciones" },
+  { id: "soporte", label: "Soporte" },
+  { id: "cuenta", label: "Cuenta" },
+  { id: "privacidad", label: "Privacidad" },
+  { id: "actividad", label: "Actividad" },
+  { id: "backoffice", label: "Backoffice" },
+];
+
+const customerAvatarImagePath: Record<string, string> = {
+  "human-01": "/storefront/avatars/human-01.jpg",
+  "human-02": "/storefront/avatars/human-02.jpg",
+  "human-03": "/storefront/avatars/human-03.jpg",
+  "human-04": "/storefront/avatars/human-04.jpg",
+  "human-05": "/storefront/avatars/human-05.jpg",
+  "animal-cat": "/storefront/avatars/animal-cat.jpg",
+  "animal-dog": "/storefront/avatars/animal-dog.jpg",
+  "animal-fox": "/storefront/avatars/animal-fox.jpg",
+  "animal-panda": "/storefront/avatars/animal-panda.jpg",
+  "animal-owl": "/storefront/avatars/animal-owl.jpg",
+};
+
 function customersHref(filters: CustomersAdminFilters, patch: Partial<CustomersAdminFilters>) {
   const params = new URLSearchParams();
   const next = { ...filters, ...patch };
 
   for (const [key, value] of Object.entries(next)) {
+    if (key === "activitySource") {
+      continue;
+    }
     if (typeof value === "string" && value.trim()) {
       params.set(key, value.trim());
     }
@@ -83,6 +121,25 @@ function customersHref(filters: CustomersAdminFilters, patch: Partial<CustomersA
 
 function fullName(customer: CustomerProfile) {
   return [customer.firstName, customer.lastName].filter(Boolean).join(" ") || customer.email || customer.customerId;
+}
+
+function customerDetailHref(
+  customer: CustomerProfile,
+  tab: CustomerDetailTab = "resumen",
+  extra: Record<string, string | undefined> = {},
+) {
+  const reference = customer.customerReference ?? customer.customerId;
+  const params = new URLSearchParams();
+  if (tab !== "resumen") {
+    params.set("tab", tab);
+  }
+  for (const [key, value] of Object.entries(extra)) {
+    if (value) {
+      params.set(key, value);
+    }
+  }
+
+  return `/admin/clientes/${encodeURIComponent(reference)}${params.size ? `?${params.toString()}` : ""}`;
 }
 
 function valueText(value: unknown) {
@@ -124,33 +181,6 @@ function moneyText(amountMinor: number | undefined, currency = "EUR") {
     style: "currency",
     currency,
   }).format(amountMinor / 100);
-}
-
-function purchaseHref(item: CustomerPurchaseItem) {
-  if (item.productUrlPath) {
-    return item.productUrlPath;
-  }
-  if (item.productSlug) {
-    return `/pdp/${encodeURIComponent(item.productSlug)}`;
-  }
-
-  return undefined;
-}
-
-function purchaseItemsSummary(purchase: CustomerPurchase) {
-  const items = purchase.items ?? [];
-  if (!items.length) {
-    return "-";
-  }
-
-  return items
-    .slice(0, 2)
-    .map((item) => `${item.quantity ?? 1}x ${item.name ?? item.productId ?? "Producto"}`)
-    .join(", ");
-}
-
-function primaryPurchaseItem(purchase: CustomerPurchase) {
-  return purchase.items?.find((item) => purchaseHref(item)) ?? purchase.items?.[0];
 }
 
 function purchasePageHref(filters: CustomersAdminFilters, offset: number, limit: number) {
@@ -232,14 +262,6 @@ function countText(value: number | undefined) {
   return typeof value === "number" ? String(value) : "0";
 }
 
-function compactId(value: string | undefined) {
-  if (!value) {
-    return "-";
-  }
-
-  return value.length > 18 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value;
-}
-
 function statusBadgeClass(status: string | undefined) {
   const value = status?.toUpperCase();
   if (value === "COMPLETED" || value === "DONE" || value === "SENT" || value === "PAID" || value === "ISSUED") {
@@ -250,6 +272,43 @@ function statusBadgeClass(status: string | undefined) {
   }
 
   return "adminBadge";
+}
+
+function communicationChannelLabel(channel: string | undefined) {
+  const normalized = channel?.toUpperCase();
+  if (normalized === "EMAIL") {
+    return "Email";
+  }
+  if (normalized === "SMS") {
+    return "SMS";
+  }
+  if (normalized === "PUSH") {
+    return "Push";
+  }
+  if (normalized === "WHATSAPP") {
+    return "WhatsApp";
+  }
+
+  return valueText(channel);
+}
+
+function activitySourceLabel(source: string) {
+  const labels: Record<string, string> = {
+    account: "Cuenta",
+    "after-sales": "Soporte",
+    communication: "Comunicaciones",
+    consent: "Privacidad",
+    customer: "Perfil",
+    invoice: "Facturación",
+    note: "Backoffice",
+    overview: "Sistema",
+    purchase: "Pedidos",
+    privacy: "Privacidad",
+    session: "Cuenta",
+    task: "Backoffice",
+  };
+
+  return labels[source] ?? "Sistema";
 }
 
 function accountStatusValue(account: CustomerOverviewData["account"] | undefined) {
@@ -319,6 +378,33 @@ function OverviewMiniList<T>({
   );
 }
 
+function CustomerDataTable({
+  columns,
+  fullWidth = false,
+  label,
+}: {
+  columns: Array<{ label: string; value: ReactNode }>;
+  fullWidth?: boolean;
+  label: string;
+}) {
+  return (
+    <div className={`adminTableScroller${fullWidth ? " customerDataTableFullWidth" : ""}`}>
+      <table aria-label={label} className="adminTable pricingTable">
+        <thead>
+          <tr>
+            {columns.map((column) => <th key={column.label} scope="col">{column.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {columns.map((column) => <td key={column.label}>{column.value}</td>)}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function CustomerSummaryPanel({
   canReadPurchases,
   customer,
@@ -329,140 +415,162 @@ function CustomerSummaryPanel({
   data: CustomersAdminData;
 }) {
   const lastPurchase = canReadPurchases ? latestPurchase(data.purchases.data?.items) : undefined;
-  const addressCount = data.addresses.data?.items.length ?? 0;
   const purchasesCount = canReadPurchases ? data.purchases.data?.total ?? 0 : "-";
   const newsletter = customer.clientPreferencesData?.optinNewsLetter ?? false;
+  const overview = data.overview.data;
+  const account = overview?.account;
+  const latestCase = overview?.afterSales.items[0];
+  const latestCommunication = overview?.communications.items[0];
 
   return (
-    <>
-      <section className="pricingPanel">
-        <div className="pricingPanelHeader">
-          <div>
-            <h3>Resumen 360</h3>
-            <p>{customer.customerId}</p>
-          </div>
-          <span className={customerKindBadge(customer)}>{customerKind(customer)}</span>
-        </div>
-        <div className="adminSummaryGrid">
-          <div>
-            <UserCheck aria-hidden="true" size={16} />
-            <span>Cliente</span>
-            <strong>{buyerTypeLabel(customer.buyerType)}</strong>
-          </div>
-          <div>
-            <Home aria-hidden="true" size={16} />
-            <span>Direcciones</span>
-            <strong>{addressCount}</strong>
-          </div>
-          <div>
-            <Mail aria-hidden="true" size={16} />
-            <span>Newsletter</span>
-            <strong>{valueText(newsletter)}</strong>
-          </div>
-          <div>
-            <UserRound aria-hidden="true" size={16} />
-            <span>Compras</span>
-            <strong>{purchasesCount}</strong>
-          </div>
-        </div>
-        <dl className="adminDefinitionList">
-          <div><dt>Email</dt><dd>{valueText(customer.email)}</dd></div>
-          <div><dt>Defaults</dt><dd>{customerAddressSummary(customer)}</dd></div>
-          <div><dt>Ultima compra</dt><dd>{dateText(lastPurchase?.placedAt ?? lastPurchase?.recordedAt)}</dd></div>
-          <div><dt>Importe ultima compra</dt><dd>{moneyText(lastPurchase?.totalAmountMinor, lastPurchase?.currency)}</dd></div>
-        </dl>
-      </section>
-
-      <section className="pricingPanel">
-        <div className="pricingPanelHeader">
-          <div>
-            <h3>Consentimientos</h3>
-            <p>{localeValue(customer, data.context.locale)}</p>
-          </div>
-        </div>
-        <dl className="adminDefinitionList">
-          <div><dt>Newsletter</dt><dd>{valueText(newsletter)}</dd></div>
-          <div><dt>Locale</dt><dd>{localeValue(customer, data.context.locale)}</dd></div>
-          <div><dt>Email</dt><dd>{valueText(customer.email)}</dd></div>
-          <div><dt>Actualizado</dt><dd>{dateText(customer.updatedAt)}</dd></div>
-        </dl>
-      </section>
-    </>
-  );
-}
-
-function OverviewWarningsPanel({ overview }: { overview: CustomerOverviewData | null }) {
-  const warnings = overview?.warnings ?? [];
-  if (!warnings.length) {
-    return null;
-  }
-
-  return (
-    <section className="pricingPanel">
+    <section className="pricingPanel customerSummaryPanel">
       <div className="pricingPanelHeader">
         <div>
-          <h3>Secciones degradadas</h3>
-          <p>{warnings.length} avisos</p>
+          <h3>Resumen</h3>
+          <p>Indicadores principales del cliente</p>
         </div>
-        <AlertTriangle aria-hidden="true" size={18} />
+        <span className={customerKindBadge(customer)}>{customerKind(customer)}</span>
       </div>
-      <div className="adminStack adminStackCompact">
-        {warnings.map((warning, index) => (
-          <div className="adminBanner adminBannerWarning" key={`${warning.section}-${index}`}>
-            <p><strong>{valueText(warning.section)}</strong>: {warning.message ?? "No se pudo cargar la seccion."}</p>
-          </div>
-        ))}
+      <div className="customerSummaryDomains">
+        <SummaryDomain icon={<UserCheck aria-hidden="true" size={16} />} title="Perfil">
+          <SummaryMetric label="Estado" value={accountStatusLabel(accountStatusValue(account))} />
+          <SummaryMetric label="Cliente" value={customerKind(customer)} />
+          <SummaryMetric label="Tipo" value={buyerTypeLabel(customer.buyerType)} />
+          <SummaryMetric label="Registro" value={dateText(customer.createdAt)} />
+          <SummaryMetric label="Idioma" value={localeValue(customer, data.context.locale)} />
+          <SummaryMetric label="Newsletter" value={newsletter ? "Sí" : "No"} />
+          <SummaryMetric label="Canal" value={data.context.channel.toUpperCase()} />
+        </SummaryDomain>
+        <SummaryDomain icon={<UserRound aria-hidden="true" size={16} />} title="Compras">
+          <SummaryMetric label="Pedidos" value={String(purchasesCount)} />
+          <SummaryMetric label="Total gastado" value="No disponible" />
+          <SummaryMetric label="Ticket medio" value="No disponible" />
+          <SummaryMetric label="Última compra" value={dateText(lastPurchase?.placedAt ?? lastPurchase?.recordedAt)} />
+          <SummaryMetric label="Carritos abandonados" value="No disponible" />
+        </SummaryDomain>
+        <SummaryDomain icon={<LifeBuoy aria-hidden="true" size={16} />} title="Soporte">
+          <SummaryMetric label="Casos abiertos" value="No disponible" />
+          <SummaryMetric label="Último caso" value={dateText(latestCase?.createdAt)} />
+        </SummaryDomain>
+        <SummaryDomain icon={<Mail aria-hidden="true" size={16} />} title="Comunicación">
+          <SummaryMetric label="Emails enviados" value="No disponible" />
+          <SummaryMetric label="Última comunicación" value={dateText(latestCommunication?.createdAt)} />
+        </SummaryDomain>
+        <SummaryDomain icon={<ShieldCheck aria-hidden="true" size={16} />} title="Cuenta">
+          <SummaryMetric label="Sesiones activas" value={countText(overview?.sessions?.total)} />
+          <SummaryMetric label="Estado login" value={accountStatusLabel(accountStatusValue(account))} />
+          <SummaryMetric label="Duplicados" value={countText(overview?.duplicateCandidates.total)} />
+        </SummaryDomain>
       </div>
     </section>
   );
 }
 
-function HiddenCustomerFields({ customer }: { customer: CustomerProfile }) {
-  return <input name="customerId" type="hidden" value={customer.customerId} />;
+function SummaryDomain({
+  children,
+  icon,
+  title,
+}: {
+  children: ReactNode;
+  icon: ReactNode;
+  title: string;
+}) {
+  return (
+    <section className="customerSummaryDomain">
+      <h4>{icon}{title}</h4>
+      <dl>{children}</dl>
+    </section>
+  );
+}
+
+function SummaryMetric({ label, value }: { label: string; value: string }) {
+  return <div><dt>{label}</dt><dd>{value}</dd></div>;
+}
+
+function exactPurchaseTotals(purchases: CustomerPurchasesData | null | undefined) {
+  const items = purchases?.items ?? [];
+  const hasCompleteDataset = purchases?.total === items.length && items.every((item) => typeof item.totalAmountMinor === "number");
+  const currency = items[0]?.currency;
+  const hasSingleCurrency = Boolean(currency) && items.every((item) => item.currency === currency);
+
+  if (!hasCompleteDataset || !hasSingleCurrency) {
+    return undefined;
+  }
+
+  const totalMinor = items.reduce((sum, item) => sum + (item.totalAmountMinor ?? 0), 0);
+  return {
+    total: moneyText(totalMinor, currency),
+    average: moneyText(Math.round(totalMinor / Math.max(1, items.length)), currency),
+    cancellations: String(items.filter((item) => /CANCELLED|CANCELED/.test(item.status ?? "")).length),
+  };
+}
+
+function PurchasesKpiPanel({ purchases }: { purchases: CustomerPurchasesData | null | undefined }) {
+  const totals = exactPurchaseTotals(purchases);
+
+  return (
+    <div className="adminSummaryGrid customerDomainKpis">
+      <div><span>Pedidos</span><strong>{countText(purchases?.total)}</strong></div>
+      <div><span>Importe total</span><strong>{totals?.total ?? "No disponible"}</strong></div>
+      <div><span>Ticket medio</span><strong>{totals?.average ?? "No disponible"}</strong></div>
+      <div><span>Cancelaciones</span><strong>{totals?.cancellations ?? "No disponible"}</strong></div>
+      <div><span>Reembolsos</span><strong>No disponible</strong></div>
+      <div><span>Devoluciones</span><strong>No disponible</strong></div>
+    </div>
+  );
+}
+
+function HiddenCustomerFields({ customer, returnTo }: { customer: CustomerProfile; returnTo?: string }) {
+  return (
+    <>
+      <input name="customerId" type="hidden" value={customer.customerId} />
+      {returnTo ? <input name="returnTo" type="hidden" value={returnTo} /> : null}
+    </>
+  );
 }
 
 function AccountOverviewPanel({
   capabilities,
   customer,
   overview,
+  returnTo,
 }: {
   capabilities: CustomersAdminCapabilities;
   customer: CustomerProfile;
   overview: CustomerOverviewData | null;
+  returnTo?: string;
 }) {
   const account = overview?.account;
   const accountStatus = accountStatusValue(account);
   const activation = account?.activation;
   const nextActive = account?.active === false;
+  const sessions = overview?.sessions?.items ?? [];
 
   return (
     <section className="pricingPanel">
       <div className="pricingPanelHeader">
         <div>
           <h3>Gestion de acceso</h3>
-          <p>{account ? account.email : "Sin cuenta asociada"}</p>
+          <p>Estado, activación y seguridad de acceso</p>
         </div>
         <span className={accountStatusBadgeClass(accountStatus)}>
           {accountStatusLabel(accountStatus)}
         </span>
       </div>
-      <dl className="adminDefinitionList">
-        <div><dt>Estado cuenta</dt><dd>{accountStatusLabel(accountStatus)}</dd></div>
-        <div><dt>Estado activacion</dt><dd>{valueText(activation?.tokenStatus)}</dd></div>
-        <div><dt>Vence activacion</dt><dd>{dateText(activation?.expiresAt)}</dd></div>
-        <div><dt>Ultimo email</dt><dd>{valueText(activation?.emailDeliveryStatus)}</dd></div>
-        <div><dt>Intentos</dt><dd>{valueText(activation?.reminderCount)}</dd></div>
-        <div><dt>Error email</dt><dd>{valueText(activation?.lastEmailError)}</dd></div>
-        <div><dt>Principal</dt><dd>{compactId(account?.principalId)}</dd></div>
-        <div><dt>Tipo</dt><dd>{valueText(account?.principalType)}</dd></div>
-        <div><dt>Creada</dt><dd>{dateText(account?.createdAt)}</dd></div>
-        <div><dt>Actualizada</dt><dd>{dateText(account?.updatedAt)}</dd></div>
-      </dl>
+      <CustomerDataTable
+        label="Estado de la cuenta"
+        columns={[
+          { label: "Estado cuenta", value: accountStatusLabel(accountStatus) },
+          { label: "Estado activación", value: valueText(activation?.tokenStatus) },
+          { label: "Vence activación", value: dateText(activation?.expiresAt) },
+          { label: "Sesiones activas", value: countText(overview?.sessions?.total) },
+        ]}
+      />
       {capabilities.canManageAccount ? (
         <div className="customersActionGrid">
           {account ? (
             <form action={setCustomerAccountActivationAction} className="customersAccessAction">
-              <HiddenCustomerFields customer={customer} />
+              <HiddenCustomerFields customer={customer} returnTo={returnTo} />
               <input name="active" type="hidden" value={nextActive ? "true" : "false"} />
               <input name="reason" placeholder="Motivo" />
               <button className="adminButton adminButtonTiny" type="submit">
@@ -472,7 +580,7 @@ function AccountOverviewPanel({
           ) : null}
           {account && accountStatus !== "ACTIVE" ? (
             <form action={resendCustomerActivationAction} className="customersInlineAction">
-              <HiddenCustomerFields customer={customer} />
+              <HiddenCustomerFields customer={customer} returnTo={returnTo} />
               <input name="locale" type="hidden" value={localeValue(customer, "es-ES")} />
               <input name="reason" type="hidden" value="Reenvio manual de activacion desde Customer 360" />
               <button className="adminButton adminButtonTiny" type="submit">Reenviar activacion</button>
@@ -480,7 +588,7 @@ function AccountOverviewPanel({
           ) : null}
           {account ? (
             <form action={requestCustomerPasswordResetAction} className="customersInlineAction">
-              <HiddenCustomerFields customer={customer} />
+              <HiddenCustomerFields customer={customer} returnTo={returnTo} />
               <input name="locale" type="hidden" value={localeValue(customer, "es-ES")} />
               <input name="reason" type="hidden" value="Solicitud manual de reset desde Customer 360" />
               <button className="adminButton adminButtonTiny" type="submit">Solicitar reset</button>
@@ -488,65 +596,29 @@ function AccountOverviewPanel({
           ) : null}
         </div>
       ) : null}
-      {capabilities.canWritePrivacy ? (
-        <form action={testResetCustomerAction} className="customersFixtureReset">
-          <HiddenCustomerFields customer={customer} />
-          <input
-            aria-label="Confirmar email para reset de fixture"
-            name="confirmEmail"
-            placeholder={customer.email}
-            required
-            type="email"
-          />
-          <button className="adminButton adminButtonTiny adminButtonDanger" type="submit">
-            <RotateCcw aria-hidden="true" size={14} />
-            Reset fixture
-          </button>
-        </form>
-      ) : null}
-    </section>
-  );
-}
-
-function DuplicateCandidatesPanel({ overview }: { overview: CustomerOverviewData | null }) {
-  const candidates = overview?.duplicateCandidates.items ?? [];
-
-  return (
-    <section className="pricingPanel">
-      <div className="pricingPanelHeader">
-        <div>
-          <h3>Posibles duplicados</h3>
-          <p>{countText(overview?.duplicateCandidates.total)} candidatos</p>
-        </div>
-        <UsersRound aria-hidden="true" size={18} />
+      <div className="customersOverviewSubsection">
+        <h4>Sesiones</h4>
+        <OverviewMiniList
+          emptyLabel="Sin sesiones activas."
+          items={sessions}
+          renderItem={(session) => (
+            <>
+              <div>
+                <strong>{valueText(session.device?.deviceName ?? "Sesión activa")}</strong>
+                <span>{valueText(session.device?.ipAddress)}</span>
+              </div>
+              <small>{dateText(session.lastSeenAt ?? session.createdAt)}</small>
+            </>
+          )}
+        />
+        {capabilities.canWriteSessions && sessions.length ? (
+          <form action={revokeCustomerSessionsAction} className="customersAccessAction">
+            <HiddenCustomerFields customer={customer} returnTo={returnTo} />
+            <input name="reason" placeholder="Motivo" />
+            <button className="adminButton adminButtonTiny adminButtonDanger" type="submit">Revocar sesiones</button>
+          </form>
+        ) : null}
       </div>
-      {candidates.length ? (
-        <div className="adminTableScroller">
-          <table className="adminTable pricingTable">
-            <thead>
-              <tr>
-                <th scope="col">Cliente</th>
-                <th scope="col">Email</th>
-                <th scope="col">Coincidencias</th>
-              </tr>
-            </thead>
-            <tbody>
-              {candidates.map((candidate) => (
-                <tr key={candidate.customer.customerId}>
-                  <td>
-                    <strong>{fullName(candidate.customer)}</strong>
-                    <div className="adminContextHint">{candidate.customer.customerId}</div>
-                  </td>
-                  <td>{valueText(candidate.customer.email)}</td>
-                  <td>{candidate.matchFields.join(", ") || "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="adminEmptyState">Sin candidatos duplicados.</div>
-      )}
     </section>
   );
 }
@@ -555,17 +627,21 @@ function OperationalOverviewPanel({
   capabilities,
   customer,
   overview,
+  section,
+  returnTo,
 }: {
   capabilities: CustomersAdminCapabilities;
   customer: CustomerProfile;
   overview: CustomerOverviewData | null;
+  section: "privacidad" | "backoffice";
+  returnTo?: string;
 }) {
   const consents = overview?.consents?.current?.marketingEmail;
   const tags = overview?.tags.items ?? [];
   const notes = overview?.notes.items ?? [];
   const tasks = overview?.tasks.items ?? [];
   const privacyRequests = overview?.privacyRequests.items ?? [];
-  const sessions = overview?.sessions?.items ?? [];
+  const isPrivacy = section === "privacidad";
   const pendingErasureRequest = privacyRequests.find(
     (request) =>
       request.requestType === "ERASURE" &&
@@ -578,39 +654,35 @@ function OperationalOverviewPanel({
     <section className="pricingPanel">
       <div className="pricingPanelHeader">
         <div>
-          <h3>Operacion interna</h3>
-          <p>Seguimiento de backoffice</p>
+          <h3>{isPrivacy ? "Privacidad" : "Backoffice"}</h3>
+          <p>{isPrivacy ? "Consentimientos y solicitudes de datos" : "Notas, tags, tareas y asignaciones internas"}</p>
         </div>
         <ClipboardList aria-hidden="true" size={18} />
       </div>
       <div className="adminSummaryGrid">
-        <div>
-          <MessageSquare aria-hidden="true" size={16} />
-          <span>Notas</span>
-          <strong>{countText(overview?.notes.total)}</strong>
-        </div>
-        <div>
-          <Tag aria-hidden="true" size={16} />
-          <span>Tags</span>
-          <strong>{countText(overview?.tags.total)}</strong>
-        </div>
-        <div>
-          <ClipboardList aria-hidden="true" size={16} />
-          <span>Tareas</span>
-          <strong>{countText(overview?.tasks.total)}</strong>
-        </div>
-        <div>
-          <ShieldCheck aria-hidden="true" size={16} />
-          <span>Privacidad</span>
-          <strong>{countText(overview?.privacyRequests.total)}</strong>
-        </div>
+        {isPrivacy ? (
+          <>
+            <div><ShieldCheck aria-hidden="true" size={16} /><span>Marketing</span><strong>{consents?.granted ? "Sí" : "No"}</strong></div>
+            <div><ShieldCheck aria-hidden="true" size={16} /><span>Solicitudes</span><strong>{countText(overview?.privacyRequests.total)}</strong></div>
+          </>
+        ) : (
+          <>
+            <div><MessageSquare aria-hidden="true" size={16} /><span>Notas</span><strong>{countText(overview?.notes.total)}</strong></div>
+            <div><Tag aria-hidden="true" size={16} /><span>Tags</span><strong>{countText(overview?.tags.total)}</strong></div>
+            <div><ClipboardList aria-hidden="true" size={16} /><span>Tareas</span><strong>{countText(overview?.tasks.total)}</strong></div>
+          </>
+        )}
       </div>
-      <dl className="adminDefinitionList">
-        <div><dt>Consentimiento email</dt><dd>{valueText(consents?.granted)}</dd></div>
-        <div><dt>Origen consentimiento</dt><dd>{valueText(consents?.source)}</dd></div>
-        <div><dt>Sesiones activas</dt><dd>{overview?.sessions ? countText(overview.sessions.total) : "-"}</dd></div>
-        <div><dt>Ultima tarea</dt><dd>{valueText(overview?.tasks.items[0]?.title)}</dd></div>
-      </dl>
+      <CustomerDataTable
+        label={isPrivacy ? "Estado de privacidad" : "Estado de backoffice"}
+        columns={isPrivacy
+          ? [
+            { label: "Newsletter", value: consents?.granted ? "Sí" : "No" },
+            { label: "Marketing", value: consents?.granted ? "Concedido" : "No concedido" },
+          ]
+          : [{ label: "Última tarea", value: valueText(overview?.tasks.items[0]?.title) }]}
+      />
+      {!isPrivacy ? <>
       <div className="customersOverviewSubsection">
         <h4>Tags internos</h4>
         {tags.length ? (
@@ -624,7 +696,7 @@ function OperationalOverviewPanel({
         )}
         {capabilities.canWriteTags ? (
           <form action={replaceCustomerTagsAction} className="customersInlineForm">
-            <HiddenCustomerFields customer={customer} />
+            <HiddenCustomerFields customer={customer} returnTo={returnTo} />
             <input name="tags" defaultValue={tags.map((tagItem) => tagItem.label ?? tagItem.tagKey).join(", ")} />
             <button className="adminButton adminButtonTiny" type="submit">Guardar tags</button>
           </form>
@@ -647,7 +719,7 @@ function OperationalOverviewPanel({
         />
         {capabilities.canWriteNotes ? (
           <form action={createCustomerNoteAction} className="customersInlineForm">
-            <HiddenCustomerFields customer={customer} />
+            <HiddenCustomerFields customer={customer} returnTo={returnTo} />
             <textarea name="body" placeholder="Nueva nota interna" required rows={2} />
             <button className="adminButton adminButtonTiny" type="submit">Crear nota</button>
           </form>
@@ -662,12 +734,12 @@ function OperationalOverviewPanel({
             <>
               <div>
                 <strong>{valueText(task.title)}</strong>
-                <span>{valueText(task.assignedEmployeeId)}</span>
+                <span>{task.assignedEmployeeId ? "Responsable asignado" : "Sin responsable"}</span>
               </div>
               <span className={statusBadgeClass(task.status)}>{valueText(task.status)}</span>
               {capabilities.canWriteTasks && task.status !== "DONE" ? (
                 <form action={updateCustomerTaskStatusAction} className="customersInlineAction">
-                  <HiddenCustomerFields customer={customer} />
+                  <HiddenCustomerFields customer={customer} returnTo={returnTo} />
                   <input name="taskId" type="hidden" value={task.taskId} />
                   <input name="status" type="hidden" value="DONE" />
                   <button className="adminIconButton" type="submit" title="Marcar tarea como hecha">
@@ -681,15 +753,16 @@ function OperationalOverviewPanel({
         />
         {capabilities.canWriteTasks ? (
           <form action={createCustomerTaskAction} className="customersInlineForm">
-            <HiddenCustomerFields customer={customer} />
+            <HiddenCustomerFields customer={customer} returnTo={returnTo} />
             <input name="title" placeholder="Nueva tarea" required />
-            <input name="assignedEmployeeId" placeholder="employeeId responsable" />
+            <input aria-label="Responsable" name="assignedEmployeeId" placeholder="Responsable (ID empleado)" />
             <button className="adminButton adminButtonTiny" type="submit">Crear tarea</button>
           </form>
         ) : null}
       </div>
-      <div className="customersOverviewSubsection">
-        <h4>Privacidad y sesiones</h4>
+      </> : null}
+      {isPrivacy ? <div className="customersOverviewSubsection">
+        <h4>Solicitudes GDPR</h4>
         <OverviewMiniList
           emptyLabel="Sin solicitudes de privacidad."
           items={privacyRequests}
@@ -702,7 +775,7 @@ function OperationalOverviewPanel({
               <span className={statusBadgeClass(request.status)}>{valueText(request.status)}</span>
               {capabilities.canWritePrivacy && request.status !== "COMPLETED" ? (
                 <form action={updateCustomerPrivacyRequestStatusAction} className="customersInlineAction">
-                  <HiddenCustomerFields customer={customer} />
+                  <HiddenCustomerFields customer={customer} returnTo={returnTo} />
                   <input name="requestId" type="hidden" value={request.requestId} />
                   <input name="status" type="hidden" value="IN_REVIEW" />
                   <button className="adminIconButton" type="submit" title="Marcar en revision">
@@ -716,7 +789,7 @@ function OperationalOverviewPanel({
         />
         {capabilities.canWritePrivacy ? (
           <form action={createCustomerPrivacyRequestAction} className="customersInlineForm">
-            <HiddenCustomerFields customer={customer} />
+            <HiddenCustomerFields customer={customer} returnTo={returnTo} />
             <select name="requestType" defaultValue="ACCESS">
               <option value="ACCESS">Acceso</option>
               <option value="RECTIFICATION">Rectificacion</option>
@@ -728,7 +801,7 @@ function OperationalOverviewPanel({
         ) : null}
         {capabilities.canWritePrivacy ? (
           <form action={executeCustomerPrivacyErasureAction} className="customersAccessAction">
-            <HiddenCustomerFields customer={customer} />
+            <HiddenCustomerFields customer={customer} returnTo={returnTo} />
             {pendingErasureRequest ? (
               <input name="requestId" type="hidden" value={pendingErasureRequest.requestId} />
             ) : null}
@@ -739,23 +812,10 @@ function OperationalOverviewPanel({
             </button>
           </form>
         ) : null}
-        <OverviewMiniList
-          emptyLabel="Sin sesiones activas."
-          items={sessions}
-          renderItem={(session) => (
-            <>
-              <div>
-                <strong>{valueText(session.device?.deviceName ?? session.sessionId)}</strong>
-                <span>{valueText(session.device?.ipAddress)}</span>
-              </div>
-              <small>{dateText(session.lastSeenAt ?? session.createdAt)}</small>
-            </>
-          )}
-        />
         <div className="customersActionGrid">
           {capabilities.canWriteConsents ? (
             <form action={recordCustomerConsentAction} className="customersInlineAction">
-              <HiddenCustomerFields customer={customer} />
+              <HiddenCustomerFields customer={customer} returnTo={returnTo} />
               <input name="granted" type="hidden" value={consents?.granted ? "false" : "true"} />
               <input name="reason" type="hidden" value="Cambio manual desde Customer 360" />
               <button className="adminButton adminButtonTiny" type="submit">
@@ -763,15 +823,8 @@ function OperationalOverviewPanel({
               </button>
             </form>
           ) : null}
-          {capabilities.canWriteSessions && sessions.length ? (
-            <form action={revokeCustomerSessionsAction} className="customersAccessAction">
-              <HiddenCustomerFields customer={customer} />
-              <input name="reason" placeholder="Motivo" />
-              <button className="adminButton adminButtonTiny adminButtonDanger" type="submit">Revocar sesiones</button>
-            </form>
-          ) : null}
         </div>
-      </div>
+      </div> : null}
     </section>
   );
 }
@@ -780,120 +833,193 @@ function ContinuityOverviewPanel({
   capabilities,
   customer,
   overview,
+  section,
+  returnTo,
 }: {
   capabilities: CustomersAdminCapabilities;
   customer: CustomerProfile;
   overview: CustomerOverviewData | null;
+  section: "facturacion" | "comunicaciones" | "soporte";
+  returnTo?: string;
 }) {
   const invoices = overview?.invoices.items ?? [];
   const afterSales = overview?.afterSales.items ?? [];
   const communications = overview?.communications.items ?? [];
+  const sectionTitle = section === "facturacion" ? "Facturación" : section === "comunicaciones" ? "Comunicaciones" : "Soporte";
+  const sectionDescription = section === "facturacion"
+    ? "Facturas, pagos y ajustes del cliente"
+    : section === "comunicaciones"
+      ? "Historial y envío de comunicaciones"
+      : "Casos y postventa del cliente";
 
   return (
     <section className="pricingPanel">
       <div className="pricingPanelHeader">
         <div>
-          <h3>Continuidad comercial</h3>
-          <p>Facturas, soporte y comunicaciones</p>
+          <h3>{sectionTitle}</h3>
+          <p>{sectionDescription}</p>
         </div>
         <FileText aria-hidden="true" size={18} />
       </div>
       <div className="adminSummaryGrid">
-        <div>
-          <FileText aria-hidden="true" size={16} />
-          <span>Facturas</span>
-          <strong>{countText(overview?.invoices.total)}</strong>
-        </div>
+        {section === "facturacion" ? <>
+          <div><FileText aria-hidden="true" size={16} /><span>Facturas</span><strong>{countText(overview?.invoices.total)}</strong></div>
+          <div><span>Notas de crédito</span><strong>No disponible</strong></div>
+          <div><span>Reembolsos</span><strong>No disponible</strong></div>
+          <div><span>Pagos</span><strong>No disponible</strong></div>
+          <div><span>Métodos de pago</span><strong>No disponible</strong></div>
+        </> : null}
+        {section === "soporte" ? <>
         <div>
           <LifeBuoy aria-hidden="true" size={16} />
           <span>Postventa</span>
           <strong>{countText(overview?.afterSales.total)}</strong>
         </div>
+        </> : null}
+        {section === "comunicaciones" ? <>
         <div>
           <Mail aria-hidden="true" size={16} />
           <span>Comunicaciones</span>
           <strong>{countText(overview?.communications.total)}</strong>
         </div>
-        <div>
-          <Clock aria-hidden="true" size={16} />
-          <span>Timeline</span>
-          <strong>{countText(overview?.timeline.total)}</strong>
-        </div>
+        </> : null}
       </div>
-      <dl className="adminDefinitionList">
-        <div><dt>Ultima factura</dt><dd>{valueText(overview?.invoices.items[0]?.invoiceNumber ?? overview?.invoices.items[0]?.invoiceId)}</dd></div>
-        <div><dt>Ultimo caso</dt><dd>{valueText(overview?.afterSales.items[0]?.caseId)}</dd></div>
-        <div><dt>Responsable caso</dt><dd>{valueText(overview?.afterSales.items[0]?.assignedEmployeeId)}</dd></div>
-        <div><dt>Ultima comunicacion</dt><dd>{valueText(overview?.communications.items[0]?.templateKey)}</dd></div>
-      </dl>
+      <CustomerDataTable
+        label={`Información de ${sectionTitle.toLowerCase()}`}
+        columns={section === "facturacion"
+          ? [{ label: "Última factura", value: valueText(overview?.invoices.items[0]?.invoiceNumber) }]
+          : section === "soporte"
+            ? [
+              { label: "Último caso", value: valueText(overview?.afterSales.items[0]?.caseType ?? "Caso postventa") },
+              { label: "Responsable", value: overview?.afterSales.items[0]?.assignedEmployeeId ? "Asignado" : "Sin asignar" },
+            ]
+            : [{ label: "Última comunicación", value: dateText(overview?.communications.items[0]?.createdAt) }]}
+      />
+      {section === "facturacion" ? <>
       <div className="customersOverviewSubsection">
-        <h4>Facturas recientes</h4>
-        <OverviewMiniList
-          emptyLabel="Sin facturas recientes."
-          items={invoices}
-          renderItem={(invoice) => (
-            <>
-              <div>
-                <strong>{valueText(invoice.invoiceNumber ?? invoice.invoiceId)}</strong>
-                <span>{moneyText(invoice.totalAmountMinor, invoice.currency)}</span>
-              </div>
-              <div className="customersOverviewListMeta">
-                <span className={statusBadgeClass(invoice.status)}>{valueText(invoice.status)}</span>
-                <Link className="adminButton adminButtonTiny" href={`/admin/pagos?invoiceId=${encodeURIComponent(invoice.invoiceId)}`}>
-                  Abrir factura
-                </Link>
-              </div>
-            </>
-          )}
-        />
+        <h4>Facturas</h4>
+        {invoices.length ? (
+          <div className="adminTableScroller">
+            <table className="adminTable pricingTable">
+              <thead>
+                <tr>
+                  <th scope="col">Factura</th>
+                  <th scope="col">Fecha</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Importe</th>
+                  <th scope="col">Abrir</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((invoice) => (
+                  <tr key={invoice.invoiceId}>
+                    <td>{valueText(invoice.invoiceNumber ?? invoice.invoiceId)}</td>
+                    <td>{dateText(invoice.issuedAt)}</td>
+                    <td><span className={statusBadgeClass(invoice.status)}>{valueText(invoice.status)}</span></td>
+                    <td>{moneyText(invoice.totalAmountMinor, invoice.currency)}</td>
+                    <td>
+                      <Link className="adminButton adminButtonTiny" href={`/admin/pagos?invoiceId=${encodeURIComponent(invoice.invoiceId)}`}>
+                        Abrir factura
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <div className="adminEmptyState">Sin facturas recientes.</div>}
       </div>
+      </> : null}
+      {section === "soporte" ? <>
       <div className="customersOverviewSubsection">
-        <h4>Postventa y soporte</h4>
-        <OverviewMiniList
-          emptyLabel="Sin casos postventa."
-          items={afterSales}
-          renderItem={(caseItem) => (
-            <>
-              <div>
-                <strong>{valueText(caseItem.caseId)}</strong>
-                <span>{valueText(caseItem.caseType ?? caseItem.orderId)}</span>
-              </div>
-              <div className="customersOverviewListMeta">
-                <span className={statusBadgeClass(caseItem.status)}>{valueText(caseItem.status)}</span>
-                <small>{valueText(caseItem.assignedEmployeeId)}</small>
-                <Link className="adminButton adminButtonTiny" href={`/admin/postventa?caseId=${encodeURIComponent(caseItem.caseId)}`}>
-                  Atender
-                </Link>
-              </div>
-            </>
-          )}
-        />
+        <h4>Casos</h4>
+        {afterSales.length ? (
+          <div className="adminTableScroller">
+            <table className="adminTable pricingTable">
+              <thead>
+                <tr>
+                  <th scope="col">Caso</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Responsable</th>
+                  <th scope="col">Abrir</th>
+                </tr>
+              </thead>
+              <tbody>
+                {afterSales.map((caseItem) => (
+                  <tr key={caseItem.caseId}>
+                    <td>{valueText(caseItem.caseType ?? "Caso postventa")}</td>
+                    <td><span className={statusBadgeClass(caseItem.status)}>{valueText(caseItem.status)}</span></td>
+                    <td>{caseItem.assignedEmployeeId ? "Asignado" : "Sin asignar"}</td>
+                    <td>
+                      <Link className="adminButton adminButtonTiny" href={`/admin/postventa?caseId=${encodeURIComponent(caseItem.caseId)}`}>
+                        Atender
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <div className="adminEmptyState">Sin casos postventa.</div>}
       </div>
+      </> : null}
+      {section === "comunicaciones" ? <>
       <div className="customersOverviewSubsection">
-        <h4>Comunicaciones recientes</h4>
-        <OverviewMiniList
-          emptyLabel="Sin comunicaciones recientes."
-          items={communications}
-          renderItem={(communication) => (
-            <>
-              <div>
-                <strong>{valueText(communication.templateKey ?? communication.deliveryId)}</strong>
-                <span>{valueText(communication.channel)}</span>
-              </div>
-              <span className={statusBadgeClass(communication.status)}>{valueText(communication.status)}</span>
-            </>
-          )}
-        />
-        {capabilities.canWriteCommunications ? (
-          <form action={sendCustomerEmailAction} className="customersInlineForm">
-            <HiddenCustomerFields customer={customer} />
-            <input name="templateKey" placeholder="template.key" required />
-            <input name="locale" defaultValue={localeValue(customer, "es-ES")} />
-            <textarea name="message" placeholder="Mensaje operativo" rows={2} />
-            <button className="adminButton adminButtonTiny" type="submit">Enviar email</button>
-          </form>
-        ) : null}
+        <h4>Historial</h4>
+        {communications.length ? (
+          <div className="adminTableScroller">
+            <table className="adminTable pricingTable">
+              <thead>
+                <tr>
+                  <th scope="col">Canal</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {communications.map((communication) => (
+                  <tr key={communication.deliveryId}>
+                    <td>{communicationChannelLabel(communication.channel)}</td>
+                    <td><span className={statusBadgeClass(communication.status)}>{valueText(communication.status)}</span></td>
+                    <td>{dateText(communication.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <div className="adminEmptyState">Sin comunicaciones recientes.</div>}
       </div>
+      {capabilities.canWriteCommunications ? (
+      <div className="customersOverviewSubsection">
+        <h4>Enviar comunicación</h4>
+        <form action={sendCustomerEmailAction} className="adminFormGrid">
+          <HiddenCustomerFields customer={customer} returnTo={returnTo} />
+          <label className="adminField">
+            <span>Plantilla</span>
+            <input name="templateKey" placeholder="Plantilla de email" required />
+          </label>
+          <label className="adminField">
+            <span>Idioma</span>
+            <select defaultValue={localeValue(customer, "es-ES")} name="locale">
+              <option value="es-ES">Español</option>
+              <option value="en-US">English</option>
+            </select>
+          </label>
+          <label className="adminField adminFieldFull">
+            <span>Mensaje</span>
+            <textarea name="message" placeholder="Añade un mensaje para el cliente" rows={3} />
+          </label>
+          <div className="customerUnavailableField">
+            <span>Adjuntos</span>
+            <strong>No disponible</strong>
+          </div>
+          <div className="adminButtonRow">
+            <button className="adminButton adminButtonPrimary" type="submit">Enviar email</button>
+          </div>
+        </form>
+      </div>
+      ) : null}
+      </> : null}
     </section>
   );
 }
@@ -901,56 +1027,77 @@ function ContinuityOverviewPanel({
 function TimelineOverviewPanel({
   customer,
   overview,
+  limit,
+  compact = false,
+  source,
 }: {
   customer: CustomerProfile;
   overview: CustomerOverviewData | null;
+  limit?: number;
+  compact?: boolean;
+  source?: string;
 }) {
   const events = buildCustomerAdminTimeline(overview, customer);
+  const filteredEvents = source ? events.filter((event) => event.source === source) : events;
+  const visibleEvents = typeof limit === "number" ? filteredEvents.slice(0, limit) : filteredEvents;
 
   return (
     <section className="pricingPanel">
       <div className="pricingPanelHeader">
         <div>
-          <h3>Timeline administrativo</h3>
-          <p>{events.length} eventos derivados del Customer 360</p>
+          <h3>{compact ? "Actividad reciente" : "Timeline administrativo"}</h3>
+          <p>{typeof limit === "number" ? `Últimos ${visibleEvents.length} eventos` : `${filteredEvents.length} eventos`}</p>
         </div>
         <Clock aria-hidden="true" size={18} />
       </div>
-      {events.length ? (
-        <div className="adminTableScroller">
-          <table className="adminTable pricingTable">
-            <thead>
-              <tr>
-                <th scope="col">Evento</th>
-                <th scope="col">Estado</th>
-                <th scope="col">Actor</th>
-                <th scope="col">Referencia</th>
-                <th scope="col">Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.slice(0, 10).map((event) => (
-                <tr key={event.eventId}>
-                  <td>
-                    <strong>{event.label}</strong>
-                    <div className="adminContextHint">{event.eventType} / {event.source}</div>
-                  </td>
-                  <td><span className={statusBadgeClass(event.status)}>{valueText(event.status)}</span></td>
-                  <td>{valueText(event.actor)}</td>
-                  <td>
-                    <strong>{compactId(event.referenceId)}</strong>
-                    <div className="adminContextHint">{valueText(event.detail)}</div>
-                  </td>
-                  <td>{dateText(event.occurredAt ?? undefined)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {filteredEvents.length ? (
+        <ol className={`customerActivityTimeline ${compact ? "customerActivityTimelineCompact" : ""}`}>
+          {visibleEvents.map((event) => (
+            <li key={event.eventId}>
+              <div className="customerActivityTimelineMarker" aria-hidden="true" />
+              <div className="customerActivityTimelineContent">
+                <div>
+                  <strong>{event.label}</strong>
+                  {!compact ? <span>{activitySourceLabel(event.source)}</span> : null}
+                </div>
+                <div>
+                  {event.status ? <span className={statusBadgeClass(event.status)}>{valueText(event.status)}</span> : null}
+                  <time>{dateText(event.occurredAt ?? undefined)}</time>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
       ) : (
-        <div className="adminEmptyState">Sin eventos recientes.</div>
+        <div className="adminEmptyState">Sin eventos para este filtro.</div>
       )}
     </section>
+  );
+}
+
+function ActivityFilters({ customer, source }: { customer: CustomerProfile; source?: string }) {
+  const reference = customer.customerReference ?? customer.customerId;
+
+  return (
+    <form action={`/admin/clientes/${encodeURIComponent(reference)}`} className="customerActivityFilters">
+      <input name="tab" type="hidden" value="actividad" />
+      <label className="adminField">
+        <span>Filtrar actividad</span>
+        <select defaultValue={source ?? ""} name="activitySource">
+          <option value="">Todos los eventos</option>
+          <option value="purchase">Pedidos</option>
+          <option value="account">Login y cuenta</option>
+          <option value="communication">Emails</option>
+          <option value="invoice">Pagos y facturas</option>
+          <option value="after-sales">Soporte</option>
+          <option value="privacy">Privacidad</option>
+          <option value="customer">Perfil</option>
+          <option value="overview">Sistema</option>
+        </select>
+      </label>
+      <button className="adminButton adminButtonTiny" type="submit">Filtrar</button>
+      {source ? <Link className="adminButton adminButtonTiny" href={customerDetailHref(customer, "actividad")}>Limpiar</Link> : null}
+    </form>
   );
 }
 
@@ -965,71 +1112,75 @@ function ProfileFields({
 }) {
   return (
     <>
-      {includeEmail ? (
-        <label className="adminField">
-          <span>Email</span>
-          <input name="email" type="email" defaultValue={customer?.email ?? ""} required />
-        </label>
-      ) : (
-        <label className="adminField">
-          <span>Email</span>
-          <input name="emailDisplay" type="email" defaultValue={customer?.email ?? ""} readOnly />
-        </label>
-      )}
-      <label className="adminField">
-        <span>Nombre</span>
-        <input name="firstName" defaultValue={customer?.firstName ?? ""} required />
-      </label>
-      <label className="adminField">
-        <span>Apellido</span>
-        <input name="lastName" defaultValue={customer?.lastName ?? ""} required />
-      </label>
-      <label className="adminField">
-        <span>Telefono</span>
-        <input name="phone" defaultValue={customer?.phone ?? ""} />
-      </label>
-      <label className="adminField">
-        <span>Documento</span>
-        <input name="documentNumber" defaultValue={customer?.documentNumber ?? ""} />
-      </label>
-      <label className="adminField">
-        <span>Tipo comprador</span>
-        <select name="buyerType" defaultValue={buyerTypeValue(customer?.buyerType)}>
-          <option value="PRIVATE_BUYER">Particular</option>
-          <option value="BUSINESS_BUYER">Empresa</option>
-        </select>
-      </label>
-      <label className="adminField">
-        <span>Locale</span>
-        <input name="locale" defaultValue={localeValue(customer, contextLocale)} />
-      </label>
-      <label className="adminCheckbox">
-        <input
-          name="optinNewsLetter"
-          type="checkbox"
-          value="true"
-          defaultChecked={customer?.clientPreferencesData?.optinNewsLetter ?? false}
-        />
-        Newsletter
-      </label>
+      <fieldset className="adminFieldset customerProfileFieldset">
+        <legend>Datos personales</legend>
+        <div className="customerProfileFields">
+          {includeEmail ? (
+            <label className="adminField">
+              <span>Email</span>
+              <input name="email" type="email" defaultValue={customer?.email ?? ""} required />
+            </label>
+          ) : (
+            <div className="customerReadOnlyField">
+              <span>Email</span>
+              <strong>{valueText(customer?.email)}</strong>
+              <small>El contrato actual no permite modificarlo desde Administración.</small>
+            </div>
+          )}
+          <label className="adminField">
+            <span>Nombre</span>
+            <input name="firstName" defaultValue={customer?.firstName ?? ""} required />
+          </label>
+          <label className="adminField">
+            <span>Apellido</span>
+            <input name="lastName" defaultValue={customer?.lastName ?? ""} required />
+          </label>
+          <label className="adminField">
+            <span>Teléfono</span>
+            <input name="phone" defaultValue={customer?.phone ?? ""} />
+          </label>
+          <label className="adminField">
+            <span>Documento</span>
+            <input name="documentNumber" defaultValue={customer?.documentNumber ?? ""} />
+          </label>
+        </div>
+      </fieldset>
+      <fieldset className="adminFieldset customerProfileFieldset">
+        <legend>Preferencias del perfil</legend>
+        <div className="customerProfileFields">
+          <label className="adminField">
+            <span>Tipo comprador</span>
+            <select name="buyerType" defaultValue={buyerTypeValue(customer?.buyerType)}>
+              <option value="PRIVATE_BUYER">Particular</option>
+              <option value="BUSINESS_BUYER">Empresa</option>
+            </select>
+          </label>
+          <label className="adminField">
+            <span>Idioma</span>
+            <input name="locale" defaultValue={localeValue(customer, contextLocale)} />
+          </label>
+        </div>
+      </fieldset>
     </>
   );
 }
 
 function ProfileSummary({ customer }: { customer: CustomerProfile }) {
   return (
-    <dl className="adminDefinitionList">
-      <div><dt>Email</dt><dd>{valueText(customer.email)}</dd></div>
-      <div><dt>Nombre</dt><dd>{valueText(customer.firstName)}</dd></div>
-      <div><dt>Apellido</dt><dd>{valueText(customer.lastName)}</dd></div>
-      <div><dt>Telefono</dt><dd>{valueText(customer.phone)}</dd></div>
-      <div><dt>Documento</dt><dd>{valueText(customer.documentNumber)}</dd></div>
-      <div><dt>Newsletter</dt><dd>{valueText(customer.clientPreferencesData?.optinNewsLetter)}</dd></div>
-      <div><dt>Estado</dt><dd>{customerKind(customer)}</dd></div>
-      <div><dt>Tipo</dt><dd>{buyerTypeLabel(customer.buyerType)}</dd></div>
-      <div><dt>Creado</dt><dd>{dateText(customer.createdAt)}</dd></div>
-      <div><dt>Actualizado</dt><dd>{dateText(customer.updatedAt)}</dd></div>
-    </dl>
+    <CustomerDataTable
+      label="Datos de perfil"
+      columns={[
+        { label: "Email", value: valueText(customer.email) },
+        { label: "Nombre", value: valueText(customer.firstName) },
+        { label: "Apellido", value: valueText(customer.lastName) },
+        { label: "Teléfono", value: valueText(customer.phone) },
+        { label: "Documento", value: valueText(customer.documentNumber) },
+        { label: "Estado", value: customerKind(customer) },
+        { label: "Tipo", value: buyerTypeLabel(customer.buyerType) },
+        { label: "Creado", value: dateText(customer.createdAt) },
+        { label: "Actualizado", value: dateText(customer.updatedAt) },
+      ]}
+    />
   );
 }
 
@@ -1043,11 +1194,15 @@ function AddressFields({
   return (
     <>
       <label className="adminField">
+        <span>Nombre de la dirección</span>
+        <input name="alias" defaultValue={address?.addressName ?? address?.receiverName ?? ""} required />
+      </label>
+      <label className="adminField">
         <span>Receptor</span>
         <input name="receiverName" defaultValue={address?.receiverName ?? ""} required />
       </label>
       <label className="adminField">
-        <span>Uso</span>
+        <span>Uso de la dirección</span>
         <select name="addressRole" defaultValue={address?.addressRole ?? "BOTH"}>
           <option value="BOTH">Envio y facturacion</option>
           <option value="SHIPPING">Solo envio</option>
@@ -1129,11 +1284,47 @@ function DrawerShell({
   title,
   closeHref,
   children,
+  variant = "drawer",
+  tabs,
+  summary,
+  avatarId,
 }: {
   title: string;
   closeHref: string;
   children: ReactNode;
+  variant?: "drawer" | "page";
+  tabs?: ReactNode;
+  summary?: ReactNode;
+  avatarId?: string | null;
 }) {
+  if (variant === "page") {
+    const avatarSrc = avatarId ? customerAvatarImagePath[avatarId] : undefined;
+
+    return (
+      <section className="customerDetailShell" aria-label={title}>
+        <div className="customerDetailHeader">
+          <div className="customerDetailIdentity">
+            <div className="customerDetailAvatar">
+              {avatarSrc ? (
+                <Image alt={`Avatar de ${title}`} className="customerDetailAvatarImage" height={44} src={avatarSrc} unoptimized width={44} />
+              ) : (
+                <span aria-hidden="true">{title.slice(0, 1).toUpperCase()}</span>
+              )}
+            </div>
+            <div>
+              <Link className="adminBreadcrumb" href={closeHref}>Admin / Clientes</Link>
+              <h1 className="adminPageTitle">{title}</h1>
+              {summary}
+            </div>
+          </div>
+          <Link className="adminButton" href={closeHref}>Volver a clientes</Link>
+        </div>
+        {tabs}
+        <div className="customerDetailBody">{children}</div>
+      </section>
+    );
+  }
+
   return (
     <div className="adminDrawerBackdrop customersDrawerBackdrop">
       <Link className="customersDrawerBackdropLink" href={closeHref} aria-label="Cerrar ventana lateral" />
@@ -1159,10 +1350,14 @@ function CustomerDrawer({
   capabilities,
   data,
   filters,
+  variant = "drawer",
+  activeTab = "resumen",
 }: {
   capabilities: CustomersAdminCapabilities;
   data: CustomersAdminData;
   filters: CustomersAdminFilters;
+  variant?: "drawer" | "page";
+  activeTab?: CustomerDetailTab;
 }) {
   const closeHref = customersHref(filters, { drawer: undefined, customerId: undefined });
 
@@ -1187,55 +1382,124 @@ function CustomerDrawer({
     );
   }
 
-  if (filters.drawer !== "detail") {
+  if (variant === "drawer" && filters.drawer !== "detail") {
     return null;
   }
 
   const customer = data.selectedCustomer.data;
+  const latest = customer ? latestPurchase(data.purchases.data?.items) : undefined;
+  const account = data.overview.data?.account;
+  const returnTo = customer && variant === "page" ? customerDetailHref(customer, activeTab) : undefined;
+  const summary = customer ? (
+    <div className="customerDetailMeta">
+      <span>{buyerTypeLabel(customer.buyerType)}</span>
+      <span>{customerKind(customer)}</span>
+      <span>{accountStatusLabel(accountStatusValue(account))}</span>
+      <span>{countText(data.purchases.data?.total)} pedidos</span>
+      <span>LTV —</span>
+      <span>Última compra {dateText(latest?.placedAt ?? latest?.recordedAt)}</span>
+      <span>Newsletter {customer.clientPreferencesData?.optinNewsLetter ? "Sí" : "No"}</span>
+      <span>{localeValue(customer, data.context.locale)}</span>
+    </div>
+  ) : null;
+  const tabs = customer ? (
+    <nav className="customerDetailTabs" aria-label="Secciones del cliente">
+      {customerDetailTabs.map((tab) => (
+        <Link
+          aria-current={tab.id === activeTab ? "page" : undefined}
+          className={tab.id === activeTab ? "customerDetailTab customerDetailTabActive" : "customerDetailTab"}
+          href={customerDetailHref(customer, tab.id)}
+          key={tab.id}
+        >
+          {tab.label}
+        </Link>
+      ))}
+    </nav>
+  ) : null;
 
   return (
-    <DrawerShell title={customer ? fullName(customer) : "Detalle de cliente"} closeHref={closeHref}>
+    <DrawerShell
+      closeHref={closeHref}
+      summary={summary}
+      tabs={tabs}
+      title={customer ? fullName(customer) : "Detalle de cliente"}
+      avatarId={customer?.avatarId}
+      variant={variant}
+    >
       <ResultBanner result={data.selectedCustomer} />
       {!customer ? (
         <div className="adminEmptyState">Selecciona un cliente del listado.</div>
       ) : (
         <div className="adminStack">
           <ResultBanner result={data.overview} />
+          {activeTab === "resumen" ? <>
           <CustomerSummaryPanel
             canReadPurchases={capabilities.canReadPurchases}
             customer={customer}
             data={data}
           />
-          <OverviewWarningsPanel overview={data.overview.data} />
-          <AccountOverviewPanel capabilities={capabilities} customer={customer} overview={data.overview.data} />
-          <DuplicateCandidatesPanel overview={data.overview.data} />
-          <ContinuityOverviewPanel capabilities={capabilities} customer={customer} overview={data.overview.data} />
-          <OperationalOverviewPanel capabilities={capabilities} customer={customer} overview={data.overview.data} />
-          <TimelineOverviewPanel customer={customer} overview={data.overview.data} />
+          <TimelineOverviewPanel customer={customer} overview={data.overview.data} compact limit={10} />
+          </> : null}
+          {activeTab === "cuenta" ? (
+            <AccountOverviewPanel
+              capabilities={capabilities}
+              customer={customer}
+              overview={data.overview.data}
+              returnTo={returnTo}
+            />
+          ) : null}
+          {activeTab === "facturacion" || activeTab === "comunicaciones" || activeTab === "soporte" ? (
+            <ContinuityOverviewPanel
+              capabilities={capabilities}
+              customer={customer}
+              overview={data.overview.data}
+              returnTo={returnTo}
+              section={activeTab}
+            />
+          ) : null}
+          {activeTab === "privacidad" || activeTab === "backoffice" ? (
+            <OperationalOverviewPanel
+              capabilities={capabilities}
+              customer={customer}
+              overview={data.overview.data}
+              returnTo={returnTo}
+              section={activeTab}
+            />
+          ) : null}
+          {activeTab === "actividad" ? <>
+            <ActivityFilters customer={customer} source={filters.activitySource} />
+            <TimelineOverviewPanel customer={customer} overview={data.overview.data} source={filters.activitySource} />
+          </> : null}
 
+          {activeTab === "perfil" ? <>
           <section className="pricingPanel">
             <div className="pricingPanelHeader">
               <div>
                 <h3>Perfil</h3>
-                <p>{customer.customerId}</p>
+                <p>{customer.customerReference ?? "Referencia no disponible"}</p>
               </div>
             </div>
             {capabilities.canWriteCustomers ? (
               <form action={updateCustomerProfileAction} className="adminFormGrid">
                 <input name="customerId" type="hidden" value={customer.customerId} />
+                {returnTo ? <input name="returnTo" type="hidden" value={returnTo} /> : null}
                 <ProfileFields customer={customer} contextLocale={data.context.locale} />
-                <dl className="adminDefinitionList">
-                  <div><dt>Estado</dt><dd>{customerKind(customer)}</dd></div>
-                  <div><dt>Tipo</dt><dd>{buyerTypeLabel(customer.buyerType)}</dd></div>
-                  <div><dt>Creado</dt><dd>{dateText(customer.createdAt)}</dd></div>
-                  <div><dt>Actualizado</dt><dd>{dateText(customer.updatedAt)}</dd></div>
-                </dl>
-                <div className="adminButtonRow">
+                <CustomerDataTable
+                  fullWidth
+                  label="Estado del perfil"
+                  columns={[
+                    { label: "Estado", value: customerKind(customer) },
+                    { label: "Tipo", value: buyerTypeLabel(customer.buyerType) },
+                    { label: "Creado", value: dateText(customer.createdAt) },
+                    { label: "Actualizado", value: dateText(customer.updatedAt) },
+                  ]}
+                />
+                <div className="adminButtonRow customerProfileActions">
                   <button className="adminButton adminButtonPrimary" type="submit">
                     <Save aria-hidden="true" size={16} />
                     Guardar perfil
                   </button>
-                  <Link className="adminButton" href={closeHref}>Cancelar</Link>
+                  <Link className="adminButton" href={returnTo ?? closeHref}>Cancelar</Link>
                 </div>
               </form>
             ) : (
@@ -1255,12 +1519,14 @@ function CustomerDrawer({
               {capabilities.canWriteCustomers ? (
                 <Link
                   className="adminButton adminButtonTiny"
-                  href={customersHref(filters, {
-                    drawer: "detail",
-                    customerId: customer.customerId,
-                    addressMode: "create",
-                    addressId: undefined,
-                  })}
+                  href={variant === "page"
+                    ? customerDetailHref(customer, "perfil", { addressMode: "create" })
+                    : customersHref(filters, {
+                      drawer: "detail",
+                      customerId: customer.customerId,
+                      addressMode: "create",
+                      addressId: undefined,
+                    })}
                 >
                   <Plus aria-hidden="true" size={14} />
                   Agregar
@@ -1277,6 +1543,7 @@ function CustomerDrawer({
                 className="adminFormGrid"
               >
                 <input name="customerId" type="hidden" value={customer.customerId} />
+                {returnTo ? <input name="returnTo" type="hidden" value={returnTo} /> : null}
                 {filters.addressMode === "edit" ? (
                   <input name="addressId" type="hidden" value={filters.addressId ?? ""} />
                 ) : null}
@@ -1291,7 +1558,7 @@ function CustomerDrawer({
                   </button>
                   <Link
                     className="adminButton"
-                    href={customersHref(filters, { addressMode: undefined, addressId: undefined })}
+                    href={variant === "page" ? customerDetailHref(customer, "perfil") : customersHref(filters, { addressMode: undefined, addressId: undefined })}
                   >
                     Cancelar
                   </Link>
@@ -1317,7 +1584,6 @@ function CustomerDrawer({
                       <tr key={address.addressId}>
                         <td>
                           <strong>{addressLabel(address)}</strong>
-                          <div className="adminContextHint">{address.addressId}</div>
                         </td>
                         <td>{addressRoleLabel(address.addressRole)}</td>
                         <td>{addressLine(address)}</td>
@@ -1340,12 +1606,14 @@ function CustomerDrawer({
                             <div className="adminButtonRow">
                               <Link
                                 className="adminIconButton"
-                                href={customersHref(filters, {
-                                  drawer: "detail",
-                                  customerId: customer.customerId,
-                                  addressMode: "edit",
-                                  addressId: address.addressId,
-                                })}
+                                href={variant === "page"
+                                  ? customerDetailHref(customer, "perfil", { addressMode: "edit", addressId: address.addressId })
+                                  : customersHref(filters, {
+                                    drawer: "detail",
+                                    customerId: customer.customerId,
+                                    addressMode: "edit",
+                                    addressId: address.addressId,
+                                  })}
                                 title={`Editar ${addressLabel(address)}`}
                               >
                                 <Edit3 aria-hidden="true" size={16} />
@@ -1354,6 +1622,7 @@ function CustomerDrawer({
                               <form action={setDefaultShippingAddressAction}>
                                 <input name="customerId" type="hidden" value={customer.customerId} />
                                 <input name="addressId" type="hidden" value={address.addressId} />
+                                {returnTo ? <input name="returnTo" type="hidden" value={returnTo} /> : null}
                                 <button className="adminIconButton" type="submit" title="Usar como envio">
                                   <Home aria-hidden="true" size={16} />
                                   <span className="adminVisuallyHidden">Usar como envio</span>
@@ -1362,6 +1631,7 @@ function CustomerDrawer({
                               <form action={setDefaultBillingAddressAction}>
                                 <input name="customerId" type="hidden" value={customer.customerId} />
                                 <input name="addressId" type="hidden" value={address.addressId} />
+                                {returnTo ? <input name="returnTo" type="hidden" value={returnTo} /> : null}
                                 <button className="adminIconButton" type="submit" title="Usar como fiscal">
                                   <Star aria-hidden="true" size={16} />
                                   <span className="adminVisuallyHidden">Usar como fiscal</span>
@@ -1378,6 +1648,7 @@ function CustomerDrawer({
                                   <form action={deleteCustomerAddressAction}>
                                     <input name="customerId" type="hidden" value={customer.customerId} />
                                     <input name="addressId" type="hidden" value={address.addressId} />
+                                    {returnTo ? <input name="returnTo" type="hidden" value={returnTo} /> : null}
                                     <button className="adminButton adminButtonDanger" type="submit">Confirmar</button>
                                   </form>
                                 </div>
@@ -1394,7 +1665,9 @@ function CustomerDrawer({
               <div className="adminEmptyState">Sin direcciones registradas.</div>
             )}
           </section>
+          </> : null}
 
+          {activeTab === "compras" ? <>
           <section className="pricingPanel">
             <div className="pricingPanelHeader">
               <div>
@@ -1406,6 +1679,7 @@ function CustomerDrawer({
               <PermissionBanner permission="customers.purchases.read" action="consultar compras" />
             ) : null}
             {capabilities.canReadPurchases ? <ResultBanner result={data.purchases} /> : null}
+            {capabilities.canReadPurchases ? <PurchasesKpiPanel purchases={data.purchases.data} /> : null}
             {capabilities.canReadPurchases && data.purchases.data?.items.length ? (
               <>
                 <div className="adminTableScroller">
@@ -1413,40 +1687,36 @@ function CustomerDrawer({
                     <thead>
                       <tr>
                         <th scope="col">Pedido</th>
-                        <th scope="col">Productos</th>
-                        <th scope="col">Estado</th>
-                        <th scope="col">Total</th>
                         <th scope="col">Fecha</th>
-                        <th scope="col">Acciones</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Importe</th>
+                        <th scope="col">Pago</th>
+                        <th scope="col">Envío</th>
+                        <th scope="col">Abrir</th>
                       </tr>
                     </thead>
                     <tbody>
                       {data.purchases.data.items.map((purchase) => {
-                        const primaryItem = primaryPurchaseItem(purchase);
-                        const href = primaryItem ? purchaseHref(primaryItem) : undefined;
-
+                        const orderReference = purchase.orderId ?? purchase.purchaseId;
                         return (
                           <tr key={purchase.purchaseId}>
                             <td>
                               <strong>{valueText(purchase.orderId ?? purchase.purchaseId)}</strong>
                               <div className="adminContextHint">{purchase.itemsCount ?? purchase.items?.length ?? 0} items</div>
                             </td>
-                            <td>{purchaseItemsSummary(purchase)}</td>
+                            <td>{dateText(purchase.placedAt ?? purchase.recordedAt)}</td>
                             <td>
                               <span className={`adminBadge ${purchase.isPaid ? "adminBadgeOk" : "adminBadgeWarn"}`}>
                                 {valueText(purchase.status)}
                               </span>
                             </td>
                             <td>{moneyText(purchase.totalAmountMinor, purchase.currency)}</td>
-                            <td>{dateText(purchase.placedAt ?? purchase.recordedAt)}</td>
+                            <td>{purchase.isPaid === undefined ? "No disponible" : purchase.isPaid ? "Pagado" : "Pendiente"}</td>
+                            <td>No disponible</td>
                             <td>
-                              {href ? (
-                                <Link className="adminButton adminButtonTiny" href={href}>
-                                  Ver producto
-                                </Link>
-                              ) : (
-                                "-"
-                              )}
+                              <Link className="adminButton adminButtonTiny" href={`/admin/pedidos?orderId=${encodeURIComponent(orderReference)}`}>
+                                Abrir pedido
+                              </Link>
                             </td>
                           </tr>
                         );
@@ -1458,11 +1728,16 @@ function CustomerDrawer({
                   <Link
                     aria-disabled={data.purchases.data.offset === 0}
                     className={`adminButton ${data.purchases.data.offset === 0 ? "adminButtonDisabled" : ""}`}
-                    href={purchasePageHref(
-                      filters,
-                      data.purchases.data.offset - data.purchases.data.limit,
-                      data.purchases.data.limit,
-                    )}
+                    href={variant === "page"
+                      ? customerDetailHref(customer, "compras", {
+                        purchasesLimit: String(data.purchases.data.limit),
+                        purchasesOffset: String(Math.max(0, data.purchases.data.offset - data.purchases.data.limit)),
+                      })
+                      : purchasePageHref(
+                        filters,
+                        data.purchases.data.offset - data.purchases.data.limit,
+                        data.purchases.data.limit,
+                      )}
                   >
                     Anterior
                   </Link>
@@ -1472,11 +1747,16 @@ function CustomerDrawer({
                   <Link
                     aria-disabled={data.purchases.data.offset + data.purchases.data.limit >= data.purchases.data.total}
                     className={`adminButton ${data.purchases.data.offset + data.purchases.data.limit >= data.purchases.data.total ? "adminButtonDisabled" : ""}`}
-                    href={purchasePageHref(
-                      filters,
-                      data.purchases.data.offset + data.purchases.data.limit,
-                      data.purchases.data.limit,
-                    )}
+                    href={variant === "page"
+                      ? customerDetailHref(customer, "compras", {
+                        purchasesLimit: String(data.purchases.data.limit),
+                        purchasesOffset: String(data.purchases.data.offset + data.purchases.data.limit),
+                      })
+                      : purchasePageHref(
+                        filters,
+                        data.purchases.data.offset + data.purchases.data.limit,
+                        data.purchases.data.limit,
+                      )}
                   >
                     Siguiente
                   </Link>
@@ -1486,13 +1766,14 @@ function CustomerDrawer({
               <div className="adminEmptyState">Sin compras materializadas.</div>
             ) : null}
           </section>
+          </> : null}
         </div>
       )}
     </DrawerShell>
   );
 }
 
-function CustomersTable({ data, filters }: CustomersAdminPageProps) {
+function CustomersTable({ data }: Pick<CustomersAdminPageProps, "data">) {
   const customers = data.list.data.items;
 
   if (!customers.length) {
@@ -1524,7 +1805,7 @@ function CustomersTable({ data, filters }: CustomersAdminPageProps) {
             <tr key={customer.customerId}>
               <td>
                 <strong>{fullName(customer)}</strong>
-                <div className="adminContextHint">{customer.customerId}</div>
+                <div className="adminContextHint">{customer.customerReference ?? "Referencia no disponible"}</div>
               </td>
               <td>
                 <a href={`mailto:${customer.email}`}>{valueText(customer.email)}</a>
@@ -1539,7 +1820,7 @@ function CustomersTable({ data, filters }: CustomersAdminPageProps) {
               <td>
                 <Link
                   className="adminIconButton"
-                  href={customersHref(filters, { drawer: "detail", customerId: customer.customerId })}
+                  href={customerDetailHref(customer)}
                   title={`Ver ${fullName(customer)}`}
                 >
                   <Eye aria-hidden="true" size={16} />
@@ -1635,7 +1916,7 @@ export function CustomersAdminPage({ capabilities, data, filters }: CustomersAdm
           <Link className="adminButton" href="/admin/clientes">Todos los clientes</Link>
         </form>
         <ResultBanner result={data.list} />
-        <CustomersTable data={data} filters={filters} capabilities={capabilities} />
+        <CustomersTable data={data} />
         <nav className="productListPagination" aria-label="Paginacion de clientes">
           <p>{firstItem}-{lastItem} de {total}</p>
           <div className="productListPaginationControls">
@@ -1658,6 +1939,25 @@ export function CustomersAdminPage({ capabilities, data, filters }: CustomersAdm
       </section>
 
       <CustomerDrawer capabilities={capabilities} data={data} filters={filters} />
+    </main>
+  );
+}
+
+export function CustomerDetailPage({
+  activeTab,
+  capabilities,
+  data,
+  filters,
+}: CustomersAdminPageProps & { activeTab: CustomerDetailTab }) {
+  return (
+    <main className="adminPage customersAdminPage">
+      <CustomerDrawer
+        activeTab={activeTab}
+        capabilities={capabilities}
+        data={data}
+        filters={filters}
+        variant="page"
+      />
     </main>
   );
 }

@@ -109,6 +109,7 @@ const context = {
 
 test("customers admin route renders the module instead of the placeholder", () => {
   const routeSource = readFileSync(path.resolve(root, "app/(admin)/admin/clientes/page.tsx"), "utf8");
+  const detailRouteSource = readFileSync(path.resolve(root, "app/(admin)/admin/clientes/[customerReference]/page.tsx"), "utf8");
   const pageSource = readFileSync(path.resolve(root, "src/modules/clientes/customers-admin-page.tsx"), "utf8");
   const dataSource = readFileSync(path.resolve(root, "src/modules/clientes/customers-admin.ts"), "utf8");
 
@@ -116,6 +117,10 @@ test("customers admin route renders the module instead of the placeholder", () =
   assert.match(routeSource, /getAdminSession/);
   assert.match(routeSource, /getCustomersAdminCapabilities/);
   assert.match(routeSource, /CustomersAdminPage/);
+  assert.match(detailRouteSource, /getCustomerByReference/);
+  assert.match(detailRouteSource, /getCustomerDetailAdminData/);
+  assert.match(detailRouteSource, /CustomerDetailPage/);
+  assert.match(detailRouteSource, /customerReference/);
   assert.match(routeSource, /includePurchases: capabilities\.canReadPurchases/);
   assert.doesNotMatch(routeSource, /Modulo pendiente de implementar/);
   assert.match(dataSource, /getCustomerOverview/);
@@ -123,28 +128,48 @@ test("customers admin route renders the module instead of the placeholder", () =
   assert.match(dataSource, /CUSTOMER_CREATED/);
   assert.match(dataSource, /PURCHASE_RECORDED/);
   assert.match(dataSource, /COMPOSITION_WARNING/);
-  assert.match(pageSource, /adminSideDrawer/);
-  assert.match(pageSource, /adminDrawerBackdrop/);
-  assert.match(pageSource, /customersSideDrawer/);
+  assert.match(pageSource, /customerDetailShell/);
+  assert.match(pageSource, /customerAvatarImagePath/);
+  assert.match(pageSource, /avatarId=\{customer\?\.avatarId\}/);
+  assert.match(pageSource, /\/storefront\/avatars\/human-01\.jpg/);
+  assert.match(pageSource, /customerDetailTabs/);
+  assert.match(pageSource, /Facturación/);
+  assert.match(pageSource, /Backoffice/);
   assert.match(pageSource, /adminSummaryGrid/);
   assert.match(pageSource, /adminIconButton/);
   assert.match(pageSource, /Vista 360 de clientes/);
   assert.match(pageSource, /Todos los clientes/);
-  assert.match(pageSource, /Resumen 360/);
-  assert.match(pageSource, /Consentimientos/);
+  assert.match(pageSource, /Indicadores principales del cliente/);
+  assert.match(pageSource, /customerSummaryDomains/);
+  assert.match(pageSource, /Total gastado/);
+  assert.match(pageSource, /Carritos abandonados/);
+  assert.match(pageSource, /Actividad reciente/);
+  assert.match(pageSource, /Solicitudes GDPR/);
   assert.match(pageSource, /Gestion de acceso/);
-  assert.match(pageSource, /Posibles duplicados/);
-  assert.match(pageSource, /Continuidad comercial/);
-  assert.match(pageSource, /Operacion interna/);
-  assert.match(pageSource, /Facturas recientes/);
-  assert.match(pageSource, /Postventa y soporte/);
+  assert.match(pageSource, /Duplicados/);
+  assert.match(pageSource, /section === "facturacion"/);
+  assert.match(pageSource, /section === "privacidad"/);
+  assert.match(pageSource, /Notas de crédito/);
+  assert.match(pageSource, /Métodos de pago/);
+  assert.match(pageSource, /PurchasesKpiPanel/);
+  assert.match(pageSource, /CustomerDataTable/);
+  assert.match(pageSource, /Estado del perfil/);
+  assert.match(pageSource, /Estado de la cuenta/);
+  assert.match(pageSource, /Estado de privacidad/);
+  assert.match(pageSource, /Ticket medio/);
+  assert.match(pageSource, /<h4>Casos<\/h4>/);
   assert.match(pageSource, /\/admin\/pagos\?invoiceId=/);
   assert.match(pageSource, /\/admin\/postventa\?caseId=/);
   assert.match(pageSource, /Abrir factura/);
   assert.match(pageSource, /Atender/);
-  assert.match(pageSource, /Comunicaciones recientes/);
+  assert.match(pageSource, /Enviar comunicación/);
+  assert.match(pageSource, /ActivityFilters/);
+  assert.match(pageSource, /activitySource/);
+  assert.match(pageSource, /Filtrar actividad/);
+  assert.match(pageSource, /communicationChannelLabel/);
+  assert.match(pageSource, /Responsable asignado/);
   assert.match(pageSource, /Notas internas/);
-  assert.match(pageSource, /Privacidad y sesiones/);
+  assert.match(pageSource, /Sesiones activas/);
   assert.match(pageSource, /customersOverviewList/);
   assert.match(pageSource, /Timeline administrativo/);
   assert.match(pageSource, /buildCustomerAdminTimeline/);
@@ -174,9 +199,12 @@ test("customers admin route renders the module instead of the placeholder", () =
   assert.match(pageSource, /customers\.purchases\.read/);
   assert.match(pageSource, /Registrados/);
   assert.match(pageSource, /Paginacion de clientes/);
-  assert.match(pageSource, /Ver producto/);
+  assert.match(pageSource, /Abrir pedido/);
+  assert.doesNotMatch(pageSource, /Ver producto/);
   assert.match(pageSource, /purchasePageHref/);
   assert.match(pageSource, /className="customersFilterBar"/);
+  assert.match(pageSource, /customerReference \?\? customer\.customerId/);
+  assert.doesNotMatch(pageSource, /href=\{customersHref\(filters, \{ drawer: "detail", customerId: customer\.customerId \}\)\}/);
 });
 
 test("customers filters keep search controls and actions in one desktop row", () => {
@@ -624,9 +652,10 @@ test("customers admin update action patches profile fields through BFF", async (
   formData.set("lastName", "Byron");
   formData.set("buyerType", "PRIVATE_BUYER");
   formData.set("locale", "es-ES");
+  formData.set("returnTo", "/admin/clientes/C-ADA?tab=perfil");
 
   await assert.rejects(() => updateCustomerProfileAction(formData), {
-    url: "/admin/clientes?customerMessage=Cliente+actualizado.&drawer=detail&customerId=customer-1",
+    url: "/admin/clientes/C-ADA?tab=perfil&customerMessage=Cliente+actualizado.",
   });
 
   assert.equal(calls[0].path, "/admin/customers/customer-1?organizationId=org-1&shopId=shop-1");
@@ -640,7 +669,6 @@ test("customers admin update action patches profile fields through BFF", async (
     buyerType: "PRIVATE_BUYER",
     clientPreferencesData: {
       locale: "es-ES",
-      optinNewsLetter: false,
     },
   });
 });
@@ -666,6 +694,7 @@ test("customers admin address create and update actions send canonical payloads"
   formData.set("addressId", "address-1");
   formData.set("addressType", "residential");
   formData.set("addressRole", "BILLING");
+  formData.set("alias", "Casa");
   formData.set("receiverName", "Ada Byron");
   formData.set("street", "Calle Mayor");
   formData.set("number", "1");
@@ -689,6 +718,7 @@ test("customers admin address create and update actions send canonical payloads"
   assert.equal(calls[1].path, "/admin/customers/customer-1/addresses/address-1?organizationId=org-1&shopId=shop-1");
   assert.equal(calls[1].method, "PATCH");
   assert.deepEqual(calls[0].body, {
+    alias: "Casa",
     addressType: "residential",
     addressRole: "BILLING",
     receiverName: "Ada Byron",
