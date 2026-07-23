@@ -5,6 +5,12 @@ import type { InvoiceAdminFilters } from "../../../../src/modules/pagos/invoices
 import { getPaymentsAdminCapabilities, getPaymentsAdminData, type PaymentsAdminFilters } from "../../../../src/modules/pagos/payments-admin";
 import { PaymentsAdminPage } from "../../../../src/modules/pagos/payments-admin-page";
 
+function drawerParam(value: string | undefined) {
+  return value === "refund-evidence" || value === "create-payment-system" || value === "create-affiliation" || value === "create-payment-rule"
+    ? value
+    : undefined;
+}
+
 type PagosPageProps = {
   searchParams?: Promise<InvoiceAdminFilters & PaymentsAdminFilters>;
 };
@@ -28,6 +34,12 @@ export default async function PagosPage({ searchParams }: PagosPageProps) {
     includeInactive: params?.includeInactive,
     notice: params?.notice,
     tab: params?.tab,
+    transactionLimit: params?.transactionLimit,
+    transactionOffset: params?.transactionOffset,
+    transactionReference: params?.transactionReference,
+    transactionStatus: params?.transactionStatus,
+    transactionId: params?.transactionId,
+    drawer: drawerParam(params?.drawer),
   };
   const invoiceCapabilities = getInvoiceAdminCapabilities(session);
   const paymentsCapabilities = getPaymentsAdminCapabilities(session);

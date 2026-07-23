@@ -96,19 +96,44 @@ function loadPaymentsActionsModule({
   return moduleContext.module.exports;
 }
 
-test("payments admin route exposes methods affiliations rules diagnostics and invoices tab", () => {
+test("payments admin route separates payment operation from configuration", () => {
   const routeSource = readFileSync(path.resolve(root, "app/(admin)/admin/pagos/page.tsx"), "utf8");
   const pageSource = readFileSync(path.resolve(root, "src/modules/pagos/payments-admin-page.tsx"), "utf8");
   const dataSource = readFileSync(path.resolve(root, "src/modules/pagos/payments-admin.ts"), "utf8");
   const actionsSource = readFileSync(path.resolve(root, "src/modules/pagos/payments-admin-actions.ts"), "utf8");
+  const refundFormSource = readFileSync(path.resolve(root, "src/modules/pagos/payment-refund-request-form.tsx"), "utf8");
+  const refundRefreshSource = readFileSync(path.resolve(root, "src/modules/pagos/payment-refund-evidence-auto-refresh.tsx"), "utf8");
 
   assert.match(routeSource, /getPaymentsAdminData/);
   assert.match(routeSource, /PaymentsAdminPage/);
   assert.match(pageSource, /Metodos/);
-  assert.match(pageSource, /Afiliaciones/);
-  assert.match(pageSource, /Reglas/);
-  assert.match(pageSource, /Diagnostico/);
-  assert.match(pageSource, /Facturas/);
+  assert.match(pageSource, /Resumen/);
+  assert.match(pageSource, /Operaciones/);
+  assert.match(pageSource, /Reembolsos/);
+  assert.match(pageSource, /Proveedores/);
+  assert.match(pageSource, /Routing/);
+  assert.match(pageSource, /Diagnóstico/);
+  assert.match(pageSource, /Facturación/);
+  assert.match(pageSource, /Bandeja de operaciones/);
+  assert.match(pageSource, /Reembolsos y cancelaciones/);
+  assert.match(pageSource, /Evidencia del reembolso/);
+  assert.match(pageSource, /Timeline auditable/);
+  assert.match(pageSource, /Ver evidencia/);
+  assert.match(pageSource, /adminSideDrawer paymentsRefundEvidenceDrawer/);
+  assert.match(pageSource, /refund-evidence/);
+  assert.match(pageSource, /PaymentRefundRequestForm/);
+  assert.match(pageSource, /randomUUID/);
+  assert.match(refundFormSource, /Solicitar reembolso/);
+  assert.match(refundFormSource, /Confirmo que este importe se devolverá al método de pago original/);
+  assert.match(refundRefreshSource, /router\.refresh/);
+  assert.match(refundRefreshSource, /2000/);
+  assert.match(refundRefreshSource, /Confirmación en curso/);
+  assert.match(pageSource, /No se muestra respuesta cruda ni secretos del PSP/);
+  assert.match(pageSource, /paymentsOperationsTable/);
+  assert.match(dataSource, /\/admin\/payments\/transactions/);
+  assert.match(dataSource, /normalizePaymentOperationsPage/);
+  assert.match(dataSource, /normalizePaymentTransactionEvidence/);
+  assert.match(dataSource, /\/admin\/payments\/transactions\/\$\{encodeURIComponent\(selectedTransactionId\)\}/);
   assert.match(pageSource, /PAN\/CVV/);
   assert.match(dataSource, /\/admin\/payments\/payment-systems/);
   assert.match(dataSource, /\/admin\/payments\/affiliations/);
@@ -118,10 +143,33 @@ test("payments admin route exposes methods affiliations rules diagnostics and in
   assert.match(actionsSource, /createPaymentAffiliationAction/);
   assert.match(actionsSource, /createPaymentRuleAction/);
   assert.match(actionsSource, /setPaymentResourceActiveAction/);
+  assert.match(actionsSource, /createPaymentRefundAction/);
+  assert.match(actionsSource, /createPaymentCancellationAction/);
   assert.match(actionsSource, /resourcePath/);
   assert.match(pageSource, /Mostrar inactivos/);
   assert.match(pageSource, /Desactivar/);
   assert.match(pageSource, /Reactivar/);
+  assert.match(pageSource, /ConfigurationKpis/);
+  assert.match(pageSource, /paymentsConfigurationTable/);
+  assert.match(pageSource, /paymentSystemName/);
+  assert.match(pageSource, /affiliationName/);
+  assert.match(pageSource, /item\.currency \?\? currency/);
+  assert.match(pageSource, /item\.paymentReference \?\? item\.referenceId/);
+  assert.match(pageSource, /Estado de configuración/);
+  assert.match(pageSource, /Identificador interno/);
+  assert.match(pageSource, /Nuevo método/);
+  assert.match(pageSource, /Nuevo proveedor/);
+  assert.match(pageSource, /Nueva regla/);
+  assert.match(pageSource, /create-payment-system/);
+  assert.match(pageSource, /create-affiliation/);
+  assert.match(pageSource, /create-payment-rule/);
+  assert.match(pageSource, /adminSideDrawer paymentsConfigurationDrawer/);
+  assert.doesNotMatch(pageSource, /CreatePaymentSystemForm/);
+  assert.doesNotMatch(pageSource, /CreateAffiliationForm/);
+  assert.doesNotMatch(pageSource, /CreateRuleForm/);
+  assert.match(routeSource, /create-payment-system/);
+  assert.match(routeSource, /create-affiliation/);
+  assert.match(routeSource, /create-payment-rule/);
 });
 
 test("payments admin capabilities map payments permissions", () => {
@@ -134,6 +182,9 @@ test("payments admin capabilities map payments permissions", () => {
 
   assert.equal(empty.canManagePayments, false);
   assert.equal(empty.canViewPayments, false);
+  assert.equal(empty.canViewOperations, false);
+  assert.equal(empty.canProcessTransactions, false);
+  assert.equal(empty.canRefundPayments, false);
   assert.equal(viewer.canManagePayments, false);
   assert.equal(viewer.canViewPayments, true);
   assert.equal(manager.canManagePayments, true);
@@ -161,7 +212,13 @@ test("payments admin loads payment systems affiliations rules and card lookup th
   };
   const { getPaymentsAdminData } = loadPaymentsAdminModule(requestBff);
 
-  const data = await getPaymentsAdminData(context, { cardBin: "424242", includeInactive: "true" }, { canManagePayments: true, canViewPayments: true });
+  const data = await getPaymentsAdminData(context, { cardBin: "424242", includeInactive: "true" }, {
+    canManagePayments: true,
+    canViewPayments: true,
+    canViewOperations: false,
+    canProcessTransactions: false,
+    canRefundPayments: false,
+  });
 
   assert.equal(data.paymentSystems.data[0].paymentSystemId, "stripe-card");
   assert.equal(data.affiliations.data[0].affiliationId, "stripe-main");
@@ -173,6 +230,116 @@ test("payments admin loads payment systems affiliations rules and card lookup th
     { path: "/admin/payments/rules?organizationId=org-1&shopId=shop-1&includeInactive=true", method: "GET", body: undefined },
     { path: "/admin/payments/card-lookup?organizationId=org-1&shopId=shop-1", method: "POST", body: { bin: "424242" } },
   ]);
+});
+
+test("payments admin loads tenant-scoped operations and normalizes their commercial data", async () => {
+  const calls = [];
+  const requestBff = async (pathValue, options = {}) => {
+    calls.push(pathValue);
+    const raw = pathValue.includes("/transactions")
+      ? {
+          items: [{
+            transactionId: "transaction-1",
+            referenceId: "ORDER-1024",
+            status: "SETTLED",
+            valueMinor: 1275,
+            currency: "EUR",
+            paymentMethods: [{ name: "Tarjeta", methodType: "CARD", status: "SETTLED" }],
+            settledMinor: 1275,
+            refundedMinor: 250,
+            refundableMinor: 1025,
+            cancellableMinor: 0,
+            refundsCount: 1,
+            cancellationsCount: 0,
+            updatedAt: "2026-07-22T10:00:00.000Z",
+          }],
+          total: 1,
+          limit: 25,
+          offset: 0,
+          summary: { capturedMinor: 1275, pendingCount: 0, failedCount: 0, refundedMinor: 250 },
+        }
+      : { items: [] };
+    return { ok: true, data: options.parse ? options.parse(raw) : raw, status: 200, correlationId: "corr-operations" };
+  };
+  const { getPaymentsAdminData } = loadPaymentsAdminModule(requestBff);
+  const data = await getPaymentsAdminData(context, {
+    tab: "operaciones",
+    transactionReference: "ORDER-1024",
+    transactionStatus: "SETTLED",
+  }, {
+    canManagePayments: true,
+    canViewPayments: true,
+    canViewOperations: true,
+    canProcessTransactions: true,
+    canRefundPayments: true,
+  });
+
+  assert.equal(data.transactions.ok, true);
+  assert.equal(data.transactions.data.items[0].referenceId, "ORDER-1024");
+  assert.equal(data.transactions.data.items[0].refundableMinor, 1025);
+  assert.equal(data.transactions.data.summary.capturedMinor, 1275);
+  assert.ok(calls.includes("/admin/payments/transactions?organizationId=org-1&shopId=shop-1&status=SETTLED&referenceId=ORDER-1024&limit=25&offset=0"));
+});
+
+test("payments admin loads safe refund evidence only for the selected transaction", async () => {
+  const calls = [];
+  const requestBff = async (pathValue, options = {}) => {
+    calls.push(pathValue);
+    const raw = pathValue.includes("/transactions/transaction-1")
+      ? {
+          transaction: {
+            transactionId: "transaction-1",
+            referenceId: "ORDER-1024",
+            status: "PARTIALLY_REFUNDED",
+            valueMinor: 1275,
+            currency: "EUR",
+            settledMinor: 1275,
+            refundedMinor: 250,
+            refundableMinor: 1025,
+            refunds: [{
+              refundId: "refund-1",
+              transactionId: "transaction-1",
+              valueMinor: 250,
+              currency: "EUR",
+              status: "SUCCEEDED",
+              providerName: "stripe",
+              providerStatus: "succeeded",
+              providerRefundId: "re_123",
+              requestedAt: "2026-07-22T10:00:00.000Z",
+              succeededAt: "2026-07-22T10:01:00.000Z",
+              providerResponseSnapshot: { secret: "must-not-be-exposed" },
+            }, {
+              refundId: "refund-older",
+              transactionId: "transaction-1",
+              valueMinor: 100,
+              currency: "EUR",
+              status: "SUCCEEDED",
+              requestedAt: "2026-07-22T09:00:00.000Z",
+              succeededAt: "2026-07-22T09:01:00.000Z",
+            }],
+          },
+          events: [{ payloadJson: { secret: "must-not-be-exposed" } }],
+        }
+      : { items: [], summary: {} };
+    return { ok: true, data: options.parse ? options.parse(raw) : raw, status: 200, correlationId: "corr-refund-evidence" };
+  };
+  const { getPaymentsAdminData } = loadPaymentsAdminModule(requestBff);
+  const data = await getPaymentsAdminData(context, { tab: "reembolsos", transactionId: "transaction-1" }, {
+    canManagePayments: true,
+    canViewPayments: true,
+    canViewOperations: true,
+    canProcessTransactions: false,
+    canRefundPayments: false,
+  });
+
+  assert.equal(data.transactionEvidence.ok, true);
+  assert.equal(data.transactionEvidence.data.referenceId, "ORDER-1024");
+  assert.equal(data.transactionEvidence.data.refunds[0].refundId, "refund-1");
+  assert.equal(data.transactionEvidence.data.refunds[1].refundId, "refund-older");
+  assert.equal(data.transactionEvidence.data.refunds[0].providerRefundId, "re_123");
+  assert.equal(data.transactionEvidence.data.refunds[0].succeededAt, "2026-07-22T10:01:00.000Z");
+  assert.equal("providerResponseSnapshot" in data.transactionEvidence.data.refunds[0], false);
+  assert.ok(calls.includes("/admin/payments/transactions/transaction-1?organizationId=org-1&shopId=shop-1"));
 });
 
 test("payments admin create actions post canonical scoped payloads", async () => {
@@ -214,8 +381,8 @@ test("payments admin create actions post canonical scoped payloads", async () =>
   rule.set("active", "on");
 
   await assert.rejects(() => createPaymentSystemAction(method), { url: "/admin/pagos?tab=metodos&notice=Metodo+de+pago+creado." });
-  await assert.rejects(() => createPaymentAffiliationAction(affiliation), { url: "/admin/pagos?tab=afiliaciones&notice=Afiliacion+de+pago+creada." });
-  await assert.rejects(() => createPaymentRuleAction(rule), { url: "/admin/pagos?tab=reglas&notice=Regla+de+pago+creada." });
+  await assert.rejects(() => createPaymentAffiliationAction(affiliation), { url: "/admin/pagos?tab=proveedores&notice=Proveedor+de+pago+creado." });
+  await assert.rejects(() => createPaymentRuleAction(rule), { url: "/admin/pagos?tab=routing&notice=Regla+de+routing+creada." });
 
   assert.deepEqual(calls.map((call) => ({ path: call.path, method: call.method })), [
     { path: "/admin/payments/payment-systems?organizationId=org-1&shopId=shop-1", method: "POST" },
@@ -226,6 +393,52 @@ test("payments admin create actions post canonical scoped payloads", async () =>
   assert.equal(calls[0].body.maxInstallments, 3);
   assert.equal(calls[1].body.merchantId, "acct_1");
   assert.equal(calls[2].body.priority, 100);
+});
+
+test("payments admin sends confirmed refund and cancellation requests to the canonical transaction endpoints", async () => {
+  const calls = [];
+  const requestBff = async (pathValue, options = {}) => {
+    calls.push({
+      path: pathValue,
+      method: options.init?.method,
+      body: JSON.parse(options.init?.body ?? "{}"),
+    });
+    return { ok: true, data: {}, status: 202, correlationId: "corr-operation-action" };
+  };
+  const { createPaymentCancellationAction, createPaymentRefundAction } = loadPaymentsActionsModule({ requestBff });
+  const refund = new FormData();
+  refund.set("transactionId", "transaction/1");
+  refund.set("refundId", "8b4fae3f-9dea-453e-8f33-dba2a7e7f65e");
+  refund.set("valueMinor", "1299");
+  refund.set("currency", "EUR");
+  refund.set("referenceId", "ORDER-1024");
+  refund.set("confirmed", "on");
+  const cancellation = new FormData();
+  cancellation.set("transactionId", "transaction/2");
+  cancellation.set("cancellationId", "10f7ba5d-20f5-41cd-91a9-fc0c5223b6e4");
+  cancellation.set("valueMinor", "899");
+  cancellation.set("currency", "EUR");
+  cancellation.set("referenceId", "ORDER-1025");
+  cancellation.set("confirmed", "on");
+
+  await assert.rejects(() => createPaymentRefundAction(refund), {
+    url: "/admin/pagos?tab=reembolsos&notice=Solicitud+creada.+El+importe+qued%C3%B3+reservado%3B+Payments+est%C3%A1+comprobando+la+confirmaci%C3%B3n+del+proveedor.&transactionReference=ORDER-1024&transactionId=transaction%2F1&drawer=refund-evidence",
+  });
+  await assert.rejects(() => createPaymentCancellationAction(cancellation), {
+    url: "/admin/pagos?tab=reembolsos&notice=Solicitud+de+cancelaci%C3%B3n+enviada+a+Payments.&transactionReference=ORDER-1025&transactionId=transaction%2F2",
+  });
+  assert.deepEqual(calls, [
+    {
+      path: "/admin/payments/transactions/transaction%2F1/refunds?organizationId=org-1&shopId=shop-1",
+      method: "POST",
+      body: { refundId: "8b4fae3f-9dea-453e-8f33-dba2a7e7f65e", valueMinor: 1299, currency: "EUR" },
+    },
+    {
+      path: "/admin/payments/transactions/transaction%2F2/cancellations?organizationId=org-1&shopId=shop-1",
+      method: "POST",
+      body: { cancellationId: "10f7ba5d-20f5-41cd-91a9-fc0c5223b6e4", valueMinor: 899, currency: "EUR" },
+    },
+  ]);
 });
 
 test("payments admin activation actions patch only allowed resources", async () => {
@@ -246,12 +459,12 @@ test("payments admin activation actions patch only allowed resources", async () 
   method.set("active", "false");
   method.set("includeInactive", "true");
   const affiliation = new FormData();
-  affiliation.set("tab", "afiliaciones");
+  affiliation.set("tab", "proveedores");
   affiliation.set("resource", "affiliations");
   affiliation.set("id", "stripe-main");
   affiliation.set("active", "true");
   const rule = new FormData();
-  rule.set("tab", "reglas");
+  rule.set("tab", "routing");
   rule.set("resource", "rules");
   rule.set("id", "stripe-es");
   rule.set("active", "false");
@@ -265,10 +478,10 @@ test("payments admin activation actions patch only allowed resources", async () 
     url: "/admin/pagos?tab=metodos&notice=Recurso+Payments+desactivado.&includeInactive=true",
   });
   await assert.rejects(() => setPaymentResourceActiveAction(affiliation), {
-    url: "/admin/pagos?tab=afiliaciones&notice=Recurso+Payments+reactivado.",
+    url: "/admin/pagos?tab=proveedores&notice=Recurso+Payments+reactivado.",
   });
   await assert.rejects(() => setPaymentResourceActiveAction(rule), {
-    url: "/admin/pagos?tab=reglas&notice=Recurso+Payments+desactivado.",
+    url: "/admin/pagos?tab=routing&notice=Recurso+Payments+desactivado.",
   });
   await assert.rejects(() => setPaymentResourceActiveAction(invalid), /Recurso Payments no permitido/);
 

@@ -158,7 +158,7 @@ test("customers admin route renders the module instead of the placeholder", () =
   assert.match(pageSource, /Estado de privacidad/);
   assert.match(pageSource, /Ticket medio/);
   assert.match(pageSource, /<h4>Casos<\/h4>/);
-  assert.match(pageSource, /\/admin\/pagos\?invoiceId=/);
+  assert.match(pageSource, /\/admin\/pagos\/facturas\//);
   assert.match(pageSource, /\/admin\/postventa\?caseId=/);
   assert.match(pageSource, /Abrir factura/);
   assert.match(pageSource, /Atender/);

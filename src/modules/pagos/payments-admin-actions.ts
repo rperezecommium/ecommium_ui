@@ -34,6 +34,11 @@ function numberValue(formData: FormData, key: string) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function positiveIntegerValue(formData: FormData, key: string) {
+  const parsed = numberValue(formData, key);
+  return typeof parsed === "number" && Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 function scopedPath(path: string, organizationId: string, shopId: string) {
   return `${path}?${new URLSearchParams({ organizationId, shopId }).toString()}`;
 }
@@ -63,6 +68,26 @@ function paymentsRedirect(tab: string, notice: string, includeInactive = false) 
   const params = new URLSearchParams({ tab, notice });
   if (includeInactive) {
     params.set("includeInactive", "true");
+  }
+
+  revalidatePath("/admin/pagos");
+  redirect(`/admin/pagos?${params.toString()}`);
+}
+
+function operationRedirect(
+  tab: "operaciones" | "reembolsos",
+  notice: string,
+  options: { referenceId?: string; transactionId?: string; drawer?: "refund-evidence" } = {},
+) {
+  const params = new URLSearchParams({ tab, notice });
+  if (options.referenceId) {
+    params.set("transactionReference", options.referenceId);
+  }
+  if (options.transactionId) {
+    params.set("transactionId", options.transactionId);
+  }
+  if (options.drawer) {
+    params.set("drawer", options.drawer);
   }
 
   revalidatePath("/admin/pagos");
@@ -121,7 +146,7 @@ export async function createPaymentAffiliationAction(formData: FormData) {
     throw new Error(result.error);
   }
 
-  paymentsRedirect("afiliaciones", "Afiliacion de pago creada.");
+  paymentsRedirect("proveedores", "Proveedor de pago creado.");
 }
 
 export async function createPaymentRuleAction(formData: FormData) {
@@ -152,7 +177,7 @@ export async function createPaymentRuleAction(formData: FormData) {
     throw new Error(result.error);
   }
 
-  paymentsRedirect("reglas", "Regla de pago creada.");
+  paymentsRedirect("routing", "Regla de routing creada.");
 }
 
 export async function setPaymentResourceActiveAction(formData: FormData) {
@@ -181,4 +206,76 @@ export async function setPaymentResourceActiveAction(formData: FormData) {
   }
 
   paymentsRedirect(tab, active ? "Recurso Payments reactivado." : "Recurso Payments desactivado.", includeInactive);
+}
+
+export async function createPaymentRefundAction(formData: FormData) {
+  const context = await activeContext();
+  const transactionId = value(formData, "transactionId");
+  const refundId = value(formData, "refundId");
+  const valueMinor = positiveIntegerValue(formData, "valueMinor");
+  const currency = value(formData, "currency");
+  const referenceId = value(formData, "referenceId");
+
+  if (value(formData, "confirmed") !== "on") {
+    throw new Error("Confirma el reembolso antes de enviarlo a Payments.");
+  }
+  if (!transactionId || !refundId || !valueMinor || !currency) {
+    throw new Error("Faltan datos para solicitar el reembolso.");
+  }
+
+  const result = await requestBff(
+    scopedPath(`/admin/payments/transactions/${encodeURIComponent(transactionId)}/refunds`, context.organizationId, context.shopId),
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ refundId, valueMinor, currency }),
+      },
+    },
+  );
+
+  if (!result.ok) {
+    throw new Error(result.error);
+  }
+
+  operationRedirect(
+    "reembolsos",
+    "Solicitud creada. El importe quedó reservado; Payments está comprobando la confirmación del proveedor.",
+    { referenceId, transactionId, drawer: "refund-evidence" },
+  );
+}
+
+export async function createPaymentCancellationAction(formData: FormData) {
+  const context = await activeContext();
+  const transactionId = value(formData, "transactionId");
+  const cancellationId = value(formData, "cancellationId");
+  const valueMinor = positiveIntegerValue(formData, "valueMinor");
+  const currency = value(formData, "currency");
+  const referenceId = value(formData, "referenceId");
+
+  if (value(formData, "confirmed") !== "on") {
+    throw new Error("Confirma la cancelación antes de enviarla a Payments.");
+  }
+  if (!transactionId || !cancellationId || !valueMinor || !currency) {
+    throw new Error("Faltan datos para solicitar la cancelación.");
+  }
+
+  const result = await requestBff(
+    scopedPath(`/admin/payments/transactions/${encodeURIComponent(transactionId)}/cancellations`, context.organizationId, context.shopId),
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ cancellationId, valueMinor, currency }),
+      },
+    },
+  );
+
+  if (!result.ok) {
+    throw new Error(result.error);
+  }
+
+  operationRedirect("reembolsos", "Solicitud de cancelación enviada a Payments.", { referenceId, transactionId });
 }

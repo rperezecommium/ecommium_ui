@@ -275,6 +275,13 @@ delivery en estado `FAILED` puede reintentarse; el BFF confirma el estado result
 - `POST /api/v1/admin/payments/rules?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/payments/rules/:ruleId?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/payments/card-lookup?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/payments/transactions?organizationId=:org&shopId=:shop&status=:optional&referenceId=:optional&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/payments/transactions/:transactionId?organizationId=:org&shopId=:shop`
+
+La ficha de una transacción sirve como evidencia operativa del refund: la UI puede
+mostrar importes, estado, proveedor, referencia del refund, error y timestamps
+seguros. No debe renderizar `additionalData`, snapshots PSP, secretos, PAN/CVV,
+tokens o la respuesta cruda del proveedor.
 
 ### Admin: Pricing
 

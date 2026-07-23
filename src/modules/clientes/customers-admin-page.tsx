@@ -918,7 +918,7 @@ function ContinuityOverviewPanel({
                     <td><span className={statusBadgeClass(invoice.status)}>{valueText(invoice.status)}</span></td>
                     <td>{moneyText(invoice.totalAmountMinor, invoice.currency)}</td>
                     <td>
-                      <Link className="adminButton adminButtonTiny" href={`/admin/pagos?invoiceId=${encodeURIComponent(invoice.invoiceId)}`}>
+                      <Link className="adminButton adminButtonTiny" href={`/admin/pagos/facturas/${encodeURIComponent(invoice.invoiceId)}`}>
                         Abrir factura
                       </Link>
                     </td>

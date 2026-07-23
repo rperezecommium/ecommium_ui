@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CreditCard, Download, FileText, Search } from "lucide-react";
+import { CreditCard, Download, Search } from "lucide-react";
 import type {
   InvoiceAdminCapabilities,
   InvoiceAdminData,
@@ -19,7 +19,7 @@ type Props = {
 };
 
 function invoicesHref(filters: InvoiceAdminFilters, patch: Partial<InvoiceAdminFilters>) {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ tab: "facturas" });
   const next = { ...filters, ...patch };
 
   Object.entries(next).forEach(([key, value]) => {
@@ -29,6 +29,10 @@ function invoicesHref(filters: InvoiceAdminFilters, patch: Partial<InvoiceAdminF
   });
 
   return `/admin/pagos${params.size ? `?${params.toString()}` : ""}`;
+}
+
+function invoiceDetailHref(invoiceId: string) {
+  return `/admin/pagos/facturas/${encodeURIComponent(invoiceId)}`;
 }
 
 function valueText(value: unknown) {
@@ -69,6 +73,10 @@ function moneyText(amountMinor: number | undefined, currency = "EUR") {
     style: "currency",
     currency,
   }).format(amountMinor / 100);
+}
+
+function invoiceLabel(invoice: { invoiceId: string; invoiceNumberFormatted?: string | null }) {
+  return invoice.invoiceNumberFormatted || "Factura";
 }
 
 function statusBadgeClass(status: string | undefined) {
@@ -162,7 +170,7 @@ function OperationsPanel({ capabilities }: Pick<Props, "capabilities">) {
   );
 }
 
-function InvoicesTable({ data, filters }: Pick<Props, "data" | "filters">) {
+function InvoicesTable({ data }: Pick<Props, "data">) {
   if (!data.invoices.ok) {
     return <ResultBanner result={data.invoices} />;
   }
@@ -178,7 +186,6 @@ function InvoicesTable({ data, filters }: Pick<Props, "data" | "filters">) {
           <tr>
             <th>Factura</th>
             <th>Pedido</th>
-            <th>Cliente</th>
             <th>Estado</th>
             <th>Total</th>
             <th>Emitida</th>
@@ -189,18 +196,21 @@ function InvoicesTable({ data, filters }: Pick<Props, "data" | "filters">) {
           {data.invoices.data.items.map((invoice) => (
             <tr key={invoice.invoiceId}>
               <td>
-                <strong>{invoice.invoiceNumberFormatted ?? invoice.invoiceId}</strong>
+                <strong>{invoiceLabel(invoice)}</strong>
                 <div className="adminMuted">{invoice.series} {invoice.fiscalPeriod}</div>
               </td>
-              <td>{valueText(invoice.orderId)}</td>
-              <td>{valueText(invoice.customerId)}</td>
+              <td>
+                <Link className="adminButton adminButtonTiny" href={`/admin/pedidos?orderId=${encodeURIComponent(invoice.orderId)}`}>
+                  Abrir pedido
+                </Link>
+              </td>
               <td><span className={statusBadgeClass(invoice.status)}>{valueText(invoice.status)}</span></td>
               <td>{moneyText(invoice.totalMinor, invoice.currency)}</td>
               <td>{dateText(invoice.issuedAt ?? invoice.createdAt)}</td>
               <td>
                 <div className="adminButtonRow">
-                  <Link className="adminButton adminButtonTiny" href={invoicesHref(filters, { invoiceId: invoice.invoiceId })}>
-                    Ver detalle
+                  <Link className="adminButton adminButtonTiny" href={invoiceDetailHref(invoice.invoiceId)}>
+                    Abrir factura
                   </Link>
                   <Link className="adminButton adminButtonTiny" href={`/admin/pagos/invoices/${encodeURIComponent(invoice.invoiceId)}/document`} target="_blank">
                     Documento
@@ -218,37 +228,37 @@ function InvoicesTable({ data, filters }: Pick<Props, "data" | "filters">) {
 function InvoiceKpis({ data }: Pick<Props, "data">) {
   const invoices = data.invoices.ok ? data.invoices.data : null;
   const issued = invoices?.items.filter((invoice) => invoice.status === "ISSUED").length ?? 0;
-  const failed = invoices?.items.filter((invoice) => invoice.status === "FAILED").length ?? 0;
+  const incidents = invoices?.items.filter((invoice) => invoice.status === "FAILED" || invoice.status === "VOIDED").length ?? 0;
   const totalMinor = invoices?.items.reduce((sum, invoice) => sum + (invoice.totalMinor ?? 0), 0) ?? 0;
   const currency = invoices?.items[0]?.currency ?? data.context.currency;
 
   return (
     <section className="adminKpiGrid">
       <div className="adminKpi">
-        <span>Servicio Invoice</span>
-        <strong>{data.health.ok ? valueText(data.health.data?.status) : "Sin conexion"}</strong>
-        <p>{data.health.ok ? `DB ${data.health.data?.databaseReachable ? "ok" : "pendiente"}` : data.health.error}</p>
-      </div>
-      <div className="adminKpi">
-        <span>Facturas filtradas</span>
+        <span>Facturas</span>
         <strong>{data.invoices.ok ? data.invoices.data.total : "-"}</strong>
-        <p>{issued} emitidas en pagina actual</p>
+        <p>En el filtro actual</p>
       </div>
       <div className="adminKpi">
-        <span>Importe pagina</span>
+        <span>Emitidas</span>
+        <strong>{issued}</strong>
+        <p>En la página actual</p>
+      </div>
+      <div className="adminKpi">
+        <span>Con incidencia</span>
+        <strong>{incidents}</strong>
+        <p>Fallidas o anuladas</p>
+      </div>
+      <div className="adminKpi">
+        <span>Importe listado</span>
         <strong>{moneyText(totalMinor, currency)}</strong>
-        <p>{failed} con fallo fiscal</p>
-      </div>
-      <div className="adminKpi">
-        <span>Documentos</span>
-        <strong>{data.templatePreview.ok ? valueText(data.templatePreview.data?.documentType) : "-"}</strong>
-        <p>{data.health.ok ? valueText(data.health.data?.documentDriver) : "Plantilla no disponible"}</p>
+        <p>De la página actual</p>
       </div>
     </section>
   );
 }
 
-function InvoiceDetail({ capabilities, data }: Pick<Props, "capabilities" | "data">) {
+function InvoiceDetailPanel({ capabilities, data }: Pick<Props, "capabilities" | "data">) {
   if (!data.selectedInvoice.ok) {
     return <ResultBanner result={data.selectedInvoice} />;
   }
@@ -262,29 +272,43 @@ function InvoiceDetail({ capabilities, data }: Pick<Props, "capabilities" | "dat
     <section className="adminCard">
       <div className="adminCardHeader">
         <div>
-          <h2>Detalle factura</h2>
-          <p>{invoice.invoiceNumberFormatted ?? invoice.invoiceId}</p>
+          <h2>Resumen fiscal</h2>
+          <p>Totales y estado de emisión.</p>
         </div>
         <span className={statusBadgeClass(invoice.status)}>{valueText(invoice.status)}</span>
       </div>
-      <dl className="adminDefinitionList">
-        <div><dt>Factura</dt><dd>{invoice.invoiceId}</dd></div>
-        <div><dt>Pedido</dt><dd>{invoice.orderId}</dd></div>
-        <div><dt>Cliente</dt><dd>{valueText(invoice.customerId)}</dd></div>
-        <div><dt>Total</dt><dd>{moneyText(invoice.totalMinor, invoice.currency)}</dd></div>
-        <div><dt>Base</dt><dd>{moneyText(invoice.subtotalMinor, invoice.currency)}</dd></div>
-        <div><dt>Impuesto</dt><dd>{moneyText(invoice.taxMinor, invoice.currency)}</dd></div>
-        <div><dt>Envio</dt><dd>{moneyText(invoice.shippingMinor, invoice.currency)}</dd></div>
-        <div><dt>Emitida</dt><dd>{dateText(invoice.issuedAt ?? invoice.createdAt)}</dd></div>
-      </dl>
+      <div className="adminTableScroller">
+        <table aria-label="Resumen fiscal de la factura" className="adminTable pricingTable">
+          <thead>
+            <tr>
+              <th scope="col">Base</th>
+              <th scope="col">Impuesto</th>
+              <th scope="col">Envío</th>
+              <th scope="col">Total</th>
+              <th scope="col">Emitida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{moneyText(invoice.subtotalMinor, invoice.currency)}</td>
+              <td>{moneyText(invoice.taxMinor, invoice.currency)}</td>
+              <td>{moneyText(invoice.shippingMinor, invoice.currency)}</td>
+              <td><strong>{moneyText(invoice.totalMinor, invoice.currency)}</strong></td>
+              <td>{dateText(invoice.issuedAt ?? invoice.createdAt)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       {invoice.failureReason ? (
         <div className="adminBanner adminBannerWarning">
           <p>{invoice.failureReason}</p>
         </div>
       ) : null}
       {invoice.lines.length ? (
-        <div className="adminTableScroller">
-          <table className="adminTable pricingTable">
+        <section className="invoicesDetailSection">
+          <h3>Líneas facturadas</h3>
+          <div className="adminTableScroller">
+            <table className="adminTable pricingTable">
             <thead>
               <tr>
                 <th>Linea</th>
@@ -305,8 +329,9 @@ function InvoiceDetail({ capabilities, data }: Pick<Props, "capabilities" | "dat
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+            </table>
+          </div>
+        </section>
       ) : null}
       <div className="adminButtonRow">
         <Link className="adminButton adminButtonPrimary" href={`/admin/pagos/invoices/${encodeURIComponent(invoice.invoiceId)}/document`} target="_blank">
@@ -318,54 +343,32 @@ function InvoiceDetail({ capabilities, data }: Pick<Props, "capabilities" | "dat
         </Link>
       </div>
       {capabilities.canManageInvoices ? (
-        <form action={createFiscalInvoiceAdjustmentAction} className="pricingDenseForm">
-          <input name="orderId" type="hidden" value={invoice.orderId} />
-          <input name="invoiceId" type="hidden" value={invoice.invoiceId} />
-          <input name="currency" type="hidden" value={invoice.currency ?? data.context.currency} />
-          <label className="adminField">
-            <span>Documento</span>
-            <select name="adjustmentType" required>
-              <option value="CREDIT_NOTE">Nota de credito</option>
-              <option value="FISCAL_ADJUSTMENT">Ajuste fiscal</option>
-            </select>
-          </label>
-          <label className="adminField">
-            <span>Importe menor</span>
-            <input name="amountMinor" min="1" placeholder="1299" required type="number" />
-          </label>
-          <label className="adminField">
-            <span>Motivo</span>
-            <input name="reason" placeholder="Devolucion parcial, correccion fiscal..." required />
-          </label>
-          <button className="adminButton" type="submit">Crear nota/ajuste</button>
-        </form>
+        <section className="invoicesDetailSection">
+          <h3>Rectificación fiscal</h3>
+          <form action={createFiscalInvoiceAdjustmentAction} className="pricingDenseForm">
+            <input name="orderId" type="hidden" value={invoice.orderId} />
+            <input name="invoiceId" type="hidden" value={invoice.invoiceId} />
+            <input name="currency" type="hidden" value={invoice.currency ?? data.context.currency} />
+            <input name="returnTo" type="hidden" value={invoiceDetailHref(invoice.invoiceId)} />
+            <label className="adminField">
+              <span>Documento</span>
+              <select name="adjustmentType" required>
+                <option value="CREDIT_NOTE">Nota de crédito</option>
+                <option value="FISCAL_ADJUSTMENT">Ajuste fiscal</option>
+              </select>
+            </label>
+            <label className="adminField">
+              <span>Importe (céntimos)</span>
+              <input name="amountMinor" min="1" placeholder="1299" required type="number" />
+            </label>
+            <label className="adminField">
+              <span>Motivo</span>
+              <input name="reason" placeholder="Devolución parcial, corrección fiscal..." required />
+            </label>
+            <button className="adminButton" type="submit">Crear nota o ajuste</button>
+          </form>
+        </section>
       ) : null}
-    </section>
-  );
-}
-
-function DocumentPanel({ data }: Pick<Props, "data">) {
-  const document = data.selectedDocument.ok ? data.selectedDocument.data : null;
-  const template = data.templatePreview.ok ? data.templatePreview.data : null;
-  const html = document?.html ?? template?.html;
-
-  return (
-    <section className="adminCard">
-      <div className="adminCardHeader">
-        <div>
-          <h2>Documento fiscal</h2>
-          <p>{document ? document.documentId : "Preview plantilla vigente"}</p>
-        </div>
-        <FileText aria-hidden="true" size={18} />
-      </div>
-      {!data.selectedDocument.ok ? <ResultBanner result={data.selectedDocument} /> : null}
-      {html ? (
-        <div className="adminCodePreview">
-          {html.slice(0, 900)}
-        </div>
-      ) : (
-        <div className="adminEmptyState">Sin documento HTML disponible para la seleccion actual.</div>
-      )}
     </section>
   );
 }
@@ -373,36 +376,27 @@ function DocumentPanel({ data }: Pick<Props, "data">) {
 function InvoicesAdminContent({ capabilities, data, filters }: Props) {
   return (
     <>
-      <div className="adminBreadcrumb">Admin / Pagos / Facturacion fiscal</div>
-      <div className="adminPageHeader">
-        <div>
-          <h1 className="adminPageTitle">Facturas y fiscalidad</h1>
-          <p className="adminPageIntro">Consola para buscar facturas, revisar documentos, emitir por pedido y crear notas de credito o ajustes fiscales.</p>
-        </div>
-      </div>
       {filters.notice ? (
         <div className="adminBanner adminBannerSuccess">
           <p>{filters.notice}</p>
         </div>
       ) : null}
       <InvoiceKpis data={data} />
-      <div className="adminGrid">
+      <div className="adminGrid invoicesWorkspace">
         <div className="adminStatusList">
           <FiltersPanel filters={filters} />
           <section className="adminCard">
             <div className="adminCardHeader">
               <div>
-                <h2>Bandeja de facturas</h2>
-                <p>Listado fiscal emitido por Invoice.</p>
+                <h2>Facturas</h2>
+                <p>Consulta documentos fiscales y abre la ficha de cada factura.</p>
               </div>
             </div>
-            <InvoicesTable data={data} filters={filters} />
+            <InvoicesTable data={data} />
           </section>
-          <InvoiceDetail capabilities={capabilities} data={data} />
         </div>
         <div className="adminStatusList">
           <OperationsPanel capabilities={capabilities} />
-          <DocumentPanel data={data} />
         </div>
       </div>
     </>
@@ -417,6 +411,25 @@ export function InvoicesAdminPage({ capabilities, data, embedded = false, filter
   return (
     <main className="adminPage">
       <InvoicesAdminContent capabilities={capabilities} data={data} filters={filters} />
+    </main>
+  );
+}
+
+export function InvoiceDetailAdminPage({ capabilities, data, filters }: Omit<Props, "embedded">) {
+  const invoice = data.selectedInvoice.ok ? data.selectedInvoice.data : null;
+
+  return (
+    <main className="adminPage invoiceDetailPage">
+      <header className="invoiceDetailHeader">
+        <div>
+          <Link className="adminBreadcrumb" href={invoicesHref(filters, { invoiceId: undefined, notice: undefined })}>Admin / Pagos / Facturación</Link>
+          <h1 className="adminPageTitle">{invoice ? invoiceLabel(invoice) : "Factura"}</h1>
+          <p className="adminPageIntro">Detalle fiscal, documento y rectificaciones de la factura.</p>
+        </div>
+        <Link className="adminButton" href={invoicesHref(filters, { invoiceId: undefined, notice: undefined })}>Volver a Facturación</Link>
+      </header>
+      {filters.notice ? <div className="adminBanner adminBannerSuccess"><p>{filters.notice}</p></div> : null}
+      <InvoiceDetailPanel capabilities={capabilities} data={data} />
     </main>
   );
 }

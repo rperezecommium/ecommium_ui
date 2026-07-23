@@ -801,7 +801,7 @@ function InvoiceDetail({
         <div className="adminButtonRow">
           {invoiceId ? (
             <>
-              <Link className="adminButton" href={`/admin/pagos?invoiceId=${encodeURIComponent(invoiceId)}`}>
+              <Link className="adminButton" href={`/admin/pagos/facturas/${encodeURIComponent(invoiceId)}`}>
                 Abrir factura fiscal
               </Link>
               <Link className="adminButton" href={`/admin/pagos/invoices/${encodeURIComponent(invoiceId)}/document`} target="_blank">

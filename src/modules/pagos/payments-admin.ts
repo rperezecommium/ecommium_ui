@@ -4,18 +4,38 @@ import type { AdminSession } from "../../shared/auth/session";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 
-export type PaymentsAdminTab = "facturas" | "metodos" | "afiliaciones" | "reglas" | "diagnostico";
+export type PaymentsAdminTab =
+  | "resumen"
+  | "operaciones"
+  | "reembolsos"
+  | "facturas"
+  | "metodos"
+  | "proveedores"
+  | "routing"
+  | "diagnostico";
+
+export type LegacyPaymentsAdminTab = "afiliaciones" | "reglas";
+export type PaymentsAdminDrawer = "refund-evidence" | "create-payment-system" | "create-affiliation" | "create-payment-rule";
 
 export type PaymentsAdminFilters = {
-  tab?: PaymentsAdminTab;
+  tab?: PaymentsAdminTab | LegacyPaymentsAdminTab;
   includeInactive?: string;
   cardBin?: string;
+  transactionStatus?: string;
+  transactionReference?: string;
+  transactionLimit?: string;
+  transactionOffset?: string;
   notice?: string;
+  transactionId?: string;
+  drawer?: PaymentsAdminDrawer;
 };
 
 export type PaymentsAdminCapabilities = {
   canManagePayments: boolean;
   canViewPayments: boolean;
+  canViewOperations: boolean;
+  canProcessTransactions: boolean;
+  canRefundPayments: boolean;
 };
 
 export type PaymentSystemAdminRecord = {
@@ -56,12 +76,88 @@ export type PaymentsCardLookupResult = {
   paymentSystems: PaymentSystemAdminRecord[];
 };
 
+export type PaymentOperationMethod = {
+  name: string;
+  methodType?: string;
+  status?: string;
+};
+
+export type PaymentOperationAdminRecord = {
+  transactionId: string;
+  paymentReference?: string;
+  referenceId?: string;
+  status: string;
+  valueMinor: number;
+  currency: string;
+  paymentMethods: PaymentOperationMethod[];
+  settledMinor: number;
+  refundedMinor: number;
+  cancelledMinor: number;
+  refundableMinor: number;
+  cancellableMinor: number;
+  refundsCount: number;
+  cancellationsCount: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type PaymentOperationsSummary = {
+  capturedMinor: number;
+  pendingCount: number;
+  failedCount: number;
+  refundedMinor: number;
+};
+
+export type PaymentOperationsAdminPage = {
+  items: PaymentOperationAdminRecord[];
+  total: number;
+  limit: number;
+  offset: number;
+  summary: PaymentOperationsSummary;
+};
+
+export type PaymentRefundEvidence = {
+  refundId: string;
+  transactionId: string;
+  valueMinor: number;
+  freightMinor?: number;
+  taxMinor?: number;
+  currency: string;
+  status: string;
+  providerName?: string;
+  providerStatus?: string;
+  providerRefundId?: string;
+  failureCode?: string;
+  failureMessage?: string;
+  requestedAt?: string;
+  submittedAt?: string;
+  providerAcceptedAt?: string;
+  succeededAt?: string;
+  failedAt?: string;
+  updatedAt?: string;
+};
+
+export type PaymentTransactionEvidence = {
+  transactionId: string;
+  paymentReference?: string;
+  referenceId?: string;
+  status: string;
+  valueMinor: number;
+  currency: string;
+  settledMinor: number;
+  refundedMinor: number;
+  refundableMinor: number;
+  refunds: PaymentRefundEvidence[];
+};
+
 export type PaymentsAdminData = {
   affiliations: BffResult<PaymentAffiliationAdminRecord[]>;
   cardLookup: BffResult<PaymentsCardLookupResult | null>;
   context: AdminContext;
   paymentSystems: BffResult<PaymentSystemAdminRecord[]>;
   rules: BffResult<PaymentRuleAdminRecord[]>;
+  transactions: BffResult<PaymentOperationsAdminPage>;
+  transactionEvidence: BffResult<PaymentTransactionEvidence | null>;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -74,6 +170,16 @@ function asString(value: unknown): string | undefined {
 
 function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function nullableNumber(value: unknown): number | undefined {
+  const parsed = asNumber(value);
+  return typeof parsed === "number" && parsed >= 0 ? parsed : undefined;
+}
+
+function nonNegativeNumber(value: unknown) {
+  const parsed = asNumber(value);
+  return typeof parsed === "number" && parsed >= 0 ? parsed : 0;
 }
 
 function asArray(value: unknown): unknown[] {
@@ -140,9 +246,15 @@ export function getPaymentsAdminCapabilities(
   session: Pick<AdminSession, "permissions" | "scope"> | null | undefined,
 ): PaymentsAdminCapabilities {
   const canManagePayments = hasPermission(session, ["payments.manage", "admin:payments:manage"]);
+  const canViewOperations = hasPermission(session, ["payments.transactions.read"]);
+  const canProcessTransactions = hasPermission(session, ["payments.transactions.process"]);
+  const canRefundPayments = hasPermission(session, ["payments.refunds.write"]);
   return {
     canManagePayments,
     canViewPayments: canManagePayments || hasPermission(session, ["payments.read", "admin:payments:view"]),
+    canViewOperations,
+    canProcessTransactions,
+    canRefundPayments,
   };
 }
 
@@ -213,6 +325,111 @@ function normalizeCardLookup(value: unknown): PaymentsCardLookupResult {
   };
 }
 
+export function normalizePaymentOperation(value: unknown): PaymentOperationAdminRecord {
+  const record = asRecord(value);
+  const methods = asArray(record.paymentMethods).map((method) => {
+    const item = asRecord(method);
+    return {
+      name: asString(item.name) ?? asString(item.methodType) ?? "Método no informado",
+      methodType: asString(item.methodType),
+      status: asString(item.status),
+    };
+  });
+
+  return {
+    transactionId: asString(record.transactionId) ?? asString(record.id) ?? "",
+    paymentReference: asString(record.paymentReference),
+    referenceId: asString(record.referenceId),
+    status: asString(record.status) ?? "UNKNOWN",
+    valueMinor: nonNegativeNumber(record.valueMinor),
+    currency: asString(record.currency) ?? "EUR",
+    paymentMethods: methods,
+    settledMinor: nonNegativeNumber(record.settledMinor),
+    refundedMinor: nonNegativeNumber(record.refundedMinor),
+    cancelledMinor: nonNegativeNumber(record.cancelledMinor),
+    refundableMinor: nonNegativeNumber(record.refundableMinor),
+    cancellableMinor: nonNegativeNumber(record.cancellableMinor),
+    refundsCount: nonNegativeNumber(record.refundsCount),
+    cancellationsCount: nonNegativeNumber(record.cancellationsCount),
+    createdAt: asString(record.createdAt),
+    updatedAt: asString(record.updatedAt),
+  };
+}
+
+export function normalizePaymentOperationsPage(value: unknown): PaymentOperationsAdminPage {
+  const record = asRecord(value);
+  const payload = Object.keys(asRecord(record.data)).length ? asRecord(record.data) : record;
+  const summary = asRecord(payload.summary);
+
+  return {
+    items: asArray(payload.items).map(normalizePaymentOperation).filter((item) => item.transactionId),
+    total: nonNegativeNumber(payload.total),
+    limit: nonNegativeNumber(payload.limit) || 25,
+    offset: nonNegativeNumber(payload.offset),
+    summary: {
+      capturedMinor: nonNegativeNumber(summary.capturedMinor),
+      pendingCount: nonNegativeNumber(summary.pendingCount),
+      failedCount: nonNegativeNumber(summary.failedCount),
+      refundedMinor: nonNegativeNumber(summary.refundedMinor),
+    },
+  };
+}
+
+function normalizePaymentRefundEvidence(value: unknown): PaymentRefundEvidence {
+  const record = asRecord(value);
+  return {
+    refundId: asString(record.refundId) ?? "",
+    transactionId: asString(record.transactionId) ?? "",
+    valueMinor: nonNegativeNumber(record.valueMinor),
+    freightMinor: nullableNumber(record.freightMinor),
+    taxMinor: nullableNumber(record.taxMinor),
+    currency: asString(record.currency) ?? "EUR",
+    status: asString(record.status) ?? "UNKNOWN",
+    providerName: asString(record.providerName),
+    providerStatus: asString(record.providerStatus),
+    providerRefundId: asString(record.providerRefundId),
+    failureCode: asString(record.failureCode),
+    failureMessage: asString(record.failureMessage),
+    requestedAt: asString(record.requestedAt),
+    submittedAt: asString(record.submittedAt),
+    providerAcceptedAt: asString(record.providerAcceptedAt),
+    succeededAt: asString(record.succeededAt),
+    failedAt: asString(record.failedAt),
+    updatedAt: asString(record.updatedAt),
+  };
+}
+
+function refundEvidenceDate(refund: PaymentRefundEvidence) {
+  const value = refund.updatedAt
+    ?? refund.succeededAt
+    ?? refund.failedAt
+    ?? refund.providerAcceptedAt
+    ?? refund.submittedAt
+    ?? refund.requestedAt;
+  const timestamp = value ? Date.parse(value) : Number.NaN;
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+export function normalizePaymentTransactionEvidence(value: unknown): PaymentTransactionEvidence {
+  const envelope = asRecord(value);
+  const transaction = asRecord(envelope.transaction ?? value);
+  return {
+    transactionId: asString(transaction.transactionId) ?? asString(transaction.id) ?? "",
+    paymentReference: asString(transaction.paymentReference),
+    referenceId: asString(transaction.referenceId),
+    status: asString(transaction.status) ?? "UNKNOWN",
+    valueMinor: nonNegativeNumber(transaction.valueMinor),
+    currency: asString(transaction.currency) ?? "EUR",
+    settledMinor: nonNegativeNumber(transaction.settledMinor),
+    refundedMinor: nonNegativeNumber(transaction.refundedMinor),
+    refundableMinor: nonNegativeNumber(transaction.refundableMinor),
+    refunds: asArray(transaction.refunds)
+      .map(normalizePaymentRefundEvidence)
+      .filter((refund) => refund.refundId)
+      .sort((left, right) => refundEvidenceDate(right) - refundEvidenceDate(left)),
+  };
+}
+
 export async function getPaymentsAdminData(
   context: AdminContext,
   filters: PaymentsAdminFilters,
@@ -226,6 +443,8 @@ export async function getPaymentsAdminData(
       context,
       paymentSystems: unavailable("Selecciona organization y shop para operar pagos."),
       rules: unavailable("Selecciona organization y shop para operar pagos."),
+      transactions: unavailable("Selecciona organization y shop para consultar operaciones."),
+      transactionEvidence: skipped,
     };
   }
 
@@ -237,12 +456,18 @@ export async function getPaymentsAdminData(
       context,
       paymentSystems: unavailable("Falta permiso admin:payments:view."),
       rules: unavailable("Falta permiso admin:payments:view."),
+      transactions: unavailable("Falta permiso admin:payments:view."),
+      transactionEvidence: skipped,
     };
   }
 
   const includeInactive = filters.includeInactive === "true" ? "true" : "false";
   const cardBin = filters.cardBin?.trim();
-  const [paymentSystems, affiliations, rules, cardLookup] = await Promise.all([
+  const shouldLoadTransactions = filters.tab === "resumen" || filters.tab === "operaciones" || filters.tab === "reembolsos" || !filters.tab;
+  const transactionLimit = Number(filters.transactionLimit);
+  const transactionOffset = Number(filters.transactionOffset);
+  const selectedTransactionId = filters.transactionId?.trim();
+  const [paymentSystems, affiliations, rules, cardLookup, transactions, transactionEvidence] = await Promise.all([
     requestBff<PaymentSystemAdminRecord[]>(scopedPath("/admin/payments/payment-systems", context, { includeInactive }), {
       context,
       parse: normalizePaymentSystems,
@@ -266,6 +491,27 @@ export async function getPaymentsAdminData(
           parse: normalizeCardLookup,
         })
       : Promise.resolve({ ok: true as const, data: null, status: 200, correlationId: "payments-admin-no-card-lookup" }),
+    shouldLoadTransactions && capabilities.canViewOperations
+      ? requestBff<PaymentOperationsAdminPage>(scopedPath("/admin/payments/transactions", context, {
+          status: filters.transactionStatus,
+          referenceId: filters.transactionReference,
+          limit: Number.isInteger(transactionLimit) && transactionLimit > 0 ? String(Math.min(transactionLimit, 100)) : "25",
+          offset: Number.isInteger(transactionOffset) && transactionOffset >= 0 ? String(transactionOffset) : "0",
+        }), {
+          context,
+          parse: normalizePaymentOperationsPage,
+        })
+      : Promise.resolve(unavailable<PaymentOperationsAdminPage>(
+          shouldLoadTransactions
+            ? "Falta permiso payments.transactions.read para consultar operaciones."
+            : "La bandeja de operaciones no se ha solicitado.",
+        )),
+    selectedTransactionId && capabilities.canViewOperations
+      ? requestBff<PaymentTransactionEvidence>(
+          scopedPath(`/admin/payments/transactions/${encodeURIComponent(selectedTransactionId)}`, context),
+          { context, parse: normalizePaymentTransactionEvidence },
+        )
+      : Promise.resolve({ ok: true as const, data: null, status: 200, correlationId: "payments-admin-no-transaction-evidence" }),
   ]);
 
   return {
@@ -274,5 +520,7 @@ export async function getPaymentsAdminData(
     context,
     paymentSystems,
     rules,
+    transactions,
+    transactionEvidence,
   };
 }

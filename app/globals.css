@@ -4372,6 +4372,437 @@ p {
   margin: 0 auto;
 }
 
+.paymentsAdminPage {
+  display: grid;
+  gap: 18px;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.paymentsPageHeader {
+  display: flex;
+  gap: 18px;
+  align-items: end;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.paymentsPageHeader .adminBreadcrumb {
+  margin-bottom: 8px;
+}
+
+.paymentsPageHeader .adminPageTitle,
+.paymentsPageHeader .adminPageIntro {
+  margin-bottom: 0;
+}
+
+.paymentsPageContext {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 12px;
+  max-width: 390px;
+  color: var(--admin-text-muted);
+  font-size: 13px;
+  text-align: right;
+}
+
+.paymentsPageContext strong {
+  width: 100%;
+  color: var(--admin-text);
+}
+
+.paymentsTabs {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.paymentsPrimaryTabs {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.paymentsTabsGroup {
+  display: grid;
+  gap: 4px;
+}
+
+.paymentsTabsGroup > span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.paymentsTabsGroup .adminButtonRow {
+  margin-top: 0;
+}
+
+.paymentsPageContent {
+  display: grid;
+  gap: 14px;
+}
+
+.paymentsConfigurationLayout {
+  display: grid;
+  gap: 16px;
+}
+
+.paymentsSummaryLayout {
+  display: grid;
+  gap: 16px;
+}
+
+.paymentsConfigurationKpis {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.paymentsConfigurationTable {
+  min-width: 0;
+}
+
+.paymentsConfigurationTable .adminTableScroller {
+  max-width: 100%;
+}
+
+.paymentsOperationsLayout {
+  display: grid;
+  gap: 16px;
+}
+
+.paymentsOperationsOverview,
+.paymentsOperationsTableCard {
+  min-width: 0;
+}
+
+.paymentsOperationsKpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.paymentsOperationsFilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: var(--admin-surface-muted);
+}
+
+.paymentsOperationsFilters .adminField {
+  flex: 1 1 220px;
+  margin: 0;
+}
+
+.paymentsOperationsTable {
+  min-width: 1040px;
+}
+
+.paymentsRefundsTable {
+  min-width: 1060px;
+}
+
+.paymentsRefundEvidenceBackdrop {
+  align-items: stretch;
+  padding-left: 64px;
+  background: rgb(245 248 249 / 78%);
+}
+
+.paymentsRefundEvidenceBackdropLink {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.paymentsConfigurationDrawerBackdropLink {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.paymentsConfigurationDrawer {
+  position: relative;
+  z-index: 1;
+}
+
+.paymentsRefundEvidenceDrawer {
+  position: relative;
+  z-index: 1;
+  width: min(760px, calc(100vw - 16px));
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  padding: 0;
+}
+
+.paymentsRefundEvidenceDrawer .adminSideDrawerHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--admin-surface);
+}
+
+.paymentsRefundEvidenceDrawerBody {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.paymentsRefundEvidenceSummary,
+.paymentsRefundEvidenceItem {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface-muted);
+}
+
+.paymentsRefundEvidenceSummary h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.paymentsRefundEvidenceDetails {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.paymentsRefundEvidenceDetails > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.paymentsRefundEvidenceDetails dt {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.paymentsRefundEvidenceDetails dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.paymentsRefundEvidenceDetails code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.paymentsRefundEvidenceTitle {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.paymentsRefundEvidenceTitle h3,
+.paymentsRefundEvidenceTitle p,
+.paymentsRefundTimelineSection h4 {
+  margin: 0;
+}
+
+.paymentsRefundEvidenceTitle p {
+  margin-top: 4px;
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}
+
+.paymentsRefundProgressCopy {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--admin-info);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.paymentsRefundRefreshing {
+  margin: 0;
+}
+
+.paymentsRefundTimelineSection {
+  display: grid;
+  gap: 10px;
+}
+
+.paymentsRefundTimelineSection h4 {
+  font-size: 14px;
+}
+
+.paymentsRefundTimeline {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--admin-border);
+}
+
+.paymentsRefundTimeline li {
+  display: grid;
+  grid-template-columns: minmax(155px, 0.45fr) minmax(0, 1fr);
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.paymentsRefundTimeline time,
+.paymentsRefundTimeline span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.paymentsRefundTimeline div {
+  display: grid;
+  gap: 3px;
+}
+
+.paymentsOperationActions {
+  display: grid;
+  gap: 8px;
+}
+
+.paymentsOperationAction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.paymentsOperationAction .adminCheckbox {
+  margin: 0;
+}
+
+.paymentsRefundRequestForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+
+.paymentsRefundRequestForm .adminField {
+  min-width: 180px;
+  margin: 0;
+}
+
+.paymentsRefundRequestForm .adminCheckbox {
+  max-width: 360px;
+  font-size: 12px;
+}
+
+.paymentsOperationRestricted {
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}
+
+.paymentsDiagnosticsGrid > * {
+  min-width: 0;
+}
+
+.invoiceDetailPage {
+  display: grid;
+  gap: 18px;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.invoiceDetailHeader {
+  display: flex;
+  gap: 18px;
+  align-items: end;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.invoiceDetailHeader .adminBreadcrumb {
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.invoiceDetailHeader .adminPageTitle,
+.invoiceDetailHeader .adminPageIntro {
+  margin-bottom: 0;
+}
+
+.invoicesDetailSection {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.invoicesDetailSection h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.invoicesWorkspace > * {
+  min-width: 0;
+}
+
+.invoicesWorkspace .adminCard {
+  min-width: 0;
+}
+
+@media (max-width: 680px) {
+  .paymentsPageHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .paymentsPageContext {
+    justify-content: flex-start;
+    max-width: none;
+    text-align: left;
+  }
+
+  .paymentsConfigurationKpis {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentsOperationsKpis {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentsRefundEvidenceTitle,
+  .paymentsRefundTimeline li,
+  .paymentsRefundEvidenceDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentsRefundEvidenceTitle {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .invoiceDetailHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 .customerDetailHeader {
   display: flex;
   gap: 16px;

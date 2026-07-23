@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const warningLeadMs = 5 * 60_000;
 const activityThrottleMs = 60_000;
@@ -86,14 +86,18 @@ function recoveryKey(employeeId: string, pathname: string) {
   return `ecommium-admin-recovery:v1:${employeeId}:${pathname}`;
 }
 
+function dismissedRecoveryKey(employeeId: string, pathname: string) {
+  return `${recoveryKey(employeeId, pathname)}:dismissed`;
+}
+
 function formKey(form: HTMLFormElement) {
   const index = Array.from(document.forms).indexOf(form);
   return form.dataset.sessionRecoveryKey || form.id || `form-${Math.max(0, index)}`;
 }
 
-function readRecovery(employeeId: string, pathname: string): StoredRecovery | null {
+function readStoredRecovery(key: string, pathname: string): StoredRecovery | null {
   try {
-    const raw = window.sessionStorage.getItem(recoveryKey(employeeId, pathname));
+    const raw = window.sessionStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredRecovery;
     const savedAt = new Date(parsed.savedAt).getTime();
@@ -105,7 +109,7 @@ function readRecovery(employeeId: string, pathname: string): StoredRecovery | nu
       typeof parsed.forms !== "object" ||
       parsed.forms === null
     ) {
-      window.sessionStorage.removeItem(recoveryKey(employeeId, pathname));
+      window.sessionStorage.removeItem(key);
       return null;
     }
     return parsed;
@@ -114,15 +118,31 @@ function readRecovery(employeeId: string, pathname: string): StoredRecovery | nu
   }
 }
 
-function writeRecovery(employeeId: string, pathname: string, recovery: StoredRecovery) {
+function readRecovery(employeeId: string, pathname: string) {
+  return readStoredRecovery(recoveryKey(employeeId, pathname), pathname);
+}
+
+function readDismissedRecovery(employeeId: string, pathname: string) {
+  return readStoredRecovery(dismissedRecoveryKey(employeeId, pathname), pathname);
+}
+
+function writeStoredRecovery(key: string, recovery: StoredRecovery) {
   try {
     const serialized = JSON.stringify(recovery);
     if (serialized.length <= 100_000) {
-      window.sessionStorage.setItem(recoveryKey(employeeId, pathname), serialized);
+      window.sessionStorage.setItem(key, serialized);
     }
   } catch {
     // La recuperación es opcional: cuota o modo privado no deben bloquear la edición.
   }
+}
+
+function writeRecovery(employeeId: string, pathname: string, recovery: StoredRecovery) {
+  writeStoredRecovery(recoveryKey(employeeId, pathname), recovery);
+}
+
+function writeDismissedRecovery(employeeId: string, pathname: string, recovery: StoredRecovery) {
+  writeStoredRecovery(dismissedRecoveryKey(employeeId, pathname), recovery);
 }
 
 function isRecoverableControl(control: Element): control is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
@@ -137,8 +157,8 @@ function isRecoverableControl(control: Element): control is HTMLInputElement | H
   return true;
 }
 
-function snapshotForm(form: HTMLFormElement, employeeId: string, pathname: string) {
-  if (form.dataset.sessionRecovery === "off") return;
+function snapshotControls(form: HTMLFormElement) {
+  if (form.dataset.sessionRecovery === "off") return {};
   const controls: Record<string, StoredControl> = {};
   for (const element of Array.from(form.elements)) {
     if (!isRecoverableControl(element)) continue;
@@ -163,7 +183,40 @@ function snapshotForm(form: HTMLFormElement, employeeId: string, pathname: strin
     controls[element.name] = { kind: "value", value: element.value.slice(0, 10_000) };
   }
 
+  return controls;
+}
+
+function controlsMatch(left: Record<string, StoredControl> | undefined, right: Record<string, StoredControl>) {
+  return Boolean(left) && JSON.stringify(left) === JSON.stringify(right);
+}
+
+function snapshotVisibleForms(pathname: string): StoredRecovery {
+  const forms: Record<string, Record<string, StoredControl>> = {};
+  for (const form of Array.from(document.forms)) {
+    const controls = snapshotControls(form);
+    if (Object.keys(controls).length > 0) {
+      forms[formKey(form)] = controls;
+    }
+  }
+
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    pathname,
+    forms,
+  };
+}
+
+function snapshotForm(form: HTMLFormElement, employeeId: string, pathname: string) {
+  const controls = snapshotControls(form);
   if (Object.keys(controls).length === 0) return;
+  const key = formKey(form);
+  const dismissed = readDismissedRecovery(employeeId, pathname);
+  if (dismissed && controlsMatch(dismissed.forms[key], controls)) return;
+  if (dismissed) {
+    window.sessionStorage.removeItem(dismissedRecoveryKey(employeeId, pathname));
+  }
+
   const current = readRecovery(employeeId, pathname) ?? {
     version: 1 as const,
     savedAt: new Date().toISOString(),
@@ -171,7 +224,7 @@ function snapshotForm(form: HTMLFormElement, employeeId: string, pathname: strin
     forms: {},
   };
   current.savedAt = new Date().toISOString();
-  current.forms[formKey(form)] = controls;
+  current.forms[key] = controls;
   writeRecovery(employeeId, pathname, current);
 }
 
@@ -253,6 +306,9 @@ async function refreshTechnicalToken() {
 export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = searchParams.get("tab");
+  const recoveryPathname = tab ? `${pathname}?tab=${tab}` : pathname;
   const [state, setState] = useState<AdminSessionState | null>(null);
   const [warningOpen, setWarningOpen] = useState(false);
   const [countdown, setCountdown] = useState("");
@@ -347,8 +403,8 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
   }, [applyState, clearLocalSessionAndRedirect, requestWithTechnicalRefresh]);
 
   const closeSession = useCallback(async () => {
-    snapshotAllForms(employeeId, pathname);
-    setRecovery(readRecovery(employeeId, pathname));
+    snapshotAllForms(employeeId, recoveryPathname);
+    setRecovery(readRecovery(employeeId, recoveryPathname));
     setBusy("close");
     setNotice(null);
     const response = await fetch("/api/admin/session/close", {
@@ -362,11 +418,11 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
       return;
     }
     setNotice("No pudimos cerrar la sesión por un problema temporal. No se ha borrado ninguna credencial ni tu copia de recuperación.");
-  }, [clearLocalSessionAndRedirect, employeeId, pathname]);
+  }, [clearLocalSessionAndRedirect, employeeId, recoveryPathname]);
 
   useEffect(() => {
     const recoveryTimer = window.setTimeout(() => {
-      setRecovery(readRecovery(employeeId, pathname));
+      setRecovery(readRecovery(employeeId, recoveryPathname));
     }, 0);
     const stateTimer = window.setTimeout(() => {
       void syncState();
@@ -385,8 +441,8 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
       if (target instanceof Element) {
         const form = target.closest("form");
         if (form instanceof HTMLFormElement && (event.type === "input" || event.type === "change")) {
-          snapshotForm(form, employeeId, pathname);
-          setRecovery(readRecovery(employeeId, pathname));
+          snapshotForm(form, employeeId, recoveryPathname);
+          setRecovery(readRecovery(employeeId, recoveryPathname));
         }
       }
       reportHumanActivity();
@@ -394,7 +450,7 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
     const onVisibility = () => {
       if (document.visibilityState === "visible") void syncState();
     };
-    const onBeforeUnload = () => snapshotAllForms(employeeId, pathname);
+    const onBeforeUnload = () => snapshotAllForms(employeeId, recoveryPathname);
     const eventTypes = ["pointerdown", "keydown", "input", "change", "focusin"] as const;
     eventTypes.forEach((eventType) => document.addEventListener(eventType, onActivity, true));
     document.addEventListener("visibilitychange", onVisibility);
@@ -410,7 +466,7 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
       channel?.close();
       channelRef.current = null;
     };
-  }, [applyState, clearWarningTimer, employeeId, pathname, reportHumanActivity, sessionId, syncState]);
+  }, [applyState, clearWarningTimer, employeeId, recoveryPathname, reportHumanActivity, sessionId, syncState]);
 
   useEffect(() => {
     if (!warningOpen) return;
@@ -424,12 +480,22 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
 
   const restoreDraft = () => {
     if (!recovery) return;
+    const baseline = snapshotVisibleForms(recoveryPathname);
+    const restoredBaseline: StoredRecovery = {
+      ...baseline,
+      forms: { ...baseline.forms, ...recovery.forms },
+    };
+    window.sessionStorage.removeItem(recoveryKey(employeeId, recoveryPathname));
+    writeDismissedRecovery(employeeId, recoveryPathname, restoredBaseline);
+    setRecovery(null);
     restoreRecovery(recovery);
     setNotice("Se restauró la copia de recuperación en los formularios visibles. Revisa los datos antes de guardar.");
   };
 
   const discardDraft = () => {
-    window.sessionStorage.removeItem(recoveryKey(employeeId, pathname));
+    const baseline = snapshotVisibleForms(recoveryPathname);
+    window.sessionStorage.removeItem(recoveryKey(employeeId, recoveryPathname));
+    writeDismissedRecovery(employeeId, recoveryPathname, baseline);
     setRecovery(null);
   };
 

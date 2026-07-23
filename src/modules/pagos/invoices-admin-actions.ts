@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requestBff } from "../../shared/bff/client";
 import { getAdminContext } from "../../shared/config/admin-context";
 
-function asString(value: FormDataEntryValue | null) {
+function asString(value: FormDataEntryValue | null | undefined) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
@@ -32,8 +32,14 @@ function scopedPath(path: string, organizationId: string, shopId: string) {
   return `${path}?${new URLSearchParams({ organizationId, shopId }).toString()}`;
 }
 
-function invoicesReturnPath(message: string, invoiceId?: string) {
-  const params = new URLSearchParams({ notice: message });
+function invoicesReturnPath(message: string, invoiceId?: string, returnTo?: FormDataEntryValue | null) {
+  const requestedPath = asString(returnTo);
+  if (requestedPath?.startsWith("/admin/pagos/facturas/")) {
+    const [detailPath] = requestedPath.split("?", 1);
+    return `${detailPath}?${new URLSearchParams({ notice: message }).toString()}`;
+  }
+
+  const params = new URLSearchParams({ tab: "facturas", notice: message });
   if (invoiceId) {
     params.set("invoiceId", invoiceId);
   }
@@ -42,7 +48,7 @@ function invoicesReturnPath(message: string, invoiceId?: string) {
 }
 
 export async function applyInvoiceFiltersAction(formData: FormData): Promise<never> {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ tab: "facturas" });
   const invoiceId = asString(formData.get("invoiceId"));
   const orderId = asString(formData.get("orderId"));
   const status = asString(formData.get("status"));
@@ -121,8 +127,8 @@ export async function createFiscalInvoiceAdjustmentAction(formData: FormData): P
 
   revalidatePath("/admin/pagos");
   if (!result.ok) {
-    redirect(invoicesReturnPath(result.status === 403 ? "Falta permiso invoices.manage." : result.error, invoiceId));
+    redirect(invoicesReturnPath(result.status === 403 ? "Falta permiso invoices.manage." : result.error, invoiceId, formData.get("returnTo")));
   }
 
-  redirect(invoicesReturnPath("Nota o ajuste fiscal solicitado.", invoiceId));
+  redirect(invoicesReturnPath("Nota o ajuste fiscal solicitado.", invoiceId, formData.get("returnTo")));
 }

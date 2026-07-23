@@ -105,22 +105,27 @@ test("invoices admin replaces pagos placeholder and exposes fiscal navigation", 
   const actionsSource = readFileSync(path.resolve(root, "src/modules/pagos/invoices-admin-actions.ts"), "utf8");
   const permissionsSource = readFileSync(path.resolve(root, "src/shared/permissions/permissions.ts"), "utf8");
   const documentRouteSource = readFileSync(path.resolve(root, "app/(admin)/admin/pagos/invoices/[invoiceId]/document/route.ts"), "utf8");
+  const detailRouteSource = readFileSync(path.resolve(root, "app/(admin)/admin/pagos/facturas/[invoiceId]/page.tsx"), "utf8");
 
   assert.match(routeSource, /getInvoiceAdminData/);
   assert.match(routeSource, /getPaymentsAdminData/);
   assert.match(routeSource, /PaymentsAdminPage/);
   assert.doesNotMatch(routeSource, /Modulo pendiente de implementar/);
   assert.match(readFileSync(path.resolve(root, "src/modules/pagos/payments-admin-page.tsx"), "utf8"), /<InvoicesAdminPage capabilities=\{invoiceCapabilities\} data=\{invoiceData\} embedded filters=\{invoiceFilters\}/);
-  assert.match(pageSource, /Facturas y fiscalidad/);
-  assert.match(pageSource, /Bandeja de facturas/);
+  assert.match(pageSource, /Abrir factura/);
+  assert.match(pageSource, /Resumen fiscal/);
+  assert.match(pageSource, /Rectificación fiscal/);
+  assert.match(pageSource, /invoiceDetailHref/);
+  assert.doesNotMatch(pageSource, /adminCodePreview/);
   assert.match(pageSource, /createFiscalInvoiceAdjustmentAction/);
   assert.match(dataSource, /\/admin\/invoices/);
-  assert.match(dataSource, /\/admin\/invoices\/document-template\/preview/);
   assert.match(actionsSource, /\/admin\/invoices\/adjustments/);
   assert.match(permissionsSource, /invoices\.manage/);
   assert.match(documentRouteSource, /\/admin\/invoices\/.*\/document/);
   assert.match(documentRouteSource, /renderInvoiceDocumentPdf/);
   assert.match(documentRouteSource, /application\/pdf/);
+  assert.match(detailRouteSource, /getInvoiceAdminData/);
+  assert.match(detailRouteSource, /InvoiceDetailAdminPage/);
 });
 
 test("invoices admin capabilities map fiscal permissions", () => {
@@ -132,19 +137,13 @@ test("invoices admin capabilities map fiscal permissions", () => {
   assert.equal(getInvoiceAdminCapabilities({ scope: "storefront", permissions: ["invoices.manage"] }).canManageInvoices, false);
 });
 
-test("invoices admin loads health list detail document and template through BFF", async () => {
+test("invoices admin loads the commercial list and selected detail through BFF", async () => {
   const calls = [];
   const requestBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
-    const raw = pathValue.includes("/health")
-      ? { service: "invoice", status: "ok", persistence: { reachable: true }, documents: { driver: "inline" }, events: { consumerEnabled: true } }
-      : pathValue.includes("/document-template/preview")
-        ? { documentId: "preview", documentType: "INVOICE", html: "<html>Preview</html>" }
-        : pathValue.includes("/admin/invoices/invoice-1/document")
-          ? { documentId: "doc-1", invoiceId: "invoice-1", documentType: "INVOICE", html: "<html>Factura</html>" }
-          : pathValue.includes("/admin/invoices/invoice-1?")
-            ? { invoiceId: "invoice-1", orderId: "order-1", status: "ISSUED", currency: "EUR", totalMinor: 1234, lines: [{ lineId: "line-1", name: "Producto" }] }
-            : { items: [{ invoiceId: "invoice-1", orderId: "order-1", status: "ISSUED", currency: "EUR", totalMinor: 1234 }], total: 1, limit: 25, offset: 0 };
+    const raw = pathValue.includes("/admin/invoices/invoice-1?")
+      ? { invoiceId: "invoice-1", orderId: "order-1", status: "ISSUED", currency: "EUR", totalMinor: 1234, lines: [{ lineId: "line-1", name: "Producto" }] }
+      : { items: [{ invoiceId: "invoice-1", orderId: "order-1", status: "ISSUED", currency: "EUR", totalMinor: 1234 }], total: 1, limit: 25, offset: 0 };
 
     return { ok: true, data: options.parse ? options.parse(raw) : raw, status: 200, correlationId: "corr-invoices" };
   };
@@ -153,17 +152,11 @@ test("invoices admin loads health list detail document and template through BFF"
 
   const data = await getInvoiceAdminData(context, { invoiceId: "invoice-1", orderId: "order-1", status: "ISSUED" }, capabilities);
 
-  assert.equal(data.health.data.databaseReachable, true);
   assert.equal(data.invoices.data.items[0].invoiceId, "invoice-1");
   assert.equal(data.selectedInvoice.data.lines[0].name, "Producto");
-  assert.equal(data.selectedDocument.data.html, "<html>Factura</html>");
-  assert.equal(data.templatePreview.data.html, "<html>Preview</html>");
   assert.deepEqual(calls.map((call) => call.path), [
-    "/admin/invoices/health",
     "/admin/invoices?organizationId=org-1&shopId=shop-1&orderId=order-1&status=ISSUED&limit=25&offset=0",
     "/admin/invoices/invoice-1?organizationId=org-1&shopId=shop-1",
-    "/admin/invoices/invoice-1/document?organizationId=org-1&shopId=shop-1",
-    "/admin/invoices/document-template/preview?organizationId=org-1&shopId=shop-1&currency=EUR",
   ]);
 });
 
@@ -186,8 +179,11 @@ test("invoices admin actions issue invoices and create fiscal adjustments throug
   formData.set("currency", "EUR");
   formData.set("reason", "Devolucion parcial");
 
-  await assert.rejects(() => issueInvoiceFromFiscalConsoleAction(formData), { url: "/admin/pagos?notice=Factura+solicitada." });
-  await assert.rejects(() => createFiscalInvoiceAdjustmentAction(formData), { url: "/admin/pagos?notice=Nota+o+ajuste+fiscal+solicitado.&invoiceId=invoice-1" });
+  await assert.rejects(() => issueInvoiceFromFiscalConsoleAction(formData), { url: "/admin/pagos?tab=facturas&notice=Factura+solicitada." });
+  await assert.rejects(() => createFiscalInvoiceAdjustmentAction(formData), { url: "/admin/pagos?tab=facturas&notice=Nota+o+ajuste+fiscal+solicitado.&invoiceId=invoice-1" });
+
+  formData.set("returnTo", "/admin/pagos/facturas/invoice-1?discarded=true");
+  await assert.rejects(() => createFiscalInvoiceAdjustmentAction(formData), { url: "/admin/pagos/facturas/invoice-1?notice=Nota+o+ajuste+fiscal+solicitado." });
 
   assert.deepEqual(calls, [
     {
@@ -196,6 +192,20 @@ test("invoices admin actions issue invoices and create fiscal adjustments throug
       body: {
         orderId: "order-1",
         idempotencyKey: "admin-fiscal-console-invoice-order-1",
+      },
+    },
+    {
+      path: "/admin/invoices/adjustments?organizationId=org-1&shopId=shop-1",
+      method: "POST",
+      body: {
+        orderId: "order-1",
+        invoiceId: "invoice-1",
+        source: "admin-fiscal-console",
+        idempotencyKey: "admin-fiscal-adjustment-invoice-1-CREDIT_NOTE-1299",
+        adjustmentType: "CREDIT_NOTE",
+        amountMinor: 1299,
+        currency: "EUR",
+        reason: "Devolucion parcial",
       },
     },
     {

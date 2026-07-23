@@ -17,14 +17,6 @@ export type InvoiceAdminCapabilities = {
   canManageInvoices: boolean;
 };
 
-export type InvoiceAdminHealth = {
-  service?: string;
-  status?: string;
-  databaseReachable?: boolean;
-  documentDriver?: string;
-  eventsEnabled?: boolean;
-};
-
 export type InvoiceAdminLine = {
   lineId: string;
   name?: string;
@@ -63,25 +55,10 @@ export type InvoiceAdminList = {
   offset: number;
 };
 
-export type InvoiceAdminDocument = {
-  documentId?: string;
-  invoiceId?: string;
-  documentType?: string;
-  format?: string;
-  storageDriver?: string;
-  contentHash?: string;
-  html?: string;
-  json?: Record<string, unknown>;
-  createdAt?: string;
-};
-
 export type InvoiceAdminData = {
   context: AdminContext;
-  health: BffResult<InvoiceAdminHealth | null>;
   invoices: BffResult<InvoiceAdminList>;
   selectedInvoice: BffResult<InvoiceAdminInvoice | null>;
-  selectedDocument: BffResult<InvoiceAdminDocument | null>;
-  templatePreview: BffResult<InvoiceAdminDocument | null>;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -179,38 +156,6 @@ function normalizeInvoiceList(value: unknown): InvoiceAdminList {
   };
 }
 
-function normalizeDocument(value: unknown): InvoiceAdminDocument {
-  const record = asRecord(value);
-  const contentJson = asRecord(record.contentJson);
-
-  return {
-    documentId: asString(record.documentId),
-    invoiceId: asString(record.invoiceId),
-    documentType: asString(record.documentType),
-    format: asString(record.format),
-    storageDriver: asString(record.storageDriver),
-    contentHash: asString(record.contentHash),
-    html: asString(record.html) ?? asString(contentJson.html),
-    json: record.contentJson ? contentJson : asRecord(record.json),
-    createdAt: asString(record.createdAt),
-  };
-}
-
-function normalizeHealth(value: unknown): InvoiceAdminHealth {
-  const record = asRecord(value);
-  const persistence = asRecord(record.persistence);
-  const documents = asRecord(record.documents);
-  const events = asRecord(record.events);
-
-  return {
-    service: asString(record.service),
-    status: asString(record.status),
-    databaseReachable: typeof persistence.reachable === "boolean" ? persistence.reachable : undefined,
-    documentDriver: asString(documents.driver),
-    eventsEnabled: typeof events.consumerEnabled === "boolean" ? events.consumerEnabled : undefined,
-  };
-}
-
 function hasPermission(session: Pick<AdminSession, "permissions" | "scope"> | null | undefined, aliases: string[]) {
   if (!session || session.scope !== "admin") {
     return false;
@@ -242,11 +187,8 @@ export async function getInvoiceAdminData(
     const skipped = unavailable<null>("Selecciona organization y shop para operar facturacion fiscal.");
     return {
       context,
-      health: skipped,
       invoices: unavailable("Selecciona organization y shop para operar facturacion fiscal."),
       selectedInvoice: skipped,
-      selectedDocument: skipped,
-      templatePreview: skipped,
     };
   }
 
@@ -254,11 +196,8 @@ export async function getInvoiceAdminData(
     const skipped = unavailable<null>("Falta permiso invoices.manage.");
     return {
       context,
-      health: skipped,
       invoices: unavailable("Falta permiso invoices.manage."),
       selectedInvoice: skipped,
-      selectedDocument: skipped,
-      templatePreview: skipped,
     };
   }
 
@@ -273,15 +212,7 @@ export async function getInvoiceAdminData(
   const selectedPath = filters.invoiceId
     ? scopedPath(`/admin/invoices/${encodeURIComponent(filters.invoiceId)}`, context)
     : null;
-  const documentPath = filters.invoiceId
-    ? scopedPath(`/admin/invoices/${encodeURIComponent(filters.invoiceId)}/document`, context)
-    : null;
-
-  const [health, invoices, selectedInvoice, selectedDocument, templatePreview] = await Promise.all([
-    requestBff<InvoiceAdminHealth>("/admin/invoices/health", {
-      context,
-      parse: normalizeHealth,
-    }),
+  const [invoices, selectedInvoice] = await Promise.all([
     requestBff<InvoiceAdminList>(listPath, {
       context,
       parse: normalizeInvoiceList,
@@ -292,24 +223,11 @@ export async function getInvoiceAdminData(
           parse: normalizeInvoice,
         })
       : Promise.resolve({ ok: true as const, data: null, status: 200, correlationId: "invoices-admin-no-selection" }),
-    documentPath
-      ? requestBff<InvoiceAdminDocument>(documentPath, {
-          context,
-          parse: normalizeDocument,
-        })
-      : Promise.resolve({ ok: true as const, data: null, status: 200, correlationId: "invoices-admin-no-document" }),
-    requestBff<InvoiceAdminDocument>(scopedPath("/admin/invoices/document-template/preview", context, { currency: context.currency }), {
-      context,
-      parse: normalizeDocument,
-    }),
   ]);
 
   return {
     context,
-    health,
     invoices,
     selectedInvoice,
-    selectedDocument,
-    templatePreview,
   };
 }
