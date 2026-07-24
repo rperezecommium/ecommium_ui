@@ -378,10 +378,20 @@ son cupones. Viven en `Admin > Configuracion > Precios`, consumen
 - `POST /api/v1/admin/invoices/issue`
 - `GET /api/v1/admin/after-sales/health`
 - `GET /api/v1/admin/after-sales/cases?organizationId=:org&shopId=:shop&status=:status&customerId=:customerId&orderId=:orderId&limit=:limit&offset=:offset`
+- `GET /api/v1/admin/after-sales/cases/:caseId?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/review?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/approve?organizationId=:org&shopId=:shop`
+- `PATCH /api/v1/admin/after-sales/cases/:caseId/assignment?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/after-sales/cases/:caseId/return-authorizations?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/after-sales/cases/:caseId/refund-requests?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/after-sales/cases/:caseId/inventory-dispositions?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/after-sales/cases/:caseId/document-adjustments?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/resolve?organizationId=:org&shopId=:shop`
+
+La bandeja Admin abre el detalle y las acciones de un caso en un drawer lateral controlado por
+`caseId` en la URL. La UI no navega ni llama directamente a Shipping, Inventory o Invoice: las
+mutaciones se realizan únicamente por los endpoints de After Sales. En Storefront, Mi cuenta abre
+otro drawer limitado a la solicitud inicial.
 
 `Admin > Transporte` consume la configuracion global de Shipping/Logistics por
 BFF con `GET /admin/shipping/configuration` y edita zonas, transportistas,

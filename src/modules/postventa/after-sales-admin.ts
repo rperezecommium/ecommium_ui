@@ -3,9 +3,13 @@ import type { BffResult } from "../../shared/bff/types";
 import type { AdminSession } from "../../shared/auth/session";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
+import { getCustomerDetail } from "../clientes/customers-admin";
+
+export type AfterSalesAdminDrawerTab = "operacion" | "caso" | "devolucion" | "resolucion" | "auditoria";
 
 export type AfterSalesAdminFilters = {
   caseId?: string;
+  caseTab?: AfterSalesAdminDrawerTab;
   status?: string;
   customerId?: string;
   orderId?: string;
@@ -17,6 +21,22 @@ export type AfterSalesAdminFilters = {
 
 export type AfterSalesAdminCapabilities = {
   canManageAfterSales: boolean;
+};
+
+export type AfterSalesAdminEmployee = {
+  employeeId: string;
+  label: string;
+  active: boolean;
+};
+
+export type AfterSalesAdminReferenceOption = {
+  id: string;
+  label: string;
+};
+
+export type AfterSalesAdminOrderReferences = {
+  transactions: AfterSalesAdminReferenceOption[];
+  invoices: AfterSalesAdminReferenceOption[];
 };
 
 export type AfterSalesAdminHealth = {
@@ -35,6 +55,16 @@ export type AfterSalesAdminCaseItem = {
   quantityRequested?: number;
   quantityApproved?: number | null;
   status?: string;
+};
+
+export type AfterSalesAdminMessage = {
+  messageId: string;
+  authorType?: string;
+  authorId?: string | null;
+  visibility?: string;
+  kind?: string;
+  body?: string;
+  createdAt?: string;
 };
 
 export type AfterSalesAdminCase = {
@@ -56,6 +86,7 @@ export type AfterSalesAdminCase = {
   createdAt?: string;
   updatedAt?: string;
   items: AfterSalesAdminCaseItem[];
+  messages: AfterSalesAdminMessage[];
   evidences: unknown[];
   resolutions: unknown[];
   returnAuthorizations: unknown[];
@@ -76,6 +107,9 @@ export type AfterSalesAdminData = {
   health: BffResult<AfterSalesAdminHealth | null>;
   cases: BffResult<AfterSalesAdminCaseList>;
   selectedCase: BffResult<AfterSalesAdminCase | null>;
+  employees: BffResult<AfterSalesAdminEmployee[]>;
+  orderReferences: BffResult<AfterSalesAdminOrderReferences | null>;
+  selectedCustomerReference: string | null;
 };
 
 export type AfterSalesAdminAuditEvent = {
@@ -175,6 +209,20 @@ function normalizeItem(value: unknown): AfterSalesAdminCaseItem {
   };
 }
 
+function normalizeMessage(value: unknown): AfterSalesAdminMessage {
+  const record = asRecord(value);
+
+  return {
+    messageId: asString(record.messageId) ?? asString(record.id) ?? "",
+    authorType: asString(record.authorType),
+    authorId: asNullableString(record.authorId),
+    visibility: asString(record.visibility),
+    kind: asString(record.kind),
+    body: asString(record.body),
+    createdAt: asString(record.createdAt),
+  };
+}
+
 export function normalizeAfterSalesCase(value: unknown): AfterSalesAdminCase {
   const record = asRecord(value);
 
@@ -197,6 +245,7 @@ export function normalizeAfterSalesCase(value: unknown): AfterSalesAdminCase {
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
     items: asArray(record.items).map(normalizeItem),
+    messages: asArray(record.messages).map(normalizeMessage).filter((message) => Boolean(message.messageId)),
     evidences: asArray(record.evidences),
     resolutions: asArray(record.resolutions),
     returnAuthorizations: asArray(record.returnAuthorizations),
@@ -343,6 +392,57 @@ function normalizeHealth(value: unknown): AfterSalesAdminHealth {
   };
 }
 
+function normalizeEmployees(value: unknown): AfterSalesAdminEmployee[] {
+  const record = asRecord(value);
+  const values = asArray(record.items ?? record.data ?? record.employees ?? value);
+
+  return values
+    .map((value) => {
+      const employee = asRecord(value);
+      const employeeId = asString(employee.employeeId) ?? asString(employee.id) ?? asString(employee.principalId) ?? "";
+      const firstName = asString(employee.firstName);
+      const lastName = asString(employee.lastName);
+      const name = asString(employee.name) ?? asString(employee.fullName) ?? [firstName, lastName].filter(Boolean).join(" ");
+      const email = asString(employee.email);
+      const status = (asString(employee.status) ?? "").toUpperCase();
+      const active = employee.active !== false && !["INACTIVE", "DISABLED", "BLOCKED", "ARCHIVED"].includes(status);
+
+      return {
+        employeeId,
+        label: [name || "Sin nombre", email].filter(Boolean).join(" · "),
+        active,
+      };
+    })
+    .filter((employee) => Boolean(employee.employeeId))
+    .sort((left, right) => left.label.localeCompare(right.label, "es"));
+}
+
+function normalizeReferenceOptions(value: unknown, idKeys: string[], labelKeys: string[]): AfterSalesAdminReferenceOption[] {
+  const records = asArray(value);
+  const seen = new Set<string>();
+
+  return records.flatMap((value) => {
+    const record = asRecord(value);
+    const id = recordField(record, idKeys);
+    if (!id || seen.has(id)) return [];
+    seen.add(id);
+    return [{ id, label: recordField(record, labelKeys) ?? id }];
+  });
+}
+
+function normalizeOrderReferences(value: unknown): AfterSalesAdminOrderReferences {
+  const order = asRecord(value);
+  const payment = asRecord(order.payment);
+  const invoice = asRecord(order.invoice);
+  const paymentRecords = [payment, ...asArray(payment.transactions), ...asArray(payment.items)];
+  const invoiceRecords = [invoice, ...asArray(invoice.items), ...asArray(invoice.invoices)];
+
+  return {
+    transactions: normalizeReferenceOptions(paymentRecords, ["transactionId", "id"], ["paymentReference", "referenceId", "transactionId", "id"]),
+    invoices: normalizeReferenceOptions(invoiceRecords, ["invoiceId", "id"], ["invoiceNumberFormatted", "invoiceNumber", "invoiceId", "id"]),
+  };
+}
+
 function hasPermission(session: Pick<AdminSession, "permissions" | "scope"> | null | undefined, aliases: string[]) {
   if (!session || session.scope !== "admin") {
     return false;
@@ -377,6 +477,9 @@ export async function getAfterSalesAdminData(
       health: skipped,
       cases: unavailable("Selecciona organization y shop para operar postventa."),
       selectedCase: skipped,
+      employees: unavailable("Selecciona organization y shop para operar postventa."),
+      orderReferences: skipped,
+      selectedCustomerReference: null,
     };
   }
 
@@ -387,6 +490,9 @@ export async function getAfterSalesAdminData(
       health: skipped,
       cases: unavailable("Falta permiso after-sales.manage."),
       selectedCase: skipped,
+      employees: unavailable("Falta permiso after-sales.manage."),
+      orderReferences: skipped,
+      selectedCustomerReference: null,
     };
   }
 
@@ -404,7 +510,7 @@ export async function getAfterSalesAdminData(
     ? scopedPath(`/admin/after-sales/cases/${encodeURIComponent(filters.caseId)}`, context)
     : null;
 
-  const [health, cases, selectedCase] = await Promise.all([
+  const [health, cases, selectedCase, employees] = await Promise.all([
     requestBff<AfterSalesAdminHealth>("/admin/after-sales/health", {
       context,
       parse: normalizeHealth,
@@ -419,12 +525,29 @@ export async function getAfterSalesAdminData(
           parse: normalizeAfterSalesCase,
         })
       : Promise.resolve({ ok: true as const, data: null, status: 200, correlationId: "after-sales-admin-no-selection" }),
+    requestBff<AfterSalesAdminEmployee[]>(scopedPath("/admin/employees", context), {
+      context,
+      parse: normalizeEmployees,
+    }),
   ]);
+  const selectedCustomer = selectedCase.ok && selectedCase.data?.customerId
+    ? await getCustomerDetail(context, selectedCase.data.customerId)
+    : null;
+  const selectedOrderId = selectedCase.ok ? selectedCase.data?.orderId : undefined;
+  const orderReferences = selectedOrderId
+    ? await requestBff<AfterSalesAdminOrderReferences>(
+        scopedPath(`/admin/orders/${encodeURIComponent(selectedOrderId)}`, context),
+        { context, parse: normalizeOrderReferences },
+      )
+    : { ok: true as const, data: null, status: 200, correlationId: "after-sales-admin-no-order" };
 
   return {
     context,
     health,
     cases,
     selectedCase,
+    employees,
+    orderReferences,
+    selectedCustomerReference: selectedCustomer?.data?.customerReference ?? null,
   };
 }

@@ -45,6 +45,11 @@ function loadAfterSalesAdminModule(requestBff) {
           },
         };
       }
+      if (specifier.endsWith("/clientes/customers-admin")) {
+        return {
+          getCustomerDetail: async () => ({ ok: true, data: { customerReference: "C-CLIENTE" } }),
+        };
+      }
 
       return {};
     },
@@ -113,6 +118,9 @@ test("after-sales admin route and navigation expose support cockpit", () => {
   assert.match(pageSource, /Bandeja de casos/);
   assert.match(pageSource, /Auditoria administrativa/);
   assert.match(pageSource, /AdminAuditTimelinePanel/);
+  assert.match(pageSource, /AfterSalesCaseDrawer/);
+  assert.match(pageSource, /afterSalesSideDrawer/);
+  assert.match(pageSource, /Cerrar detalle de postventa/);
   assert.match(pageSource, /requestAfterSalesDocumentAdjustmentAction/);
   assert.match(dataSource, /\/admin\/after-sales\/cases/);
   assert.match(dataSource, /buildAfterSalesAuditTimeline/);
@@ -125,6 +133,15 @@ test("after-sales admin route and navigation expose support cockpit", () => {
   assert.match(shellSource, /\/admin\/postventa/);
   assert.match(permissionsSource, /admin:after-sales:view/);
   assert.match(permissionsSource, /after-sales\.manage/);
+});
+
+test("after-sales cases tray keeps its card scrollable", () => {
+  const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
+  const pageSource = readFileSync(path.resolve(root, "src/modules/postventa/after-sales-admin-page.tsx"), "utf8");
+  const cardRule = cssSource.match(/\.afterSalesCasesCard\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+
+  assert.match(pageSource, /adminCard afterSalesCasesCard/);
+  assert.match(cardRule, /overflow:\s*auto/);
 });
 
 test("after-sales admin capabilities map after-sales permissions", () => {
@@ -180,6 +197,7 @@ test("after-sales admin loads health list and selected case through BFF", async 
   assert.equal(data.cases.data.items[0].caseId, "case-1");
   assert.equal(data.selectedCase.data.items[0].name, "Producto");
   assert.equal(data.selectedCase.data.refundRequests.length, 1);
+  assert.equal(data.selectedCustomerReference, "C-CLIENTE");
   assert.equal(timeline[0].eventType, "DOCUMENT");
   assert.equal(timeline.some((event) => event.eventType === "CASE_ASSIGNED" && event.actor === "manager-1"), true);
   assert.equal(timeline.some((event) => event.eventType === "REFUND" && event.referenceId === "refund-1"), true);
@@ -188,6 +206,8 @@ test("after-sales admin loads health list and selected case through BFF", async 
     "/admin/after-sales/health",
     "/admin/after-sales/cases?organizationId=org-1&shopId=shop-1&status=SUBMITTED&customerId=customer-1&orderId=order-1&assignedEmployeeId=employee-1&limit=25&offset=0",
     "/admin/after-sales/cases/case-1?organizationId=org-1&shopId=shop-1",
+    "/admin/employees?organizationId=org-1&shopId=shop-1",
+    "/admin/orders/order-1?organizationId=org-1&shopId=shop-1",
   ]);
 });
 
@@ -221,6 +241,8 @@ test("after-sales admin actions mutate case lifecycle through scoped BFF", async
   formData.set("refundRequestId", "refund-1");
   formData.set("invoiceId", "invoice-1");
   formData.set("adjustmentType", "CREDIT_NOTE");
+  formData.set("body", "Te hemos respondido en el historial del caso.");
+  formData.set("idempotencyKey", "reply-1");
 
   await assert.rejects(() => actions.assignAfterSalesOwnerAction(formData), { url: "/admin/postventa?notice=Caso+asignado.&caseId=case-1" });
   await assert.rejects(() => actions.transitionAfterSalesCaseAction(formData), { url: "/admin/postventa?notice=Caso+actualizado.&caseId=case-1" });
@@ -229,6 +251,7 @@ test("after-sales admin actions mutate case lifecycle through scoped BFF", async
   await assert.rejects(() => actions.requestAfterSalesRefundAction(formData), { url: "/admin/postventa?notice=Refund+solicitado.&caseId=case-1" });
   await assert.rejects(() => actions.requestAfterSalesInventoryDispositionAction(formData), { url: "/admin/postventa?notice=Disposicion+de+inventario+solicitada.&caseId=case-1" });
   await assert.rejects(() => actions.requestAfterSalesDocumentAdjustmentAction(formData), { url: "/admin/postventa?notice=Ajuste+documental+solicitado.&caseId=case-1" });
+  await assert.rejects(() => actions.replyToAfterSalesCustomerAction(formData), { url: "/admin/postventa?notice=Respuesta+enviada+al+cliente.&caseId=case-1" });
 
   assert.deepEqual(calls, [
     {
@@ -272,6 +295,11 @@ test("after-sales admin actions mutate case lifecycle through scoped BFF", async
       path: "/admin/after-sales/cases/case-1/document-adjustments?organizationId=org-1&shopId=shop-1",
       method: "POST",
       body: { refundRequestId: "refund-1", invoiceId: "invoice-1", adjustmentType: "CREDIT_NOTE" },
+    },
+    {
+      path: "/admin/after-sales/cases/case-1/messages?organizationId=org-1&shopId=shop-1",
+      method: "POST",
+      body: { body: "Te hemos respondido en el historial del caso.", idempotencyKey: "reply-1" },
     },
   ]);
 });

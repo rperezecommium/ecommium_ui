@@ -172,8 +172,32 @@ export type StorefrontLogoutAllSessionsResponse = {
 };
 
 export type StorefrontAfterSalesCaseResponse = {
-  caseId?: string;
-  status?: string;
+  caseId: string;
+  caseType: string;
+  status: string;
+  reasonCode: string | null;
+  submittedAt: string | null;
+  updatedAt: string;
+  lastActivityAt?: string;
+  lastMessagePreview?: string | null;
+  canReply: boolean;
+};
+
+export type StorefrontAfterSalesCaseDetail = StorefrontAfterSalesCaseResponse & {
+  reviewedAt: string | null;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  createdAt: string;
+  items: Array<{ name: string; quantityRequested: number; quantityApproved: number | null; status: string }>;
+  messages: Array<{ messageId: string; author: "CUSTOMER" | "STORE"; kind: "OPENING" | "MESSAGE" | "STATUS"; body: string; createdAt: string }>;
+  attachments: Array<{ privateEvidenceId: string; messageId: string | null; mimeType: "image/jpeg"; name: string; createdAt: string }>;
+};
+
+export type StorefrontAfterSalesCasesData = {
+  items: StorefrontAfterSalesCaseResponse[];
+  total: number;
+  limit: number;
+  offset: number;
 };
 
 export type StorefrontAccountData = {
@@ -183,6 +207,8 @@ export type StorefrontAccountData = {
   purchases: BffResult<StorefrontPurchasesData>;
   invoices: BffResult<StorefrontInvoicesData>;
   sessions: BffResult<StorefrontDeviceSessionsData>;
+  afterSales: BffResult<StorefrontAfterSalesCasesData>;
+  selectedAfterSalesCase: BffResult<StorefrontAfterSalesCaseDetail> | null;
 };
 
 type ProfileResponse = {
@@ -266,11 +292,17 @@ export async function getStorefrontAccountData({
   invoicesOffset = "0",
   purchasesLimit = "5",
   purchasesOffset = "0",
+  afterSalesCaseId,
+  afterSalesLimit = "10",
+  afterSalesOffset = "0",
 }: {
   invoicesLimit?: string;
   invoicesOffset?: string;
   purchasesLimit?: string;
   purchasesOffset?: string;
+  afterSalesCaseId?: string;
+  afterSalesLimit?: string;
+  afterSalesOffset?: string;
 } = {}): Promise<BffResult<StorefrontAccountData>> {
   const session = await getStorefrontCustomerSession();
   const headers = await storefrontAuthHeaders();
@@ -285,7 +317,7 @@ export async function getStorefrontAccountData({
     };
   }
 
-  const [profileResult, avatarResult, addressesResult, purchasesResult, invoicesResult, sessionsResult] = await Promise.all([
+  const [profileResult, avatarResult, addressesResult, purchasesResult, invoicesResult, sessionsResult, afterSalesResult, selectedAfterSalesCase] = await Promise.all([
     requestBff<ProfileResponse>(accountPath("/storefront/me/profile"), {
       withAuth: false,
       context: { locale: context.locale },
@@ -322,6 +354,21 @@ export async function getStorefrontAccountData({
       context: { locale: context.locale },
       init: { headers },
     }),
+    requestBff<StorefrontAfterSalesCasesData>(accountPath("/storefront/me/after-sales/cases", {
+      limit: afterSalesLimit,
+      offset: afterSalesOffset,
+    }), {
+      withAuth: false,
+      context: { locale: context.locale },
+      init: { headers },
+    }),
+    afterSalesCaseId
+      ? requestBff<StorefrontAfterSalesCaseDetail>(accountPath(`/storefront/me/after-sales/cases/${encodeURIComponent(afterSalesCaseId)}`), {
+          withAuth: false,
+          context: { locale: context.locale },
+          init: { headers },
+        })
+      : Promise.resolve(null),
   ]);
 
   if (!profileResult.ok) {
@@ -341,6 +388,8 @@ export async function getStorefrontAccountData({
       purchases: purchasesResult,
       invoices: invoicesResult,
       sessions: sessionsResult,
+      afterSales: afterSalesResult,
+      selectedAfterSalesCase,
     },
   };
 }
@@ -396,6 +445,49 @@ export async function createStorefrontAfterSalesCase(
         ...headers,
         "content-type": "application/json",
       },
+      body: JSON.stringify(payload),
+    },
+  });
+}
+
+export async function replyToStorefrontAfterSalesCase(
+  caseId: string,
+  body: string,
+  idempotencyKey: string,
+): Promise<BffResult<StorefrontAfterSalesCaseDetail>> {
+  return afterSalesJsonMutation(`/storefront/me/after-sales/cases/${encodeURIComponent(caseId)}/messages`, {
+    body,
+    idempotencyKey,
+  });
+}
+
+export async function uploadStorefrontAfterSalesEvidence(
+  input: {
+    caseId: string;
+    originalFileName: string;
+    mimeType: string;
+    contentBase64: string;
+    messageId?: string | null;
+    idempotencyKey: string;
+  },
+): Promise<BffResult<StorefrontAfterSalesCaseDetail>> {
+  return afterSalesJsonMutation(`/storefront/me/after-sales/cases/${encodeURIComponent(input.caseId)}/evidences`, input);
+}
+
+async function afterSalesJsonMutation(
+  path: string,
+  payload: Record<string, unknown>,
+): Promise<BffResult<StorefrontAfterSalesCaseDetail>> {
+  const headers = await storefrontAuthHeaders();
+  if (!headers) {
+    return { ok: false, status: 401, error: "Cliente no autenticado.", correlationId: "storefront-after-sales-local" };
+  }
+  return requestBff<StorefrontAfterSalesCaseDetail>(accountPath(path), {
+    withAuth: false,
+    context: { locale: getStorefrontContext().locale },
+    init: {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
       body: JSON.stringify(payload),
     },
   });

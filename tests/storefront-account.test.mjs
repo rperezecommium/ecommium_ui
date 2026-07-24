@@ -223,6 +223,7 @@ test("storefront account UI opens after-sales cases from authenticated purchases
   const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
   const actionsSource = source("src/modules/storefront/storefront-account-actions.ts");
   const accountSource = source("src/modules/storefront/storefront-account.ts");
+  const routeSource = source("app/account/page.tsx");
   const cssSource = source("app/globals.css");
 
   assert.match(clientSource, /Postventa/);
@@ -234,11 +235,23 @@ test("storefront account UI opens after-sales cases from authenticated purchases
   assert.match(clientSource, /name="requestedResolution"/);
   assert.match(clientSource, /name="customerMessage"/);
   assert.match(clientSource, /minLength=\{20\}/);
+  assert.match(clientSource, /afterSalesView=cases/);
+  assert.match(clientSource, /AfterSalesCaseList/);
+  assert.match(clientSource, /Volver a postventa/);
+  assert.match(clientSource, /Volver a mis casos/);
+  assert.match(clientSource, /Paginación de casos/);
+  assert.match(accountSource, /afterSalesLimit/);
+  assert.match(accountSource, /afterSalesOffset/);
+  assert.match(routeSource, /afterSalesView/);
+  assert.match(routeSource, /afterSalesLimit/);
+  assert.match(routeSource, /afterSalesOffset/);
   assert.match(actionsSource, /customerMessage\.length < 20/);
   assert.match(actionsSource, /source: "storefront_account"/);
   assert.match(accountSource, /method: "POST"/);
   assert.match(accountSource, /content-type": "application\/json"/);
   assert.match(cssSource, /\.storefrontAfterSalesPanel/);
+  assert.match(cssSource, /\.storefrontAfterSalesCaseList/);
+  assert.match(cssSource, /\.storefrontAfterSalesCaseLink/);
   assert.doesNotMatch(clientSource + actionsSource + accountSource, /app\/api\/storefront\/me\/after-sales/);
 });
 

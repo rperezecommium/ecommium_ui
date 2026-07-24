@@ -16,6 +16,7 @@ export default async function PostventaPage({ searchParams }: PostventaPageProps
   ]);
   const filters: AfterSalesAdminFilters = {
     caseId: params?.caseId,
+    caseTab: params?.caseTab,
     status: params?.status,
     customerId: params?.customerId,
     orderId: params?.orderId,

@@ -757,6 +757,7 @@ p {
 .adminContextForm select,
 .adminField input,
 .adminField select,
+.adminField textarea,
 .adminTable input {
   min-height: 40px;
   border: 1px solid var(--admin-border);
@@ -1412,6 +1413,7 @@ p {
 
 .adminField input,
 .adminField select,
+.adminField textarea,
 .adminTable input {
   width: 100%;
   padding: 0 10px;
@@ -1423,6 +1425,12 @@ p {
   background: var(--admin-surface-muted);
   color: var(--admin-text-muted);
   opacity: 1;
+}
+
+.adminField textarea {
+  min-height: 104px;
+  padding: 10px;
+  resize: vertical;
 }
 
 .adminCheckbox {
@@ -3841,6 +3849,10 @@ p {
   margin-bottom: 0;
 }
 
+.afterSalesCasesCard {
+  overflow: auto;
+}
+
 .communicationsCollapsible {
   padding: 0;
   overflow: hidden;
@@ -4171,6 +4183,97 @@ p {
   z-index: 0;
 }
 
+.afterSalesDrawerBackdrop {
+  align-items: stretch;
+  padding-left: 64px;
+  background: rgb(245 248 249 / 78%);
+}
+
+.afterSalesDrawerBackdropLink {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.afterSalesSideDrawer {
+  position: relative;
+  z-index: 1;
+  width: min(760px, calc(100vw - 16px));
+  gap: 0;
+  padding: 0;
+  border-left: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: -10px 0 24px rgb(54 58 65 / 14%);
+}
+
+.afterSalesSideDrawer .adminSideDrawerHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--admin-surface);
+}
+
+.afterSalesDrawerBody {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.afterSalesDrawerSummary {
+  position: sticky;
+  top: 73px;
+  z-index: 1;
+  background: var(--admin-surface-muted);
+  box-shadow: 0 1px 0 var(--admin-border-subtle);
+}
+
+.afterSalesDrawerTabs {
+  align-self: start;
+  min-height: 0;
+  height: 40px;
+}
+
+.afterSalesDrawerTabs .productEditorTab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 0;
+  height: 40px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.afterSalesDrawerTabPanel {
+  display: grid;
+  gap: 14px;
+  padding-top: 8px;
+}
+
+.afterSalesDrawerTabPanel .adminCard {
+  min-width: 0;
+}
+
+.afterSalesOperationForms {
+  display: grid;
+  gap: 12px;
+}
+
+.afterSalesDecisionForm {
+  align-items: end;
+}
+
+.afterSalesDecisionHint {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.afterSalesCollectionPanel .adminCardHeader {
+  align-items: center;
+}
+
 .ordersSideDrawer {
   position: relative;
   z-index: 1;
@@ -4230,6 +4333,7 @@ p {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.adminDetailFields,
 .ordersDetailFields {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -4240,6 +4344,7 @@ p {
   border-radius: 4px;
 }
 
+.adminDetailFields > div,
 .ordersDetailFields > div {
   display: grid;
   grid-template-columns: minmax(120px, 0.55fr) minmax(0, 1fr);
@@ -4247,10 +4352,12 @@ p {
   border-bottom: 1px solid var(--admin-border-subtle);
 }
 
+.adminDetailFields > div:last-child,
 .ordersDetailFields > div:last-child {
   border-bottom: 0;
 }
 
+.adminDetailFields dt,
 .ordersDetailFields dt {
   padding: 8px 10px;
   border-right: 1px solid var(--admin-border-subtle);
@@ -4258,6 +4365,7 @@ p {
   font-size: 12px;
 }
 
+.adminDetailFields dd,
 .ordersDetailFields dd {
   margin: 0;
   padding: 8px 10px;
@@ -5605,7 +5713,8 @@ p {
 }
 
 .adminSideDrawer .adminField input,
-.adminSideDrawer .adminField select {
+.adminSideDrawer .adminField select,
+.adminSideDrawer .adminField textarea {
   min-height: 40px;
   width: 100%;
   padding: 0 12px;
@@ -5617,8 +5726,14 @@ p {
 }
 
 .adminSideDrawer .adminField input:focus,
-.adminSideDrawer .adminField select:focus {
+.adminSideDrawer .adminField select:focus,
+.adminSideDrawer .adminField textarea:focus {
   border-color: var(--admin-primary);
+}
+
+.adminSideDrawer .adminField textarea {
+  min-height: 104px;
+  padding: 10px 12px;
 }
 
 .shippingAdminPage,
@@ -7102,6 +7217,81 @@ p {
 .storefrontAccountEmpty p {
   margin: 0;
   color: #7a7a7a;
+}
+
+.storefrontAfterSalesHomeActions,
+.storefrontAfterSalesCaseList,
+.storefrontAfterSalesCaseItems,
+.storefrontAfterSalesHistory {
+  display: grid;
+  gap: 12px;
+}
+
+.storefrontAfterSalesHomeActions > p,
+.storefrontAfterSalesCaseListHeader p {
+  margin: 0;
+  color: #7a7a7a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.storefrontAfterSalesCaseListHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  align-items: end;
+  gap: 12px;
+}
+
+.storefrontAfterSalesCaseListHeader h3 {
+  margin: 0 0 4px;
+  color: #232323;
+  font-size: 18px;
+}
+
+.storefrontAfterSalesCaseLink {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e6e8ec;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #232323;
+  text-decoration: none;
+}
+
+.storefrontAfterSalesCaseLink:hover {
+  border-color: #25abc4;
+}
+
+.storefrontAfterSalesCaseLink:focus-visible {
+  outline: 2px solid #1688a3;
+  outline-offset: 2px;
+}
+
+.storefrontAfterSalesCaseLinkTitle {
+  color: #232323;
+  font-weight: 850;
+}
+
+.storefrontAfterSalesCaseLink > small,
+.storefrontAfterSalesCaseLink > time {
+  grid-column: 1 / -1;
+  color: #7a7a7a;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.storefrontAfterSalesCaseLink > time {
+  color: #6e7f86;
+  font-weight: 750;
+}
+
+@media (max-width: 560px) {
+  .storefrontAfterSalesCaseListHeader {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .storefrontSessionsPanel {

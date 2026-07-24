@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { clearStorefrontCustomerSession, updateStorefrontCustomerSessionEmail } from "./storefront-customer-session";
 import {
   createStorefrontAfterSalesCase,
+  replyToStorefrontAfterSalesCase,
+  uploadStorefrontAfterSalesEvidence,
   createStorefrontCustomerAddress,
   deleteStorefrontCustomerAddress,
   logoutAllStorefrontSessions,
@@ -201,6 +203,53 @@ export async function submitStorefrontAfterSalesCase(
       ? `Caso ${result.data.caseId} creado. Te contactaremos por email.`
       : "Caso creado. Te contactaremos por email.",
   };
+}
+
+export async function replyToStorefrontAfterSalesCaseAction(
+  previousState: StorefrontAccountActionState,
+  formData: FormData,
+): Promise<StorefrontAccountActionState> {
+  void previousState;
+  const caseId = formString(formData, "caseId");
+  const body = formString(formData, "body");
+  if (!caseId || body.length < 2) {
+    return { status: "error", message: "Escribe un mensaje para continuar el caso." };
+  }
+  const result = await replyToStorefrontAfterSalesCase(caseId, body, `ui-reply-${crypto.randomUUID()}`);
+  if (!result.ok) {
+    return { status: "error", message: result.status === 401 ? "Inicia sesión para responder." : "No pudimos enviar tu mensaje. Inténtalo de nuevo." };
+  }
+  revalidatePath("/account");
+  return { status: "success", message: "Tu mensaje se añadió al historial del caso." };
+}
+
+export async function uploadStorefrontAfterSalesEvidenceAction(
+  previousState: StorefrontAccountActionState,
+  formData: FormData,
+): Promise<StorefrontAccountActionState> {
+  void previousState;
+  const caseId = formString(formData, "caseId");
+  const messageId = formString(formData, "messageId");
+  const file = formData.get("evidence");
+  if (!caseId || !(file instanceof File) || file.size === 0) {
+    return { status: "error", message: "Selecciona una imagen para adjuntar." };
+  }
+  if (!file.type.startsWith("image/") || file.size > 10 * 1024 * 1024) {
+    return { status: "error", message: "Solo se admiten imágenes de hasta 10 MB." };
+  }
+  const result = await uploadStorefrontAfterSalesEvidence({
+    caseId,
+    messageId: messageId || null,
+    originalFileName: file.name,
+    mimeType: file.type,
+    contentBase64: Buffer.from(await file.arrayBuffer()).toString("base64"),
+    idempotencyKey: `ui-evidence-${crypto.randomUUID()}`,
+  });
+  if (!result.ok) {
+    return { status: "error", message: "No pudimos adjuntar la imagen. Comprueba el archivo e inténtalo de nuevo." };
+  }
+  revalidatePath("/account");
+  return { status: "success", message: "Imagen recibida y añadida al caso." };
 }
 
 export async function submitStorefrontAccountAddress(

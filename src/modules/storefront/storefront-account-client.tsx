@@ -11,6 +11,7 @@ import type {
   StorefrontCustomerAddress,
   StorefrontDeviceSession,
   StorefrontInvoice,
+  StorefrontAfterSalesCaseDetail,
   StorefrontPurchase,
   StorefrontPurchaseLine,
 } from "./storefront-account";
@@ -18,6 +19,8 @@ import {
   closeStorefrontAccountSessions,
   logoutStorefrontCustomer,
   submitStorefrontAfterSalesCase,
+  replyToStorefrontAfterSalesCaseAction,
+  uploadStorefrontAfterSalesEvidenceAction,
   submitStorefrontAccountAddress,
   updateStorefrontAccountCredentials,
   updateStorefrontAccountProfile,
@@ -47,14 +50,18 @@ const avatarImagePath: Record<string, string> = {
 export function StorefrontAccountClient({
   data,
   initialDrawer,
+  initialAfterSalesView,
 }: {
   data: StorefrontAccountData;
   initialDrawer?: Exclude<AccountDrawer, null>;
+  initialAfterSalesView?: "cases";
 }) {
   const [profileState, profileAction, profilePending] = useActionState(updateStorefrontAccountProfile, initialState);
   const [credentialsState, credentialsAction, credentialsPending] = useActionState(updateStorefrontAccountCredentials, initialState);
   const [addressState, addressAction, addressPending] = useActionState(submitStorefrontAccountAddress, initialState);
   const [afterSalesState, afterSalesAction, afterSalesPending] = useActionState(submitStorefrontAfterSalesCase, initialState);
+  const [afterSalesReplyState, afterSalesReplyAction, afterSalesReplyPending] = useActionState(replyToStorefrontAfterSalesCaseAction, initialState);
+  const [afterSalesEvidenceState, afterSalesEvidenceAction, afterSalesEvidencePending] = useActionState(uploadStorefrontAfterSalesEvidenceAction, initialState);
   const [sessionsState, sessionsAction, sessionsPending] = useActionState(closeStorefrontAccountSessions, initialState);
   const [drawer, setDrawer] = useState<AccountDrawer>(initialDrawer ?? null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -204,7 +211,20 @@ export function StorefrontAccountClient({
                 </div>
               </div>
               <ActionNotice state={afterSalesState} />
-              <AfterSalesPanel action={afterSalesAction} pending={afterSalesPending} purchases={data.purchases} />
+              <ActionNotice state={afterSalesReplyState} />
+              <ActionNotice state={afterSalesEvidenceState} />
+              <AfterSalesPanel
+                action={afterSalesAction}
+                caseDetail={data.selectedAfterSalesCase?.ok ? data.selectedAfterSalesCase.data : null}
+                cases={data.afterSales}
+                evidenceAction={afterSalesEvidenceAction}
+                evidencePending={afterSalesEvidencePending}
+                initialView={initialAfterSalesView}
+                pending={afterSalesPending}
+                purchases={data.purchases}
+                replyAction={afterSalesReplyAction}
+                replyPending={afterSalesReplyPending}
+              />
             </>
           ) : null}
           {drawer === "invoices" ? (
@@ -598,13 +618,42 @@ function addressRoleLabel(value: string | undefined) {
 
 function AfterSalesPanel({
   action,
+  caseDetail,
+  cases,
+  evidenceAction,
+  evidencePending,
+  initialView,
   pending,
   purchases,
+  replyAction,
+  replyPending,
 }: {
   action: (payload: FormData) => void;
+  caseDetail: StorefrontAfterSalesCaseDetail | null;
+  cases: StorefrontAccountData["afterSales"];
+  evidenceAction: (payload: FormData) => void;
+  evidencePending: boolean;
+  initialView?: "cases";
   pending: boolean;
   purchases: StorefrontAccountData["purchases"];
+  replyAction: (payload: FormData) => void;
+  replyPending: boolean;
 }) {
+  if (caseDetail) {
+    return <AfterSalesCaseHistory
+      backToCasesHref={afterSalesListHref(cases)}
+      caseDetail={caseDetail}
+      evidenceAction={evidenceAction}
+      evidencePending={evidencePending}
+      replyAction={replyAction}
+      replyPending={replyPending}
+    />;
+  }
+
+  if (initialView === "cases") {
+    return <AfterSalesCaseList cases={cases} />;
+  }
+
   if (!purchases.ok) {
     return (
       <div className="storefrontAccountEmpty">
@@ -624,7 +673,15 @@ function AfterSalesPanel({
   }
 
   return (
-    <form action={action} className="storefrontAccountForm storefrontAfterSalesForm">
+    <>
+      <div className="storefrontAfterSalesHomeActions">
+        <Link className="storefrontAccountGhostButton" href="/account?section=afterSales&afterSalesView=cases">
+          Mis casos{cases.ok ? ` (${cases.data.total})` : ""}
+        </Link>
+        <p>Consulta el estado y los mensajes de tus solicitudes sin desplazar el formulario para abrir un caso nuevo.</p>
+      </div>
+      <h3>Abrir un nuevo caso</h3>
+      <form action={action} className="storefrontAccountForm storefrontAfterSalesForm">
       <label className="storefrontAuthField">
         <span>Compra</span>
         <select name="orderId" required>
@@ -672,7 +729,146 @@ function AfterSalesPanel({
       <button className="storefrontAuthSubmit" disabled={pending} type="submit">
         {pending ? "Enviando..." : "Abrir caso"}
       </button>
-    </form>
+      </form>
+    </>
+  );
+}
+
+function afterSalesListHref(cases: StorefrontAccountData["afterSales"]) {
+  if (!cases.ok) {
+    return "/account?section=afterSales&afterSalesView=cases";
+  }
+
+  const { limit, offset } = cases.data;
+  return `/account?section=afterSales&afterSalesView=cases&afterSalesLimit=${encodeURIComponent(String(limit))}&afterSalesOffset=${encodeURIComponent(String(offset))}`;
+}
+
+function AfterSalesCaseList({ cases }: { cases: StorefrontAccountData["afterSales"] }) {
+  if (!cases.ok) {
+    return (
+      <div className="storefrontAccountEmpty">
+        <strong>No pudimos cargar tus casos</strong>
+        <p>{cases.status === 401 ? "Vuelve a iniciar sesión para consultar postventa." : cases.error}</p>
+        <Link className="storefrontAccountGhostButton" href="/account?section=afterSales">Volver a postventa</Link>
+      </div>
+    );
+  }
+
+  const { items, limit, offset, total } = cases.data;
+  const previousOffset = Math.max(0, offset - limit);
+  const nextOffset = offset + limit;
+  const hasPrevious = offset > 0;
+  const hasNext = nextOffset < total;
+  const listHref = (nextListOffset: number) => `/account?section=afterSales&afterSalesView=cases&afterSalesLimit=${encodeURIComponent(String(limit))}&afterSalesOffset=${encodeURIComponent(String(nextListOffset))}`;
+
+  return (
+    <section className="storefrontAfterSalesCaseList" aria-labelledby="my-cases-heading">
+      <div className="storefrontAfterSalesCaseListHeader">
+        <div>
+          <h3 id="my-cases-heading">Mis casos</h3>
+          <p>{total === 1 ? "1 caso registrado" : `${total} casos registrados`}</p>
+        </div>
+        <Link className="storefrontAccountGhostButton" href="/account?section=afterSales">Volver a postventa</Link>
+      </div>
+      {items.length === 0 ? (
+        <div className="storefrontAccountEmpty">
+          <strong>Aún no tienes casos abiertos</strong>
+          <p>Cuando abras una devolución, cambio o garantía, podrás seguirla desde aquí.</p>
+        </div>
+      ) : (
+        <div className="storefrontAfterSalesCaseItems">
+          {items.map((caseItem) => (
+            <Link
+              className="storefrontAfterSalesCaseLink"
+              href={`/account?section=afterSales&afterSalesView=cases&afterSalesLimit=${encodeURIComponent(String(limit))}&afterSalesOffset=${encodeURIComponent(String(offset))}&caseId=${encodeURIComponent(caseItem.caseId)}`}
+              key={caseItem.caseId}
+            >
+              <span className="storefrontAfterSalesCaseLinkTitle">{caseItem.caseType}</span>
+              <span className="storefrontPurchaseBadge">{caseItem.status}</span>
+              <small>{caseItem.lastMessagePreview ?? "Sin mensajes todavía"}</small>
+              <time dateTime={caseItem.lastActivityAt ?? caseItem.updatedAt}>Actualizado {dateText(caseItem.lastActivityAt ?? caseItem.updatedAt)}</time>
+            </Link>
+          ))}
+        </div>
+      )}
+      {total > limit ? (
+        <nav aria-label="Paginación de casos" className="storefrontPurchasesPager">
+          <Link
+            aria-disabled={!hasPrevious}
+            className={hasPrevious ? "storefrontAccountGhostButton" : "storefrontAccountGhostButton storefrontAccountGhostButtonDisabled"}
+            href={listHref(previousOffset)}
+          >
+            Anterior
+          </Link>
+          <span>{offset + 1}-{Math.min(offset + items.length, total)} de {total}</span>
+          <Link
+            aria-disabled={!hasNext}
+            className={hasNext ? "storefrontAccountGhostButton" : "storefrontAccountGhostButton storefrontAccountGhostButtonDisabled"}
+            href={listHref(nextOffset)}
+          >
+            Siguiente
+          </Link>
+        </nav>
+      ) : null}
+    </section>
+  );
+}
+
+function AfterSalesCaseHistory({
+  backToCasesHref,
+  caseDetail,
+  evidenceAction,
+  evidencePending,
+  replyAction,
+  replyPending,
+}: {
+  backToCasesHref: string;
+  caseDetail: StorefrontAfterSalesCaseDetail;
+  evidenceAction: (payload: FormData) => void;
+  evidencePending: boolean;
+  replyAction: (payload: FormData) => void;
+  replyPending: boolean;
+}) {
+  return (
+    <div className="storefrontAfterSalesHistory">
+      <Link className="storefrontAccountGhostButton" href={backToCasesHref}>Volver a mis casos</Link>
+      <div className="storefrontAfterSalesCaseHeader">
+        <strong>{caseDetail.caseType}</strong>
+        <span className="storefrontPurchaseBadge">{caseDetail.status}</span>
+      </div>
+      <div className="storefrontAfterSalesTimeline">
+        {caseDetail.messages.map((message) => (
+          <article className={`storefrontAfterSalesMessage storefrontAfterSalesMessage${message.author === "CUSTOMER" ? "Customer" : "Store"}`} key={message.messageId}>
+            <span>{message.author === "CUSTOMER" ? "Tú" : "Ecommium"} · {dateText(message.createdAt)}</span>
+            <p>{message.body}</p>
+            {caseDetail.attachments.filter((attachment) => attachment.messageId === message.messageId).map((attachment) => (
+              <small key={attachment.privateEvidenceId}>📎 {attachment.name}</small>
+            ))}
+          </article>
+        ))}
+      </div>
+      {caseDetail.canReply ? (
+        <>
+          <form action={replyAction} className="storefrontAccountForm">
+            <input name="caseId" type="hidden" value={caseDetail.caseId} />
+            <label className="storefrontAuthField">
+              <span>Continuar el caso</span>
+              <textarea minLength={2} name="body" placeholder="Añade una respuesta o información adicional." required rows={3} />
+            </label>
+            <button className="storefrontAuthSubmit" disabled={replyPending} type="submit">{replyPending ? "Enviando..." : "Enviar mensaje"}</button>
+          </form>
+          <form action={evidenceAction} className="storefrontAccountForm">
+            <input name="caseId" type="hidden" value={caseDetail.caseId} />
+            <label className="storefrontAuthField">
+              <span>Aportar imagen</span>
+              <input accept="image/png,image/jpeg,image/webp" name="evidence" required type="file" />
+              <small>PNG, JPG o WebP. Máximo 10 MB; la imagen se sanea antes de guardarla.</small>
+            </label>
+            <button className="storefrontAccountGhostButton" disabled={evidencePending} type="submit">{evidencePending ? "Adjuntando..." : "Adjuntar imagen"}</button>
+          </form>
+        </>
+      ) : <p className="storefrontAccountEmpty">Este caso ya no admite más mensajes.</p>}
+    </div>
   );
 }
 

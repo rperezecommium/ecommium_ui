@@ -1,20 +1,26 @@
 import Link from "next/link";
-import { ClipboardCheck, LifeBuoy, PackageCheck, RotateCcw, Search } from "lucide-react";
+import { randomUUID } from "crypto";
+import { ClipboardCheck, FileText, PackageCheck, RotateCcw, Search, Truck, X } from "lucide-react";
 import type {
   AfterSalesAdminCapabilities,
   AfterSalesAdminCase,
   AfterSalesAdminAuditEvent,
   AfterSalesAdminData,
+  AfterSalesAdminDrawerTab,
+  AfterSalesAdminEmployee,
   AfterSalesAdminFilters,
+  AfterSalesAdminMessage,
+  AfterSalesAdminReferenceOption,
 } from "./after-sales-admin";
 import { buildAfterSalesAuditTimeline } from "./after-sales-admin";
+import { AfterSalesResolutionForm } from "./after-sales-resolution-form";
 import {
   applyAfterSalesFiltersAction,
   assignAfterSalesOwnerAction,
   authorizeAfterSalesReturnAction,
-  createAfterSalesResolutionAction,
   requestAfterSalesDocumentAdjustmentAction,
   requestAfterSalesInventoryDispositionAction,
+  replyToAfterSalesCustomerAction,
   requestAfterSalesRefundAction,
   transitionAfterSalesCaseAction,
 } from "./after-sales-admin-actions";
@@ -39,6 +45,14 @@ const statuses = [
   "CANCELLED",
 ];
 
+const caseDrawerTabs: Array<{ id: AfterSalesAdminDrawerTab; label: string }> = [
+  { id: "operacion", label: "Operacion" },
+  { id: "caso", label: "Caso" },
+  { id: "devolucion", label: "Devolucion" },
+  { id: "resolucion", label: "Resolucion" },
+  { id: "auditoria", label: "Auditoria" },
+];
+
 function casesHref(filters: AfterSalesAdminFilters, patch: Partial<AfterSalesAdminFilters>) {
   const params = new URLSearchParams();
   const next = { ...filters, ...patch };
@@ -50,6 +64,60 @@ function casesHref(filters: AfterSalesAdminFilters, patch: Partial<AfterSalesAdm
   });
 
   return `/admin/postventa${params.size ? `?${params.toString()}` : ""}`;
+}
+
+function activeCaseDrawerTab(filters: AfterSalesAdminFilters): AfterSalesAdminDrawerTab {
+  return caseDrawerTabs.some((tab) => tab.id === filters.caseTab)
+    ? filters.caseTab as AfterSalesAdminDrawerTab
+    : "operacion";
+}
+
+function caseTransitionOptions(status: string | undefined) {
+  switch (status) {
+    case "SUBMITTED":
+      return [{ value: "review", label: "Iniciar revision" }];
+    case "UNDER_REVIEW":
+      return [
+        { value: "approve", label: "Aprobar caso" },
+        { value: "reject", label: "Rechazar caso" },
+      ];
+    case "AWAITING_RETURN":
+      return [{ value: "receive-return", label: "Registrar retorno recibido" }];
+    case "RETURN_RECEIVED":
+      return [{ value: "resolve", label: "Resolver caso" }];
+    case "RESOLUTION_IN_PROGRESS":
+      return [{ value: "resolve", label: "Resolver caso" }];
+    case "RESOLVED":
+      return [{ value: "close", label: "Cerrar caso" }];
+    default:
+      return [];
+  }
+}
+
+function caseNextStep(caseRecord: AfterSalesAdminCase) {
+  const status = caseRecord.status ?? "SUBMITTED";
+  if (status === "RETURN_RECEIVED") return "Registrar la resolucion y sus impactos";
+  if (status === "RESOLUTION_IN_PROGRESS") return "Completar impactos y resolver el caso";
+  const transition = caseTransitionOptions(status)[0];
+  if (transition) return transition.label;
+  if (status === "APPROVED") return "Autorizar devolucion o registrar la resolucion";
+  if (status === "AWAITING_RETURN") return "Esperar y registrar la recepcion del retorno";
+  if (status === "REJECTED" || status === "CLOSED" || status === "CANCELLED") return "No requiere nuevas acciones";
+  return "Completar los impactos pendientes";
+}
+
+function caseOperationHealth(caseRecord: AfterSalesAdminCase) {
+  const status = caseRecord.status ?? "";
+  if (["REJECTED", "CLOSED", "CANCELLED"].includes(status)) {
+    return { label: "Finalizado", badgeClass: "adminBadge adminBadgeOk" };
+  }
+  if (!caseRecord.assignedEmployeeId) {
+    return { label: "Requiere responsable", badgeClass: "adminBadge adminBadgeWarn" };
+  }
+  if (["SUBMITTED", "UNDER_REVIEW", "AWAITING_RETURN", "RETURN_RECEIVED", "RESOLUTION_IN_PROGRESS"].includes(status)) {
+    return { label: "En curso", badgeClass: "adminBadge adminBadgeWarn" };
+  }
+  return { label: "Operable", badgeClass: "adminBadge adminBadgeOk" };
 }
 
 function valueText(value: unknown) {
@@ -105,7 +173,7 @@ function recordField(value: unknown, keys: string[]) {
   for (const key of keys) {
     const field = record[key];
     if (typeof field === "string" || typeof field === "number" || typeof field === "boolean") {
-      return field;
+      return String(field);
     }
   }
 
@@ -124,7 +192,7 @@ function ResultBanner({ result }: { result: { ok: boolean; error?: string } }) {
   );
 }
 
-function FiltersPanel({ filters }: { filters: AfterSalesAdminFilters }) {
+function FiltersPanel({ filters, employees }: { filters: AfterSalesAdminFilters; employees: AfterSalesAdminEmployee[] }) {
   return (
     <section className="adminCard">
       <div className="adminCardHeader">
@@ -149,7 +217,10 @@ function FiltersPanel({ filters }: { filters: AfterSalesAdminFilters }) {
         </label>
         <label className="adminField">
           <span>Responsable</span>
-          <input name="assignedEmployeeId" placeholder="employeeId" defaultValue={filters.assignedEmployeeId ?? ""} />
+          <select name="assignedEmployeeId" defaultValue={filters.assignedEmployeeId ?? ""}>
+            <option value="">Todos</option>
+            {employees.filter((employee) => employee.active).map((employee) => <option key={employee.employeeId} value={employee.employeeId}>{employee.label}</option>)}
+          </select>
         </label>
         <label className="adminField">
           <span>Estado</span>
@@ -250,13 +321,19 @@ function CasesTable({ data, filters }: Pick<Props, "data" | "filters">) {
   );
 }
 
-function DetailSummary({ selectedCase }: { selectedCase: AfterSalesAdminCase }) {
+function DetailSummary({
+  selectedCase,
+  customerReference,
+}: {
+  selectedCase: AfterSalesAdminCase;
+  customerReference: string | null;
+}) {
   return (
     <>
-      <dl className="adminDefinitionList">
+      <dl className="adminDefinitionList adminDetailFields">
         <div><dt>Caso</dt><dd>{selectedCase.caseId}</dd></div>
         <div><dt>Pedido</dt><dd>{selectedCase.orderId}</dd></div>
-        <div><dt>Cliente</dt><dd>{valueText(selectedCase.customerId)}</dd></div>
+        <div><dt>Cliente</dt><dd>{valueText(customerReference ?? selectedCase.customerId)}</dd></div>
         <div><dt>Tipo</dt><dd>{valueText(selectedCase.caseType)}</dd></div>
         <div><dt>Estado</dt><dd><span className={statusBadgeClass(selectedCase.status)}>{valueText(selectedCase.status)}</span></dd></div>
         <div><dt>Responsable</dt><dd>{valueText(selectedCase.assignedEmployeeId)}</dd></div>
@@ -270,8 +347,15 @@ function DetailSummary({ selectedCase }: { selectedCase: AfterSalesAdminCase }) 
       ) : null}
       <div className="adminButtonRow">
         <Link className="adminButton" href={`/admin/pedidos?orderId=${encodeURIComponent(selectedCase.orderId)}`}>Abrir pedido</Link>
-        {selectedCase.customerId ? (
-          <Link className="adminButton" href={`/admin/clientes?customerId=${encodeURIComponent(selectedCase.customerId)}`}>Abrir cliente</Link>
+        {customerReference ? (
+          <Link
+            className="adminButton"
+            href={`/admin/clientes/${encodeURIComponent(customerReference)}`}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Abrir cliente
+          </Link>
         ) : null}
       </div>
     </>
@@ -337,6 +421,95 @@ function CaseCollectionsPanel({ selectedCase }: { selectedCase: AfterSalesAdminC
   );
 }
 
+function CaseCollectionPanel({
+  title,
+  items,
+  emptyMessage,
+  referenceKeys,
+}: {
+  title: string;
+  items: unknown[];
+  emptyMessage: string;
+  referenceKeys: string[];
+}) {
+  if (!items.length) {
+    return (
+      <section className="adminCard afterSalesCollectionPanel">
+        <div className="adminCardHeader"><h3>{title}</h3></div>
+        <div className="adminEmptyState">{emptyMessage}</div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="adminCard afterSalesCollectionPanel">
+      <div className="adminCardHeader"><h3>{title}</h3><span className="adminBadge">{items.length}</span></div>
+      <div className="adminTableScroller">
+        <table className="adminTable pricingTable">
+          <thead>
+            <tr><th>Referencia</th><th>Estado o tipo</th><th>Detalle</th><th>Actualizacion</th></tr>
+          </thead>
+          <tbody>
+            {items.map((item, index) => (
+              <tr key={String(recordField(item, referenceKeys) ?? index)}>
+                <td>{valueText(recordField(item, referenceKeys))}</td>
+                <td><span className={statusBadgeClass(String(recordField(item, ["status", "resolutionType", "adjustmentType", "dispositionType", "evidenceType"]) ?? ""))}>{valueText(recordField(item, ["status", "resolutionType", "adjustmentType", "dispositionType", "evidenceType"]))}</span></td>
+                <td>{valueText(recordField(item, ["transactionId", "caseItemId", "invoiceId", "warehouseId", "externalReference", "note"]))}</td>
+                <td>{dateText(String(recordField(item, ["updatedAt", "requestedAt", "authorizedAt", "receivedAt", "createdAt", "issuedAt"]) ?? ""))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function AfterSalesDrawerSummary({ selectedCase }: { selectedCase: AfterSalesAdminCase }) {
+  const health = caseOperationHealth(selectedCase);
+
+  return (
+    <section className="ordersFulfillmentSummary afterSalesDrawerSummary">
+      <div className="ordersFulfillmentSummaryHeader">
+        <div>
+          <span>Resumen operativo</span>
+          <strong>{caseNextStep(selectedCase)}</strong>
+        </div>
+        <span className={health.badgeClass}>{health.label}</span>
+      </div>
+      <dl className="ordersFulfillmentSummaryMeta">
+        <div><dt>Estado</dt><dd><span className={statusBadgeClass(selectedCase.status)}>{valueText(selectedCase.status)}</span></dd></div>
+        <div><dt>Responsable</dt><dd>{valueText(selectedCase.assignedEmployeeId)}</dd></div>
+        <div><dt>Lineas</dt><dd>{selectedCase.items.length}</dd></div>
+        <div><dt>Retornos</dt><dd>{selectedCase.returnAuthorizations.length}</dd></div>
+      </dl>
+    </section>
+  );
+}
+
+function AfterSalesDrawerTabs({
+  filters,
+  activeTab,
+}: {
+  filters: AfterSalesAdminFilters;
+  activeTab: AfterSalesAdminDrawerTab;
+}) {
+  return (
+    <nav aria-label="Secciones del caso" className="productEditorTabs ordersDrawerTabs afterSalesDrawerTabs">
+      {caseDrawerTabs.map((tab) => (
+        <Link
+          aria-current={activeTab === tab.id ? "page" : undefined}
+          className={`productEditorTab${activeTab === tab.id ? " productEditorTabActive" : ""}`}
+          href={casesHref(filters, { caseTab: tab.id, notice: undefined })}
+          key={tab.id}
+        >
+          {tab.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 function AdminAuditTimelinePanel({ events }: { events: AfterSalesAdminAuditEvent[] }) {
   if (!events.length) {
     return <div className="adminEmptyState">Sin eventos administrativos para este caso.</div>;
@@ -376,33 +549,100 @@ function AdminAuditTimelinePanel({ events }: { events: AfterSalesAdminAuditEvent
   );
 }
 
-function AssignmentForm({ selectedCase }: { selectedCase: AfterSalesAdminCase }) {
+function CustomerConversationPanel({
+  caseTab,
+  messages,
+  selectedCase,
+}: {
+  caseTab: AfterSalesAdminDrawerTab;
+  messages: AfterSalesAdminMessage[];
+  selectedCase: AfterSalesAdminCase;
+}) {
+  const chronologicalMessages = [...messages].sort((left, right) => (left.createdAt ?? "").localeCompare(right.createdAt ?? ""));
+
+  return (
+    <section className="adminCard">
+      <div className="adminCardHeader">
+        <div>
+          <h3>Conversacion con el cliente</h3>
+          <p>El cliente ve este mismo historial en su caso. Cada respuesta del equipo genera un aviso por email.</p>
+        </div>
+      </div>
+      {chronologicalMessages.length ? (
+        <div className="adminTableScroller">
+          <table className="adminTable pricingTable">
+            <thead><tr><th>Autor</th><th>Mensaje</th><th>Enviado</th></tr></thead>
+            <tbody>
+              {chronologicalMessages.map((message) => (
+                <tr key={message.messageId}>
+                  <td><strong>{message.authorType === "CUSTOMER" ? "Cliente" : "Equipo"}</strong><div className="adminMuted">{valueText(message.kind)}</div></td>
+                  <td>{valueText(message.body)}</td>
+                  <td>{dateText(message.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <div className="adminEmptyState">Aun no hay mensajes en el historial.</div>}
+      <form action={replyToAfterSalesCustomerAction} className="pricingDenseForm">
+        <input name="caseId" type="hidden" value={selectedCase.caseId} />
+        <input name="caseTab" type="hidden" value={caseTab} />
+        <input name="idempotencyKey" type="hidden" value={`admin-after-sales-message-${randomUUID()}`} />
+        <label className="adminField">
+          <span>Respuesta para el cliente</span>
+          <textarea maxLength={4000} name="body" placeholder="Escribe una respuesta clara para el cliente" required rows={4} />
+        </label>
+        <button className="adminButton" type="submit">Enviar respuesta y avisar por email</button>
+      </form>
+    </section>
+  );
+}
+
+function AssignmentForm({
+  selectedCase,
+  caseTab,
+  employees,
+}: {
+  selectedCase: AfterSalesAdminCase;
+  caseTab: AfterSalesAdminDrawerTab;
+  employees: AfterSalesAdminEmployee[];
+}) {
+  const activeEmployees = employees.filter((employee) => employee.active);
+
   return (
     <form action={assignAfterSalesOwnerAction} className="pricingDenseForm">
       <input name="caseId" type="hidden" value={selectedCase.caseId} />
+      <input name="caseTab" type="hidden" value={caseTab} />
       <label className="adminField">
         <span>Responsable</span>
-        <input name="assignedEmployeeId" placeholder="employeeId o __null__" defaultValue={selectedCase.assignedEmployeeId ?? ""} />
+        <select defaultValue={selectedCase.assignedEmployeeId ?? "__null__"} name="assignedEmployeeId" disabled={!activeEmployees.length}>
+          <option value="__null__">Sin responsable</option>
+          {activeEmployees.map((employee) => <option key={employee.employeeId} value={employee.employeeId}>{employee.label}</option>)}
+        </select>
       </label>
-      <button className="adminButton" type="submit">Asignar</button>
+      {activeEmployees.length ? <button className="adminButton" type="submit">Guardar responsable</button> : <p className="adminMuted">No hay empleados activos disponibles para este contexto.</p>}
     </form>
   );
 }
 
-function TransitionForms({ selectedCase }: { selectedCase: AfterSalesAdminCase }) {
+function TransitionForms({ selectedCase, caseTab }: { selectedCase: AfterSalesAdminCase; caseTab: AfterSalesAdminDrawerTab }) {
+  const transitions = caseTransitionOptions(selectedCase.status);
+
+  if (!transitions.length) {
+    return <div className="adminEmptyState">No hay una transicion manual disponible para el estado actual.</div>;
+  }
+
   return (
     <div className="adminStatusList">
       <form action={transitionAfterSalesCaseAction} className="pricingDenseForm">
         <input name="caseId" type="hidden" value={selectedCase.caseId} />
+        <input name="caseTab" type="hidden" value={caseTab} />
         <label className="adminField">
           <span>Accion</span>
           <select name="caseAction" required>
-            <option value="review">Poner en revision</option>
-            <option value="approve">Aprobar</option>
-            <option value="reject">Rechazar</option>
-            <option value="receive-return">Recibir retorno</option>
-            <option value="resolve">Resolver</option>
-            <option value="close">Cerrar</option>
+            {transitions.map((transition) => (
+              <option key={transition.value} value={transition.value}>{transition.label}</option>
+            ))}
           </select>
         </label>
         <label className="adminField">
@@ -415,68 +655,80 @@ function TransitionForms({ selectedCase }: { selectedCase: AfterSalesAdminCase }
         </label>
         <button className="adminButton" type="submit">Aplicar estado</button>
       </form>
-      <form action={authorizeAfterSalesReturnAction} className="pricingDenseForm">
-        <input name="caseId" type="hidden" value={selectedCase.caseId} />
-        <label className="adminField">
-          <span>Nota retorno</span>
-          <input name="note" placeholder="Instrucciones internas" />
-        </label>
-        <button className="adminButton" type="submit">Autorizar retorno</button>
-      </form>
     </div>
   );
 }
 
-function ImpactForms({ selectedCase, currency }: { selectedCase: AfterSalesAdminCase; currency: string }) {
-  const firstItemId = selectedCase.items[0]?.caseItemId ?? "";
+function ReturnAuthorizationForm({ selectedCase, caseTab }: { selectedCase: AfterSalesAdminCase; caseTab: AfterSalesAdminDrawerTab }) {
+  if (selectedCase.status !== "APPROVED") {
+    return <div className="adminEmptyState">La autorizacion de retorno estara disponible cuando el caso sea aprobado.</div>;
+  }
+
+  return (
+    <form action={authorizeAfterSalesReturnAction} className="pricingDenseForm">
+      <input name="caseId" type="hidden" value={selectedCase.caseId} />
+      <input name="caseTab" type="hidden" value={caseTab} />
+      <label className="adminField">
+        <span>Instrucciones de retorno</span>
+        <input name="note" placeholder="Indicaciones para el retorno" />
+      </label>
+      <button className="adminButton" type="submit">Autorizar retorno</button>
+    </form>
+  );
+}
+
+function ImpactForms({
+  selectedCase,
+  currency,
+  caseTab,
+  paymentOptions,
+  invoiceOptions,
+}: {
+  selectedCase: AfterSalesAdminCase;
+  currency: string;
+  caseTab: AfterSalesAdminDrawerTab;
+  paymentOptions: AfterSalesAdminReferenceOption[];
+  invoiceOptions: AfterSalesAdminReferenceOption[];
+}) {
+  const refundResolutions = selectedCase.resolutions.filter((resolution) => recordField(resolution, ["resolutionType"]) === "REFUND");
+  const canRequestRefund = refundResolutions.length > 0;
+  const canRequestInventoryDisposition = ["RETURN_RECEIVED", "RESOLUTION_IN_PROGRESS", "RESOLVED"].includes(selectedCase.status ?? "");
 
   return (
     <div className="adminStatusList">
-      <form action={createAfterSalesResolutionAction} className="pricingDenseForm">
+      <AfterSalesResolutionForm caseId={selectedCase.caseId} caseTab={caseTab} currency={currency} items={selectedCase.items} />
+      {canRequestRefund ? <form action={requestAfterSalesRefundAction} className="pricingDenseForm">
         <input name="caseId" type="hidden" value={selectedCase.caseId} />
-        <input name="currency" type="hidden" value={currency} />
+        <input name="caseTab" type="hidden" value={caseTab} />
         <label className="adminField">
-          <span>Item</span>
-          <input name="caseItemId" placeholder="caseItemId" defaultValue={firstItemId} />
-        </label>
-        <label className="adminField">
-          <span>Resolucion</span>
-          <select name="resolutionType" defaultValue="REFUND">
-            <option value="REFUND">REFUND</option>
-            <option value="EXCHANGE">EXCHANGE</option>
-            <option value="REPAIR">REPAIR</option>
-            <option value="REPLACEMENT">REPLACEMENT</option>
-            <option value="STORE_CREDIT">STORE_CREDIT</option>
-            <option value="NO_ACTION">NO_ACTION</option>
+          <span>Transacción</span>
+          <select name="transactionId" required disabled={!paymentOptions.length} defaultValue="">
+            <option value="">Selecciona transacción</option>
+            {paymentOptions.map((transaction) => <option key={transaction.id} value={transaction.id}>{transaction.label}</option>)}
           </select>
         </label>
         <label className="adminField">
-          <span>Importe menor</span>
-          <input name="amountMinor" min="1" placeholder="1299" type="number" />
-        </label>
-        <label className="adminField">
-          <span>Referencia</span>
-          <input name="externalReference" placeholder="ref externa" />
-        </label>
-        <button className="adminButton" type="submit">Registrar resolucion</button>
-      </form>
-      <form action={requestAfterSalesRefundAction} className="pricingDenseForm">
-        <input name="caseId" type="hidden" value={selectedCase.caseId} />
-        <label className="adminField">
-          <span>Transaction</span>
-          <input name="transactionId" placeholder="transactionId" />
-        </label>
-        <label className="adminField">
           <span>Resolucion</span>
-          <input name="resolutionId" placeholder="resolutionId" />
+          <select name="resolutionId" defaultValue="">
+            <option value="">Selecciona resolucion</option>
+            {selectedCase.resolutions.map((resolution, index) => {
+              const resolutionId = recordField(resolution, ["resolutionId", "id"]);
+              return resolutionId ? <option key={resolutionId} value={resolutionId}>{recordField(resolution, ["resolutionType", "status"]) ?? `Resolucion ${index + 1}`}</option> : null;
+            })}
+          </select>
         </label>
-        <button className="adminButton" type="submit">Solicitar refund</button>
-      </form>
-      <form action={requestAfterSalesInventoryDispositionAction} className="pricingDenseForm">
+        {paymentOptions.length ? <button className="adminButton" type="submit">Solicitar reembolso</button> : <p className="adminMuted">No pudimos identificar una transacción reembolsable de este pedido.</p>}
+      </form> : <div className="adminEmptyState">El reembolso se habilita al confirmar una decisión de tipo Reembolso.</div>}
+      {canRequestInventoryDisposition ? <form action={requestAfterSalesInventoryDispositionAction} className="pricingDenseForm">
         <input name="caseId" type="hidden" value={selectedCase.caseId} />
+        <input name="caseTab" type="hidden" value={caseTab} />
         <label className="adminField">
-          <span>Item</span>
-          <input name="caseItemId" placeholder="caseItemId" defaultValue={firstItemId} />
+          <span>Linea recibida</span>
+          <select name="caseItemId" required>
+            {selectedCase.items.map((item) => (
+              <option key={item.caseItemId} value={item.caseItemId}>{valueText(item.name ?? item.caseItemId)}</option>
+            ))}
+          </select>
         </label>
         <label className="adminField">
           <span>Disposicion</span>
@@ -486,21 +738,27 @@ function ImpactForms({ selectedCase, currency }: { selectedCase: AfterSalesAdmin
             <option value="DISCARD">DISCARD</option>
           </select>
         </label>
-        <label className="adminField">
-          <span>Warehouse</span>
-          <input name="warehouseId" placeholder="warehouseId" />
-        </label>
         <button className="adminButton" type="submit">Inventario</button>
-      </form>
-      <form action={requestAfterSalesDocumentAdjustmentAction} className="pricingDenseForm">
+      </form> : <div className="adminEmptyState">La disposición de inventario se habilita al registrar la recepción del retorno.</div>}
+      {selectedCase.refundRequests.length ? <form action={requestAfterSalesDocumentAdjustmentAction} className="pricingDenseForm">
         <input name="caseId" type="hidden" value={selectedCase.caseId} />
+        <input name="caseTab" type="hidden" value={caseTab} />
         <label className="adminField">
-          <span>Refund request</span>
-          <input name="refundRequestId" placeholder="refundRequestId" />
+          <span>Solicitud de refund</span>
+          <select name="refundRequestId" defaultValue="">
+            <option value="">Selecciona solicitud</option>
+            {selectedCase.refundRequests.map((refundRequest, index) => {
+              const refundRequestId = recordField(refundRequest, ["refundRequestId", "id"]);
+              return refundRequestId ? <option key={refundRequestId} value={refundRequestId}>{recordField(refundRequest, ["status", "transactionId"]) ?? `Solicitud ${index + 1}`}</option> : null;
+            })}
+          </select>
         </label>
         <label className="adminField">
           <span>Factura</span>
-          <input name="invoiceId" placeholder="invoiceId" />
+          <select name="invoiceId" required disabled={!invoiceOptions.length} defaultValue="">
+            <option value="">Selecciona factura</option>
+            {invoiceOptions.map((invoice) => <option key={invoice.id} value={invoice.id}>{invoice.label}</option>)}
+          </select>
         </label>
         <label className="adminField">
           <span>Documento</span>
@@ -509,54 +767,113 @@ function ImpactForms({ selectedCase, currency }: { selectedCase: AfterSalesAdmin
             <option value="INVOICE_ADJUSTMENT">Ajuste factura</option>
           </select>
         </label>
-        <button className="adminButton" type="submit">Ajuste documental</button>
-      </form>
+        {invoiceOptions.length ? <button className="adminButton" type="submit">Ajuste documental</button> : <p className="adminMuted">No pudimos identificar una factura para este pedido.</p>}
+      </form> : <div className="adminEmptyState">El ajuste documental se habilita tras solicitar el reembolso.</div>}
     </div>
   );
 }
 
-function CaseDetail({ capabilities, data }: Pick<Props, "capabilities" | "data">) {
+function AfterSalesCaseDrawer({
+  capabilities,
+  data,
+  filters,
+}: Pick<Props, "capabilities" | "data" | "filters">) {
+  const closeHref = casesHref(filters, { caseId: undefined, caseTab: undefined, notice: undefined });
+
   if (!data.selectedCase.ok) {
-    return <ResultBanner result={data.selectedCase} />;
+    return (
+      <div className="adminDrawerBackdrop afterSalesDrawerBackdrop">
+        <Link aria-label="Cerrar detalle de postventa" className="afterSalesDrawerBackdropLink" href={closeHref} />
+        <aside aria-label="Detalle de caso postventa" aria-modal="true" className="adminSideDrawer afterSalesSideDrawer" role="dialog">
+          <div className="adminSideDrawerHeader">
+            <div>
+              <h2>Atencion del caso</h2>
+              <p>No pudimos cargar este expediente.</p>
+            </div>
+            <Link aria-label="Cerrar" className="adminButton adminButtonTiny" href={closeHref}>
+              <X aria-hidden="true" size={16} />
+            </Link>
+          </div>
+          <div className="afterSalesDrawerBody">
+            <ResultBanner result={data.selectedCase} />
+          </div>
+        </aside>
+      </div>
+    );
   }
   if (!data.selectedCase.data) {
-    return <div className="adminEmptyState">Selecciona un caso para atenderlo, asignarlo y registrar impactos.</div>;
+    return null;
   }
 
   const selectedCase = data.selectedCase.data;
   const auditEvents = buildAfterSalesAuditTimeline(selectedCase);
+  const activeTab = activeCaseDrawerTab(filters);
 
   return (
-    <section className="adminCard">
-      <div className="adminCardHeader">
-        <div>
-          <h2>Atencion del caso</h2>
-          <p>{selectedCase.caseId}</p>
+    <div className="adminDrawerBackdrop afterSalesDrawerBackdrop">
+      <Link aria-label="Cerrar detalle de postventa" className="afterSalesDrawerBackdropLink" href={closeHref} />
+      <aside aria-label={`Atender caso ${selectedCase.caseId}`} aria-modal="true" className="adminSideDrawer afterSalesSideDrawer" role="dialog">
+        <div className="adminSideDrawerHeader">
+          <div>
+            <h2>Atencion del caso</h2>
+            <p>{selectedCase.caseId}</p>
+          </div>
+          <Link aria-label="Cerrar" className="adminButton adminButtonTiny" href={closeHref}>
+            <X aria-hidden="true" size={16} />
+          </Link>
         </div>
-        <LifeBuoy aria-hidden="true" size={18} />
-      </div>
-      <DetailSummary selectedCase={selectedCase} />
-      <div className="customersOverviewSubsection">
-        <h3>Lineas afectadas</h3>
-        <CaseItemsPanel selectedCase={selectedCase} />
-      </div>
-      <div className="customersOverviewSubsection">
-        <h3>Trazabilidad operativa</h3>
-        <CaseCollectionsPanel selectedCase={selectedCase} />
-      </div>
-      <div className="customersOverviewSubsection">
-        <h3>Auditoria administrativa</h3>
-        <AdminAuditTimelinePanel events={auditEvents} />
-      </div>
-      {capabilities.canManageAfterSales ? (
-        <div className="customersOverviewSubsection">
-          <h3>Acciones de soporte</h3>
-          <AssignmentForm selectedCase={selectedCase} />
-          <TransitionForms selectedCase={selectedCase} />
-          <ImpactForms selectedCase={selectedCase} currency={data.context.currency} />
+        <div className="afterSalesDrawerBody">
+          <AfterSalesDrawerSummary selectedCase={selectedCase} />
+          <AfterSalesDrawerTabs activeTab={activeTab} filters={filters} />
+
+          {activeTab === "operacion" ? (
+            <div className="afterSalesDrawerTabPanel">
+              <section className="adminCard">
+                <div className="adminCardHeader"><div><h3>Atencion operativa</h3><p>Asigna un responsable y aplica solo la siguiente transicion valida.</p></div><ClipboardCheck aria-hidden="true" size={18} /></div>
+                <div className="afterSalesOperationForms">
+                  {capabilities.canManageAfterSales ? <AssignmentForm caseTab={activeTab} employees={data.employees.ok ? data.employees.data : []} selectedCase={selectedCase} /> : null}
+                  {capabilities.canManageAfterSales ? <TransitionForms caseTab={activeTab} selectedCase={selectedCase} /> : null}
+                </div>
+              </section>
+              <section className="adminCard">
+                <div className="adminCardHeader"><div><h3>Estado de las integraciones</h3><p>Resumen de los registros generados desde este caso.</p></div></div>
+                <CaseCollectionsPanel selectedCase={selectedCase} />
+              </section>
+            </div>
+          ) : null}
+
+          {activeTab === "caso" ? (
+            <div className="afterSalesDrawerTabPanel">
+              <section className="adminCard"><div className="adminCardHeader"><div><h3>Datos del caso</h3><p>Solicitud original, cliente y pedido relacionados.</p></div><FileText aria-hidden="true" size={18} /></div><DetailSummary customerReference={data.selectedCustomerReference} selectedCase={selectedCase} /></section>
+              {capabilities.canManageAfterSales ? <CustomerConversationPanel caseTab={activeTab} messages={selectedCase.messages} selectedCase={selectedCase} /> : null}
+              <section className="adminCard"><div className="adminCardHeader"><div><h3>Lineas afectadas</h3><p>Unidades solicitadas, aprobadas y su estado.</p></div></div><CaseItemsPanel selectedCase={selectedCase} /></section>
+              <CaseCollectionPanel emptyMessage="El cliente no adjunto evidencias." items={selectedCase.evidences} referenceKeys={["evidenceId", "id", "url"]} title="Evidencias" />
+            </div>
+          ) : null}
+
+          {activeTab === "devolucion" ? (
+            <div className="afterSalesDrawerTabPanel">
+              <section className="adminCard"><div className="adminCardHeader"><div><h3>Gestion de retorno</h3><p>Autoriza el retorno tras aprobar el caso y registra su recepcion desde Operacion.</p></div><Truck aria-hidden="true" size={18} /></div>{capabilities.canManageAfterSales ? <ReturnAuthorizationForm caseTab={activeTab} selectedCase={selectedCase} /> : null}</section>
+              <CaseCollectionPanel emptyMessage="Aun no hay autorizaciones de retorno." items={selectedCase.returnAuthorizations} referenceKeys={["returnAuthorizationId", "id"]} title="Autorizaciones de retorno" />
+            </div>
+          ) : null}
+
+          {activeTab === "resolucion" ? (
+            <div className="afterSalesDrawerTabPanel">
+              <section className="adminCard"><div className="adminCardHeader"><div><h3>Resolucion e impactos</h3><p>Primero decide la solución. Después se habilitan únicamente los efectos compatibles.</p></div><RotateCcw aria-hidden="true" size={18} /></div>{capabilities.canManageAfterSales ? <ImpactForms caseTab={activeTab} currency={data.context.currency} invoiceOptions={data.orderReferences.ok && data.orderReferences.data ? data.orderReferences.data.invoices : []} paymentOptions={data.orderReferences.ok && data.orderReferences.data ? data.orderReferences.data.transactions : []} selectedCase={selectedCase} /> : null}</section>
+              <CaseCollectionPanel emptyMessage="Aun no hay resoluciones registradas." items={selectedCase.resolutions} referenceKeys={["resolutionId", "id"]} title="Resoluciones" />
+              <CaseCollectionPanel emptyMessage="Aun no hay solicitudes de refund." items={selectedCase.refundRequests} referenceKeys={["refundRequestId", "id"]} title="Solicitudes de refund" />
+              <CaseCollectionPanel emptyMessage="Aun no hay disposiciones de inventario." items={selectedCase.inventoryDispositions} referenceKeys={["inventoryDispositionId", "id"]} title="Disposiciones de inventario" />
+              <CaseCollectionPanel emptyMessage="Aun no hay ajustes documentales." items={selectedCase.documentAdjustments} referenceKeys={["documentAdjustmentId", "id"]} title="Ajustes documentales" />
+            </div>
+          ) : null}
+
+          {activeTab === "auditoria" ? (
+            <div className="afterSalesDrawerTabPanel"><section className="adminCard"><div className="adminCardHeader"><div><h3>Auditoria administrativa</h3><p>Eventos del caso y de cada integracion asociada.</p></div></div><AdminAuditTimelinePanel events={auditEvents} /></section></div>
+          ) : null}
         </div>
-      ) : null}
-    </section>
+      </aside>
+    </div>
   );
 }
 
@@ -577,8 +894,8 @@ export function AfterSalesAdminPage({ capabilities, data, filters }: Props) {
       ) : null}
       <CasesKpis data={data} />
       <div className="adminStatusList">
-        <FiltersPanel filters={filters} />
-        <section className="adminCard">
+        <FiltersPanel employees={data.employees.ok ? data.employees.data : []} filters={filters} />
+        <section className="adminCard afterSalesCasesCard">
           <div className="adminCardHeader">
             <div>
               <h2>Bandeja de casos</h2>
@@ -588,7 +905,6 @@ export function AfterSalesAdminPage({ capabilities, data, filters }: Props) {
           </div>
           <CasesTable data={data} filters={filters} />
         </section>
-        <CaseDetail capabilities={capabilities} data={data} />
       </div>
 
       <section className="adminGrid afterSalesSupportGrid">
@@ -623,6 +939,7 @@ export function AfterSalesAdminPage({ capabilities, data, filters }: Props) {
           </div>
         </section>
       </section>
+      {filters.caseId ? <AfterSalesCaseDrawer capabilities={capabilities} data={data} filters={filters} /> : null}
     </main>
   );
 }

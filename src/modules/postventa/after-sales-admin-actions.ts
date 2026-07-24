@@ -43,10 +43,13 @@ function scopedPath(path: string, organizationId: string, shopId: string) {
   return `${path}?${new URLSearchParams({ organizationId, shopId }).toString()}`;
 }
 
-function afterSalesReturnPath(message: string, caseId?: string) {
+function afterSalesReturnPath(message: string, caseId?: string, caseTab?: string) {
   const params = new URLSearchParams({ notice: message });
   if (caseId) {
     params.set("caseId", caseId);
+  }
+  if (caseTab) {
+    params.set("caseTab", caseTab);
   }
 
   return `/admin/postventa?${params.toString()}`;
@@ -65,6 +68,7 @@ async function mutateCase(
   pathSuffix: string,
   init: RequestInit,
   successMessage: string,
+  caseTab?: string,
 ): Promise<never> {
   const context = await getAdminContext();
   const result = await requestBff(
@@ -74,10 +78,10 @@ async function mutateCase(
 
   revalidatePath("/admin/postventa");
   if (!result.ok) {
-    redirect(afterSalesReturnPath(result.status === 403 ? "Falta permiso after-sales.manage." : result.error, caseId));
+    redirect(afterSalesReturnPath(result.status === 403 ? "Falta permiso after-sales.manage." : result.error, caseId, caseTab));
   }
 
-  redirect(afterSalesReturnPath(successMessage, caseId));
+  redirect(afterSalesReturnPath(successMessage, caseId, caseTab));
 }
 
 export async function applyAfterSalesFiltersAction(formData: FormData): Promise<never> {
@@ -114,6 +118,7 @@ export async function applyAfterSalesFiltersAction(formData: FormData): Promise<
 export async function assignAfterSalesOwnerAction(formData: FormData): Promise<never> {
   const caseId = requiredString(formData.get("caseId"), "caseId");
   const assignedEmployeeId = asNullableString(formData.get("assignedEmployeeId"));
+  const caseTab = asString(formData.get("caseTab"));
 
   return mutateCase(
     caseId,
@@ -124,12 +129,14 @@ export async function assignAfterSalesOwnerAction(formData: FormData): Promise<n
       body: jsonBody({ assignedEmployeeId }),
     },
     assignedEmployeeId ? "Caso asignado." : "Caso desasignado.",
+    caseTab,
   );
 }
 
 export async function transitionAfterSalesCaseAction(formData: FormData): Promise<never> {
   const caseId = requiredString(formData.get("caseId"), "caseId");
   const action = requiredString(formData.get("caseAction"), "Accion");
+  const caseTab = asString(formData.get("caseTab"));
   if (!PATCH_ACTIONS.has(action)) {
     throw new Error("Accion postventa no soportada.");
   }
@@ -146,11 +153,37 @@ export async function transitionAfterSalesCaseAction(formData: FormData): Promis
       }),
     },
     "Caso actualizado.",
+    caseTab,
+  );
+}
+
+export async function replyToAfterSalesCustomerAction(formData: FormData): Promise<never> {
+  const caseId = requiredString(formData.get("caseId"), "caseId");
+  const caseTab = asString(formData.get("caseTab"));
+  const body = requiredString(formData.get("body"), "Respuesta");
+  if (body.length > 4_000) {
+    throw new Error("La respuesta no puede superar 4.000 caracteres.");
+  }
+
+  return mutateCase(
+    caseId,
+    "messages",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: jsonBody({
+        body,
+        idempotencyKey: asString(formData.get("idempotencyKey")) ?? `admin-after-sales-message-${crypto.randomUUID()}`,
+      }),
+    },
+    "Respuesta enviada al cliente.",
+    caseTab,
   );
 }
 
 export async function authorizeAfterSalesReturnAction(formData: FormData): Promise<never> {
   const caseId = requiredString(formData.get("caseId"), "caseId");
+  const caseTab = asString(formData.get("caseTab"));
 
   return mutateCase(
     caseId,
@@ -161,12 +194,14 @@ export async function authorizeAfterSalesReturnAction(formData: FormData): Promi
       body: jsonBody({ metadataJson: { note: asString(formData.get("note")) } }),
     },
     "Retorno autorizado.",
+    caseTab,
   );
 }
 
 export async function createAfterSalesResolutionAction(formData: FormData): Promise<never> {
   const caseId = requiredString(formData.get("caseId"), "caseId");
   const amountMinor = optionalPositiveInteger(formData.get("amountMinor"), "Importe");
+  const caseTab = asString(formData.get("caseTab"));
 
   return mutateCase(
     caseId,
@@ -184,11 +219,13 @@ export async function createAfterSalesResolutionAction(formData: FormData): Prom
       }),
     },
     "Resolucion registrada.",
+    caseTab,
   );
 }
 
 export async function requestAfterSalesRefundAction(formData: FormData): Promise<never> {
   const caseId = requiredString(formData.get("caseId"), "caseId");
+  const caseTab = asString(formData.get("caseTab"));
 
   return mutateCase(
     caseId,
@@ -202,11 +239,13 @@ export async function requestAfterSalesRefundAction(formData: FormData): Promise
       }),
     },
     "Refund solicitado.",
+    caseTab,
   );
 }
 
 export async function requestAfterSalesInventoryDispositionAction(formData: FormData): Promise<never> {
   const caseId = requiredString(formData.get("caseId"), "caseId");
+  const caseTab = asString(formData.get("caseTab"));
 
   return mutateCase(
     caseId,
@@ -221,11 +260,13 @@ export async function requestAfterSalesInventoryDispositionAction(formData: Form
       }),
     },
     "Disposicion de inventario solicitada.",
+    caseTab,
   );
 }
 
 export async function requestAfterSalesDocumentAdjustmentAction(formData: FormData): Promise<never> {
   const caseId = requiredString(formData.get("caseId"), "caseId");
+  const caseTab = asString(formData.get("caseTab"));
 
   return mutateCase(
     caseId,
@@ -240,5 +281,6 @@ export async function requestAfterSalesDocumentAdjustmentAction(formData: FormDa
       }),
     },
     "Ajuste documental solicitado.",
+    caseTab,
   );
 }

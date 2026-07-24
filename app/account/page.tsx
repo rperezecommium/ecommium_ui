@@ -17,6 +17,9 @@ export default async function AccountPage({ searchParams }: PageProps) {
       invoicesOffset: first(query?.invoicesOffset) ?? "0",
       purchasesLimit: first(query?.purchasesLimit) ?? "5",
       purchasesOffset: first(query?.purchasesOffset) ?? "0",
+      afterSalesCaseId: first(query?.caseId),
+      afterSalesLimit: first(query?.afterSalesLimit) ?? "10",
+      afterSalesOffset: first(query?.afterSalesOffset) ?? "0",
     }),
     getStorefrontCustomerSession(),
   ]);
@@ -31,6 +34,7 @@ export default async function AccountPage({ searchParams }: PageProps) {
             initialDrawer={
               accountSection(first(query?.section))
             }
+            initialAfterSalesView={afterSalesView(first(query?.afterSalesView))}
           />
         ) : (
           <section className="storefrontAuthPanel">
@@ -61,5 +65,9 @@ function first(value: string | string[] | undefined): string | undefined {
 }
 
 function accountSection(value: string | undefined) {
-  return value === "invoices" || value === "sessions" ? value : undefined;
+  return value === "invoices" || value === "sessions" || value === "afterSales" ? value : undefined;
+}
+
+function afterSalesView(value: string | undefined) {
+  return value === "cases" ? value : undefined;
 }
