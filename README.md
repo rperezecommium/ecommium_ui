@@ -61,6 +61,11 @@ server-side httpOnly UI cookie.
 The UI rotates Admin tokens through a technical Route Handler before expiry.
 Browser tabs coordinate the request without reading the httpOnly cookie or
 writing tokens to `localStorage`.
+The server-side Admin layout must also preserve this lifecycle: when
+`GET /api/v1/auth/me` returns `401` or `403` and the cookie still contains a
+`refreshToken`, the UI must call `POST /api/v1/auth/refresh`, persist the
+rotated tokens in the httpOnly cookie, and retry `/auth/me` before redirecting
+to login. This is covered by `node --test tests/admin-login-action.test.mjs`.
 
 The Admin layout also mounts a session guardian. It reads the minimal state via
 same-origin Route Handlers, records real human interaction at a bounded rate,

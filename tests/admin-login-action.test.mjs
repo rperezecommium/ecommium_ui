@@ -16,6 +16,7 @@ let events = [];
 let savedSession = null;
 let savedContext = null;
 let clearContextCalls = 0;
+let currentSession = null;
 let scenario = {};
 
 function resetScenario(nextScenario = {}) {
@@ -23,6 +24,7 @@ function resetScenario(nextScenario = {}) {
   savedSession = null;
   savedContext = null;
   clearContextCalls = 0;
+  currentSession = nextScenario.currentSession ?? null;
   scenario = nextScenario;
 }
 
@@ -189,6 +191,16 @@ const moduleContext = {
           }
 
           if (path === "/auth/me") {
+            const meCallCount = events.filter((event) => event.type === "bff" && event.path === "/auth/me").length;
+            if (scenario.meStatus && meCallCount <= (scenario.meFailures ?? 1)) {
+              return {
+                ok: false,
+                error: scenario.meError ?? "token expired",
+                status: scenario.meStatus,
+                correlationId: "test-correlation",
+              };
+            }
+
             return okRaw({
               principal: {
                 sub: "employee-1",
@@ -221,6 +233,24 @@ const moduleContext = {
         },
       };
     }
+    if (specifier.endsWith("/shared/auth/admin-session-refresh")) {
+      return {
+        refreshAdminTokens: async (refreshToken) => {
+          events.push({ type: "refresh", refreshToken });
+
+          if (scenario.refreshStatus) {
+            return { ok: false, status: scenario.refreshStatus };
+          }
+
+          return {
+            ok: true,
+            accessToken: scenario.refreshedAccessToken ?? "access-token-2",
+            refreshToken: scenario.refreshedRefreshToken ?? "refresh-token-2",
+            expiresAt: scenario.refreshedExpiresAt ?? "2026-07-25T12:15:00.000Z",
+          };
+        },
+      };
+    }
     if (specifier.endsWith("/shared/config/env")) {
       return { adminBffToken: "" };
     }
@@ -241,9 +271,10 @@ const moduleContext = {
     if (specifier.endsWith("/shared/auth/session")) {
       return {
         clearAdminSession: async () => undefined,
-        getAdminSession: async () => null,
+        getAdminSession: async () => currentSession,
         saveAdminSession: async (session) => {
           savedSession = session;
+          currentSession = session;
         },
       };
     }
@@ -304,7 +335,7 @@ const moduleContext = {
 
 vm.runInNewContext(outputText, moduleContext);
 
-const { loginAdminEmployee } = moduleContext.module.exports;
+const { loginAdminEmployee, refreshAdminEmployeeSession } = moduleContext.module.exports;
 
 async function submitLogin(next = "/admin/products") {
   const formData = new FormData();
@@ -314,6 +345,42 @@ async function submitLogin(next = "/admin/products") {
 
   await loginAdminEmployee(formData);
 }
+
+test("admin layout refreshes tokens when auth me rejects the stored access token", async () => {
+  resetScenario({
+    currentSession: {
+      accessToken: "access-token-1",
+      refreshToken: "refresh-token-1",
+      expiresAt: "2026-07-25T12:00:00.000Z",
+      sessionId: "session-1",
+      employeeId: "employee-1",
+      name: "Employee",
+      email: "ricardo@lavour.es",
+      profile: "Operator",
+      principalType: "EMPLOYEE",
+      scope: "admin",
+      roles: ["admin"],
+      permissions: ["catalog.products.read"],
+    },
+    meStatus: 401,
+  });
+
+  const session = await refreshAdminEmployeeSession();
+
+  assert.equal(session.accessToken, "access-token-2");
+  assert.equal(session.refreshToken, "refresh-token-2");
+  assert.equal(savedSession.accessToken, "access-token-2");
+  assert.equal(savedSession.refreshToken, "refresh-token-2");
+  assert.deepEqual(events.map((event) => event.type === "bff" ? event.path : event.type), [
+    "/auth/me",
+    "refresh",
+    "/auth/me",
+  ]);
+  assert.equal(events[0].options.init, undefined);
+  assert.equal(events[1].refreshToken, "refresh-token-1");
+  assert.equal(events[2].options.withAuth, false);
+  assert.equal(events[2].options.init.headers.authorization, "Bearer access-token-2");
+});
 
 test("admin login payload omits organizationId shopId and shopAlias", async () => {
   resetScenario();
@@ -348,6 +415,18 @@ test("admin login works without session organizationId or shopId and loads avail
   assert.equal(availableCall.options.init.headers.authorization, "Bearer access-token-1");
   assert.equal(savedSession.organizationId, undefined);
   assert.equal(savedSession.shopId, undefined);
+});
+
+test("admin login keeps operational context diagnostics visible", async () => {
+  resetScenario({ availableStatus: 500 });
+
+  await assert.rejects(() => submitLogin("/admin"), (error) => {
+    const message = decodeURIComponent(error.url);
+    assert.match(message, /No se pudo cargar el contexto operativo del Admin/);
+    assert.match(message, /codigo BFF 500/);
+    assert.match(message, /correlation ID test-correlation/);
+    return true;
+  });
 });
 
 test("admin login auto-selects a single available shop", async () => {

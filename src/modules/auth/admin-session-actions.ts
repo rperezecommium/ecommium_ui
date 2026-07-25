@@ -11,6 +11,7 @@ import {
   saveAdminSession,
   type AdminSession,
 } from "../../shared/auth/session";
+import { refreshAdminTokens } from "../../shared/auth/admin-session-refresh";
 import { getAvailableAdminContexts, shopToContext } from "../configuracion/organization-shop";
 import { buildAdminLoginPayload } from "./admin-login-payload";
 import { mergeAuthSessions, parseAuthSessionPayload } from "./auth-session-payload";
@@ -39,16 +40,27 @@ function genericAuthError(status?: number) {
   return "No se pudo iniciar sesion. Intentalo de nuevo.";
 }
 
-function genericOperationalAccessError(status?: number) {
+function appendOperationalDiagnostic(message: string, input: { status?: number; correlationId?: string }) {
+  const details = [
+    input.status ? `codigo BFF ${input.status}` : null,
+    input.correlationId ? `correlation ID ${input.correlationId}` : null,
+  ].filter(Boolean);
+
+  return details.length > 0 ? `${message} (${details.join(", ")}).` : message;
+}
+
+function genericOperationalAccessError(input: { status?: number; correlationId?: string }) {
+  const { status } = input;
+
   if (status === 429) {
-    return "Demasiados intentos. Espera unos minutos e intentalo de nuevo.";
+    return appendOperationalDiagnostic("Demasiados intentos. Espera unos minutos e intentalo de nuevo.", input);
   }
 
   if (status === 401 || status === 403) {
-    return "No se pudo validar el acceso operativo al Admin.";
+    return appendOperationalDiagnostic("No se pudo validar el acceso operativo al Admin.", input);
   }
 
-  return "No se pudo cargar el contexto operativo del Admin.";
+  return appendOperationalDiagnostic("No se pudo cargar el contexto operativo del Admin.", input);
 }
 
 type LoginCredentials = {
@@ -92,6 +104,35 @@ async function fetchCurrentSessionWithToken(accessToken: string) {
   });
 }
 
+async function refreshStoredAdminSession(current: AdminSession) {
+  if (!current.refreshToken) {
+    return null;
+  }
+
+  const refreshResult = await refreshAdminTokens(current.refreshToken);
+
+  if (!refreshResult.ok) {
+    return null;
+  }
+
+  const refreshedSession = {
+    ...current,
+    accessToken: refreshResult.accessToken,
+    refreshToken: refreshResult.refreshToken,
+    expiresAt: refreshResult.expiresAt,
+  };
+
+  const meResult = await fetchCurrentSessionWithToken(refreshResult.accessToken);
+
+  if (!meResult.ok) {
+    return null;
+  }
+
+  const nextSession = mergeAuthSessions(refreshedSession, meResult.data);
+  await saveAdminSession(nextSession);
+  return nextSession;
+}
+
 async function loginAdminWithCredentials({
   email,
   password,
@@ -129,7 +170,13 @@ async function loginAdminWithCredentials({
   });
 
   if (!availableContexts.ok) {
-    loginRedirect(nextPath, genericOperationalAccessError(availableContexts.status));
+    loginRedirect(
+      nextPath,
+      genericOperationalAccessError({
+        status: availableContexts.status,
+        correlationId: availableContexts.correlationId,
+      }),
+    );
   }
 
   const shops = availableContexts.directory.organizations.flatMap((organization) => organization.shops);
@@ -213,6 +260,14 @@ export async function refreshAdminEmployeeSession() {
   if (meResult.ok) {
     const nextSession = mergeAuthSessions(current, meResult.data);
     return nextSession;
+  }
+
+  const refreshedSession = meResult.status === 401 || meResult.status === 403
+    ? await refreshStoredAdminSession(current)
+    : null;
+
+  if (refreshedSession) {
+    return refreshedSession;
   }
 
   if (!current.refreshToken) {

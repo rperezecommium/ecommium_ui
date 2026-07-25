@@ -28,6 +28,7 @@ La IA no debe trasladarse al repo backend para leer documentacion o codigo, salv
 - Los payloads enviados al BFF deben validarse con schemas en el borde UI antes de enviar y de nuevo al recibir.
 - No se deben guardar tokens en `localStorage`. Usar cookies httpOnly gestionadas por BFF cuando el contrato lo permita.
 - No se deben exponer secretos en variables `NEXT_PUBLIC_*`.
+- Regla irrompible de sesion Admin: si `GET /auth/me` falla con `401` o `403` y existe `refreshToken`, la UI debe intentar `POST /auth/refresh`, guardar los tokens rotados en la cookie httpOnly y reintentar `GET /auth/me` antes de considerar la sesion perdida o redirigir a login. Ningun cambio futuro debe sustituir este flujo por `return null` directo. Antes de modificar autenticacion Admin, ejecutar como minimo `node --test tests/admin-login-action.test.mjs`.
 
 ## Decision de producto: Admin primero
 La IA debe priorizar Admin antes que Storefront porque el composable necesita operaciones reales para configurar tenant, tiendas, permisos, catalogo, precios, transporte, pagos, CMS y automatizaciones. Sin Admin operativo, el Storefront tendria que depender de fixtures o configuracion manual y eso contradice el estado del backend.
