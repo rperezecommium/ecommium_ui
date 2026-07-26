@@ -112,6 +112,7 @@ function mediaAssetId(value: unknown) {
 function parseAsset(value: unknown, locale: string): MediaAdminAsset | null {
   const root = asRecord(value);
   const record = asRecord(root.item ?? root.asset ?? root.mediaAsset ?? value);
+  const metadata = asRecord(record.metadata);
   const id = mediaAssetId(record);
   if (!id) {
     return null;
@@ -119,14 +120,20 @@ function parseAsset(value: unknown, locale: string): MediaAdminAsset | null {
 
   return {
     mediaAssetId: id,
-    fileName: asString(record.fileName) ?? asString(record.filename) ?? asString(record.name) ?? id,
+    fileName:
+      asString(record.fileName) ??
+      asString(record.filename) ??
+      asString(record.name) ??
+      asString(record.originalName) ??
+      asString(record.publicPath)?.split("/").filter(Boolean).at(-1) ??
+      id,
     mimeType: asString(record.mimeType) ?? asString(record.contentType) ?? "application/octet-stream",
-    fileSize: asNumber(record.fileSize ?? record.size, 0),
+    fileSize: asNumber(record.fileSize ?? record.size ?? record.bytes, 0),
     position: asNumber(record.position, 0),
     active: asBoolean(record.active ?? record.isActive, true),
     isMain: asBoolean(record.isMain ?? record.main, false),
-    alt: localizedMap(record.alt ?? record.altText, locale),
-    title: localizedMap(record.title, locale),
+    alt: localizedMap(record.alt ?? record.altText ?? metadata.alt, locale),
+    title: localizedMap(record.title ?? metadata.title, locale),
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
   };
@@ -197,6 +204,44 @@ function parseCollectionList(value: unknown, locale: string) {
   };
 }
 
+function shouldHydrateCollection(collection: MediaAdminCollection) {
+  return collection.items.length === 0 && (collection.itemCount > 0 || collection.mediaAssetIds.length > 0);
+}
+
+async function hydrateCollectionPreview(
+  context: AdminContext,
+  collection: MediaAdminCollection,
+): Promise<MediaAdminCollection> {
+  if (!shouldHydrateCollection(collection)) {
+    return collection;
+  }
+
+  const params = makeScopedParams(context);
+  const result = await requestBff(
+    `/admin/media/collections/${encodeURIComponent(collection.mediaCollectionId)}?${params.toString()}`,
+    {
+      context,
+      parse: (value) => parseCollection(value, context.locale),
+    },
+  );
+
+  if (!result.ok || !result.data) {
+    return collection;
+  }
+
+  return {
+    ...collection,
+    ...result.data,
+    title: result.data.title || collection.title,
+    productId: result.data.productId ?? collection.productId,
+    defaultLocale: result.data.defaultLocale ?? collection.defaultLocale,
+    status: result.data.status ?? collection.status,
+    itemCount: result.data.itemCount || collection.itemCount,
+    mediaAssetIds: result.data.mediaAssetIds.length ? result.data.mediaAssetIds : collection.mediaAssetIds,
+    items: result.data.items.length ? result.data.items : collection.items,
+  };
+}
+
 export async function listMediaCollections(
   context: AdminContext,
   options: MediaAdminListOptions = {},
@@ -234,8 +279,13 @@ export async function listMediaCollections(
     };
   }
 
+  const items = await Promise.all(
+    result.data.items.map((collection) => hydrateCollectionPreview(context, collection)),
+  );
+
   return {
     ...result.data,
+    items,
     limit,
     offset,
     source: "bff",
@@ -262,6 +312,203 @@ export async function getMediaCollection(
   });
 }
 
+function buildUploadMetadata(files: File[], locale: string, input: {
+  mainIndex?: number;
+  alt?: string;
+  title?: string;
+}) {
+  const mainIndex = input.mainIndex ?? 0;
+
+  return files.map((_, index) => ({
+    isMain: index === mainIndex,
+    ...(input.alt?.trim() ? { alt: { [locale]: input.alt.trim() } } : {}),
+    ...(input.title?.trim() ? { title: { [locale]: input.title.trim() } } : {}),
+  }));
+}
+
+function appendUploadFiles(formData: FormData, files: File[]) {
+  for (const file of files) {
+    formData.append("files", file);
+  }
+}
+
+export async function createMediaCollection(
+  context: AdminContext,
+  input: {
+    productId: string;
+    title: string;
+    files: File[];
+    defaultLocale?: string;
+    alt?: string;
+    assetTitle?: string;
+  },
+): Promise<BffResult<MediaAdminCollection>> {
+  const params = makeScopedParams(context);
+  const locale = input.defaultLocale?.trim() || context.locale;
+  const formData = new FormData();
+
+  appendUploadFiles(formData, input.files);
+  formData.set("organizationId", context.organizationId);
+  formData.set("shopId", context.shopId);
+  formData.set("productId", input.productId);
+  formData.set("title", input.title);
+  formData.set("defaultLocale", locale);
+  formData.set("metadata", JSON.stringify(buildUploadMetadata(input.files, locale, {
+    alt: input.alt,
+    title: input.assetTitle,
+  })));
+
+  return requestBff(`/admin/media/collections?${params.toString()}`, {
+    context,
+    init: {
+      method: "POST",
+      body: formData,
+    },
+    parse: (value) => parseCollection(value, context.locale) ?? {
+      mediaCollectionId: "",
+      productId: input.productId,
+      title: input.title,
+      defaultLocale: locale,
+      active: true,
+      itemCount: input.files.length,
+      mediaAssetIds: [],
+      items: [],
+    },
+  });
+}
+
+export async function addMediaCollectionItems(
+  context: AdminContext,
+  input: {
+    mediaCollectionId: string;
+    files: File[];
+    defaultLocale?: string;
+    alt?: string;
+    assetTitle?: string;
+  },
+): Promise<BffResult<MediaAdminCollection>> {
+  const params = makeScopedParams(context);
+  const locale = input.defaultLocale?.trim() || context.locale;
+  const formData = new FormData();
+
+  appendUploadFiles(formData, input.files);
+  formData.set("organizationId", context.organizationId);
+  formData.set("shopId", context.shopId);
+  formData.set("defaultLocale", locale);
+  formData.set("metadata", JSON.stringify(buildUploadMetadata(input.files, locale, {
+    mainIndex: -1,
+    alt: input.alt,
+    title: input.assetTitle,
+  })));
+
+  return requestBff(
+    `/admin/media/collections/${encodeURIComponent(input.mediaCollectionId)}/items?${params.toString()}`,
+    {
+      context,
+      init: {
+        method: "POST",
+        body: formData,
+      },
+      parse: (value) => parseCollection(value, context.locale) ?? {
+        mediaCollectionId: input.mediaCollectionId,
+        title: input.mediaCollectionId,
+        active: true,
+        itemCount: input.files.length,
+        mediaAssetIds: [],
+        items: [],
+      },
+    },
+  );
+}
+
+export async function updateMediaCollection(
+  context: AdminContext,
+  mediaCollectionId: string,
+  input: {
+    title: string;
+  },
+): Promise<BffResult<MediaAdminCollection>> {
+  const params = makeScopedParams(context);
+
+  return requestBff(`/admin/media/collections/${encodeURIComponent(mediaCollectionId)}?${params.toString()}`, {
+    context,
+    init: {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        title: input.title,
+      }),
+    },
+    parse: (value) => parseCollection(value, context.locale) ?? {
+      mediaCollectionId,
+      title: input.title,
+      active: true,
+      itemCount: 0,
+      mediaAssetIds: [],
+      items: [],
+    },
+  });
+}
+
+export async function updateMediaAsset(
+  context: AdminContext,
+  input: {
+    mediaCollectionId: string;
+    mediaAssetId: string;
+    position?: number;
+    isMain?: boolean;
+    isActive?: boolean;
+    alt?: string;
+    title?: string;
+    locale?: string;
+  },
+): Promise<BffResult<MediaAdminCollection>> {
+  const params = makeScopedParams(context);
+  const locale = input.locale?.trim() || context.locale;
+  const metadata: {
+    alt?: Record<string, string>;
+    title?: Record<string, string>;
+  } = {};
+
+  if (input.alt !== undefined) {
+    metadata.alt = { [locale]: input.alt };
+  }
+  if (input.title !== undefined) {
+    metadata.title = { [locale]: input.title };
+  }
+
+  const payload = {
+    ...(input.position !== undefined ? { position: input.position } : {}),
+    ...(input.isMain !== undefined ? { isMain: input.isMain } : {}),
+    ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+    ...(metadata.alt || metadata.title ? { metadata } : {}),
+  };
+
+  return requestBff(
+    `/admin/media/collections/${encodeURIComponent(input.mediaCollectionId)}/items/${encodeURIComponent(input.mediaAssetId)}?${params.toString()}`,
+    {
+      context,
+      init: {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+      parse: (value) => parseCollection(value, context.locale) ?? {
+        mediaCollectionId: input.mediaCollectionId,
+        title: input.mediaCollectionId,
+        active: true,
+        itemCount: 0,
+        mediaAssetIds: [],
+        items: [],
+      },
+    },
+  );
+}
+
 export async function softDeleteMediaCollection(
   context: AdminContext,
   mediaCollectionId: string,
@@ -275,4 +522,23 @@ export async function softDeleteMediaCollection(
     },
     parse: (value) => asRecord(value) as { deleted?: boolean; status?: string },
   });
+}
+
+export async function softDeleteMediaAsset(
+  context: AdminContext,
+  mediaCollectionId: string,
+  mediaAssetId: string,
+): Promise<BffResult<{ deleted?: boolean; status?: string }>> {
+  const params = makeScopedParams(context, { mode: "soft" });
+
+  return requestBff(
+    `/admin/media/collections/${encodeURIComponent(mediaCollectionId)}/items/${encodeURIComponent(mediaAssetId)}?${params.toString()}`,
+    {
+      context,
+      init: {
+        method: "DELETE",
+      },
+      parse: (value) => asRecord(value) as { deleted?: boolean; status?: string },
+    },
+  );
 }

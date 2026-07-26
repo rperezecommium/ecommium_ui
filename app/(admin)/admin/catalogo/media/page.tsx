@@ -1,4 +1,11 @@
-import { softDeleteMediaCollectionAction } from "../../../../../src/modules/catalogo/media-admin-actions";
+import {
+  addMediaCollectionItemsAction,
+  createMediaCollectionAction,
+  softDeleteMediaAssetAction,
+  softDeleteMediaCollectionAction,
+  updateMediaAssetAction,
+  updateMediaCollectionAction,
+} from "../../../../../src/modules/catalogo/media-admin-actions";
 import { MediaAdminPage } from "../../../../../src/modules/catalogo/media-admin-page";
 import { getMediaCollection, listMediaCollections } from "../../../../../src/modules/catalogo/media-admin";
 import { getAdminContext } from "../../../../../src/shared/config/admin-context";
@@ -47,7 +54,12 @@ export default async function CatalogoMediaPage({ searchParams }: CatalogoMediaP
       filters={filters}
       selectedCollection={selectedResult?.ok ? selectedResult.data : undefined}
       selectedError={selectedResult && !selectedResult.ok ? selectedResult.error : undefined}
+      addItemsAction={addMediaCollectionItemsAction}
+      createCollectionAction={createMediaCollectionAction}
+      softDeleteAssetAction={softDeleteMediaAssetAction}
       softDeleteAction={softDeleteMediaCollectionAction}
+      updateAssetAction={updateMediaAssetAction}
+      updateCollectionAction={updateMediaCollectionAction}
     />
   );
 }

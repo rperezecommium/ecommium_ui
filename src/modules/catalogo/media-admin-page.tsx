@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ExternalLink, ImageIcon, Trash2 } from "lucide-react";
+import { ExternalLink, ImageIcon, Trash2, Upload } from "lucide-react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import type { MediaAdminCollection, MediaAdminListResult } from "./media-admin";
 
@@ -20,7 +20,12 @@ type Props = {
   collections: MediaAdminListResult;
   selectedCollection?: MediaAdminCollection;
   selectedError?: string;
+  addItemsAction: Action;
+  createCollectionAction: Action;
+  softDeleteAssetAction: Action;
   softDeleteAction: Action;
+  updateAssetAction: Action;
+  updateCollectionAction: Action;
 };
 
 function mediaHref(filters: MediaAdminFilters, overrides: Partial<MediaAdminFilters> = {}) {
@@ -58,6 +63,12 @@ function fileSize(value: number | undefined) {
 
 function assetContentUrl(mediaAssetId: string, variant = "small_default") {
   return `/api/admin/media-assets/${encodeURIComponent(mediaAssetId)}/content?variant=${encodeURIComponent(variant)}`;
+}
+
+function detailReturnPath(closeHref: string, mediaCollectionId: string) {
+  return closeHref.includes("?")
+    ? `${closeHref}&collectionId=${encodeURIComponent(mediaCollectionId)}`
+    : `${closeHref}?collectionId=${encodeURIComponent(mediaCollectionId)}`;
 }
 
 function localizedValue(value: Record<string, string>, locale: string) {
@@ -107,12 +118,54 @@ function CollectionSummary({
   );
 }
 
-function AssetGrid({
+function CollectionPreview({
   collection,
   context,
 }: {
   collection: MediaAdminCollection;
   context: AdminContext;
+}) {
+  const visibleAssets = collection.items.slice(0, 3);
+
+  if (visibleAssets.length === 0) {
+    return (
+      <div className="mediaAdminCollectionPreview mediaAdminCollectionPreviewEmpty" aria-label="Sin imagenes en la lista">
+        <ImageIcon aria-hidden="true" size={20} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mediaAdminCollectionPreview" aria-label={`Imagenes de ${collection.title}`}>
+      {visibleAssets.map((asset) => {
+        const alt = localizedValue(asset.alt, context.locale) || asset.fileName;
+
+        return (
+          <div className="mediaAdminCollectionThumb" key={asset.mediaAssetId}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={assetContentUrl(asset.mediaAssetId)} alt={alt} />
+          </div>
+        );
+      })}
+      {collection.itemCount > visibleAssets.length ? (
+        <span className="mediaAdminCollectionMore">+{collection.itemCount - visibleAssets.length}</span>
+      ) : null}
+    </div>
+  );
+}
+
+function AssetGrid({
+  collection,
+  context,
+  returnPath,
+  softDeleteAssetAction,
+  updateAssetAction,
+}: {
+  collection: MediaAdminCollection;
+  context: AdminContext;
+  returnPath: string;
+  softDeleteAssetAction: Action;
+  updateAssetAction: Action;
 }) {
   if (collection.items.length === 0) {
     return <div className="adminEmptyState">Esta coleccion no incluye assets en el detalle recibido.</div>;
@@ -152,6 +205,52 @@ function AssetGrid({
                 <ExternalLink aria-hidden="true" size={14} />
                 Original
               </Link>
+              <form action={updateAssetAction} className="mediaAdminAssetEditForm">
+                <input name="mediaCollectionId" type="hidden" value={collection.mediaCollectionId} />
+                <input name="mediaAssetId" type="hidden" value={asset.mediaAssetId} />
+                <input name="returnPath" type="hidden" value={returnPath} />
+                <input name="locale" type="hidden" value={context.locale} />
+                <label className="adminField">
+                  <span>Alt</span>
+                  <input name="alt" defaultValue={alt} />
+                </label>
+                <label className="adminField">
+                  <span>Title</span>
+                  <input name="title" defaultValue={title} />
+                </label>
+                <label className="adminField">
+                  <span>Posicion</span>
+                  <input min="0" name="position" type="number" defaultValue={asset.position ?? 0} />
+                </label>
+                <div className="mediaAdminAssetSwitches">
+                  <label>
+                    <input name="isMain" type="hidden" value="false" />
+                    <input name="isMain" type="checkbox" value="true" defaultChecked={asset.isMain} />
+                    Principal
+                  </label>
+                  <label>
+                    <input name="isActive" type="hidden" value="false" />
+                    <input name="isActive" type="checkbox" value="true" defaultChecked={asset.active} />
+                    Activo
+                  </label>
+                </div>
+                <button className="adminButton adminButtonPrimary adminButtonTiny" type="submit">
+                  Guardar asset
+                </button>
+              </form>
+              <form action={softDeleteAssetAction} className="mediaAdminAssetDeleteForm">
+                <input name="mediaCollectionId" type="hidden" value={collection.mediaCollectionId} />
+                <input name="mediaAssetId" type="hidden" value={asset.mediaAssetId} />
+                <input name="returnPath" type="hidden" value={returnPath} />
+                <label>
+                  <input name="confirmSoftDeleteAsset" type="checkbox" value="yes" />
+                  Confirmo baja del asset
+                </label>
+                <button className="adminButton adminButtonDanger adminButtonTiny" type="submit">
+                  <Trash2 aria-hidden="true" size={14} />
+                  Desactivar asset
+                </button>
+              </form>
             </div>
           </article>
         );
@@ -160,59 +259,137 @@ function AssetGrid({
   );
 }
 
-function CollectionDetail({
+function CollectionDetailDrawer({
   collection,
   context,
   selectedError,
+  addItemsAction,
+  softDeleteAssetAction,
   softDeleteAction,
+  updateAssetAction,
+  updateCollectionAction,
+  closeHref,
 }: {
   collection?: MediaAdminCollection;
   context: AdminContext;
   selectedError?: string;
+  addItemsAction: Action;
+  softDeleteAssetAction: Action;
   softDeleteAction: Action;
+  updateAssetAction: Action;
+  updateCollectionAction: Action;
+  closeHref: string;
 }) {
   if (selectedError) {
-    return <div className="adminBanner adminBannerError"><p>{selectedError}</p></div>;
-  }
-  if (!collection) {
     return (
-      <section className="pricingPanel">
-        <div className="adminEmptyState">Selecciona una coleccion para revisar assets, alt text y estado.</div>
-      </section>
+      <div className="adminDrawerBackdrop mediaAdminDrawerBackdrop">
+        <Link aria-label="Cerrar detalle media" className="mediaAdminDrawerBackdropLink" href={closeHref} />
+        <aside aria-label="Detalle de coleccion media" aria-modal="true" className="adminSideDrawer mediaAdminSideDrawer" role="dialog">
+          <div className="adminSideDrawerHeader">
+            <div>
+              <h2>No se pudo cargar la coleccion</h2>
+              <p>El detalle solicitado no esta disponible en este momento.</p>
+            </div>
+            <Link className="adminButton" href={closeHref}>Cerrar</Link>
+          </div>
+          <div className="mediaAdminDrawerBody">
+            <div className="adminBanner adminBannerError"><p>{selectedError}</p></div>
+          </div>
+        </aside>
+      </div>
     );
   }
+  if (!collection) {
+    return null;
+  }
+  const returnPath = detailReturnPath(closeHref, collection.mediaCollectionId);
 
   return (
-    <section className="pricingPanel mediaAdminDetail">
-      <div className="pricingPanelHeader">
+    <div className="adminDrawerBackdrop mediaAdminDrawerBackdrop">
+      <Link aria-label="Cerrar detalle media" className="mediaAdminDrawerBackdropLink" href={closeHref} />
+      <aside aria-label="Detalle de coleccion media" aria-modal="true" className="adminSideDrawer mediaAdminSideDrawer" role="dialog">
+      <div className="adminSideDrawerHeader">
         <div>
           <h2>{collection.title}</h2>
           <p>{collection.mediaCollectionId}</p>
         </div>
-        <span className={`adminBadge ${collection.active ? "adminBadgeOk" : "adminBadgeWarn"}`}>
-          {collection.active ? "Activa" : "Inactiva"}
-        </span>
+        <div className="mediaAdminDrawerHeaderActions">
+          <span className={`adminBadge ${collection.active ? "adminBadgeOk" : "adminBadgeWarn"}`}>
+            {collection.active ? "Activa" : "Inactiva"}
+          </span>
+          <Link className="adminButton" href={closeHref}>Cerrar</Link>
+        </div>
       </div>
 
-      <CollectionSummary collection={collection} context={context} />
-      <AssetGrid collection={collection} context={context} />
+      <div className="mediaAdminDrawerBody">
+        <form action={updateCollectionAction} className="mediaAdminCollectionEditForm">
+          <input name="mediaCollectionId" type="hidden" value={collection.mediaCollectionId} />
+          <input name="returnPath" type="hidden" value={returnPath} />
+          <label className="adminField">
+            <span>Titulo de coleccion</span>
+            <input name="title" defaultValue={collection.title} />
+          </label>
+          <button className="adminButton adminButtonPrimary" type="submit">
+            Guardar coleccion
+          </button>
+        </form>
+        <CollectionSummary collection={collection} context={context} />
+        <form action={addItemsAction} className="mediaAdminUploadForm" encType="multipart/form-data">
+          <input name="mediaCollectionId" type="hidden" value={collection.mediaCollectionId} />
+          <input name="returnPath" type="hidden" value={returnPath} />
+          <input name="defaultLocale" type="hidden" value={collection.defaultLocale ?? context.locale} />
+          <div className="mediaAdminUploadHeader">
+            <div>
+              <strong>Anadir assets</strong>
+              <p>Sube archivos a esta coleccion existente.</p>
+            </div>
+            <button className="adminButton adminButtonPrimary" type="submit">
+              <Upload aria-hidden="true" size={16} />
+              Subir
+            </button>
+          </div>
+          <label className="adminField adminFieldFull">
+            <span>Archivos</span>
+            <input multiple name="files" type="file" />
+          </label>
+          <div className="mediaAdminUploadMeta">
+            <label className="adminField">
+              <span>Alt comun</span>
+              <input name="alt" placeholder="Texto accesible opcional" />
+            </label>
+            <label className="adminField">
+              <span>Title comun</span>
+              <input name="assetTitle" placeholder="Titulo opcional" />
+            </label>
+          </div>
+        </form>
+        <AssetGrid
+          collection={collection}
+          context={context}
+          returnPath={returnPath}
+          softDeleteAssetAction={softDeleteAssetAction}
+          updateAssetAction={updateAssetAction}
+        />
 
-      <form action={softDeleteAction} className="mediaAdminDangerPanel">
-        <input name="mediaCollectionId" type="hidden" value={collection.mediaCollectionId} />
-        <div>
-          <strong>Baja segura</strong>
-          <p>Desactiva la coleccion con `mode=soft`. No se expone borrado hard desde Admin Media.</p>
-        </div>
-        <label>
-          <input name="confirmSoftDelete" type="checkbox" value="yes" />
-          Confirmo la baja segura
-        </label>
-        <button className="adminButton adminButtonDanger" type="submit">
-          <Trash2 aria-hidden="true" size={16} />
-          Desactivar coleccion
-        </button>
-      </form>
-    </section>
+        <form action={softDeleteAction} className="mediaAdminDangerPanel">
+          <input name="mediaCollectionId" type="hidden" value={collection.mediaCollectionId} />
+          <input name="returnPath" type="hidden" value={closeHref} />
+          <div>
+            <strong>Baja segura</strong>
+            <p>Desactiva la coleccion con `mode=soft`. No se expone borrado hard desde Admin Media.</p>
+          </div>
+          <label>
+            <input name="confirmSoftDelete" type="checkbox" value="yes" />
+            Confirmo la baja segura
+          </label>
+          <button className="adminButton adminButtonDanger" type="submit">
+            <Trash2 aria-hidden="true" size={16} />
+            Desactivar coleccion
+          </button>
+        </form>
+      </div>
+      </aside>
+    </div>
   );
 }
 
@@ -222,12 +399,19 @@ export function MediaAdminPage({
   collections,
   selectedCollection,
   selectedError,
+  addItemsAction,
+  createCollectionAction,
+  softDeleteAssetAction,
   softDeleteAction,
+  updateAssetAction,
+  updateCollectionAction,
 }: Props) {
   const limit = filters.limit ?? collections.limit ?? 50;
   const offset = filters.offset ?? collections.offset ?? 0;
   const nextOffset = offset + limit;
   const previousOffset = Math.max(0, offset - limit);
+  const closeDetailHref = mediaHref(filters, { collectionId: undefined });
+  const listReturnHref = mediaHref(filters, { collectionId: undefined, mediaMessage: undefined });
 
   return (
     <main className="adminPage mediaAdminPage">
@@ -284,6 +468,35 @@ export function MediaAdminPage({
             <span className="adminBadge">{context.organizationId || "Sin organization"} / {context.shopId || "Sin shop"}</span>
           </div>
 
+          <form action={createCollectionAction} className="mediaAdminCreateForm" encType="multipart/form-data">
+            <input name="returnPath" type="hidden" value={listReturnHref} />
+            <input name="defaultLocale" type="hidden" value={context.locale} />
+            <label className="adminField">
+              <span>Producto</span>
+              <input name="productId" placeholder="UUID del producto" />
+            </label>
+            <label className="adminField">
+              <span>Titulo</span>
+              <input name="title" placeholder="Nombre de la galeria" />
+            </label>
+            <label className="adminField">
+              <span>Archivos</span>
+              <input multiple name="files" type="file" />
+            </label>
+            <label className="adminField">
+              <span>Alt comun</span>
+              <input name="alt" placeholder="Opcional" />
+            </label>
+            <label className="adminField">
+              <span>Title comun</span>
+              <input name="assetTitle" placeholder="Opcional" />
+            </label>
+            <button className="adminButton adminButtonPrimary" type="submit">
+              <Upload aria-hidden="true" size={16} />
+              Crear coleccion
+            </button>
+          </form>
+
           {collections.items.length === 0 ? (
             <div className="adminEmptyState">
               <ImageIcon aria-hidden="true" size={28} />
@@ -294,6 +507,7 @@ export function MediaAdminPage({
               <table className="adminTable pricingTable mediaAdminTable">
                 <thead>
                   <tr>
+                    <th scope="col">Vista</th>
                     <th scope="col">Coleccion</th>
                     <th scope="col">Producto</th>
                     <th scope="col">Assets</th>
@@ -304,7 +518,13 @@ export function MediaAdminPage({
                 </thead>
                 <tbody>
                   {collections.items.map((collection) => (
-                    <tr key={collection.mediaCollectionId}>
+                    <tr
+                      className={filters.collectionId === collection.mediaCollectionId ? "mediaAdminSelectedRow" : undefined}
+                      key={collection.mediaCollectionId}
+                    >
+                      <td>
+                        <CollectionPreview collection={collection} context={context} />
+                      </td>
                       <td>
                         <strong>{collection.title}</strong>
                         <div className="adminContextHint">{collection.mediaCollectionId}</div>
@@ -351,11 +571,16 @@ export function MediaAdminPage({
           </div>
         </section>
 
-        <CollectionDetail
+        <CollectionDetailDrawer
           collection={selectedCollection}
           context={context}
+          closeHref={closeDetailHref}
           selectedError={selectedError}
+          addItemsAction={addItemsAction}
+          softDeleteAssetAction={softDeleteAssetAction}
           softDeleteAction={softDeleteAction}
+          updateAssetAction={updateAssetAction}
+          updateCollectionAction={updateCollectionAction}
         />
       </div>
     </main>

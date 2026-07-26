@@ -2884,31 +2884,191 @@ p {
 }
 
 .mediaAdminLayout {
-  display: grid;
-  grid-template-columns: minmax(420px, 0.95fr) minmax(360px, 1.05fr);
-  gap: 16px;
-  align-items: start;
+  display: block;
 }
 
 .mediaAdminTable td {
   vertical-align: top;
 }
 
-.mediaAdminDetail {
-  min-width: 0;
+.mediaAdminSelectedRow {
+  background: var(--admin-surface-muted);
+}
+
+.mediaAdminCollectionPreview {
+  display: flex;
+  align-items: center;
+  min-width: 112px;
+  min-height: 58px;
+}
+
+.mediaAdminCollectionPreviewEmpty {
+  justify-content: center;
+  width: 58px;
+  border: 1px dashed var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text-muted);
+}
+
+.mediaAdminCollectionThumb {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 2px solid var(--admin-surface);
+  border-radius: 6px;
+  background: var(--admin-surface-muted);
+  box-shadow: 0 0 0 1px var(--admin-border);
+}
+
+.mediaAdminCollectionThumb + .mediaAdminCollectionThumb {
+  margin-left: -18px;
+}
+
+.mediaAdminCollectionThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mediaAdminCollectionMore {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  margin-left: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  background: var(--admin-surface);
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mediaAdminDrawerBackdrop {
+  align-items: stretch;
+  padding-left: 56px;
+  background: rgb(31 41 55 / 36%);
+}
+
+.mediaAdminDrawerBackdropLink {
+  position: absolute;
+  inset: 0;
+}
+
+.mediaAdminSideDrawer {
+  position: relative;
+  z-index: 1;
+  width: min(50vw, calc(100vw - 24px));
+  min-width: 760px;
+  gap: 0;
+  padding: 0;
+  border-left: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+}
+
+.mediaAdminSideDrawer .adminSideDrawerHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-items: center;
+  padding: 16px 18px;
+  background: var(--admin-surface);
+}
+
+.mediaAdminDrawerHeaderActions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.mediaAdminDrawerBody {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 18px 22px;
+}
+
+.mediaAdminSideDrawer .adminSummaryGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+}
+
+.mediaAdminCollectionEditForm {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) max-content;
+  gap: 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface-muted);
+}
+
+.mediaAdminCreateForm,
+.mediaAdminUploadForm {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface-muted);
+}
+
+.mediaAdminCreateForm {
+  grid-template-columns: minmax(220px, 1.1fr) minmax(180px, 0.8fr) minmax(220px, 1fr) repeat(2, minmax(160px, 0.8fr)) max-content;
+  align-items: end;
+}
+
+.mediaAdminUploadForm {
+  margin-bottom: 0;
+}
+
+.mediaAdminUploadHeader {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mediaAdminUploadHeader strong {
+  display: block;
+  color: var(--admin-text);
+  font-size: 14px;
+}
+
+.mediaAdminUploadHeader p {
+  margin: 3px 0 0;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.mediaAdminUploadMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .mediaAdminAssetGrid {
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 14px;
 }
 
 .mediaAdminAssetCard {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: 14px;
   min-width: 0;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid var(--admin-border);
   border-radius: 6px;
   background: var(--admin-surface);
@@ -2917,7 +3077,7 @@ p {
 .mediaAdminAssetPreview {
   display: grid;
   place-items: center;
-  width: 132px;
+  width: 148px;
   aspect-ratio: 1;
   overflow: hidden;
   border: 1px solid var(--admin-border);
@@ -2961,10 +3121,47 @@ p {
   font-size: 13px;
 }
 
+.mediaAdminAssetEditForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.mediaAdminAssetEditForm .adminField:nth-of-type(3),
+.mediaAdminAssetSwitches,
+.mediaAdminAssetEditForm .adminButton {
+  grid-column: 1 / -1;
+}
+
+.mediaAdminAssetSwitches,
+.mediaAdminAssetDeleteForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.mediaAdminAssetSwitches label,
+.mediaAdminAssetDeleteForm label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mediaAdminAssetDeleteForm {
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
 .mediaAdminDangerPanel {
   display: grid;
   gap: 10px;
-  margin-top: 16px;
   padding: 12px;
   border: 1px solid var(--admin-danger);
   border-radius: 6px;
@@ -12059,7 +12256,15 @@ p {
   }
 
   .mediaAdminLayout {
-    grid-template-columns: minmax(0, 1fr);
+    display: block;
+  }
+
+  .mediaAdminSideDrawer .adminSummaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mediaAdminCreateForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .stockAdminLayout,
@@ -12210,6 +12415,30 @@ p {
 
   .mediaAdminAssetPreview {
     width: 100%;
+  }
+
+  .mediaAdminDrawerBackdrop {
+    padding-left: 0;
+  }
+
+  .mediaAdminSideDrawer {
+    width: 100%;
+  }
+
+  .mediaAdminSideDrawer .adminSummaryGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mediaAdminCollectionEditForm,
+  .mediaAdminAssetEditForm,
+  .mediaAdminCreateForm,
+  .mediaAdminUploadMeta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mediaAdminUploadHeader {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .productPreviewOverlay {
