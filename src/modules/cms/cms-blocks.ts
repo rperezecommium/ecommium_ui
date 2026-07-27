@@ -1,5 +1,25 @@
 export type CmsPlacement = "main" | "beforeList" | "afterList";
 export type CmsSurface = "page" | "plp";
+export type CmsBlockModulePlacement = {
+  region: "header" | "main" | "footer";
+  areaId: string;
+  columnIndex: number;
+  order: number;
+  width?: string | null;
+  align?: "start" | "center" | "end" | "stretch";
+  spacing?: {
+    marginTop?: string;
+    marginBottom?: string;
+    paddingTop?: string;
+    paddingBottom?: string;
+  };
+  visibility?: {
+    mobile: boolean;
+    tablet: boolean;
+    desktop: boolean;
+  };
+  containerMode?: "inherit" | "full-width" | "container";
+};
 export type CmsPlpListingKind = "CATEGORY" | "SEARCH" | "COLLECTION";
 export type CmsBlockType =
   | "banner.hero"
@@ -12,6 +32,7 @@ export type CmsBlockType =
 export type CmsBlock = {
   blockId: string;
   type: CmsBlockType | string;
+  placement?: CmsBlockModulePlacement;
   props: Record<string, unknown>;
   children?: CmsBlock[];
 };
@@ -213,6 +234,61 @@ function asPlacement(value: unknown): CmsPlacement {
   return value === "beforeList" || value === "afterList" ? value : "main";
 }
 
+function numberValue(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function booleanValue(value: unknown, fallback = true) {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function asAlignment(value: unknown): CmsBlockModulePlacement["align"] {
+  if (value === "start" || value === "center" || value === "end") return value;
+  return "stretch";
+}
+
+function asPlacementContainerMode(value: unknown): CmsBlockModulePlacement["containerMode"] {
+  if (value === "full-width" || value === "container") return value;
+  return "inherit";
+}
+
+function normalizeSpacing(value: unknown): NonNullable<CmsBlockModulePlacement["spacing"]> {
+  const record = asRecord(value);
+  const spacing: NonNullable<CmsBlockModulePlacement["spacing"]> = {};
+  for (const key of ["marginTop", "marginBottom", "paddingTop", "paddingBottom"] as const) {
+    const text = stringValue(record[key]);
+    if (text) spacing[key] = text;
+  }
+  return spacing;
+}
+
+function normalizeVisibility(value: unknown): NonNullable<CmsBlockModulePlacement["visibility"]> {
+  const record = asRecord(value);
+  return {
+    mobile: booleanValue(record.mobile, true),
+    tablet: booleanValue(record.tablet, true),
+    desktop: booleanValue(record.desktop, true),
+  };
+}
+
+export function normalizeCmsBlockModulePlacement(value: unknown): CmsBlockModulePlacement | undefined {
+  const record = asRecord(value);
+  const areaId = stringValue(record.areaId);
+  if (!areaId) return undefined;
+
+  return {
+    region: record.region === "header" || record.region === "footer" ? record.region : "main",
+    areaId,
+    columnIndex: Math.max(1, Math.trunc(numberValue(record.columnIndex, 1))),
+    order: Math.max(1, Math.trunc(numberValue(record.order, 1))),
+    width: stringValue(record.width) || null,
+    align: asAlignment(record.align),
+    spacing: normalizeSpacing(record.spacing),
+    visibility: normalizeVisibility(record.visibility),
+    containerMode: asPlacementContainerMode(record.containerMode),
+  };
+}
+
 function asSurface(value: unknown, placement: CmsPlacement): CmsSurface {
   if (value === "plp" || placement === "beforeList" || placement === "afterList") {
     return "plp";
@@ -247,6 +323,7 @@ export function getCmsBlockPlpTarget(block: CmsBlock): CmsPlpTarget {
 export function normalizeCmsBlock(value: unknown): CmsBlock {
   const record = asRecord(value);
   const rawProps = asRecord(record.props);
+  const modulePlacement = normalizeCmsBlockModulePlacement(record.placement ?? rawProps.placement);
   const placement = asPlacement(rawProps.placement);
   const surface = asSurface(rawProps.surface, placement);
   const props = {
@@ -259,6 +336,7 @@ export function normalizeCmsBlock(value: unknown): CmsBlock {
   return {
     blockId: stringValue(record.blockId, makeBlockId("block")),
     type: stringValue(record.type, "banner.hero"),
+    ...(modulePlacement ? { placement: modulePlacement } : {}),
     props,
     children: Array.isArray(record.children)
       ? record.children.map(normalizeCmsBlock)

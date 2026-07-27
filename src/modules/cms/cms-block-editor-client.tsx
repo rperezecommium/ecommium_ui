@@ -9,16 +9,20 @@ import {
   getCmsBlockPlpTarget,
   getCmsBlockPresets,
   getCmsBlockSurface,
+  normalizeCmsBlockModulePlacement,
   summarizePlacements,
   type CmsBlock,
+  type CmsBlockModulePlacement,
   type CmsPlacement,
   type CmsPlpListingKind,
   type CmsSurface,
 } from "./cms-blocks";
+import type { CmsModulePlacement, CmsModuleSlot } from "./cms-admin";
 
 type CmsBlockEditorClientProps = {
   initialBlocks: CmsBlock[];
   mode?: "all" | "plp";
+  moduleSlots?: CmsModuleSlot[];
 };
 
 function textProp(block: CmsBlock, key: string, fallback = "") {
@@ -66,8 +70,108 @@ function withPlpDefaults(block: CmsBlock): CmsBlock {
   };
 }
 
-export function CmsBlockEditorClient({ initialBlocks, mode = "all" }: CmsBlockEditorClientProps) {
-  const [blocks, setBlocks] = useState<CmsBlock[]>(initialBlocks);
+function slotKey(slot: CmsModuleSlot) {
+  return `${slot.region}|${slot.areaId}|${slot.columnIndex}`;
+}
+
+function firstSlot(slots: CmsModuleSlot[]): CmsModuleSlot | undefined {
+  return slots.find((slot) => slot.region === "main") ?? slots[0];
+}
+
+function defaultModulePlacement(slots: CmsModuleSlot[], order = 1): CmsBlockModulePlacement | undefined {
+  const slot = firstSlot(slots);
+  if (!slot) return undefined;
+  return {
+    region: slot.region,
+    areaId: slot.areaId,
+    columnIndex: slot.columnIndex,
+    order,
+    width: "100%",
+    align: "stretch",
+    spacing: {},
+    visibility: { mobile: true, tablet: true, desktop: true },
+    containerMode: "inherit",
+  };
+}
+
+function modulePlacement(block: CmsBlock, slots: CmsModuleSlot[], order: number): CmsBlockModulePlacement | undefined {
+  return block.placement ?? normalizeCmsBlockModulePlacement(block.props.placement) ?? defaultModulePlacement(slots, order);
+}
+
+function withModulePlacementDefaults(block: CmsBlock, slots: CmsModuleSlot[], order: number): CmsBlock {
+  if (getCmsBlockSurface(block) === "plp") return block;
+  const placement = modulePlacement(block, slots, order);
+  if (!placement) return block;
+  return {
+    ...block,
+    placement,
+    props: {
+      ...block.props,
+      surface: "page",
+    },
+  };
+}
+
+function placementLabel(block: CmsBlock, slots: CmsModuleSlot[], order: number) {
+  if (getCmsBlockSurface(block) === "plp") return plpTargetLabel(block);
+  const placement = modulePlacement(block, slots, order);
+  return placement ? `${placement.region}/${placement.areaId}/col ${placement.columnIndex}` : "sin slot";
+}
+
+function placementSlotKey(placement: Pick<CmsBlockModulePlacement, "region" | "areaId" | "columnIndex">) {
+  return `${placement.region}|${placement.areaId}|${placement.columnIndex}`;
+}
+
+function placementMatchesSlot(placement: CmsBlockModulePlacement, slots: CmsModuleSlot[]) {
+  return slots.some((slot) => slotKey(slot) === placementSlotKey(placement));
+}
+
+function visibilityIsEmpty(placement: CmsBlockModulePlacement) {
+  const visibility = placement.visibility ?? { mobile: true, tablet: true, desktop: true };
+  return !visibility.mobile && !visibility.tablet && !visibility.desktop;
+}
+
+function modulePlacementIssues(blocks: CmsBlock[], slots: CmsModuleSlot[], mode: "all" | "plp") {
+  if (mode === "plp") return [];
+
+  const issues: string[] = [];
+  const orderMap = new Map<string, string[]>();
+
+  blocks.forEach((block, index) => {
+    if (getCmsBlockSurface(block) === "plp") return;
+    const placement = modulePlacement(block, slots, index + 1);
+    const label = blockLabel(block);
+
+    if (!placement) {
+      issues.push(`${label} no tiene slot de layout asignado.`);
+      return;
+    }
+
+    if (!placementMatchesSlot(placement, slots)) {
+      issues.push(`${label} apunta a ${placement.region}/${placement.areaId}/col ${placement.columnIndex}, pero ese slot no existe.`);
+    }
+
+    if (visibilityIsEmpty(placement)) {
+      issues.push(`${label} esta oculto en mobile, tablet y desktop.`);
+    }
+
+    const orderKey = `${placementSlotKey(placement)}|${placement.order}`;
+    orderMap.set(orderKey, [...(orderMap.get(orderKey) ?? []), label]);
+  });
+
+  orderMap.forEach((labels, key) => {
+    if (labels.length < 2) return;
+    const [region, areaId, columnIndex, order] = key.split("|");
+    issues.push(`Orden ${order} duplicado en ${region}/${areaId}/col ${columnIndex}: ${labels.join(", ")}.`);
+  });
+
+  return issues;
+}
+
+export function CmsBlockEditorClient({ initialBlocks, mode = "all", moduleSlots = [] }: CmsBlockEditorClientProps) {
+  const [blocks, setBlocks] = useState<CmsBlock[]>(() => initialBlocks.map((block, index) =>
+    withModulePlacementDefaults(block, moduleSlots, index + 1),
+  ));
   const serialized = useMemo(() => blocksToJson(blocks), [blocks]);
   const summary = useMemo(() => summarizePlacements(blocks), [blocks]);
   const visibleBlocks = useMemo(() => blocks
@@ -77,6 +181,7 @@ export function CmsBlockEditorClient({ initialBlocks, mode = "all" }: CmsBlockEd
     const all = getCmsBlockPresets();
     return mode === "plp" ? all.filter((preset) => preset.surface === "plp") : all;
   }, [mode]);
+  const placementIssues = useMemo(() => modulePlacementIssues(blocks, moduleSlots, mode), [blocks, moduleSlots, mode]);
 
   function updateBlock(index: number, updater: (block: CmsBlock) => CmsBlock) {
     setBlocks((current) => current.map((block, currentIndex) =>
@@ -85,13 +190,40 @@ export function CmsBlockEditorClient({ initialBlocks, mode = "all" }: CmsBlockEd
   }
 
   function updateProp(index: number, key: string, value: unknown) {
-    updateBlock(index, (block) => ({
-      ...block,
-      props: {
-        ...block.props,
-        [key]: value,
-      },
-    }));
+    updateBlock(index, (block) => {
+      if (key === "surface" && value === "plp") {
+        const nextBlock: CmsBlock = {
+          ...block,
+          props: {
+            ...block.props,
+            surface: "plp",
+            placement: getCmsBlockPlacement(block) === "main" ? "beforeList" : getCmsBlockPlacement(block),
+            target: getCmsBlockPlpTarget(block),
+          },
+        };
+        delete nextBlock.placement;
+        return nextBlock;
+      }
+
+      if (key === "surface" && value === "page") {
+        return withModulePlacementDefaults({
+          ...block,
+          props: {
+            ...block.props,
+            surface: "page",
+            placement: "main",
+          },
+        }, moduleSlots, index + 1);
+      }
+
+      return {
+        ...block,
+        props: {
+          ...block.props,
+          [key]: value,
+        },
+      };
+    });
   }
 
   function updateTargetProp(index: number, key: string, value: string) {
@@ -130,7 +262,10 @@ export function CmsBlockEditorClient({ initialBlocks, mode = "all" }: CmsBlockEd
 
   function addBlock(type: string) {
     const nextBlock = createCmsBlockFromPreset(type);
-    setBlocks((current) => [...current, mode === "plp" ? withPlpDefaults(nextBlock) : nextBlock]);
+    setBlocks((current) => [...current, mode === "plp"
+      ? withPlpDefaults(nextBlock)
+      : withModulePlacementDefaults(nextBlock, moduleSlots, current.length + 1),
+    ]);
   }
 
   return (
@@ -161,6 +296,17 @@ export function CmsBlockEditorClient({ initialBlocks, mode = "all" }: CmsBlockEd
             Elige un bloque, completa `URL PLP` o `Slug categoria`, ajusta la ubicacion y guarda el draft.
           </div>
         ) : null}
+        {mode !== "plp" ? (
+          <div className={`cmsEditorValidation ${placementIssues.length > 0 ? "cmsEditorValidationWarning" : "cmsEditorValidationOk"}`} role={placementIssues.length > 0 ? "alert" : "status"}>
+            <strong>{placementIssues.length > 0 ? `${placementIssues.length} alertas de placement` : "Placements listos"}</strong>
+            {placementIssues.length > 0 ? (
+              <ul>
+                {placementIssues.slice(0, 5).map((issue) => <li key={issue}>{issue}</li>)}
+                {placementIssues.length > 5 ? <li>{placementIssues.length - 5} alertas mas.</li> : null}
+              </ul>
+            ) : <span>Todos los modulos de pagina apuntan a slots activos.</span>}
+          </div>
+        ) : null}
         <dl className="pricingDefinitionGrid cmsPlacementSummary">
           <div>
             <dt>Main</dt>
@@ -185,7 +331,7 @@ export function CmsBlockEditorClient({ initialBlocks, mode = "all" }: CmsBlockEd
             <header className="cmsBlockHeader">
               <div>
                 <strong>{visibleIndex + 1}. {blockLabel(block)}</strong>
-                <span>{block.blockId} · {getCmsBlockSurface(block)} · {plpTargetLabel(block)}</span>
+                <span>{block.blockId} - {getCmsBlockSurface(block)} - {placementLabel(block, moduleSlots, visibleIndex + 1)}</span>
               </div>
               <div className="adminButtonRow">
                 <button className="adminIconButton" type="button" onClick={() => moveBlock(index, -1)} aria-label="Subir bloque">
@@ -201,6 +347,8 @@ export function CmsBlockEditorClient({ initialBlocks, mode = "all" }: CmsBlockEd
             </header>
             <BlockFields
               block={block}
+              moduleSlots={moduleSlots}
+              onPlacementChange={(placement) => updateBlock(index, (current) => ({ ...current, placement }))}
               onPropChange={(key, value) => updateProp(index, key, value)}
               onTargetChange={(key, value) => updateTargetProp(index, key, value)}
             />
@@ -227,10 +375,14 @@ export function CmsBlockEditorClient({ initialBlocks, mode = "all" }: CmsBlockEd
 
 function BlockFields({
   block,
+  moduleSlots,
+  onPlacementChange,
   onPropChange,
   onTargetChange,
 }: {
   block: CmsBlock;
+  moduleSlots: CmsModuleSlot[];
+  onPlacementChange: (placement: CmsModulePlacement) => void;
   onPropChange: (key: string, value: unknown) => void;
   onTargetChange: (key: keyof ReturnType<typeof getCmsBlockPlpTarget>, value: string) => void;
 }) {
@@ -259,6 +411,13 @@ function BlockFields({
           <option value="afterList">Despues de lista PLP</option>
         </select>
       </label>
+      {surface === "page" ? (
+        <ModulePlacementFields
+          block={block}
+          moduleSlots={moduleSlots}
+          onPlacementChange={onPlacementChange}
+        />
+      ) : null}
       {surface === "plp" ? (
         <fieldset className="cmsBlockFieldset">
           <legend>Target PLP</legend>
@@ -356,6 +515,108 @@ function BlockFields({
         <textarea value={JSON.stringify(block.props, null, 2)} readOnly />
       </label>
     </div>
+  );
+}
+
+function ModulePlacementFields({
+  block,
+  moduleSlots,
+  onPlacementChange,
+}: {
+  block: CmsBlock;
+  moduleSlots: CmsModuleSlot[];
+  onPlacementChange: (placement: CmsModulePlacement) => void;
+}) {
+  const placement = modulePlacement(block, moduleSlots, 1);
+  const selectedKey = placement ? `${placement.region}|${placement.areaId}|${placement.columnIndex}` : "";
+
+  function changePlacement(partial: Partial<CmsModulePlacement>) {
+    const next = {
+      ...(placement ?? defaultModulePlacement(moduleSlots, 1)),
+      ...partial,
+    };
+    if (next?.areaId) {
+      onPlacementChange(next as CmsModulePlacement);
+    }
+  }
+
+  return (
+    <fieldset className="cmsBlockFieldset cmsModulePlacementFieldset">
+      <legend>Placement del modulo</legend>
+      <label className="adminField">
+        <span>Region / area / columna</span>
+        <select
+          value={selectedKey}
+          disabled={moduleSlots.length === 0}
+          onChange={(event) => {
+            const [region, areaId, columnIndex] = event.target.value.split("|");
+            changePlacement({ region: region as CmsModulePlacement["region"], areaId, columnIndex: Number(columnIndex) || 1 });
+          }}
+        >
+          {moduleSlots.length === 0 ? <option value="">Sin slots disponibles</option> : null}
+          {moduleSlots.map((slot) => (
+            <option key={slotKey(slot)} value={slotKey(slot)}>
+              {slot.region} / {slot.areaId} / col {slot.columnIndex} ({slot.width})
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="adminField">
+        <span>Orden</span>
+        <input
+          min="1"
+          type="number"
+          value={placement?.order ?? 1}
+          onChange={(event) => changePlacement({ order: Math.max(1, Number(event.target.value) || 1) })}
+        />
+      </label>
+      <label className="adminField">
+        <span>Ancho modulo</span>
+        <input value={placement?.width ?? "100%"} onChange={(event) => changePlacement({ width: event.target.value })} />
+      </label>
+      <label className="adminField">
+        <span>Alineacion</span>
+        <select value={placement?.align ?? "stretch"} onChange={(event) => changePlacement({ align: event.target.value as CmsModulePlacement["align"] })}>
+          <option value="stretch">Stretch</option>
+          <option value="start">Start</option>
+          <option value="center">Center</option>
+          <option value="end">End</option>
+        </select>
+      </label>
+      <label className="adminField">
+        <span>Container</span>
+        <select value={placement?.containerMode ?? "inherit"} onChange={(event) => changePlacement({ containerMode: event.target.value as CmsModulePlacement["containerMode"] })}>
+          <option value="inherit">Heredado</option>
+          <option value="container">Container</option>
+          <option value="full-width">Full width</option>
+        </select>
+      </label>
+      <div className="cmsModulePlacementCompactGrid">
+        <TextField label="MT" value={placement?.spacing?.marginTop ?? ""} onChange={(value) => changePlacement({ spacing: { ...(placement?.spacing ?? {}), marginTop: value } })} />
+        <TextField label="MB" value={placement?.spacing?.marginBottom ?? ""} onChange={(value) => changePlacement({ spacing: { ...(placement?.spacing ?? {}), marginBottom: value } })} />
+        <TextField label="PT" value={placement?.spacing?.paddingTop ?? ""} onChange={(value) => changePlacement({ spacing: { ...(placement?.spacing ?? {}), paddingTop: value } })} />
+        <TextField label="PB" value={placement?.spacing?.paddingBottom ?? ""} onChange={(value) => changePlacement({ spacing: { ...(placement?.spacing ?? {}), paddingBottom: value } })} />
+      </div>
+      <div className="cmsAreaVisibility">
+        {(["mobile", "tablet", "desktop"] as const).map((device) => (
+          <label className="adminCheckbox" key={device}>
+            <input
+              type="checkbox"
+              checked={placement?.visibility?.[device] !== false}
+              onChange={(event) => changePlacement({
+                visibility: {
+                  mobile: placement?.visibility?.mobile !== false,
+                  tablet: placement?.visibility?.tablet !== false,
+                  desktop: placement?.visibility?.desktop !== false,
+                  [device]: event.target.checked,
+                },
+              })}
+            />
+            <span>{device}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 

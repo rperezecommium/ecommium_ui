@@ -40,7 +40,7 @@ function modeParam(value: string | undefined) {
 }
 
 function tabParam(value: string | undefined) {
-  if (value === "page" || value === "blocks" || value === "plp" || value === "seo" || value === "preview") {
+  if (value === "page" || value === "settings" || value === "blocks" || value === "plp" || value === "seo" || value === "preview") {
     return value;
   }
   return "blocks";

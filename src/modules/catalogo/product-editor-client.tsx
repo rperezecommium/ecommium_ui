@@ -134,7 +134,6 @@ type TabId =
   | "inventory"
   | "shipping"
   | "seo"
-  | "options"
   | "audit";
 
 const tabs: Array<{ id: TabId; label: string }> = [
@@ -145,7 +144,6 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: "inventory", label: "Inventario" },
   { id: "shipping", label: "Transporte" },
   { id: "seo", label: "SEO" },
-  { id: "options", label: "Opciones" },
   { id: "audit", label: "Auditoria" },
 ];
 
@@ -183,7 +181,7 @@ function tabForRecoveryBlock(block: string | undefined): TabId {
     return "seo";
   }
   if (block === "specifications") {
-    return "options";
+    return "basic";
   }
 
   return "basic";
@@ -5757,16 +5755,6 @@ function ProductEditorClientInner({
                   </p>
                 </div>
               ) : null}
-            </section>
-          ) : null}
-
-          {activeTab === "options" ? (
-            <section className="productEditorPanel">
-              <h2>Opciones</h2>
-              <label className="adminField">
-                <span>Tax code</span>
-                <input value={draft.basic.taxCode} onChange={(event) => updateBasic("taxCode", event.target.value)} />
-              </label>
             </section>
           ) : null}
 

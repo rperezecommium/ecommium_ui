@@ -72,7 +72,9 @@ test("search admin is exposed under catalog navigation with search permission al
   assert.match(navigationSource, /open=\{active && pathname !== "\/admin"\}/);
   assert.match(navigationSource, /aria-current=\{active \? "page" : undefined\}/);
   assert.match(navigationSource, /adminNavActive/);
-  assert.match(navigationSource, /<NavigationSubLink exact item=\{\{ \.\.\.item, label: "Resumen" \}\} \/>/);
+  assert.match(navigationSource, /const indexItem = childItems\.find\(\(child\) => child\.href === item\.href\) \?\? \{ \.\.\.item, label: "Resumen" \};/);
+  assert.match(navigationSource, /const submenuItems = childItems\.filter\(\(child\) => child\.href !== item\.href\);/);
+  assert.match(navigationSource, /<NavigationSubLink exact item=\{indexItem\} \/>/);
   assert.match(navigationSource, /const active = exact \? pathname === item\.href : isRouteActive\(pathname, item\.href\);/);
   assert.match(navigationSource, /<span className="adminNavLabel">\{item\.label\}<\/span>/);
   assert.match(globalsSource, /\.adminNavSubmenu \.adminNavLabel \{\s*font-size: 14px;\s*font-weight: 500;/);

@@ -44,6 +44,11 @@ const configurationNavItems = [
   { href: "/admin/configuracion/seguridad", label: "Seguridad", description: "Sesiones y confirmación de identidad", permission: "admin:configuration:view" as const },
 ];
 
+const cmsNavItems = [
+  { href: "/admin/cms", label: "Paginas", description: "Paginas, bloques y publicacion", permission: "admin:cms:view" as const },
+  { href: "/admin/cms/ajustes-basicos", label: "Ajustes basicos", description: "Configuracion global, plantillas y layout", permission: "admin:cms-settings:view" as const },
+];
+
 const catalogNavItems = [
   { href: "/admin/products", label: "Productos", description: "Ficha, variantes y media", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/categorias", label: "Categorias", description: "Arbol, familias y rutas", permission: "admin:catalog:view" as const },
@@ -70,6 +75,7 @@ export function AdminShell({ children, context, directory, session }: AdminShell
   const allowedNavItems = filterAllowedNavigation(session, navItems);
   const allowedConfigurationNavItems = filterAllowedNavigation(session, configurationNavItems);
   const allowedCatalogNavItems = filterAllowedNavigation(session, catalogNavItems);
+  const allowedCmsNavItems = filterAllowedNavigation(session, cmsNavItems);
 
   return (
     <div className="adminShell">
@@ -84,6 +90,7 @@ export function AdminShell({ children, context, directory, session }: AdminShell
 
         <AdminNavigation
           catalogItems={toNavigationItems(allowedCatalogNavItems)}
+          cmsItems={toNavigationItems(allowedCmsNavItems)}
           configurationItems={toNavigationItems(allowedConfigurationNavItems)}
           items={toNavigationItems(allowedNavItems)}
         />

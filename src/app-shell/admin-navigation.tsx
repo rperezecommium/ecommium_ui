@@ -25,6 +25,7 @@ type AdminNavigationProps = {
   items: AdminNavigationItem[];
   configurationItems: AdminNavigationItem[];
   catalogItems: AdminNavigationItem[];
+  cmsItems: AdminNavigationItem[];
 };
 
 const iconsByHref = {
@@ -77,6 +78,8 @@ function NavigationGroup({
   const pathname = usePathname();
   const active = isRouteActive(pathname, item.href) || childItems.some((child) => isRouteActive(pathname, child.href));
   const Icon = iconsByHref[item.href as keyof typeof iconsByHref];
+  const indexItem = childItems.find((child) => child.href === item.href) ?? { ...item, label: "Resumen" };
+  const submenuItems = childItems.filter((child) => child.href !== item.href);
 
   return (
     <details className={`adminNavGroup ${active ? "adminNavGroupActive" : ""}`} open={active && pathname !== "/admin"}>
@@ -89,8 +92,8 @@ function NavigationGroup({
       </summary>
       {childItems.length > 0 ? (
         <div className="adminNavSubmenu">
-          <NavigationSubLink exact item={{ ...item, label: "Resumen" }} />
-          {childItems.map((child) => (
+          <NavigationSubLink exact item={indexItem} />
+          {submenuItems.map((child) => (
             <NavigationSubLink item={child} key={child.href} />
           ))}
         </div>
@@ -114,7 +117,7 @@ function NavigationSubLink({ exact = false, item }: { exact?: boolean; item: Adm
   );
 }
 
-export function AdminNavigation({ catalogItems, configurationItems, items }: AdminNavigationProps) {
+export function AdminNavigation({ catalogItems, cmsItems, configurationItems, items }: AdminNavigationProps) {
   return (
     <nav className="adminNav">
       <div className="adminNavSectionLabel">Vender</div>
@@ -124,6 +127,9 @@ export function AdminNavigation({ catalogItems, configurationItems, items }: Adm
         }
         if (item.href === "/admin/catalogo") {
           return <NavigationGroup childItems={catalogItems} item={item} key={item.href} />;
+        }
+        if (item.href === "/admin/cms") {
+          return <NavigationGroup childItems={cmsItems} item={item} key={item.href} />;
         }
 
         return <NavigationLink item={item} key={item.href} />;

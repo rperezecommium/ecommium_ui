@@ -75,6 +75,14 @@ test("normalizes product names into slugs and default references", () => {
   assert.equal(draftModule.makeRefIdFromName("Lego Halcon Milenario"), "LEGO_HALCON_MILENARIO");
 });
 
+test("product editor does not expose product taxCode from the old options tab", () => {
+  const source = readFileSync(path.resolve(root, "src/modules/catalogo/product-editor-client.tsx"), "utf8");
+
+  assert.doesNotMatch(source, /activeTab === "options"/);
+  assert.doesNotMatch(source, /id: "options"/);
+  assert.doesNotMatch(source, /Tax code/);
+});
+
 test("hydrates the default variant name from the product base name", () => {
   const draft = draftModule.draftFromProduct(
     {

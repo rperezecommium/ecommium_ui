@@ -184,12 +184,28 @@ Estados UI obligatorios para multistore:
 - `PATCH /api/v1/admin/cms/pages/:pageId/draft?organizationId=:org&shopId=:shop&locale=:locale`
 - `POST /api/v1/admin/cms/pages/:pageId/publish?organizationId=:org&shopId=:shop&locale=:locale`
 - `POST /api/v1/admin/cms/pages/:pageId/unpublish?organizationId=:org&shopId=:shop&locale=:locale`
+- `GET /api/v1/admin/cms/settings/global?organizationId=:org&shopId=:shop&locale=:locale`
+- `PATCH /api/v1/admin/cms/settings/global?organizationId=:org&shopId=:shop&locale=:locale`
+- `GET /api/v1/admin/cms/font-options?organizationId=:org&shopId=:shop&locale=:locale`
+- `GET /api/v1/admin/cms/pages/:pageId/settings?organizationId=:org&shopId=:shop&locale=:locale`
+- `PATCH /api/v1/admin/cms/pages/:pageId/settings?organizationId=:org&shopId=:shop&locale=:locale`
+- `GET /api/v1/admin/cms/pages/:pageId/resolved-settings?organizationId=:org&shopId=:shop&locale=:locale`
+- `GET /api/v1/admin/cms/templates?organizationId=:org&shopId=:shop&locale=:locale&pageType=:optional&status=:optional`
+- `POST /api/v1/admin/cms/templates?organizationId=:org&shopId=:shop&locale=:locale`
+- `PATCH /api/v1/admin/cms/templates/:templateId?organizationId=:org&shopId=:shop&locale=:locale`
 - `GET /api/v1/admin/routing-seo/routes?organizationId=:org&shopId=:shop&locale=:locale`
 - `POST /api/v1/admin/routing-seo/routes?organizationId=:org&shopId=:shop&locale=:locale`
 - `PATCH /api/v1/admin/routing-seo/routes/:routeId?organizationId=:org&shopId=:shop&locale=:locale`
 - `GET /api/v1/admin/routing-seo/redirects?organizationId=:org&shopId=:shop&locale=:locale`
 - `GET /api/v1/admin/routing-seo/resolve?organizationId=:org&shopId=:shop&locale=:locale&path=:path`
 - `GET /api/v1/admin/routing-seo/sitemap?organizationId=:org&shopId=:shop&locale=:locale`
+
+Reglas UI CMS Settings vigentes:
+
+- `tokens.spacing.xs/sm/md/lg/xl` se reciben y se envian como valores CSS explicitos, preferentemente `px`.
+- `tokens.defaultColumnGap`, `tokens.defaultModuleGap`, `layout.columnGap`, `layout.rowGap` y spacing de placements deben mostrarse como valores CSS concretos. La UI puede normalizar aliases legacy (`md`, `lg`) usando `tokens.spacing`, pero no debe presentarlos al operador como valor final.
+- `tokens.typography` se recibe y se envia por slot como `{ family, provider: "google", weights }`. Strings legacy como `"Inter"` solo se aceptan como compatibilidad de lectura y deben normalizarse en UI.
+- `GET /admin/cms/font-options` es la lista BFF de Google Fonts disponible para selects Admin; la UI no debe usar inputs de texto libre para familias tipograficas en Ajustes basicos.
 
 Reglas UI Routing/SEO vigentes para producto:
 
