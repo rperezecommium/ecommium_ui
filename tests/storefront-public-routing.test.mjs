@@ -26,6 +26,7 @@ const metadata = readFileSync(
 );
 const proxy = readFileSync(path.resolve(root, "proxy.ts"), "utf8");
 const rootLayout = readFileSync(path.resolve(root, "app/layout.tsx"), "utf8");
+const globalsCss = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
 const commerceAdapter = readFileSync(
   path.resolve(root, "src/modules/storefront/public-commerce-page.ts"),
   "utf8",
@@ -34,6 +35,10 @@ const pdp = readFileSync(path.resolve(root, "src/modules/storefront/pdp.ts"), "u
 const plp = readFileSync(path.resolve(root, "src/modules/storefront/plp.ts"), "utf8");
 const cmsPage = readFileSync(
   path.resolve(root, "src/modules/storefront/storefront-cms-page.tsx"),
+  "utf8",
+);
+const cmsBlocksRenderer = readFileSync(
+  path.resolve(root, "packages/cms-blocks/src/react.tsx"),
   "utf8",
 );
 const plpPage = readFileSync(
@@ -204,27 +209,50 @@ test("published CMS pages render all supported block families", () => {
     "plp.subcategoryTiles",
     "accordion",
     "carousel",
+    "visual.module",
   ]) {
-    assert.match(cmsPage, new RegExp(blockType.replace(".", "\\.")));
+    assert.match(cmsBlocksRenderer, new RegExp(blockType.replace(".", "\\.")));
   }
   assert.match(cmsPage, /StorefrontCmsBlockRenderer/);
-  assert.match(cmsPage, /block\.children \?\? \[\]/);
-  assert.match(cmsPage, /maximumBlockDepth = 4/);
-  assert.match(cmsPage, /maximumItemsPerBlock = 12/);
+  assert.match(cmsBlocksRenderer, /block\.children \?\? \[\]/);
+  assert.match(cmsBlocksRenderer, /maximumBlockDepth = 4/);
+  assert.match(cmsBlocksRenderer, /maximumItemsPerBlock = 12/);
+  assert.match(cmsBlocksRenderer, /maximumVisualNodeDepth = 8/);
+  assert.match(cmsBlocksRenderer, /maximumVisualChildrenPerNode = 24/);
+  assert.match(cmsBlocksRenderer, /normalizeCmsVisualModuleProps/);
+  assert.match(cmsBlocksRenderer, /VisualModuleBlock/);
+  assert.match(cmsBlocksRenderer, /VisualNodeRenderer/);
+  assert.match(cmsBlocksRenderer, /responsiveStyles/);
+  assert.match(cmsBlocksRenderer, /visualViewport/);
+  assert.match(cmsBlocksRenderer, /visualViewportStyleValue/);
+  assert.match(cmsBlocksRenderer, /visualStyleVariableKeys/);
+  assert.match(cmsBlocksRenderer, /style\[key\] = resolvedBaseValue/);
+  assert.match(cmsBlocksRenderer, /style\[key\] = resolvedScopedValue/);
+  assert.match(cmsBlocksRenderer, /htmlEmbed/);
 });
 
 test("CMS rendering ignores unsafe content and PLP-only placements", () => {
-  assert.doesNotMatch(cmsPage, /dangerouslySetInnerHTML|eval\(|new Function/);
-  assert.match(cmsPage, /!supportedCmsBlockTypes\.has\(block\.type\)\) return null/);
-  assert.match(cmsPage, /url\.protocol === "https:"/);
-  assert.match(cmsPage, /href\.startsWith\("\/"\) && !href\.startsWith\("\/\/"\)/);
+  assert.doesNotMatch(cmsPage + cmsBlocksRenderer, /dangerouslySetInnerHTML|eval\(|new Function/);
+  assert.match(cmsBlocksRenderer, /!isSupportedCmsBlockType\(block\.type\)\) return null/);
+  assert.match(cmsBlocksRenderer, /url\.protocol === "https:"/);
+  assert.match(cmsBlocksRenderer, /href\.startsWith\("\/"\) && !href\.startsWith\("\/\/"\)/);
   assert.match(cmsPage, /block\.props\.surface !== "plp"/);
   assert.match(cmsPage, /block\.props\.placement !== "beforeList"/);
   assert.match(cmsPage, /block\.props\.placement !== "afterList"/);
+  assert.match(cmsPage, /StorefrontCmsPageBlocks/);
+  assert.match(cmsPage, /storefrontCmsLayoutForPage/);
+  assert.match(cmsPage, /storefrontCmsBlocksForColumn/);
+  assert.match(cmsPage, /placementForStorefrontBlock/);
+  assert.match(cmsPage, /normalizeCmsBlockModulePlacement/);
+  assert.match(cmsPage, /gridTemplateColumns/);
+  assert.match(cmsPage, /data-cms-column/);
+  assert.match(cmsPage, /fallbackStorefrontCmsLayout/);
+  assert.match(globalsCss, /storefrontCmsPageColumns/);
+  assert.match(globalsCss, /grid-template-columns: minmax\(0, 1fr\) !important/);
 });
 
 test("CMS page keeps storefront navigation and the PLP shares the safe renderer", () => {
-  assert.match(cmsPage, /<StorefrontHeader \/>/);
+  assert.match(cmsPage, /<StorefrontHeader/);
   assert.match(cmsPage, /className="storefrontBreadcrumb"/);
   assert.match(cmsPage, /<h1>\{page\.title\}<\/h1>/);
   assert.match(plpPage, /StorefrontCmsBlockRenderer/);
@@ -235,6 +263,8 @@ test("CMS page keeps storefront navigation and the PLP shares the safe renderer"
 test("CMS contract requires a complete published page before rendering", () => {
   assert.match(contract, /page\.status === "PUBLISHED"/);
   assert.match(contract, /Array\.isArray\(page\.blocks\)/);
+  assert.match(contract, /StorefrontCmsResolvedPageSettings/);
+  assert.match(contract, /resolvedPageSettings\?: StorefrontCmsResolvedPageSettings \| null/);
   assert.match(contract, /typeof seo\?\.title === "string"/);
   assert.match(contract, /typeof seo\?\.description === "string"/);
 });

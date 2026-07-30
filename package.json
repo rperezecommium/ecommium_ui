@@ -8,7 +8,13 @@
     "start": "next start -p 5173",
     "lint": "eslint .",
     "test": "node --test tests/*.test.mjs",
-    "test:e2e": "next build && playwright test"
+    "test:e2e": "next build && playwright test",
+    "pw:open": "playwright open about:blank",
+    "pw:show": "playwright-cli show --annotate",
+    "pw:close": "echo 'Close the Playwright window to stop the session'",
+    "pw:snapshot": "playwright-cli snapshot",
+    "pw:codegen": "playwright codegen http://localhost:5173",
+    "pw:report": "playwright show-report"
   },
   "dependencies": {
     "@tiptap/extension-image": "^3.27.1",

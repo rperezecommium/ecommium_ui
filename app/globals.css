@@ -6062,34 +6062,35 @@ p {
   table-layout: fixed;
 }
 
+.cmsPagesTitleColumn {
+  width: 27%;
+}
+
+.cmsPagesPathColumn {
+  width: 26%;
+}
+
+.cmsPagesTypeColumn {
+  width: 86px;
+}
+
+.cmsPagesStatusColumn {
+  width: 132px;
+}
+
+.cmsPagesUpdatedColumn {
+  width: 152px;
+}
+
+.cmsPagesActionsColumn {
+  width: 164px;
+}
+
 .cmsPagesTable th,
 .cmsPagesTable td {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.cmsPresetGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.cmsPresetGrid article {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid var(--admin-border-subtle);
-  border-radius: 4px;
-  background: var(--admin-surface);
-}
-
-.cmsPresetGrid p,
-.cmsPresetGrid span {
-  margin: 0;
-  color: var(--admin-text-muted);
-  font-size: 12px;
 }
 
 .cmsEditor {
@@ -6429,6 +6430,23 @@ p {
   justify-content: flex-start;
 }
 
+.cmsSavedVisualPresetList {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.cmsSavedVisualPresetList > span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cmsVisualModuleContentFieldset {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .cmsBuilderHint {
   padding: 10px;
   border: 1px solid var(--admin-border-subtle);
@@ -6437,6 +6455,1000 @@ p {
   color: var(--admin-text-muted);
   font-size: 12px;
   line-height: 1.4;
+}
+
+.cmsBlockBuilderShell {
+  display: grid;
+  gap: 14px;
+}
+
+.cmsBlockBuilderTopbar {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.cmsBlockBuilderTopbar > div {
+  display: grid;
+  gap: 4px;
+}
+
+.cmsBlockBuilderTopbar span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.cmsBlockBuilderLoadedPage {
+  display: grid;
+  gap: 10px;
+}
+
+.cmsBlockBuilderVisualLibrary {
+  display: grid;
+  gap: 12px;
+}
+
+.cmsBlockBuilderVisualLibrary .pricingDefinitionGrid {
+  min-width: min(100%, 520px);
+}
+
+.cmsBlockBuilderVisualModuleList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.cmsBlockBuilderVisualModuleItem {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 6px;
+  background: var(--admin-surface-muted);
+}
+
+.cmsBlockBuilderVisualModuleItem > div {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.cmsBlockBuilderVisualModuleItem strong,
+.cmsBlockBuilderVisualModuleItem span,
+.cmsBlockBuilderVisualModuleItem small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cmsBlockBuilderVisualModuleItem span,
+.cmsBlockBuilderVisualModuleItem small {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cmsBlockBuilderLoadedPage > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.cmsBlockBuilderLoadedPage span,
+.cmsBlockBuilderLoadedPage small {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.cmsBlockBuilderLoadedPage .pricingDefinitionGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.cmsBlockBuilderLoadedPage dd {
+  overflow-wrap: anywhere;
+}
+
+.cmsBlockBuilderSavePanel {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.cmsBlockBuilderSavePanel > div {
+  display: grid;
+  gap: 3px;
+}
+
+.cmsBlockBuilderSaveBlocked {
+  color: var(--admin-danger);
+  font-weight: 700;
+}
+
+.cmsBlockBuilderValidation {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 6px;
+  background: var(--admin-surface);
+}
+
+.cmsBlockBuilderValidation > div {
+  display: grid;
+  gap: 3px;
+}
+
+.cmsBlockBuilderValidation span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.cmsBlockBuilderValidation ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmsBlockBuilderValidationError {
+  border-color: color-mix(in srgb, #b91c1c 44%, var(--admin-border));
+  background: color-mix(in srgb, #ef4444 8%, var(--admin-surface));
+}
+
+.cmsBlockBuilderValidationWarning {
+  border-color: color-mix(in srgb, #b45309 44%, var(--admin-border));
+  background: color-mix(in srgb, #f59e0b 10%, var(--admin-surface));
+}
+
+.cmsBlockBuilderValidationOk {
+  border-color: color-mix(in srgb, #15803d 34%, var(--admin-border));
+  background: color-mix(in srgb, #22c55e 8%, var(--admin-surface));
+}
+
+.cmsBlockBuilderIssueButton {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cmsBlockBuilderIssueButton:disabled {
+  cursor: default;
+}
+
+.cmsBlockBuilderIssueButton strong {
+  font-size: 12px;
+}
+
+.cmsBlockBuilderIssueButton span {
+  color: var(--admin-text);
+  overflow-wrap: anywhere;
+}
+
+.cmsBlockBuilderPageSelector {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.cmsBlockBuilderWorkspace {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(360px, 1fr) minmax(380px, 520px);
+  gap: 12px;
+  align-items: start;
+}
+
+.cmsBlockBuilderLibrary,
+.cmsBlockBuilderCanvas,
+.cmsBlockBuilderInspector {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
+}
+
+.cmsBlockBuilderPresetList {
+  display: grid;
+  gap: 8px;
+}
+
+.cmsBlockBuilderSavedBlocks {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.cmsBlockBuilderSavedBlocks > span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cmsBlockBuilderCreateVisualButton span {
+  color: color-mix(in srgb, #ffffff 78%, transparent);
+}
+
+.cmsBlockBuilderPresetList .adminButton {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  height: auto;
+  min-height: 44px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.cmsBlockBuilderPresetList .adminButton span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.cmsBlockBuilderVisualNodes {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.cmsBlockBuilderVisualPresets {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.cmsBlockBuilderVisualPresetList {
+  display: grid;
+  gap: 8px;
+}
+
+.cmsBlockBuilderVisualDefinitionList {
+  display: grid;
+  gap: 8px;
+}
+
+.cmsBlockBuilderVisualDefinitionItem {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.cmsBlockBuilderVisualDefinitionItem > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmsBlockBuilderVisualDefinitionItem strong,
+.cmsBlockBuilderVisualDefinitionItem span {
+  overflow-wrap: anywhere;
+}
+
+.cmsBlockBuilderVisualDefinitionItem span {
+  color: var(--admin-text-muted);
+  font-size: 11px;
+}
+
+.cmsBlockBuilderVisualDefinitionItemActions {
+  display: grid;
+  gap: 8px;
+}
+
+.cmsBlockBuilderVisualDefinitionArchiveForm {
+  display: contents;
+}
+
+.cmsBlockBuilderVisualDefinitionForm {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-bg);
+}
+
+.cmsBlockBuilderVisualDefinitionActions {
+  display: grid;
+  gap: 8px;
+}
+
+.cmsBlockBuilderVisualDefinitionActions .adminButton {
+  min-width: 0;
+}
+
+.cmsBlockBuilderVisualPresetItem {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.cmsBlockBuilderVisualPresetItem > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmsBlockBuilderVisualPresetItem strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.cmsBlockBuilderVisualPresetItem span {
+  color: var(--admin-text-muted);
+  font-size: 11px;
+}
+
+.cmsBlockBuilderVisualPresetActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px;
+  gap: 6px;
+  align-items: center;
+}
+
+.cmsBlockBuilderVisualPresetActions .adminButton,
+.cmsBlockBuilderVisualPresetActions .adminIconButton {
+  min-width: 0;
+}
+
+.cmsBlockBuilderMediaUploads {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 6px;
+  background: var(--admin-surface);
+}
+
+.cmsBlockBuilderMediaUploads ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmsBlockBuilderMediaUploads li {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-bg);
+}
+
+.cmsBlockBuilderMediaUploads span {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.cmsBlockBuilderVisualHint {
+  padding: 10px;
+  border: 1px dashed var(--admin-border);
+  border-radius: 4px;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cmsBlockBuilderVisualNodeGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.cmsBlockBuilderVisualNodeButton {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cmsBlockBuilderVisualNodeButton:hover {
+  border-color: var(--admin-primary);
+  background: color-mix(in srgb, var(--admin-primary) 8%, var(--admin-surface));
+}
+
+.cmsBlockBuilderVisualNodeButton strong {
+  font-size: 12px;
+}
+
+.cmsBlockBuilderVisualNodeButton span {
+  color: var(--admin-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.cmsBlockBuilderVisualTree {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.cmsBlockBuilderVisualTreeList {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmsBlockBuilderVisualTreeItem {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.cmsBlockBuilderVisualTreeRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+  padding: 5px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.cmsBlockBuilderVisualTreeRowActive {
+  border-color: var(--admin-focus-ring);
+  background: var(--admin-surface);
+}
+
+.cmsBlockBuilderVisualTreeSelect {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cmsBlockBuilderVisualTreeSelect strong,
+.cmsBlockBuilderVisualTreeSelect span {
+  overflow-wrap: anywhere;
+}
+
+.cmsBlockBuilderVisualTreeSelect strong {
+  font-size: 12px;
+}
+
+.cmsBlockBuilderVisualTreeSelect span {
+  color: var(--admin-text-muted);
+  font-size: 11px;
+}
+
+.cmsBlockBuilderVisualTreeActions {
+  display: flex;
+  gap: 3px;
+}
+
+.cmsBlockBuilderVisualStarter {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--admin-primary) 34%, var(--admin-border-subtle));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--admin-primary) 7%, var(--admin-surface));
+}
+
+.cmsBlockBuilderVisualStarterGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cmsBlockBuilderVisualAdvancedRoot {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px dashed var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.cmsBlockBuilderVisualAdvancedRoot > summary {
+  cursor: pointer;
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cmsBlockBuilderVisualAdvancedRoot[open] > summary {
+  margin-bottom: 10px;
+}
+
+.cmsBlockBuilderVisualRootAction {
+  justify-self: start;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.cmsBlockBuilderVisualInspector {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface);
+}
+
+.cmsBlockBuilderVisualFieldset {
+  grid-template-columns: 1fr;
+}
+
+.cmsBlockBuilderVisualFieldset textarea {
+  min-height: 86px;
+}
+
+.cmsBlockBuilderVisualMoveControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.cmsBlockBuilderVisualStyleScopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cmsBlockBuilderVisualStyleScopes .adminButton {
+  min-height: 30px;
+  padding: 0 9px;
+  font-size: 11px;
+}
+
+.cmsBlockBuilderVisualStyleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cmsBlockBuilderSegmentedControl,
+.cmsBlockBuilderVisualMotionGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.cmsBlockBuilderSegmentedControl {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cmsBlockBuilderVisualMotionGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cmsBlockBuilderTogglePill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 6px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cmsBlockBuilderTogglePill input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
+.cmsBlockBuilderInspectorMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--admin-text-muted);
+  font-size: 11px;
+}
+
+.cmsBlockBuilderInspectorMeta span {
+  padding: 3px 6px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.cmsBlockBuilderStyleControl {
+  min-width: 0;
+}
+
+.cmsBlockBuilderColorInputRow,
+.cmsBlockBuilderMediaControlRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.cmsBlockBuilderColorInputRow input[type="color"] {
+  width: 34px;
+  min-height: 34px;
+  padding: 2px;
+}
+
+.cmsBlockBuilderMediaControlRow {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cmsBlockBuilderMediaControlRow input[type="file"] {
+  min-height: 34px;
+  padding: 6px;
+  font-size: 11px;
+}
+
+.cmsBlockBuilderMediaPreview {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+  aspect-ratio: 16 / 9;
+}
+
+.cmsBlockBuilderMediaPreview span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-position: center;
+  background-size: cover;
+}
+
+.cmsBlockBuilderMediaControlActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.cmsBlockBuilderMediaControlActions .adminButton {
+  min-height: 34px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.cmsBlockBuilderStyleJsonField textarea {
+  min-height: 120px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+}
+
+.cmsBlockBuilderContentSchemaPanel {
+  display: grid;
+  gap: 10px;
+  border-color: color-mix(in srgb, var(--admin-primary) 24%, var(--admin-border-subtle));
+}
+
+.cmsBlockBuilderContentActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cmsBlockBuilderContentSchemaJson textarea {
+  min-height: 132px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+}
+
+.cmsBlockBuilderContentValues {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.cmsBlockBuilderContentValues > strong {
+  font-size: 12px;
+}
+
+.cmsBlockBuilderColumnRatioField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  align-items: center;
+}
+
+.cmsBlockBuilderColumnRatioField > span,
+.cmsBlockBuilderColumnRatioField input[type="range"] {
+  grid-column: 1 / -1;
+}
+
+.cmsBlockBuilderColumnRatioField input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--admin-primary);
+}
+
+.cmsBlockBuilderColumnRatioField output {
+  grid-column: 1 / -1;
+  color: var(--admin-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  .cmsBlockBuilderVisualStyleGrid,
+  .cmsBlockBuilderVisualStarterGrid,
+  .cmsBlockBuilderSegmentedControl,
+  .cmsBlockBuilderVisualMotionGrid,
+  .cmsBlockBuilderMediaControlRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cmsBlockBuilderMediaControlActions .adminButton {
+    width: 100%;
+  }
+}
+
+.cmsBlockBuilderVisualInspector .cmsJsonField textarea[readonly] {
+  min-height: 150px;
+  font-size: 11px;
+}
+
+.cmsBlockBuilderVisualPortability {
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.cmsBlockBuilderVisualPortability .cmsJsonField textarea {
+  min-height: 170px;
+  font-size: 11px;
+}
+
+.cmsBlockBuilderVisualImportActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cmsBlockBuilderCanvasToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cmsBlockBuilderPreviewFrame {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  min-height: 520px;
+  margin: 0 auto;
+  padding: 14px;
+  overflow: auto;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-bg);
+}
+
+.cmsBlockBuilderPreviewFrameDesktop {
+  max-width: 100%;
+}
+
+.cmsBlockBuilderPreviewFrameTablet {
+  max-width: 760px;
+}
+
+.cmsBlockBuilderPreviewFrameMobile {
+  max-width: 390px;
+}
+
+.cmsBlockBuilderPreviewItem {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.cmsBlockBuilderPreviewItem:focus-visible,
+.cmsBlockBuilderPreviewItemActive {
+  border-color: var(--admin-focus-ring);
+  outline: none;
+}
+
+.cmsBlockBuilderPreviewActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  padding: 4px 4px 0;
+}
+
+.cmsBlockBuilderPreviewContent {
+  display: grid;
+  cursor: pointer;
+}
+
+.cmsBlockBuilderPreviewContent:focus-visible {
+  outline: 2px solid var(--admin-focus-ring);
+  outline-offset: 2px;
+}
+
+.cmsBlockBuilderResolvedCanvas {
+  display: grid;
+  gap: var(--cms-builder-module-gap, 16px);
+  width: 100%;
+  margin: 0 auto;
+  padding: 12px;
+  background: var(--cms-builder-bg, var(--admin-bg));
+  color: var(--cms-builder-text, var(--admin-text));
+}
+
+.cmsBlockBuilderRegion,
+.cmsBlockBuilderArea,
+.cmsBlockBuilderColumn,
+.cmsBlockBuilderUnplaced {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cmsBlockBuilderRegion {
+  padding: 10px;
+  border: 1px dashed var(--admin-border);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--cms-builder-surface, var(--admin-surface)) 82%, transparent);
+}
+
+.cmsBlockBuilderRegion > header,
+.cmsBlockBuilderArea > header,
+.cmsBlockBuilderColumn > header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.cmsBlockBuilderRegion > header strong,
+.cmsBlockBuilderArea > header strong,
+.cmsBlockBuilderColumn > header strong {
+  overflow-wrap: anywhere;
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cmsBlockBuilderArea {
+  padding: 10px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--cms-builder-surface, var(--admin-surface));
+}
+
+.cmsBlockBuilderColumns {
+  display: grid;
+  min-width: 0;
+  row-gap: var(--cms-builder-module-gap, 16px);
+}
+
+.cmsBlockBuilderColumn {
+  align-content: start;
+  min-height: 160px;
+  padding: 8px;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.cmsBlockBuilderSlotEmpty {
+  display: grid;
+  min-height: 112px;
+  place-items: center;
+  border: 1px dashed var(--admin-border);
+  border-radius: 4px;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.cmsBlockBuilderUnplaced {
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, #b45309 48%, var(--admin-border));
+  border-radius: 4px;
+  background: color-mix(in srgb, #f59e0b 10%, var(--admin-surface));
+}
+
+.cmsBlockBuilderUnplaced h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.cmsBlockBuilderMeta {
+  grid-template-columns: 1fr;
+}
+
+.cmsBlockBuilderMeta dd {
+  overflow-wrap: anywhere;
+}
+
+.cmsBlockBuilderFields {
+  grid-template-columns: 1fr;
+}
+
+.cmsBlockBuilderInspector .cmsBlockFieldset {
+  grid-template-columns: 1fr;
+}
+
+.cmsBlockBuilderBooleanField {
+  align-self: start;
+}
+
+.cmsBlockBuilderPortablePanel {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.cmsBlockBuilderPortabilityActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cmsBlockBuilderImportMessage {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.cmsBlockBuilderJson textarea {
+  min-height: 180px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
 }
 
 .cmsEditorValidation {
@@ -6496,6 +7508,17 @@ p {
   justify-content: space-between;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--admin-border-subtle);
+  cursor: pointer;
+  list-style: none;
+}
+
+.cmsBlockHeader::-webkit-details-marker {
+  display: none;
+}
+
+.cmsBlockDetails:not([open]) .cmsBlockHeader {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .cmsBlockHeader span {
@@ -6532,6 +7555,17 @@ p {
   color: var(--admin-text-muted);
   font-size: 12px;
   font-weight: 800;
+}
+
+.cmsModulePlacementFieldset {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cmsModulePlacementTopRow {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) minmax(112px, 8rem) minmax(118px, 9rem) minmax(118px, 9rem);
+  gap: 10px;
+  align-items: end;
 }
 
 .cmsJsonField textarea {
@@ -6706,7 +7740,8 @@ p {
 .cmsPreviewCategoryIntro,
 .cmsPreviewSubcategories,
 .cmsPreviewAccordion,
-.cmsPreviewCarousel {
+.cmsPreviewCarousel,
+.cmsPreviewVisualModule {
   min-width: 0;
   padding: 16px;
   border: 1px solid var(--admin-border);
@@ -6820,6 +7855,15 @@ p {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+
+.cmsPreviewVisualModuleCanvas {
+  min-width: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: 4px;
+  background: #ffffff;
 }
 
 .cmsPlpSummaryGrid {
@@ -11795,6 +12839,37 @@ p {
   gap: 18px;
 }
 
+.storefrontCmsPageLayout,
+.storefrontCmsPageRegion,
+.storefrontCmsPageArea,
+.storefrontCmsPageUnplaced {
+  display: grid;
+  gap: 18px;
+}
+
+.storefrontCmsPageColumns {
+  display: grid;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.storefrontCmsPageColumn {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  min-width: 0;
+}
+
+.storefrontCmsPageModule {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .storefrontCmsPageColumns {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
 .storefrontCmsChildren {
   padding-left: 18px;
   border-left: 3px solid #e6e8ec;
@@ -11926,6 +13001,392 @@ p {
 .storefrontCmsCarousel .storefrontCmsAction {
   width: fit-content;
   margin-top: auto;
+}
+
+.cmsVisualModule {
+  display: block;
+  width: 100%;
+}
+
+.cmsVisualNode {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.cmsVisualAnimated {
+  animation-duration: var(--cms-visual-animation-duration, 600ms);
+  animation-delay: var(--cms-visual-animation-delay, 0ms);
+  animation-fill-mode: both;
+  animation-timing-function: var(--cms-visual-animation-easing, cubic-bezier(0.2, 0, 0.2, 1));
+  will-change: opacity, transform;
+}
+
+.cmsVisualAnimationFadeIn {
+  animation-name: cmsVisualFadeIn;
+}
+
+.cmsVisualAnimationSlideUp {
+  animation-name: cmsVisualSlideUp;
+}
+
+.cmsVisualAnimationScaleIn {
+  animation-name: cmsVisualScaleIn;
+}
+
+.cmsVisualAnimationTriggerInView {
+  animation-play-state: running;
+}
+
+@keyframes cmsVisualFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cmsVisualSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cmsVisualScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmsVisualAnimated {
+    animation: none !important;
+    transform: none !important;
+    will-change: auto;
+  }
+}
+
+.cmsVisualHoverable {
+  transition-delay: var(--cms-visual-hover-transition-delay, 0ms);
+  transition-duration: var(--cms-visual-hover-transition-duration, 160ms);
+  transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+  transition-timing-function: var(--cms-visual-hover-transition-easing, cubic-bezier(0.2, 0, 0.2, 1));
+}
+
+.cmsVisualHoverBackgroundColor:hover {
+  background-color: var(--cms-visual-hover-backgroundColor) !important;
+}
+
+.cmsVisualHoverBorderColor:hover {
+  border-color: var(--cms-visual-hover-borderColor) !important;
+}
+
+.cmsVisualHoverBoxShadow:hover {
+  box-shadow: var(--cms-visual-hover-boxShadow) !important;
+}
+
+.cmsVisualHoverColor:hover {
+  color: var(--cms-visual-hover-color) !important;
+}
+
+.cmsVisualHoverOpacity:hover {
+  opacity: var(--cms-visual-hover-opacity) !important;
+}
+
+.cmsVisualHoverTransform:hover {
+  transform: var(--cms-visual-hover-transform) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmsVisualHoverable {
+    transition: none !important;
+  }
+}
+
+.cmsVisualHiddenDesktop {
+  display: none !important;
+}
+
+.cmsVisualContainer {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.cmsVisualGrid {
+  display: grid;
+  gap: 16px;
+}
+
+.cmsVisualFlex {
+  display: flex;
+  gap: 16px;
+}
+
+.cmsVisualHeading,
+.cmsVisualParagraph,
+.cmsVisualRichText {
+  margin: 0;
+}
+
+.cmsVisualRichText,
+.cmsVisualHtmlEmbed {
+  white-space: pre-wrap;
+}
+
+.cmsVisualImage {
+  display: block;
+  overflow: hidden;
+  background: #f6f7f8;
+}
+
+.cmsVisualImageMedia {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  height: 490px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.cmsVisualImageMedia img {
+  object-fit: cover;
+}
+
+.cmsVisualButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  background: #17171c;
+  color: #ffffff;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.cmsVisualLink,
+.cmsVisualVideo {
+  color: #156f86;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cmsVisualButton:focus-visible,
+.cmsVisualLink:focus-visible,
+.cmsVisualVideo:focus-visible,
+.cmsVisualImageMedia:focus-visible {
+  outline: 3px solid color-mix(in srgb, #25b9d7 70%, #ffffff);
+  outline-offset: 3px;
+}
+
+.cmsVisualActionStatic {
+  cursor: default;
+}
+
+.cmsVisualHtmlEmbed {
+  padding: 12px;
+  overflow: auto;
+  border: 1px dashed #cfd6df;
+  background: #f8fafc;
+  color: #3d4a5c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+}
+
+.cmsVisualSpacer {
+  min-height: 16px;
+}
+
+.cmsVisualNode {
+  align-items: var(--cms-visual-desktop-alignItems, var(--cms-visual-alignItems));
+  background-color: var(--cms-visual-desktop-backgroundColor, var(--cms-visual-backgroundColor));
+  background-image: var(--cms-visual-desktop-backgroundImage, var(--cms-visual-backgroundImage));
+  background-position: var(--cms-visual-desktop-backgroundPosition, var(--cms-visual-backgroundPosition));
+  background-size: var(--cms-visual-desktop-backgroundSize, var(--cms-visual-backgroundSize));
+  border: var(--cms-visual-desktop-border, var(--cms-visual-border));
+  border-color: var(--cms-visual-desktop-borderColor, var(--cms-visual-borderColor));
+  border-radius: var(--cms-visual-desktop-borderRadius, var(--cms-visual-borderRadius));
+  border-style: var(--cms-visual-desktop-borderStyle, var(--cms-visual-borderStyle));
+  border-width: var(--cms-visual-desktop-borderWidth, var(--cms-visual-borderWidth));
+  box-shadow: var(--cms-visual-desktop-boxShadow, var(--cms-visual-boxShadow));
+  color: var(--cms-visual-desktop-color, var(--cms-visual-color));
+  column-gap: var(--cms-visual-desktop-columnGap, var(--cms-visual-columnGap));
+  display: var(--cms-visual-desktop-display, var(--cms-visual-display));
+  aspect-ratio: var(--cms-visual-desktop-aspectRatio, var(--cms-visual-aspectRatio));
+  flex-direction: var(--cms-visual-desktop-flexDirection, var(--cms-visual-flexDirection));
+  flex-wrap: var(--cms-visual-desktop-flexWrap, var(--cms-visual-flexWrap));
+  font-family: var(--cms-visual-desktop-fontFamily, var(--cms-visual-fontFamily));
+  font-size: var(--cms-visual-desktop-fontSize, var(--cms-visual-fontSize));
+  font-weight: var(--cms-visual-desktop-fontWeight, var(--cms-visual-fontWeight));
+  gap: var(--cms-visual-desktop-gap, var(--cms-visual-gap));
+  grid-template-columns: var(--cms-visual-desktop-gridTemplateColumns, var(--cms-visual-gridTemplateColumns));
+  height: var(--cms-visual-desktop-height, var(--cms-visual-height));
+  justify-content: var(--cms-visual-desktop-justifyContent, var(--cms-visual-justifyContent));
+  letter-spacing: var(--cms-visual-desktop-letterSpacing, var(--cms-visual-letterSpacing));
+  line-height: var(--cms-visual-desktop-lineHeight, var(--cms-visual-lineHeight));
+  margin: var(--cms-visual-desktop-margin, var(--cms-visual-margin));
+  margin-bottom: var(--cms-visual-desktop-marginBottom, var(--cms-visual-marginBottom));
+  margin-left: var(--cms-visual-desktop-marginLeft, var(--cms-visual-marginLeft));
+  margin-right: var(--cms-visual-desktop-marginRight, var(--cms-visual-marginRight));
+  margin-top: var(--cms-visual-desktop-marginTop, var(--cms-visual-marginTop));
+  max-height: var(--cms-visual-desktop-maxHeight, var(--cms-visual-maxHeight));
+  max-width: var(--cms-visual-desktop-maxWidth, var(--cms-visual-maxWidth));
+  min-height: var(--cms-visual-desktop-minHeight, var(--cms-visual-minHeight));
+  min-width: var(--cms-visual-desktop-minWidth, var(--cms-visual-minWidth));
+  object-fit: var(--cms-visual-desktop-objectFit, var(--cms-visual-objectFit));
+  opacity: var(--cms-visual-desktop-opacity, var(--cms-visual-opacity));
+  overflow: var(--cms-visual-desktop-overflow, var(--cms-visual-overflow));
+  padding: var(--cms-visual-desktop-padding, var(--cms-visual-padding));
+  padding-bottom: var(--cms-visual-desktop-paddingBottom, var(--cms-visual-paddingBottom));
+  padding-left: var(--cms-visual-desktop-paddingLeft, var(--cms-visual-paddingLeft));
+  padding-right: var(--cms-visual-desktop-paddingRight, var(--cms-visual-paddingRight));
+  padding-top: var(--cms-visual-desktop-paddingTop, var(--cms-visual-paddingTop));
+  position: var(--cms-visual-desktop-position, var(--cms-visual-position));
+  row-gap: var(--cms-visual-desktop-rowGap, var(--cms-visual-rowGap));
+  text-align: var(--cms-visual-desktop-textAlign, var(--cms-visual-textAlign));
+  transform: var(--cms-visual-desktop-transform, var(--cms-visual-transform));
+  width: var(--cms-visual-desktop-width, var(--cms-visual-width));
+}
+
+@media (max-width: 1023px) {
+  .cmsVisualHiddenDesktop {
+    display: var(--cms-visual-tablet-display, var(--cms-visual-desktop-display, var(--cms-visual-display, revert))) !important;
+  }
+
+  .cmsVisualHiddenTablet {
+    display: none !important;
+  }
+
+  .cmsVisualNode {
+    align-items: var(--cms-visual-tablet-alignItems, var(--cms-visual-desktop-alignItems, var(--cms-visual-alignItems)));
+    background-color: var(--cms-visual-tablet-backgroundColor, var(--cms-visual-desktop-backgroundColor, var(--cms-visual-backgroundColor)));
+    background-image: var(--cms-visual-tablet-backgroundImage, var(--cms-visual-desktop-backgroundImage, var(--cms-visual-backgroundImage)));
+    background-position: var(--cms-visual-tablet-backgroundPosition, var(--cms-visual-desktop-backgroundPosition, var(--cms-visual-backgroundPosition)));
+    background-size: var(--cms-visual-tablet-backgroundSize, var(--cms-visual-desktop-backgroundSize, var(--cms-visual-backgroundSize)));
+    border: var(--cms-visual-tablet-border, var(--cms-visual-desktop-border, var(--cms-visual-border)));
+    border-color: var(--cms-visual-tablet-borderColor, var(--cms-visual-desktop-borderColor, var(--cms-visual-borderColor)));
+    border-radius: var(--cms-visual-tablet-borderRadius, var(--cms-visual-desktop-borderRadius, var(--cms-visual-borderRadius)));
+    border-style: var(--cms-visual-tablet-borderStyle, var(--cms-visual-desktop-borderStyle, var(--cms-visual-borderStyle)));
+    border-width: var(--cms-visual-tablet-borderWidth, var(--cms-visual-desktop-borderWidth, var(--cms-visual-borderWidth)));
+    box-shadow: var(--cms-visual-tablet-boxShadow, var(--cms-visual-desktop-boxShadow, var(--cms-visual-boxShadow)));
+    color: var(--cms-visual-tablet-color, var(--cms-visual-desktop-color, var(--cms-visual-color)));
+    column-gap: var(--cms-visual-tablet-columnGap, var(--cms-visual-desktop-columnGap, var(--cms-visual-columnGap)));
+    display: var(--cms-visual-tablet-display, var(--cms-visual-desktop-display, var(--cms-visual-display)));
+    aspect-ratio: var(--cms-visual-tablet-aspectRatio, var(--cms-visual-desktop-aspectRatio, var(--cms-visual-aspectRatio)));
+    flex-direction: var(--cms-visual-tablet-flexDirection, var(--cms-visual-desktop-flexDirection, var(--cms-visual-flexDirection)));
+    flex-wrap: var(--cms-visual-tablet-flexWrap, var(--cms-visual-desktop-flexWrap, var(--cms-visual-flexWrap)));
+    font-family: var(--cms-visual-tablet-fontFamily, var(--cms-visual-desktop-fontFamily, var(--cms-visual-fontFamily)));
+    font-size: var(--cms-visual-tablet-fontSize, var(--cms-visual-desktop-fontSize, var(--cms-visual-fontSize)));
+    font-weight: var(--cms-visual-tablet-fontWeight, var(--cms-visual-desktop-fontWeight, var(--cms-visual-fontWeight)));
+    gap: var(--cms-visual-tablet-gap, var(--cms-visual-desktop-gap, var(--cms-visual-gap)));
+    grid-template-columns: var(--cms-visual-tablet-gridTemplateColumns, var(--cms-visual-desktop-gridTemplateColumns, var(--cms-visual-gridTemplateColumns)));
+    height: var(--cms-visual-tablet-height, var(--cms-visual-desktop-height, var(--cms-visual-height)));
+    justify-content: var(--cms-visual-tablet-justifyContent, var(--cms-visual-desktop-justifyContent, var(--cms-visual-justifyContent)));
+    letter-spacing: var(--cms-visual-tablet-letterSpacing, var(--cms-visual-desktop-letterSpacing, var(--cms-visual-letterSpacing)));
+    line-height: var(--cms-visual-tablet-lineHeight, var(--cms-visual-desktop-lineHeight, var(--cms-visual-lineHeight)));
+    margin: var(--cms-visual-tablet-margin, var(--cms-visual-desktop-margin, var(--cms-visual-margin)));
+    margin-bottom: var(--cms-visual-tablet-marginBottom, var(--cms-visual-desktop-marginBottom, var(--cms-visual-marginBottom)));
+    margin-left: var(--cms-visual-tablet-marginLeft, var(--cms-visual-desktop-marginLeft, var(--cms-visual-marginLeft)));
+    margin-right: var(--cms-visual-tablet-marginRight, var(--cms-visual-desktop-marginRight, var(--cms-visual-marginRight)));
+    margin-top: var(--cms-visual-tablet-marginTop, var(--cms-visual-desktop-marginTop, var(--cms-visual-marginTop)));
+    max-height: var(--cms-visual-tablet-maxHeight, var(--cms-visual-desktop-maxHeight, var(--cms-visual-maxHeight)));
+    max-width: var(--cms-visual-tablet-maxWidth, var(--cms-visual-desktop-maxWidth, var(--cms-visual-maxWidth)));
+    min-height: var(--cms-visual-tablet-minHeight, var(--cms-visual-desktop-minHeight, var(--cms-visual-minHeight)));
+    min-width: var(--cms-visual-tablet-minWidth, var(--cms-visual-desktop-minWidth, var(--cms-visual-minWidth)));
+    object-fit: var(--cms-visual-tablet-objectFit, var(--cms-visual-desktop-objectFit, var(--cms-visual-objectFit)));
+    opacity: var(--cms-visual-tablet-opacity, var(--cms-visual-desktop-opacity, var(--cms-visual-opacity)));
+    overflow: var(--cms-visual-tablet-overflow, var(--cms-visual-desktop-overflow, var(--cms-visual-overflow)));
+    padding: var(--cms-visual-tablet-padding, var(--cms-visual-desktop-padding, var(--cms-visual-padding)));
+    padding-bottom: var(--cms-visual-tablet-paddingBottom, var(--cms-visual-desktop-paddingBottom, var(--cms-visual-paddingBottom)));
+    padding-left: var(--cms-visual-tablet-paddingLeft, var(--cms-visual-desktop-paddingLeft, var(--cms-visual-paddingLeft)));
+    padding-right: var(--cms-visual-tablet-paddingRight, var(--cms-visual-desktop-paddingRight, var(--cms-visual-paddingRight)));
+    padding-top: var(--cms-visual-tablet-paddingTop, var(--cms-visual-desktop-paddingTop, var(--cms-visual-paddingTop)));
+    position: var(--cms-visual-tablet-position, var(--cms-visual-desktop-position, var(--cms-visual-position)));
+    row-gap: var(--cms-visual-tablet-rowGap, var(--cms-visual-desktop-rowGap, var(--cms-visual-rowGap)));
+    text-align: var(--cms-visual-tablet-textAlign, var(--cms-visual-desktop-textAlign, var(--cms-visual-textAlign)));
+    transform: var(--cms-visual-tablet-transform, var(--cms-visual-desktop-transform, var(--cms-visual-transform)));
+    width: var(--cms-visual-tablet-width, var(--cms-visual-desktop-width, var(--cms-visual-width)));
+  }
+}
+
+@media (max-width: 767px) {
+  .cmsVisualHiddenTablet {
+    display: var(--cms-visual-mobile-display, var(--cms-visual-tablet-display, var(--cms-visual-desktop-display, var(--cms-visual-display, revert)))) !important;
+  }
+
+  .cmsVisualHiddenMobile {
+    display: none !important;
+  }
+
+  .cmsVisualNode {
+    align-items: var(--cms-visual-mobile-alignItems, var(--cms-visual-tablet-alignItems, var(--cms-visual-desktop-alignItems, var(--cms-visual-alignItems))));
+    background-color: var(--cms-visual-mobile-backgroundColor, var(--cms-visual-tablet-backgroundColor, var(--cms-visual-desktop-backgroundColor, var(--cms-visual-backgroundColor))));
+    background-image: var(--cms-visual-mobile-backgroundImage, var(--cms-visual-tablet-backgroundImage, var(--cms-visual-desktop-backgroundImage, var(--cms-visual-backgroundImage))));
+    background-position: var(--cms-visual-mobile-backgroundPosition, var(--cms-visual-tablet-backgroundPosition, var(--cms-visual-desktop-backgroundPosition, var(--cms-visual-backgroundPosition))));
+    background-size: var(--cms-visual-mobile-backgroundSize, var(--cms-visual-tablet-backgroundSize, var(--cms-visual-desktop-backgroundSize, var(--cms-visual-backgroundSize))));
+    border: var(--cms-visual-mobile-border, var(--cms-visual-tablet-border, var(--cms-visual-desktop-border, var(--cms-visual-border))));
+    border-color: var(--cms-visual-mobile-borderColor, var(--cms-visual-tablet-borderColor, var(--cms-visual-desktop-borderColor, var(--cms-visual-borderColor))));
+    border-radius: var(--cms-visual-mobile-borderRadius, var(--cms-visual-tablet-borderRadius, var(--cms-visual-desktop-borderRadius, var(--cms-visual-borderRadius))));
+    border-style: var(--cms-visual-mobile-borderStyle, var(--cms-visual-tablet-borderStyle, var(--cms-visual-desktop-borderStyle, var(--cms-visual-borderStyle))));
+    border-width: var(--cms-visual-mobile-borderWidth, var(--cms-visual-tablet-borderWidth, var(--cms-visual-desktop-borderWidth, var(--cms-visual-borderWidth))));
+    box-shadow: var(--cms-visual-mobile-boxShadow, var(--cms-visual-tablet-boxShadow, var(--cms-visual-desktop-boxShadow, var(--cms-visual-boxShadow))));
+    color: var(--cms-visual-mobile-color, var(--cms-visual-tablet-color, var(--cms-visual-desktop-color, var(--cms-visual-color))));
+    column-gap: var(--cms-visual-mobile-columnGap, var(--cms-visual-tablet-columnGap, var(--cms-visual-desktop-columnGap, var(--cms-visual-columnGap))));
+    display: var(--cms-visual-mobile-display, var(--cms-visual-tablet-display, var(--cms-visual-desktop-display, var(--cms-visual-display))));
+    aspect-ratio: var(--cms-visual-mobile-aspectRatio, var(--cms-visual-tablet-aspectRatio, var(--cms-visual-desktop-aspectRatio, var(--cms-visual-aspectRatio))));
+    flex-direction: var(--cms-visual-mobile-flexDirection, var(--cms-visual-tablet-flexDirection, var(--cms-visual-desktop-flexDirection, var(--cms-visual-flexDirection))));
+    flex-wrap: var(--cms-visual-mobile-flexWrap, var(--cms-visual-tablet-flexWrap, var(--cms-visual-desktop-flexWrap, var(--cms-visual-flexWrap))));
+    font-family: var(--cms-visual-mobile-fontFamily, var(--cms-visual-tablet-fontFamily, var(--cms-visual-desktop-fontFamily, var(--cms-visual-fontFamily))));
+    font-size: var(--cms-visual-mobile-fontSize, var(--cms-visual-tablet-fontSize, var(--cms-visual-desktop-fontSize, var(--cms-visual-fontSize))));
+    font-weight: var(--cms-visual-mobile-fontWeight, var(--cms-visual-tablet-fontWeight, var(--cms-visual-desktop-fontWeight, var(--cms-visual-fontWeight))));
+    gap: var(--cms-visual-mobile-gap, var(--cms-visual-tablet-gap, var(--cms-visual-desktop-gap, var(--cms-visual-gap))));
+    grid-template-columns: var(--cms-visual-mobile-gridTemplateColumns, var(--cms-visual-tablet-gridTemplateColumns, var(--cms-visual-desktop-gridTemplateColumns, var(--cms-visual-gridTemplateColumns))));
+    height: var(--cms-visual-mobile-height, var(--cms-visual-tablet-height, var(--cms-visual-desktop-height, var(--cms-visual-height))));
+    justify-content: var(--cms-visual-mobile-justifyContent, var(--cms-visual-tablet-justifyContent, var(--cms-visual-desktop-justifyContent, var(--cms-visual-justifyContent))));
+    letter-spacing: var(--cms-visual-mobile-letterSpacing, var(--cms-visual-tablet-letterSpacing, var(--cms-visual-desktop-letterSpacing, var(--cms-visual-letterSpacing))));
+    line-height: var(--cms-visual-mobile-lineHeight, var(--cms-visual-tablet-lineHeight, var(--cms-visual-desktop-lineHeight, var(--cms-visual-lineHeight))));
+    margin: var(--cms-visual-mobile-margin, var(--cms-visual-tablet-margin, var(--cms-visual-desktop-margin, var(--cms-visual-margin))));
+    margin-bottom: var(--cms-visual-mobile-marginBottom, var(--cms-visual-tablet-marginBottom, var(--cms-visual-desktop-marginBottom, var(--cms-visual-marginBottom))));
+    margin-left: var(--cms-visual-mobile-marginLeft, var(--cms-visual-tablet-marginLeft, var(--cms-visual-desktop-marginLeft, var(--cms-visual-marginLeft))));
+    margin-right: var(--cms-visual-mobile-marginRight, var(--cms-visual-tablet-marginRight, var(--cms-visual-desktop-marginRight, var(--cms-visual-marginRight))));
+    margin-top: var(--cms-visual-mobile-marginTop, var(--cms-visual-tablet-marginTop, var(--cms-visual-desktop-marginTop, var(--cms-visual-marginTop))));
+    max-height: var(--cms-visual-mobile-maxHeight, var(--cms-visual-tablet-maxHeight, var(--cms-visual-desktop-maxHeight, var(--cms-visual-maxHeight))));
+    max-width: var(--cms-visual-mobile-maxWidth, var(--cms-visual-tablet-maxWidth, var(--cms-visual-desktop-maxWidth, var(--cms-visual-maxWidth))));
+    min-height: var(--cms-visual-mobile-minHeight, var(--cms-visual-tablet-minHeight, var(--cms-visual-desktop-minHeight, var(--cms-visual-minHeight))));
+    min-width: var(--cms-visual-mobile-minWidth, var(--cms-visual-tablet-minWidth, var(--cms-visual-desktop-minWidth, var(--cms-visual-minWidth))));
+    object-fit: var(--cms-visual-mobile-objectFit, var(--cms-visual-tablet-objectFit, var(--cms-visual-desktop-objectFit, var(--cms-visual-objectFit))));
+    opacity: var(--cms-visual-mobile-opacity, var(--cms-visual-tablet-opacity, var(--cms-visual-desktop-opacity, var(--cms-visual-opacity))));
+    overflow: var(--cms-visual-mobile-overflow, var(--cms-visual-tablet-overflow, var(--cms-visual-desktop-overflow, var(--cms-visual-overflow))));
+    padding: var(--cms-visual-mobile-padding, var(--cms-visual-tablet-padding, var(--cms-visual-desktop-padding, var(--cms-visual-padding))));
+    padding-bottom: var(--cms-visual-mobile-paddingBottom, var(--cms-visual-tablet-paddingBottom, var(--cms-visual-desktop-paddingBottom, var(--cms-visual-paddingBottom))));
+    padding-left: var(--cms-visual-mobile-paddingLeft, var(--cms-visual-tablet-paddingLeft, var(--cms-visual-desktop-paddingLeft, var(--cms-visual-paddingLeft))));
+    padding-right: var(--cms-visual-mobile-paddingRight, var(--cms-visual-tablet-paddingRight, var(--cms-visual-desktop-paddingRight, var(--cms-visual-paddingRight))));
+    padding-top: var(--cms-visual-mobile-paddingTop, var(--cms-visual-tablet-paddingTop, var(--cms-visual-desktop-paddingTop, var(--cms-visual-paddingTop))));
+    position: var(--cms-visual-mobile-position, var(--cms-visual-tablet-position, var(--cms-visual-desktop-position, var(--cms-visual-position))));
+    row-gap: var(--cms-visual-mobile-rowGap, var(--cms-visual-tablet-rowGap, var(--cms-visual-desktop-rowGap, var(--cms-visual-rowGap))));
+    text-align: var(--cms-visual-mobile-textAlign, var(--cms-visual-tablet-textAlign, var(--cms-visual-desktop-textAlign, var(--cms-visual-textAlign))));
+    transform: var(--cms-visual-mobile-transform, var(--cms-visual-tablet-transform, var(--cms-visual-desktop-transform, var(--cms-visual-transform))));
+    width: var(--cms-visual-mobile-width, var(--cms-visual-tablet-width, var(--cms-visual-desktop-width, var(--cms-visual-width))));
+  }
 }
 
 .pricingDangerForm {
@@ -12950,6 +14411,24 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .cmsBlockBuilderTopbar,
+  .cmsBlockBuilderCanvasToolbar,
+  .cmsBlockBuilderSavePanel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cmsBlockBuilderPageSelector,
+  .cmsBlockBuilderWorkspace,
+  .cmsBlockBuilderColumns,
+  .cmsBlockBuilderLoadedPage .pricingDefinitionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cmsBlockBuilderColumns {
+    grid-template-columns: 1fr !important;
+  }
+
   .adminContextForm input,
   .adminContextForm select {
     width: auto;
@@ -13020,9 +14499,12 @@ p {
   .cmsPlpSummaryGrid,
   .cmsPlpPrestashopLayout,
   .cmsPlpProductGrid,
-  .cmsPresetGrid,
   .cmsResolvedUnplaced > div {
     grid-template-columns: 1fr;
+  }
+
+  .cmsModulePlacementTopRow {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .cmsResolvedColumns {

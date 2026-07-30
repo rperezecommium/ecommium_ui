@@ -26,6 +26,7 @@ const reservedFirstSegments = new Set([
   "pdp",
   "pedido",
   "plp",
+  "public-system",
   "search",
   "static",
 ]);

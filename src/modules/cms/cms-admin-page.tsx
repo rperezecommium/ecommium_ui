@@ -8,12 +8,12 @@ import {
   publishCmsPageAction,
   saveCmsDraftAction,
   saveCmsPageSettingsAction,
+  saveCmsVisualModuleDefinitionAction,
   unpublishCmsPageAction,
 } from "./cms-admin-actions";
 import {
   blocksToJson,
   createCmsBlockFromPreset,
-  getCmsBlockPresets,
   getCmsBlockSurface,
   summarizePlpComposition,
   summarizePlacements,
@@ -23,6 +23,7 @@ import {
   type CmsBlock,
   type CmsLayout,
   type CmsModulePlacement,
+  type CmsModuleSlot,
   type CmsPage,
   type CmsPageDetail,
   type CmsPageSettingsResponse,
@@ -65,6 +66,13 @@ function cmsHref(filters: CmsAdminFilters, overrides: Partial<CmsAdminFilters> =
 
   const query = params.toString();
   return query ? `/admin/cms?${query}` : "/admin/cms";
+}
+
+function cmsBuilderHref(filters: CmsAdminFilters, pageId: string) {
+  const params = new URLSearchParams();
+  params.set("pageId", pageId);
+  if (filters.locale) params.set("locale", filters.locale);
+  return `/admin/cms/builder?${params.toString()}`;
 }
 
 function formatDate(value: string | null | undefined) {
@@ -135,6 +143,44 @@ type CmsReadinessItem = {
 function layoutAreaCount(resolved: CmsResolvedPageSettings | null) {
   if (!resolved) return 0;
   return previewRegionOrder.reduce((total, region) => total + (resolved.layout.regions[region.code]?.areas.length ?? 0), 0);
+}
+
+function moduleSlotKey(slot: Pick<CmsModuleSlot, "region" | "areaId" | "columnIndex">) {
+  return `${slot.region}|${slot.areaId}|${slot.columnIndex}`;
+}
+
+function moduleSlotsFromResolvedLayout(resolved: CmsResolvedPageSettings | null): CmsModuleSlot[] {
+  if (!resolved) return [];
+  return previewRegionOrder.flatMap((region) =>
+    (resolved.layout.regions[region.code]?.areas ?? []).flatMap((area) => {
+      const columnSlots = area.columnSlots.length > 0
+        ? area.columnSlots
+        : area.columns.map((width, index) => ({
+          columnIndex: index + 1,
+          percentage: Number.parseFloat(width) || 0,
+          width,
+        }));
+
+      return columnSlots.map((slot) => ({
+        ...slot,
+        areaId: area.areaId,
+        region: region.code,
+      }));
+    }),
+  );
+}
+
+function moduleSlotsForResolvedSettings(resolved: CmsResolvedPageSettings | null): CmsModuleSlot[] {
+  const slots = new Map<string, CmsModuleSlot>();
+  for (const slot of resolved?.moduleSlots ?? []) {
+    slots.set(moduleSlotKey(slot), slot);
+  }
+  for (const slot of moduleSlotsFromResolvedLayout(resolved)) {
+    if (!slots.has(moduleSlotKey(slot))) {
+      slots.set(moduleSlotKey(slot), slot);
+    }
+  }
+  return Array.from(slots.values());
 }
 
 function pageBlockCount(blocks: CmsBlock[]) {
@@ -288,6 +334,14 @@ function PagesTable({
   return (
     <div className="adminTableScroller">
       <table className="adminTable cmsPagesTable">
+        <colgroup>
+          <col className="cmsPagesTitleColumn" />
+          <col className="cmsPagesPathColumn" />
+          <col className="cmsPagesTypeColumn" />
+          <col className="cmsPagesStatusColumn" />
+          <col className="cmsPagesUpdatedColumn" />
+          <col className="cmsPagesActionsColumn" />
+        </colgroup>
         <thead>
           <tr>
             <th scope="col">Pagina</th>
@@ -311,7 +365,7 @@ function PagesTable({
               <td>{formatDate(page.updatedAt)}</td>
               <td>
                 <div className="adminInlineActions">
-                  <Link className="adminButton adminButtonTiny" href={cmsHref(filters, { mode: "editor", pageId: page.pageId, tab: "blocks" })}>
+                  <Link className="adminButton adminButtonTiny" href={cmsBuilderHref(filters, page.pageId)}>
                     Editar
                   </Link>
                   <Link className="adminButton adminButtonTiny" href={cmsHref(filters, { mode: "editor", pageId: page.pageId, tab: "preview" })}>
@@ -401,7 +455,7 @@ function PageEditor({
   const version = pageVersion(page);
   const tab = filters.tab ?? "blocks";
   const blocks = version?.blocks ?? [];
-  const moduleSlots = data.resolvedPageSettings.data?.moduleSlots ?? [];
+  const moduleSlots = moduleSlotsForResolvedSettings(data.resolvedPageSettings.data);
   const placementSummary = summarizePlacements(blocks);
   const canEditDraft = page.status !== "PUBLISHED";
 
@@ -468,7 +522,16 @@ function PageEditor({
           ) : null}
 
           {tab === "page" ? <PageMetadataFields page={page} version={version} /> : null}
-          {tab === "blocks" ? <CmsBlockEditorClient initialBlocks={blocks} moduleSlots={moduleSlots} /> : null}
+          {tab === "blocks" ? (
+            <CmsBlockEditorClient
+              initialBlocks={blocks}
+              locale={filters.locale ?? context.locale}
+              moduleSlots={moduleSlots}
+              pageId={page.pageId}
+              publishVisualModuleAction={saveCmsVisualModuleDefinitionAction}
+              visualModules={data.visualModules.data}
+            />
+          ) : null}
           {tab === "plp" ? <PlpBasePanel version={version} /> : null}
           {tab === "seo" ? <SeoFields page={page} version={version} /> : null}
           {tab === "preview" ? <PreviewPanel resolved={data.resolvedPageSettings.data} version={version} /> : null}
@@ -1018,23 +1081,6 @@ export function CmsAdminPage({ context, data, filters }: CmsAdminPageProps) {
                 <span className="adminBadge">{data.pages.data.total} registros</span>
               </div>
               <PagesTable pages={data.pages.data.items} filters={filters} />
-            </section>
-            <section className="pricingPanel">
-              <div className="pricingPanelHeader">
-                <div>
-                  <h2>Plantillas de bloques</h2>
-                  <p>Patrones base para que otro desarrollador pueda crear nuevos bloques.</p>
-                </div>
-              </div>
-              <div className="cmsPresetGrid">
-                {getCmsBlockPresets().map((preset) => (
-                  <article key={preset.type}>
-                    <strong>{preset.label}</strong>
-                    <p>{preset.description}</p>
-                    <span>{preset.type} · {preset.placement}</span>
-                  </article>
-                ))}
-              </div>
             </section>
           </>
         )}

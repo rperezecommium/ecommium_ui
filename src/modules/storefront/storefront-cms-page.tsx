@@ -1,22 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties } from "react";
+import { normalizeCmsBlockModulePlacement, type CmsBlock, type CmsBlockModulePlacement } from "../../../packages/cms-blocks/src";
+import { CmsBlockRenderer } from "../../../packages/cms-blocks/src/react";
 import type {
   StorefrontCmsBlock,
   StorefrontCmsPublishedPage,
+  StorefrontCmsResolvedArea,
 } from "./public-page-contract";
 import { StorefrontHeader } from "./storefront-header";
 
-const supportedCmsBlockTypes = new Set([
-  "banner.hero",
-  "slider.fullWidth",
-  "plp.categoryIntro",
-  "plp.subcategoryTiles",
-  "accordion",
-  "carousel",
-]);
-const maximumItemsPerBlock = 12;
-const maximumBlockDepth = 4;
+type StorefrontCmsRegionCode = CmsBlockModulePlacement["region"];
+type StorefrontCmsBlockPlacement = {
+  block: StorefrontCmsBlock;
+  placement: CmsBlockModulePlacement;
+};
+type StorefrontCmsAreaLayout = StorefrontCmsResolvedArea & {
+  region: StorefrontCmsRegionCode;
+};
+const storefrontCmsRegionOrder: StorefrontCmsRegionCode[] = ["header", "main", "footer"];
 
 export function StorefrontCmsPage({
   page,
@@ -26,6 +28,7 @@ export function StorefrontCmsPage({
   openCustomerLogin?: boolean;
 }) {
   const blocks = page.blocks.filter(isFullPageBlock);
+  const layout = storefrontCmsLayoutForPage(page, blocks);
 
   return (
     <main className="storefrontPage">
@@ -40,13 +43,93 @@ export function StorefrontCmsPage({
           <span>{pageTypeLabel(page.pageType)}</span>
           <h1>{page.title}</h1>
         </header>
-        <div className="storefrontCmsPageBlocks">
-          {blocks.map((block) => (
-            <StorefrontCmsBlockRenderer block={block} key={block.blockId} />
-          ))}
-        </div>
+        <StorefrontCmsPageBlocks blocks={blocks} layout={layout} page={page} />
       </div>
     </main>
+  );
+}
+
+function StorefrontCmsPageBlocks({
+  blocks,
+  layout,
+  page,
+}: {
+  blocks: StorefrontCmsBlock[];
+  layout: StorefrontCmsAreaLayout[];
+  page: StorefrontCmsPublishedPage;
+}) {
+  if (layout.length === 0) {
+    return (
+      <div className="storefrontCmsPageBlocks">
+        {blocks.map((block) => (
+          <StorefrontCmsBlockRenderer block={block} key={block.blockId} />
+        ))}
+      </div>
+    );
+  }
+
+  const unplacedBlocks = blocks.filter((block) => !placementForStorefrontBlock(block));
+  return (
+    <div className="storefrontCmsPageBlocks storefrontCmsPageLayout">
+      {storefrontCmsRegionOrder.map((region) => {
+        const areas = layout.filter((area) => area.region === region);
+        if (areas.length === 0) return null;
+        return (
+          <section className="storefrontCmsPageRegion" data-cms-region={region} key={region}>
+            {areas.map((area) => (
+              <StorefrontCmsArea
+                area={area}
+                blocks={blocks}
+                defaultColumnGap={page.resolvedPageSettings?.tokens?.defaultColumnGap}
+                defaultModuleGap={page.resolvedPageSettings?.tokens?.defaultModuleGap}
+                key={`${area.region}-${area.areaId}`}
+              />
+            ))}
+          </section>
+        );
+      })}
+      {unplacedBlocks.length > 0 ? (
+        <section className="storefrontCmsPageUnplaced">
+          {unplacedBlocks.map((block) => (
+            <StorefrontCmsBlockRenderer block={block} key={block.blockId} />
+          ))}
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function StorefrontCmsArea({
+  area,
+  blocks,
+  defaultColumnGap,
+  defaultModuleGap,
+}: {
+  area: StorefrontCmsAreaLayout;
+  blocks: StorefrontCmsBlock[];
+  defaultColumnGap?: string;
+  defaultModuleGap?: string;
+}) {
+  const columns = storefrontCmsColumnsForArea(area);
+  const areaStyle = storefrontCmsAreaStyle(area, defaultColumnGap, defaultModuleGap);
+
+  return (
+    <section className="storefrontCmsPageArea" data-cms-area={area.areaId}>
+      <div className="storefrontCmsPageColumns" style={areaStyle}>
+        {columns.map((column) => {
+          const modules = storefrontCmsBlocksForColumn(blocks, area.region, area.areaId, column.columnIndex);
+          return (
+            <section className="storefrontCmsPageColumn" data-cms-column={column.columnIndex} key={`${area.areaId}-${column.columnIndex}`}>
+              {modules.map(({ block, placement }) => (
+                <div className="storefrontCmsPageModule" key={block.blockId} style={storefrontCmsModuleStyle(placement)}>
+                  <StorefrontCmsBlockRenderer block={block} />
+                </div>
+              ))}
+            </section>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -57,203 +140,171 @@ export function StorefrontCmsBlockRenderer({
   block: StorefrontCmsBlock;
   depth?: number;
 }) {
-  if (depth > maximumBlockDepth || !supportedCmsBlockTypes.has(block.type)) return null;
-
-  let content: ReactNode = null;
-  if (block.type === "banner.hero") content = <HeroBlock block={block} />;
-  if (block.type === "slider.fullWidth") content = <SliderBlock block={block} />;
-  if (block.type === "plp.categoryIntro") content = <CategoryIntroBlock block={block} />;
-  if (block.type === "plp.subcategoryTiles") content = <SubcategoryTilesBlock block={block} />;
-  if (block.type === "accordion") content = <AccordionBlock block={block} />;
-  if (block.type === "carousel") content = <CarouselBlock block={block} />;
-
-  const children = (block.children ?? []).slice(0, maximumItemsPerBlock);
   return (
-    <>
-      {content}
-      {children.length > 0 ? (
-        <div className="storefrontCmsChildren">
-          {children.map((child) => (
-            <StorefrontCmsBlockRenderer block={child} depth={depth + 1} key={child.blockId} />
-          ))}
-        </div>
-      ) : null}
-    </>
+    <CmsBlockRenderer
+      block={block as CmsBlock}
+      depth={depth}
+      mode="storefront"
+      renderImage={({ alt, className, sizes, src }) => (
+        <CmsImage alt={alt} className={className} sizes={sizes} src={src} />
+      )}
+      renderLink={({ className, href, label, rel, style, target, title }) => (
+        <CmsActionLink
+          className={className}
+          href={href}
+          label={label}
+          rel={rel}
+          style={style}
+          target={target}
+          title={title}
+        />
+      )}
+    />
   );
 }
 
-function HeroBlock({ block }: { block: StorefrontCmsBlock }) {
-  const heading = text(block.props.heading) ?? text(block.props.title);
-  const body = text(block.props.body, 2000) ?? text(block.props.description, 2000);
-  const imageUrl = safeMediaUrl(block.props.imageUrl);
-
+function CmsImage({ alt, className, sizes, src }: { alt: string; className: string; sizes: string; src: string }) {
   return (
-    <section className={`storefrontCmsHero${imageUrl ? " storefrontCmsWithMedia" : ""}`}>
-      <div className="storefrontCmsCopy">
-        {text(block.props.eyebrow, 80) ? <span>{text(block.props.eyebrow, 80)}</span> : null}
-        {heading ? <h2>{heading}</h2> : null}
-        {body ? <p>{body}</p> : null}
-        <CmsAction href={block.props.ctaHref} label={block.props.ctaLabel} />
-      </div>
-      {imageUrl ? <CmsImage alt={text(block.props.imageAlt, 200) ?? heading ?? ""} src={imageUrl} /> : null}
-    </section>
-  );
-}
-
-function SliderBlock({ block }: { block: StorefrontCmsBlock }) {
-  const slides = items(block.props.slides);
-  if (slides.length === 0) return null;
-
-  return (
-    <section className="storefrontCmsSlider" aria-label={text(block.props.heading) ?? "Contenido destacado"}>
-      <div className="storefrontCmsSlides">
-        {slides.map((slide, index) => {
-          const title = text(slide.title) ?? `Destacado ${index + 1}`;
-          const imageUrl = safeMediaUrl(slide.imageUrl);
-          return (
-            <article className={imageUrl ? "storefrontCmsSlide storefrontCmsWithMedia" : "storefrontCmsSlide"} key={`${title}-${index}`}>
-              <div className="storefrontCmsCopy">
-                {text(slide.kicker, 80) ? <span>{text(slide.kicker, 80)}</span> : null}
-                <h2>{title}</h2>
-                {text(slide.body, 2000) ? <p>{text(slide.body, 2000)}</p> : null}
-                <CmsAction href={slide.ctaHref} label={slide.ctaLabel} />
-              </div>
-              {imageUrl ? <CmsImage alt={text(slide.imageAlt, 200) ?? title} src={imageUrl} /> : null}
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function CategoryIntroBlock({ block }: { block: StorefrontCmsBlock }) {
-  const heading = text(block.props.heading) ?? text(block.props.title);
-  const imageUrl = safeMediaUrl(block.props.imageUrl);
-  return (
-    <section className={`storefrontCmsIntro${imageUrl ? " storefrontCmsWithMedia" : ""}`}>
-      <div className="storefrontCmsCopy">
-        {heading ? <h2>{heading}</h2> : null}
-        {text(block.props.body, 2000) ?? text(block.props.description, 2000) ? (
-          <p>{text(block.props.body, 2000) ?? text(block.props.description, 2000)}</p>
-        ) : null}
-      </div>
-      {imageUrl ? <CmsImage alt={text(block.props.imageAlt, 200) ?? heading ?? ""} src={imageUrl} /> : null}
-    </section>
-  );
-}
-
-function SubcategoryTilesBlock({ block }: { block: StorefrontCmsBlock }) {
-  const blockItems = items(block.props.items);
-  if (blockItems.length === 0) return null;
-  return (
-    <section className="storefrontCmsSection">
-      {text(block.props.heading) ? <h2>{text(block.props.heading)}</h2> : null}
-      <div className="storefrontCmsTiles">
-        {blockItems.map((item, index) => (
-          <CmsCard item={item} index={index} key={`${text(item.title) ?? "tile"}-${index}`} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function AccordionBlock({ block }: { block: StorefrontCmsBlock }) {
-  const blockItems = items(block.props.items);
-  if (blockItems.length === 0) return null;
-  return (
-    <section className="storefrontCmsAccordion">
-      {text(block.props.heading) ? <h2>{text(block.props.heading)}</h2> : null}
-      {blockItems.map((item, index) => (
-        <details key={`${text(item.title) ?? "item"}-${index}`}>
-          <summary>{text(item.title) ?? `Información ${index + 1}`}</summary>
-          {text(item.content, 4000) ?? text(item.text, 4000) ? (
-            <p>{text(item.content, 4000) ?? text(item.text, 4000)}</p>
-          ) : null}
-        </details>
-      ))}
-    </section>
-  );
-}
-
-function CarouselBlock({ block }: { block: StorefrontCmsBlock }) {
-  const blockItems = items(block.props.items);
-  if (blockItems.length === 0) return null;
-  return (
-    <section className="storefrontCmsSection">
-      {text(block.props.heading) ? <h2>{text(block.props.heading)}</h2> : null}
-      <div className="storefrontCmsCarousel">
-        {blockItems.map((item, index) => (
-          <CmsCard item={item} index={index} key={`${text(item.title) ?? "card"}-${index}`} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function CmsCard({ item, index }: { item: Record<string, unknown>; index: number }) {
-  const title = text(item.title) ?? `Contenido ${index + 1}`;
-  const imageUrl = safeMediaUrl(item.imageUrl);
-  return (
-    <article>
-      {imageUrl ? <CmsImage alt={text(item.imageAlt, 200) ?? title} src={imageUrl} /> : null}
-      <strong>{title}</strong>
-      {text(item.body, 1000) ?? text(item.subtitle, 1000) ? (
-        <p>{text(item.body, 1000) ?? text(item.subtitle, 1000)}</p>
-      ) : null}
-      <CmsAction href={item.href ?? item.ctaHref} label={item.ctaLabel ?? "Ver más"} />
-    </article>
-  );
-}
-
-function CmsImage({ alt, src }: { alt: string; src: string }) {
-  return (
-    <div className="storefrontCmsMedia">
-      <Image alt={alt} fill sizes="(max-width: 680px) 100vw, 50vw" src={src} unoptimized />
+    <div className={className}>
+      <Image alt={alt} fill sizes={sizes} src={src} unoptimized />
     </div>
   );
 }
 
-function CmsAction({ href, label }: { href: unknown; label: unknown }) {
-  const safeHref = safeLinkHref(href);
-  const safeLabel = text(label, 80);
-  if (!safeHref || !safeLabel) return null;
-  if (safeHref.startsWith("/")) return <Link className="storefrontCmsAction" href={safeHref}>{safeLabel}</Link>;
-  return <a className="storefrontCmsAction" href={safeHref} rel="noreferrer">{safeLabel}</a>;
+function CmsActionLink({
+  className,
+  href,
+  label,
+  rel,
+  style,
+  target,
+  title,
+}: {
+  className: string;
+  href: string;
+  label: string;
+  rel?: string;
+  style?: CSSProperties;
+  target?: "_blank" | "_self" | "_parent" | "_top";
+  title?: string;
+}) {
+  if (href.startsWith("/")) {
+    return (
+      <Link className={className} href={href} rel={rel} style={style} target={target} title={title}>
+        {label}
+      </Link>
+    );
+  }
+  return (
+    <a className={className} href={href} rel={rel ?? "noreferrer"} style={style} target={target} title={title}>
+      {label}
+    </a>
+  );
 }
 
 function isFullPageBlock(block: StorefrontCmsBlock) {
   return block.props.surface !== "plp" && block.props.placement !== "beforeList" && block.props.placement !== "afterList";
 }
 
-function safeLinkHref(value: unknown) {
-  const href = text(value, 2048);
-  if (!href || href.includes("\\")) return null;
-  if (href.startsWith("/") && !href.startsWith("//")) return href;
-  try {
-    const url = new URL(href);
-    return url.protocol === "https:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
+function placementForStorefrontBlock(block: StorefrontCmsBlock): CmsBlockModulePlacement | undefined {
+  return normalizeCmsBlockModulePlacement((block as CmsBlock).placement ?? block.props.placement);
 }
 
-function safeMediaUrl(value: unknown) {
-  return safeLinkHref(value);
+function storefrontCmsBlocksForColumn(
+  blocks: StorefrontCmsBlock[],
+  region: StorefrontCmsRegionCode,
+  areaId: string,
+  columnIndex: number,
+): StorefrontCmsBlockPlacement[] {
+  return blocks
+    .map((block, index) => {
+      const placement = placementForStorefrontBlock(block);
+      return placement ? { block, placement: { ...placement, order: placement.order ?? index + 1 } } : null;
+    })
+    .filter((item): item is StorefrontCmsBlockPlacement => {
+      if (!item) return false;
+      return (
+        item.placement.region === region
+        && item.placement.areaId === areaId
+        && item.placement.columnIndex === columnIndex
+      );
+    })
+    .sort((left, right) => left.placement.order - right.placement.order);
 }
 
-function text(value: unknown, maximumLength = 300) {
-  return typeof value === "string" && value.trim()
-    ? value.trim().slice(0, maximumLength)
-    : null;
+function storefrontCmsLayoutForPage(
+  page: StorefrontCmsPublishedPage,
+  blocks: StorefrontCmsBlock[],
+): StorefrontCmsAreaLayout[] {
+  const resolvedRegions = page.resolvedPageSettings?.layout?.regions;
+  const resolvedAreas = storefrontCmsRegionOrder.flatMap((region) =>
+    (resolvedRegions?.[region]?.areas ?? []).map((area) => ({ ...area, region })),
+  );
+  if (resolvedAreas.length > 0) return resolvedAreas;
+  return fallbackStorefrontCmsLayout(blocks);
 }
 
-function items(value: unknown) {
-  return Array.isArray(value)
-    ? value
-      .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
-      .slice(0, maximumItemsPerBlock)
-    : [];
+function fallbackStorefrontCmsLayout(blocks: StorefrontCmsBlock[]): StorefrontCmsAreaLayout[] {
+  const areaColumns = new Map<string, { areaId: string; maxColumn: number; region: StorefrontCmsRegionCode }>();
+  blocks.forEach((block) => {
+    const placement = placementForStorefrontBlock(block);
+    if (!placement) return;
+    const key = `${placement.region}:${placement.areaId}`;
+    const current = areaColumns.get(key);
+    areaColumns.set(key, {
+      areaId: placement.areaId,
+      maxColumn: Math.max(current?.maxColumn ?? 1, placement.columnIndex),
+      region: placement.region,
+    });
+  });
+  return Array.from(areaColumns.values()).map((area) => {
+    const width = `${100 / area.maxColumn}%`;
+    const columns = Array.from({ length: area.maxColumn }, () => width);
+    return {
+      areaId: area.areaId,
+      columnGap: null,
+      columns,
+      containerMode: "container",
+      maxWidth: null,
+      name: null,
+      region: area.region,
+      rowGap: null,
+    };
+  });
+}
+
+function storefrontCmsColumnsForArea(area: StorefrontCmsAreaLayout) {
+  if (area.columnSlots?.length) return area.columnSlots;
+  const columns = area.columns.length > 0 ? area.columns : ["100%"];
+  return columns.map((width, index) => ({
+    columnIndex: index + 1,
+    percentage: Number.parseFloat(width) || 0,
+    width,
+  }));
+}
+
+function storefrontCmsAreaStyle(
+  area: StorefrontCmsAreaLayout,
+  defaultColumnGap?: string,
+  defaultModuleGap?: string,
+): CSSProperties {
+  const columns = area.columns.length > 0 ? area.columns : ["100%"];
+  return {
+    columnGap: area.columnGap ?? defaultColumnGap ?? undefined,
+    gridTemplateColumns: columns.map((column) => `minmax(0, ${column})`).join(" "),
+    rowGap: area.rowGap ?? defaultModuleGap ?? undefined,
+  };
+}
+
+function storefrontCmsModuleStyle(placement: CmsBlockModulePlacement): CSSProperties {
+  return {
+    justifySelf: placement.align && placement.align !== "stretch" ? placement.align : "stretch",
+    marginBottom: placement.spacing?.marginBottom,
+    marginTop: placement.spacing?.marginTop,
+    paddingBottom: placement.spacing?.paddingBottom,
+    paddingTop: placement.spacing?.paddingTop,
+    width: placement.width ?? undefined,
+  };
 }
 
 function pageTypeLabel(value: string) {

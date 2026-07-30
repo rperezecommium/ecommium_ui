@@ -46,6 +46,7 @@ const configurationNavItems = [
 
 const cmsNavItems = [
   { href: "/admin/cms", label: "Paginas", description: "Paginas, bloques y publicacion", permission: "admin:cms:view" as const },
+  { href: "/admin/cms/builder", label: "Builder", description: "Canvas visual de bloques", permission: "admin:cms-builder:view" as const },
   { href: "/admin/cms/ajustes-basicos", label: "Ajustes basicos", description: "Configuracion global, plantillas y layout", permission: "admin:cms-settings:view" as const },
 ];
 

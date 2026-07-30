@@ -80,6 +80,44 @@ function cmsPage(pageId: string, title: string, canonicalPath: string) {
       },
       children: [],
     }, {
+      blockId: `${pageId}-visual-v2`,
+      type: "visual.module",
+      props: {
+        schemaVersion: 2,
+        schemaMinorVersion: 0,
+        moduleId: `${pageId}-visual-module`,
+        type: "visual.module",
+        name: "Hero visual certificado",
+        styles: { base: { display: "flex", padding: "24px", backgroundColor: "#f8fafc" } },
+        animation: { preset: "fadeIn", durationMs: 500, delayMs: 0, easing: "standard", trigger: "load" },
+        panels: [{
+          panelId: `${pageId}-visual-module-panel`,
+          styles: { base: { borderRadius: "12px", width: "100%" } },
+          elements: [{
+            elementId: `${pageId}-visual-module-heading`,
+            elementType: "heading",
+            contentBinding: "heading",
+            props: { level: "2" },
+            styles: { base: { fontSize: "32px", color: "#111827" } },
+          }, {
+            elementId: `${pageId}-visual-module-cta`,
+            elementType: "link",
+            contentBinding: "buttonText",
+            props: { href: "/bike-drivetrain" },
+            styles: { base: { display: "inline-flex", marginTop: "16px" } },
+          }],
+        }],
+        contentSchema: {
+          heading: { type: "text", required: true },
+          buttonText: { type: "text", required: true },
+        },
+        contentValues: {
+          heading: `Visual module v2 ${title}`,
+          buttonText: "Explorar visual",
+        },
+      },
+      children: [],
+    }, {
       blockId: `${pageId}-cards`,
       type: "carousel",
       props: {
@@ -235,6 +273,8 @@ test("renders CMS home, canonical page and alias metadata", async ({ page }) => 
 
   await page.goto(`http://127.0.0.1:${nextPort}/cms-demo`);
   await expect(page.getByRole("heading", { level: 1, name: "Campaña de verano" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Visual module v2 Campaña de verano" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Explorar visual" })).toHaveAttribute("href", /\/bike-drivetrain$/);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/cms-demo$/);
 
   await page.goto(`http://127.0.0.1:${nextPort}/cms-alias`);

@@ -335,7 +335,7 @@ function appendUploadFiles(formData: FormData, files: File[]) {
 export async function createMediaCollection(
   context: AdminContext,
   input: {
-    productId: string;
+    productId?: string;
     title: string;
     files: File[];
     defaultLocale?: string;
@@ -350,7 +350,9 @@ export async function createMediaCollection(
   appendUploadFiles(formData, input.files);
   formData.set("organizationId", context.organizationId);
   formData.set("shopId", context.shopId);
-  formData.set("productId", input.productId);
+  if (input.productId?.trim()) {
+    formData.set("productId", input.productId.trim());
+  }
   formData.set("title", input.title);
   formData.set("defaultLocale", locale);
   formData.set("metadata", JSON.stringify(buildUploadMetadata(input.files, locale, {

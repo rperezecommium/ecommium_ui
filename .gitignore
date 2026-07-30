@@ -22,6 +22,7 @@ pnpm-debug.log*
 
 # local browser automation artifacts
 .playwright-mcp
+.playwright-cli
 
 # typescript
 *.tsbuildinfo

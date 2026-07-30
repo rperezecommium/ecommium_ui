@@ -3,24 +3,54 @@ import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 import {
   normalizeCmsBlock,
+  normalizeCmsVisualModuleV2Props,
   type CmsBlock,
+  type CmsVisualModuleDefinition,
+  type CmsVisualModuleDefinitionStatus,
+  type CmsVisualModuleV2Props,
 } from "./cms-blocks";
 export {
   blocksFromJson,
   blocksToJson,
   createCmsBlockFromPreset,
+  getCmsBlockDefinition,
+  getCmsBlockDefinitions,
   getCmsBlockPlacement,
   getCmsBlockPlpTarget,
   getCmsBlockPresets,
+  getCmsBlockRegistry,
   getCmsBlockSurface,
+  migrateCmsVisualModuleV1ToV2ForRenderer,
+  normalizeCmsVisualModuleForRenderer,
+  normalizeCmsVisualModuleProps,
+  normalizeCmsVisualModuleV2Props,
+  normalizeCmsVisualNode,
   summarizePlpComposition,
   summarizePlacements,
+  type CmsBlockDefinition,
+  type CmsBlockEditorField,
+  type CmsBlockEditorFieldType,
   type CmsBlock,
   type CmsBlockType,
   type CmsPlacement,
   type CmsPlpListingKind,
   type CmsPlpTarget,
   type CmsSurface,
+  type CmsVisualBreakpoint,
+  type CmsVisualContentField,
+  type CmsVisualContentSchema,
+  type CmsVisualElement,
+  type CmsVisualModuleRendererProps,
+  type CmsVisualModuleProps,
+  type CmsVisualModuleDefinition,
+  type CmsVisualModuleDefinitionStatus,
+  type CmsVisualModuleV2Props,
+  type CmsVisualNode,
+  type CmsVisualNodeProps,
+  type CmsVisualNodeStyle,
+  type CmsVisualNodeType,
+  type CmsVisualResponsiveStyles,
+  type CmsVisualStylesByScope,
 } from "./cms-blocks";
 
 export type CmsPageStatus = "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
@@ -96,6 +126,7 @@ export type CmsAdminData = {
   pageSettings: CmsAdminResult<CmsPageSettingsResponse | null>;
   resolvedPageSettings: CmsAdminResult<CmsResolvedPageSettings | null>;
   templates: CmsAdminResult<CmsTemplateSettingsList>;
+  visualModules: CmsAdminResult<CmsVisualModuleDefinitionsList>;
 };
 
 export type CmsSettingsState = "INITIAL" | "PERSISTED";
@@ -290,6 +321,36 @@ export type CmsTemplateSettingsFilters = {
   offset?: number;
 };
 
+export type CmsVisualModuleDefinitionsList = {
+  total: number;
+  limit: number;
+  offset: number;
+  items: CmsVisualModuleDefinition[];
+};
+
+export type CmsVisualModuleDefinitionPayload = {
+  definitionId?: string;
+  name: string;
+  module: CmsVisualModuleV2Props;
+};
+
+export type CmsVisualModuleDefinitionDraftPatch = {
+  name?: string | null;
+  module?: CmsVisualModuleV2Props;
+};
+
+export type CmsVisualModuleDefinitionDraftRevisionPayload = {
+  definitionId?: string;
+  name?: string | null;
+  module?: CmsVisualModuleV2Props;
+};
+
+export type CmsVisualModuleDefinitionFilters = {
+  status?: CmsVisualModuleDefinitionStatus | "all";
+  limit?: number;
+  offset?: number;
+};
+
 export const CMS_FALLBACK_FONT_OPTIONS: CmsFontOption[] = [
   { family: "Inter", provider: "google", weights: [400, 500, 600, 700], category: "sans" },
   { family: "Inter Tight", provider: "google", weights: [400, 500, 600, 700], category: "sans" },
@@ -395,6 +456,11 @@ function layoutSourceValue(value: unknown): CmsLayoutSource | undefined {
 }
 
 function templateStatusValue(value: unknown): CmsTemplateStatus {
+  if (value === "ACTIVE" || value === "ARCHIVED") return value;
+  return "DRAFT";
+}
+
+function visualModuleDefinitionStatusValue(value: unknown): CmsVisualModuleDefinitionStatus {
   if (value === "ACTIVE" || value === "ARCHIVED") return value;
   return "DRAFT";
 }
@@ -759,6 +825,38 @@ function normalizeTemplateSettingsList(value: unknown): CmsTemplateSettingsList 
   };
 }
 
+function normalizeVisualModuleDefinition(value: unknown): CmsVisualModuleDefinition {
+  const record = asRecord(value);
+  return {
+    definitionId: stringValue(record.definitionId),
+    organizationId: nullableString(record.organizationId) ?? undefined,
+    shopId: nullableString(record.shopId) ?? undefined,
+    moduleId: stringValue(record.moduleId),
+    name: stringValue(record.name),
+    schemaVersion: 2,
+    schemaMinorVersion: numberValue(record.schemaMinorVersion, 0),
+    revision: numberValue(record.revision, 1),
+    status: visualModuleDefinitionStatusValue(record.status),
+    module: normalizeCmsVisualModuleV2Props(record.module),
+    createdAt: stringValue(record.createdAt),
+    updatedAt: stringValue(record.updatedAt),
+    activatedAt: nullableString(record.activatedAt),
+    archivedAt: nullableString(record.archivedAt),
+  };
+}
+
+function normalizeVisualModuleDefinitionsList(value: unknown): CmsVisualModuleDefinitionsList {
+  const record = asRecord(value);
+  const rawItems = Array.isArray(record.items) ? record.items : [];
+  const items = rawItems.map(normalizeVisualModuleDefinition);
+  return {
+    total: numberValue(record.total, items.length),
+    limit: numberValue(record.limit, 50),
+    offset: numberValue(record.offset, 0),
+    items,
+  };
+}
+
 function normalizeFontOption(value: unknown): CmsFontOption {
   const record = asRecord(value);
   const family = stringValue(record.family, "Inter");
@@ -807,6 +905,21 @@ function makeScopedParams(
   return params;
 }
 
+function makeShopScopedParams(
+  context: AdminContext,
+  extra?: Record<string, string | undefined>,
+) {
+  const params = new URLSearchParams();
+
+  if (context.organizationId) params.set("organizationId", context.organizationId);
+  if (context.shopId) params.set("shopId", context.shopId);
+  for (const [key, value] of Object.entries(extra ?? {})) {
+    if (value?.trim()) params.set(key, value.trim());
+  }
+
+  return params;
+}
+
 function unavailable<T>(
   endpoint: string,
   fallback: T,
@@ -847,6 +960,14 @@ export async function getCmsAdminData(
     offset: "0",
   }).toString()}`;
   const pagesResult = await requestBff(endpoint, { context: { ...context, locale }, parse: normalizePagesList });
+  const visualModulesEndpoint = `/admin/cms/visual-modules?${makeShopScopedParams(context, {
+    limit: "50",
+    offset: "0",
+  }).toString()}`;
+  const visualModulesResult = await requestBff(visualModulesEndpoint, {
+    context,
+    parse: normalizeVisualModuleDefinitionsList,
+  });
 
   const pages = pagesResult.ok
     ? {
@@ -865,6 +986,9 @@ export async function getCmsAdminData(
     source: "bff",
     data: { total: 0, limit: 50, offset: 0, items: [] },
   };
+  const visualModules: CmsAdminResult<CmsVisualModuleDefinitionsList> = visualModulesResult.ok
+    ? { source: "bff", data: visualModulesResult.data, correlationId: visualModulesResult.correlationId }
+    : unavailable(visualModulesEndpoint, { total: 0, limit: 50, offset: 0, items: [] }, visualModulesResult, "cms.pages.read");
 
   if (!filters.pageId) {
     return {
@@ -873,6 +997,7 @@ export async function getCmsAdminData(
       pageSettings: emptySettings,
       resolvedPageSettings: emptyResolved,
       templates: emptyTemplates,
+      visualModules,
     };
   }
 
@@ -891,6 +1016,7 @@ export async function getCmsAdminData(
       pageSettings: emptySettings,
       resolvedPageSettings: emptyResolved,
       templates: emptyTemplates,
+      visualModules,
     };
   }
 
@@ -934,7 +1060,105 @@ export async function getCmsAdminData(
     templates: templatesResult.ok
       ? { source: "bff", data: templatesResult.data, correlationId: templatesResult.correlationId }
       : unavailable(templatesEndpoint, { total: 0, limit: 50, offset: 0, items: [] }, templatesResult, "cms.settings.read"),
+    visualModules,
   };
+}
+
+export async function listCmsVisualModuleDefinitions(
+  context: AdminContext,
+  filters: CmsVisualModuleDefinitionFilters = {},
+) {
+  const endpoint = `/admin/cms/visual-modules?${makeShopScopedParams(context, {
+    status: filters.status && filters.status !== "all" ? filters.status : undefined,
+    limit: String(filters.limit ?? 50),
+    offset: String(filters.offset ?? 0),
+  }).toString()}`;
+  return requestBff(endpoint, {
+    context,
+    parse: normalizeVisualModuleDefinitionsList,
+  });
+}
+
+export async function createCmsVisualModuleDefinition(
+  context: AdminContext,
+  payload: CmsVisualModuleDefinitionPayload,
+) {
+  const endpoint = `/admin/cms/visual-modules?${makeShopScopedParams(context).toString()}`;
+  return requestBff(endpoint, {
+    context,
+    init: {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    parse: normalizeVisualModuleDefinition,
+  });
+}
+
+export async function updateCmsVisualModuleDefinitionDraft(
+  context: AdminContext,
+  definitionId: string,
+  payload: CmsVisualModuleDefinitionDraftPatch,
+) {
+  const endpoint = `/admin/cms/visual-modules/${encodeURIComponent(definitionId)}/draft?${makeShopScopedParams(context).toString()}`;
+  return requestBff(endpoint, {
+    context,
+    init: {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    parse: normalizeVisualModuleDefinition,
+  });
+}
+
+export async function createCmsVisualModuleDefinitionDraftRevision(
+  context: AdminContext,
+  definitionId: string,
+  payload: CmsVisualModuleDefinitionDraftRevisionPayload = {},
+) {
+  const endpoint = `/admin/cms/visual-modules/${encodeURIComponent(definitionId)}/draft-revisions?${makeShopScopedParams(context).toString()}`;
+  return requestBff(endpoint, {
+    context,
+    init: {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    parse: normalizeVisualModuleDefinition,
+  });
+}
+
+export async function activateCmsVisualModuleDefinition(
+  context: AdminContext,
+  definitionId: string,
+) {
+  const endpoint = `/admin/cms/visual-modules/${encodeURIComponent(definitionId)}/activate?${makeShopScopedParams(context).toString()}`;
+  return requestBff(endpoint, {
+    context,
+    init: {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    },
+    parse: normalizeVisualModuleDefinition,
+  });
+}
+
+export async function archiveCmsVisualModuleDefinition(
+  context: AdminContext,
+  definitionId: string,
+) {
+  const endpoint = `/admin/cms/visual-modules/${encodeURIComponent(definitionId)}/archive?${makeShopScopedParams(context).toString()}`;
+  return requestBff(endpoint, {
+    context,
+    init: {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    },
+    parse: normalizeVisualModuleDefinition,
+  });
 }
 
 export async function createCmsPage(

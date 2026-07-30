@@ -41,6 +41,36 @@ export type StorefrontCmsBlock = {
   children?: StorefrontCmsBlock[];
 };
 
+export type StorefrontCmsResolvedColumnSlot = {
+  columnIndex: number;
+  width: string;
+  percentage?: number;
+};
+
+export type StorefrontCmsResolvedArea = {
+  areaId: string;
+  name?: string | null;
+  containerMode?: "full-width" | "container" | string;
+  maxWidth?: string | null;
+  columns: string[];
+  columnSlots?: StorefrontCmsResolvedColumnSlot[];
+  columnGap?: string | null;
+  rowGap?: string | null;
+};
+
+export type StorefrontCmsResolvedPageSettings = {
+  layout?: {
+    regions?: Partial<Record<"header" | "main" | "footer", {
+      areas?: StorefrontCmsResolvedArea[];
+    }>>;
+  };
+  tokens?: {
+    defaultColumnGap?: string;
+    defaultModuleGap?: string;
+    maxWidth?: string;
+  };
+};
+
 export type StorefrontCmsPublishedPage = {
   pageId: string;
   organizationId: string;
@@ -54,6 +84,7 @@ export type StorefrontCmsPublishedPage = {
   routeId: string;
   seo: StorefrontCmsSeo;
   blocks: StorefrontCmsBlock[];
+  resolvedPageSettings?: StorefrontCmsResolvedPageSettings | null;
   version: number;
   publishedAt: string;
 };
