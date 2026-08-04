@@ -550,8 +550,8 @@ test("storefront PLP fetches public BFF listing with routePath for CMS targeting
     };
   };
   const { getStorefrontPlp } = loadTsModule("src/modules/storefront/plp.ts", (specifier) => {
-    if (specifier.endsWith("/shared/bff/client")) {
-      return { requestBff };
+    if (specifier.endsWith("/shared/bff/storefront-client")) {
+      return { requestStorefrontBff: requestBff };
     }
     if (specifier.endsWith("/shared/config/env")) {
       return {
@@ -640,8 +640,8 @@ test("storefront search fetches public BFF search with q and visitorId", async (
     };
   };
   const { getStorefrontSearch } = loadTsModule("src/modules/storefront/plp.ts", (specifier) => {
-    if (specifier.endsWith("/shared/bff/client")) {
-      return { requestBff };
+    if (specifier.endsWith("/shared/bff/storefront-client")) {
+      return { requestStorefrontBff: requestBff };
     }
     if (specifier.endsWith("/shared/config/env")) {
       return {
@@ -772,8 +772,8 @@ test("storefront PDP maps product details, variants and specifications", async (
     };
   };
   const { getStorefrontPdp } = loadTsModule("src/modules/storefront/pdp.ts", (specifier) => {
-    if (specifier.endsWith("/shared/bff/client")) {
-      return { requestBff };
+    if (specifier.endsWith("/shared/bff/storefront-client")) {
+      return { requestStorefrontBff: requestBff };
     }
     if (specifier.endsWith("/shared/config/env")) {
       return {
@@ -836,8 +836,8 @@ test("storefront PDP does not fallback to PLP when public slug is missing", asyn
     };
   };
   const { getStorefrontPdp } = loadTsModule("src/modules/storefront/pdp.ts", (specifier) => {
-    if (specifier.endsWith("/shared/bff/client")) {
-      return { requestBff };
+    if (specifier.endsWith("/shared/bff/storefront-client")) {
+      return { requestStorefrontBff: requestBff };
     }
     if (specifier.endsWith("/shared/config/env")) {
       return {

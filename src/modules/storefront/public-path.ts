@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestStorefrontBff } from "../../shared/bff/storefront-client";
 import type { BffResult } from "../../shared/bff/types";
 import {
   isStorefrontPublicPathResolution,
@@ -28,7 +28,7 @@ export async function resolveStorefrontPublicPath(
     locale: context.locale,
     path: publicPath,
   });
-  const result = await requestBff<unknown>(`/storefront/resolve-path?${params.toString()}`, {
+  const result = await requestStorefrontBff<unknown>(`/storefront/resolve-path?${params.toString()}`, {
     withAuth: false,
     context: { locale: context.locale },
   });

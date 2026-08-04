@@ -1,4 +1,4 @@
-import { requestBff } from "../../../../../src/shared/bff/client";
+import { requestStorefrontBff } from "../../../../../src/shared/bff/storefront-client";
 import { getStorefrontContext } from "../../../../../src/modules/storefront/storefront-context";
 import { getStorefrontCustomerAuthorizationHeader } from "../../../../../src/modules/storefront/storefront-customer-session";
 
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     return errorResponse("Transacción de pago guest requiere guestSessionId.", 400);
   }
 
-  const result = await requestBff<unknown>(`/payments/transactions?${params.toString()}`, {
+  const result = await requestStorefrontBff<unknown>(`/payments/transactions?${params.toString()}`, {
     context: {
       locale: params.get("locale") ?? undefined,
     },

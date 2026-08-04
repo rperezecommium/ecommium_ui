@@ -1,4 +1,4 @@
-import { requestBff } from "../../../../../../src/shared/bff/client";
+import { requestStorefrontBff } from "../../../../../../src/shared/bff/storefront-client";
 import { getStorefrontContext } from "../../../../../../src/modules/storefront/storefront-context";
 import { getStorefrontCustomerAuthorizationHeader } from "../../../../../../src/modules/storefront/storefront-customer-session";
 
@@ -11,7 +11,7 @@ export async function POST(request: Request, context: { params: Promise<{ orderI
 
   if (guestSessionId) params.set("guestSessionId", guestSessionId);
 
-  const result = await requestBff<{ orderReference: string; trackingPath: string; expiresAt: string | null }>(
+  const result = await requestStorefrontBff<{ orderReference: string; trackingPath: string; expiresAt: string | null }>(
     `/orders/${encodeURIComponent(orderId)}/tracking-link?${params.toString()}`,
     {
       withAuth: false,

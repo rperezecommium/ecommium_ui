@@ -3488,7 +3488,7 @@ test("shipping fulfillment queue filters, inspects and transitions through BFF",
   await loginAdmin(page);
   await page.goto(`http://127.0.0.1:${nextPort}/admin/configuracion/transporte?tab=fulfillments&fulfillmentStatus=PACKED&fulfillmentsLimit=25&fulfillmentsOffset=0`);
 
-  await expect(page.getByRole("link", { name: "Fulfillments" })).toHaveClass(/productEditorTabActive/);
+  await expect(page.getByLabel("Transporte").getByRole("link", { name: "Fulfillments" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Cola global de fulfillments" })).toBeVisible();
   await expect(page.getByLabel("Estado")).toHaveValue("PACKED");
   const fulfillmentRow = page.getByRole("row", { name: /E2E-0001.*Empaquetado.*Carrier Standard.*Sin tracking/ });

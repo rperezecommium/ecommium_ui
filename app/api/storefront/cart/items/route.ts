@@ -1,4 +1,4 @@
-import { requestBff } from "../../../../../src/shared/bff/client";
+import { requestStorefrontBff } from "../../../../../src/shared/bff/storefront-client";
 import { getStorefrontContext } from "../../../../../src/modules/storefront/storefront-context";
 import { getStorefrontCustomerAuthorizationHeader } from "../../../../../src/modules/storefront/storefront-customer-session";
 
@@ -97,7 +97,7 @@ async function mutateItems(request: Request, method: "POST" | "PATCH") {
     return errorResponse("Carrito guest requiere guestSessionId.", 400);
   }
 
-  const result = await requestBff<unknown>(`/orderforms/${encodeURIComponent(input.orderFormId)}/items?${params.toString()}`, {
+  const result = await requestStorefrontBff<unknown>(`/orderforms/${encodeURIComponent(input.orderFormId)}/items?${params.toString()}`, {
     context: {
       locale: params.get("locale") ?? undefined,
     },
@@ -145,7 +145,7 @@ export async function DELETE(request: Request) {
     return errorResponse("Carrito guest requiere guestSessionId.", 400);
   }
 
-  const result = await requestBff<unknown>(`/orderforms/${encodeURIComponent(input.orderFormId)}/items/remove-all?${params.toString()}`, {
+  const result = await requestStorefrontBff<unknown>(`/orderforms/${encodeURIComponent(input.orderFormId)}/items/remove-all?${params.toString()}`, {
     context: {
       locale: params.get("locale") ?? undefined,
     },

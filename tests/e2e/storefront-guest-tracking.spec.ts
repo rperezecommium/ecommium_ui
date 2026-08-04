@@ -119,7 +119,8 @@ async function startNext() {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      ECOMMIUM_BFF_BASE_URL: `http://127.0.0.1:${bffPort}/api/v1`,
+      ECOMMIUM_BFF_BASE_URL: "http://127.0.0.1:1/api/v1",
+      ECOMMIUM_STOREFRONT_BFF_BASE_URL: `http://127.0.0.1:${bffPort}/api/v1`,
       ECOMMIUM_STOREFRONT_ORGANIZATION_ID: organizationId,
       ECOMMIUM_STOREFRONT_SHOP_ID: shopId,
       NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL: `http://127.0.0.1:${nextPort}`,

@@ -199,7 +199,8 @@ Headers obligatorios cuando apliquen:
 
 Variables esperadas:
 
-- `ECOMMIUM_BFF_BASE_URL`: URL server-side del BFF, por ejemplo `http://localhost:3010/api/v1`.
+- `ECOMMIUM_STOREFRONT_BFF_BASE_URL`: URL server-side del BFF Storefront; localmente `http://localhost:3025/api/v1`.
+- `ECOMMIUM_BFF_BASE_URL`: variable de compatibilidad del cliente Admin actual. No debe usarse en nuevas llamadas Storefront.
 - `ECOMMIUM_ADMIN_BFF_TOKEN`: token admin server-side opcional para desarrollo/integracion, enviado como `Authorization: Bearer <token>` por el cliente BFF compartido. Nunca exponerlo como `NEXT_PUBLIC_*`.
 - `NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL`: URL publica de la UI si se necesita para metadata.
 - Nunca exponer URLs internas de `services/*` al navegador.

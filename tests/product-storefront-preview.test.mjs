@@ -20,7 +20,7 @@ const context = {
   channel: "web",
 };
 
-function loadStorefrontPreviewModule({ requestBff }) {
+function loadStorefrontPreviewModule({ requestStorefrontBff }) {
   const source = readFileSync(path.resolve(root, "src/modules/catalogo/product-storefront-preview.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -36,8 +36,8 @@ function loadStorefrontPreviewModule({ requestBff }) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/storefront-client")) {
+        return { requestStorefrontBff };
       }
 
       throw new Error(`Unexpected test require: ${specifier}`);
@@ -76,7 +76,7 @@ function editorData() {
 
 test("getProductStorefrontPreview reads Storefront PDP through public BFF scope", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestStorefrontBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, options });
     assert.equal(options.withAuth, false);
     assert.equal(options.context.organizationId, context.organizationId);
@@ -105,7 +105,7 @@ test("getProductStorefrontPreview reads Storefront PDP through public BFF scope"
       correlationId: "corr-storefront",
     };
   };
-  const { getProductStorefrontPreview } = loadStorefrontPreviewModule({ requestBff });
+  const { getProductStorefrontPreview } = loadStorefrontPreviewModule({ requestStorefrontBff });
 
   const result = await getProductStorefrontPreview(context, editorData());
 

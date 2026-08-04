@@ -1,4 +1,4 @@
-import { requestBff } from "../../../../../src/shared/bff/client";
+import { requestStorefrontBff } from "../../../../../src/shared/bff/storefront-client";
 import { getStorefrontContext } from "../../../../../src/modules/storefront/storefront-context";
 import { getStorefrontCustomerAuthorizationHeader } from "../../../../../src/modules/storefront/storefront-customer-session";
 import type { StorefrontCheckoutContextResponse } from "../../../../../src/modules/storefront/checkout-types";
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
     return errorResponse("Checkout guest requiere guestSessionId.", 400);
   }
 
-  const result = await requestBff<StorefrontCheckoutContextResponse>(`/storefront/checkout/context?${params.toString()}`, {
+  const result = await requestStorefrontBff<StorefrontCheckoutContextResponse>(`/storefront/checkout/context?${params.toString()}`, {
     context: {
       locale: params.get("locale") ?? undefined,
     },

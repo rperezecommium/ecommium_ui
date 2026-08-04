@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestStorefrontBff } from "../../shared/bff/storefront-client";
 import { defaultAdminContext } from "../../shared/config/env";
 import { normalizeStorefrontVisitorId } from "./visitor";
 
@@ -163,7 +163,7 @@ export async function getStorefrontPdp(
   };
   const contextParams = buildContextParams(context);
   const requestedPath = `/storefront/pdp/${encodeURIComponent(productSlug)}?${contextParams.toString()}`;
-  const result = await requestBff<unknown>(requestedPath, {
+  const result = await requestStorefrontBff<unknown>(requestedPath, {
     context: { locale: context.locale },
     withAuth: false,
   });
@@ -223,7 +223,7 @@ async function getPdpFromPlp(
     params.set("offset", "0");
     params.set("routePath", `/${categorySlug}`);
 
-    const result = await requestBff<unknown>(
+    const result = await requestStorefrontBff<unknown>(
       `/storefront/plp/${encodeURIComponent(categorySlug)}?${params.toString()}`,
       {
         context: { locale: context.locale },
@@ -263,7 +263,7 @@ async function getPdpSearchCategories(
     "art",
   ].filter((slug): slug is string => Boolean(slug));
 
-  const result = await requestBff<unknown>("/storefront/navigation/categories/tree/3", {
+  const result = await requestStorefrontBff<unknown>("/storefront/navigation/categories/tree/3", {
     context: { locale: context.locale },
     withAuth: false,
   });
@@ -304,7 +304,7 @@ async function resolvePdpCategoryMeta(
     return null;
   }
 
-  const result = await requestBff<unknown>("/storefront/navigation/categories/tree/3", {
+  const result = await requestStorefrontBff<unknown>("/storefront/navigation/categories/tree/3", {
     context: { locale: context.locale },
     withAuth: false,
   });

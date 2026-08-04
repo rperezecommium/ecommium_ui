@@ -1,16 +1,8 @@
 import { NextRequest } from "next/server";
-import { bffBaseUrl } from "../../../../../src/shared/config/env";
+import { requestStorefrontBffResponse } from "../../../../../src/shared/bff/storefront-client";
 import { getStorefrontContext } from "../../../../../src/modules/storefront/storefront-context";
 import { getStorefrontCustomerAuthorizationHeader } from "../../../../../src/modules/storefront/storefront-customer-session";
 import { invoicePdfFilename, renderInvoiceDocumentPdf } from "../../../../../src/shared/invoice/invoice-document-pdf";
-
-function makeCorrelationId() {
-  return "ui-invoice-" + Date.now() + "-" + Math.random().toString(16).slice(2);
-}
-
-function normalizeBffBaseUrl() {
-  return bffBaseUrl.endsWith("/") ? bffBaseUrl.slice(0, -1) : bffBaseUrl;
-}
 
 function safeFilenamePart(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) || "invoice";
@@ -52,28 +44,31 @@ export async function GET(
   }
 
   const context = getStorefrontContext();
-  const url = new URL(
-    normalizeBffBaseUrl() + "/storefront/me/invoices/" + encodeURIComponent(normalizedInvoiceId) + "/document",
-  );
-  url.searchParams.set("organizationId", context.organizationId);
-  url.searchParams.set("shopId", context.shopId);
-
-  const response = await fetch(url, {
-    cache: "no-store",
-    headers: {
-      accept: "application/json,text/html,application/pdf,application/octet-stream,*/*",
-      authorization,
-      "x-correlation-id": makeCorrelationId(),
-      "x-locale": context.locale,
-    },
+  const searchParams = new URLSearchParams({
+    organizationId: context.organizationId,
+    shopId: context.shopId,
   });
+  const result = await requestStorefrontBffResponse(
+    `/storefront/me/invoices/${encodeURIComponent(normalizedInvoiceId)}/document?${searchParams.toString()}`,
+    {
+      withAuth: false,
+      context: { locale: context.locale },
+      init: {
+        headers: {
+          accept: "application/json,text/html,application/pdf,application/octet-stream,*/*",
+          authorization,
+        },
+      },
+    },
+  );
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    return new Response(detail || "BFF invoice document failed with " + response.status, {
-      status: response.status,
+  if (!result.ok) {
+    return new Response(result.error, {
+      status: result.status ?? 502,
     });
   }
+
+  const response = result.data;
 
   const contentType = response.headers.get("content-type") ?? "";
   const headers = new Headers();

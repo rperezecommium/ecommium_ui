@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestStorefrontBff } from "../../shared/bff/storefront-client";
 import { getStorefrontContext, type StorefrontContext } from "./storefront-context";
 
 export type StorefrontPlpBlock = {
@@ -135,7 +135,7 @@ export async function getStorefrontPlp(
 
   const categoriesPromise = getStorefrontCategories(context, categorySlug);
   const requestedPath = `/storefront/plp/${encodeURIComponent(categorySlug)}?${params.toString()}`;
-  const result = await requestBff<unknown>(requestedPath, {
+  const result = await requestStorefrontBff<unknown>(requestedPath, {
     context: { locale: context.locale },
     withAuth: false,
   });
@@ -193,7 +193,7 @@ export async function getStorefrontSearch(
   params.set("visitorId", visitorId);
 
   const requestedPath = `/storefront/search?${params.toString()}`;
-  const result = await requestBff<unknown>(requestedPath, {
+  const result = await requestStorefrontBff<unknown>(requestedPath, {
     context: { locale: context.locale },
     withAuth: false,
   });
@@ -228,7 +228,7 @@ async function getStorefrontCategories(
   context: StorefrontContext,
   activeSlug: string,
 ): Promise<StorefrontCategoryLink[]> {
-  const result = await requestBff<unknown>("/storefront/navigation/categories/tree/3", {
+  const result = await requestStorefrontBff<unknown>("/storefront/navigation/categories/tree/3", {
     context: { locale: context.locale },
     withAuth: false,
   });

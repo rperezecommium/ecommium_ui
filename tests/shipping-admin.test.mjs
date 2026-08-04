@@ -138,6 +138,15 @@ test("shipping admin reads configuration through scoped Admin BFF", async () => 
   assert.match(calls[0].path, /[?&]includeInactive=false(?:&|$)/);
 });
 
+test("shipping admin hides fulfillment from configuration tabs", () => {
+  const pageSource = readFileSync(path.resolve(root, "src/modules/transporte/shipping-admin-page.tsx"), "utf8");
+  const tabsSource = pageSource.slice(pageSource.indexOf("const tabs:"), pageSource.indexOf("function tabHref"));
+
+  assert.doesNotMatch(tabsSource, /fulfillments/);
+  assert.doesNotMatch(tabsSource, /Fulfillments/);
+  assert.match(pageSource, /activeTab === "fulfillments"/);
+});
+
 test("shipping admin loads only the fulfillment queue when its tab is active", async () => {
   const calls = [];
   const requestBff = async (pathValue, options = {}) => {

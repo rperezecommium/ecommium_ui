@@ -281,6 +281,20 @@ test("fixed prices UI sends the canonical BFF payload fields", () => {
   assert.doesNotMatch(actionsSource, /Falta itemId o priceTableId\./);
 });
 
+test("price table row actions stay compact in one line", () => {
+  const pageSource = readFileSync(path.resolve(root, "src/modules/catalogo/pricing-admin-page.tsx"), "utf8");
+  const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
+
+  assert.match(pageSource, /className="pricingPriceTableActions"/);
+  assert.match(pageSource, /className="pricingPriceTableActivationForm"/);
+  assert.match(pageSource, /className="pricingPriceTableDeleteForm"/);
+  assert.match(pageSource, /maxLength=\{6\}/);
+  assert.doesNotMatch(pageSource, /<div className="pricingActionStack">\s*<form action={updatePriceTableActivationAction} className="pricingInlineForm"/);
+  assert.match(cssSource, /\.pricingPriceTableActions[\s\S]*?flex-wrap: nowrap;/);
+  assert.match(cssSource, /\.pricingPriceTableActions \.adminButton[\s\S]*?width: 100px;/);
+  assert.match(cssSource, /\.pricingPriceTableDeleteForm input[\s\S]*?width: 76px;/);
+});
+
 test("pricing editor lookups preserve complete tax rules and collapse duplicates", async () => {
   const calls = [];
   const requestBff = async (pathValue, options = {}) => {

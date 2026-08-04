@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { AdminContext } from "../../shared/config/admin-context";
+import { AdminInfoTooltip } from "../../shared/ui/admin-info-tooltip";
 import type { PricingAdminResult, PricingAdminTab, PricingGovernanceData, PricingRecord } from "./pricing-admin";
 import {
   deleteFixedPriceAction,
@@ -32,6 +33,10 @@ type PricingAdminPageProps = {
     customerGroup?: string;
     quantity?: string;
     pricingMessage?: string;
+    taxDrawer?: "create";
+    priceTableDrawer?: "create";
+    fixedPriceDrawer?: "create";
+    pipelineDrawer?: "update";
   };
 };
 
@@ -46,6 +51,26 @@ const tabs: Array<{ id: PricingAdminTab; label: string }> = [
   { id: "computed-auto", label: "Computed auto" },
   { id: "pipeline", label: "Pipeline catalog" },
 ];
+
+const pricingTabTooltips: Partial<Record<PricingAdminTab, {
+  description: string;
+  example: string;
+  label: string;
+  title: string;
+}>> = {
+  fixed: {
+    description: "Define un importe concreto para una variante dentro de una Price table. Se aplica solo cuando esa tabla está activa.",
+    example: "Una mochila cuesta 50 €. En Mayoristas puedes fijarla en 42 €, sin cambiar el precio general.",
+    label: "Más información sobre precios fijados",
+    title: "¿Qué es un precio fijado?",
+  },
+  pipeline: {
+    description: "Prepara y mantiene los precios calculados de una Price table para que estén listos para usarse.",
+    example: "Si cambias una regla de Mayoristas, reconstruye su pipeline para que las variantes reflejen el nuevo precio.",
+    label: "Más información sobre el pipeline de precios",
+    title: "¿Qué hace el pipeline?",
+  },
+};
 
 function tabHref(tab: PricingAdminTab, filters: PricingAdminPageProps["filters"]) {
   const params = new URLSearchParams({ tab });
@@ -63,6 +88,34 @@ function tabHref(tab: PricingAdminTab, filters: PricingAdminPageProps["filters"]
       params.set(key, filters[key]);
     }
   }
+
+  return `/admin/configuracion/precios?${params.toString()}`;
+}
+
+function taxDrawerHref(filters: PricingAdminPageProps["filters"]) {
+  const params = new URLSearchParams(tabHref("taxes", filters).split("?")[1]);
+  params.set("taxDrawer", "create");
+
+  return `/admin/configuracion/precios?${params.toString()}`;
+}
+
+function priceTableDrawerHref(filters: PricingAdminPageProps["filters"]) {
+  const params = new URLSearchParams(tabHref("tables", filters).split("?")[1]);
+  params.set("priceTableDrawer", "create");
+
+  return `/admin/configuracion/precios?${params.toString()}`;
+}
+
+function fixedPriceDrawerHref(filters: PricingAdminPageProps["filters"]) {
+  const params = new URLSearchParams(tabHref("fixed", filters).split("?")[1]);
+  params.set("fixedPriceDrawer", "create");
+
+  return `/admin/configuracion/precios?${params.toString()}`;
+}
+
+function pipelineDrawerHref(filters: PricingAdminPageProps["filters"]) {
+  const params = new URLSearchParams(tabHref("pipeline", filters).split("?")[1]);
+  params.set("pipelineDrawer", "update");
 
   return `/admin/configuracion/precios?${params.toString()}`;
 }
@@ -230,19 +283,24 @@ function RecordTable({
   result,
   columns,
   empty,
+  headerAction,
   actions,
 }: {
   title: string;
   result: PricingAdminResult<PricingRecord[]>;
   columns: string[];
   empty: string;
+  headerAction?: ReactNode;
   actions?: (record: PricingRecord) => ReactNode;
 }) {
   return (
     <section className="pricingPanel">
       <div className="pricingPanelHeader">
         <h2>{title}</h2>
-        <p>{result.data.length} registros</p>
+        <div className="pricingPanelHeaderActions">
+          <p>{result.data.length} registros</p>
+          {headerAction}
+        </div>
       </div>
       <ResultBanner result={result} />
       {result.data.length === 0 ? (
@@ -317,17 +375,17 @@ function PriceTableActions({ record }: { record: PricingRecord }) {
   const isActive = Boolean(record.active);
 
   return (
-    <div className="pricingActionStack">
-      <form action={updatePriceTableActivationAction} className="pricingInlineForm">
+    <div className="pricingPriceTableActions">
+      <form action={updatePriceTableActivationAction} className="pricingPriceTableActivationForm">
         <input type="hidden" name="priceTableId" value={priceTableId} />
         <input type="hidden" name="active" value={String(!isActive)} />
         <button className="adminButton" disabled={!priceTableId} type="submit">
           {isActive ? "Desactivar" : "Activar"}
         </button>
       </form>
-      <form action={deletePriceTableReferenceAction} className="pricingInlineForm">
+      <form action={deletePriceTableReferenceAction} className="pricingPriceTableDeleteForm">
         <input type="hidden" name="priceTableId" value={priceTableId} />
-        <input name="confirmDelete" placeholder="DELETE" aria-label="Confirmar desactivar tabla" />
+        <input name="confirmDelete" placeholder="DELETE" aria-label="Confirmar desactivar tabla" maxLength={6} size={6} />
         <button className="adminButton adminButtonDanger" disabled={!priceTableId} type="submit">Baja</button>
       </form>
     </div>
@@ -336,60 +394,79 @@ function PriceTableActions({ record }: { record: PricingRecord }) {
 
 function TaxDefinitionForm({ context }: { context: AdminContext }) {
   return (
-    <section className="pricingPanel">
-      <div className="pricingPanelHeader">
-        <h2>Crear impuesto</h2>
-      </div>
-      <form action={upsertTaxDefinitionAction} className="pricingDenseForm">
-        <label className="adminField">
-          <span>Codigo</span>
-          <input name="code" placeholder="default-iva" />
-          <small>Valor que viaja como taxCode en precios.</small>
-        </label>
-        <label className="adminField">
-          <span>Nombre</span>
-          <input name="name" placeholder="Default IVA" />
-          <small>Etiqueta visible para seleccionar la regla fiscal.</small>
-        </label>
-        <label className="adminField">
-          <span>Ayuda</span>
-          <input name="helpText" defaultValue="Regla fiscal usada para calcular precio con/sin impuesto." />
-          <small>Texto corto que orienta al operador.</small>
-        </label>
-        <label className="adminField">
-          <span>Tipo</span>
-          <select name="calculationType" defaultValue="PERCENTAGE">
-            <option value="PERCENTAGE">Porcentaje</option>
-            <option value="FIXED">Importe fijo</option>
-          </select>
-          <small>Modo de calculo del impuesto.</small>
-        </label>
-        <label className="adminField">
-          <span>Porcentaje</span>
-          <input name="ratePercent" type="number" min="0" step="0.01" placeholder="10.00" />
-          <small>Escribe 10 para guardar 10%.</small>
-        </label>
-        <label className="adminField">
-          <span>Importe menor</span>
-          <input name="amountMinor" type="number" min="0" step="1" placeholder="0" />
-          <small>Solo para impuestos de importe fijo.</small>
-        </label>
-        <label className="adminField">
-          <span>Pais</span>
-          <input name="country" list="pricing-countries" defaultValue={context.country} />
-          <small>Mercado donde aplica el impuesto.</small>
-        </label>
-        <label className="adminField">
-          <span>Estado</span>
-          <select name="active" defaultValue="true">
-            <option value="true">Activo</option>
-            <option value="false">Inactivo</option>
-          </select>
-          <small>Solo los activos alimentan selectores por defecto.</small>
-        </label>
-        <button className="adminButton adminButtonPrimary" type="submit">Guardar impuesto</button>
-      </form>
-    </section>
+    <form action={upsertTaxDefinitionAction} className="pricingDenseForm">
+      <label className="adminField">
+        <span>Codigo</span>
+        <input name="code" placeholder="default-iva" />
+        <small>Valor que viaja como taxCode en precios.</small>
+      </label>
+      <label className="adminField">
+        <span>Nombre</span>
+        <input name="name" placeholder="Default IVA" />
+        <small>Etiqueta visible para seleccionar la regla fiscal.</small>
+      </label>
+      <label className="adminField">
+        <span>Ayuda</span>
+        <input name="helpText" defaultValue="Regla fiscal usada para calcular precio con/sin impuesto." />
+        <small>Texto corto que orienta al operador.</small>
+      </label>
+      <label className="adminField">
+        <span>Tipo</span>
+        <select name="calculationType" defaultValue="PERCENTAGE">
+          <option value="PERCENTAGE">Porcentaje</option>
+          <option value="FIXED">Importe fijo</option>
+        </select>
+        <small>Modo de calculo del impuesto.</small>
+      </label>
+      <label className="adminField">
+        <span>Porcentaje</span>
+        <input name="ratePercent" type="number" min="0" step="0.01" placeholder="10.00" />
+        <small>Escribe 10 para guardar 10%.</small>
+      </label>
+      <label className="adminField">
+        <span>Importe menor</span>
+        <input name="amountMinor" type="number" min="0" step="1" placeholder="0" />
+        <small>Solo para impuestos de importe fijo.</small>
+      </label>
+      <label className="adminField">
+        <span>Pais</span>
+        <input name="country" list="pricing-countries" defaultValue={context.country} />
+        <small>Mercado donde aplica el impuesto.</small>
+      </label>
+      <label className="adminField">
+        <span>Estado</span>
+        <select name="active" defaultValue="true">
+          <option value="true">Activo</option>
+          <option value="false">Inactivo</option>
+        </select>
+        <small>Solo los activos alimentan selectores por defecto.</small>
+      </label>
+      <button className="adminButton adminButtonPrimary" type="submit">Guardar impuesto</button>
+    </form>
+  );
+}
+
+function TaxDefinitionDrawer({ context, filters }: Pick<PricingAdminPageProps, "context" | "filters">) {
+  if (filters.tab !== "taxes" || filters.taxDrawer !== "create") {
+    return null;
+  }
+
+  const closeHref = tabHref("taxes", filters);
+
+  return (
+    <div className="adminDrawerBackdrop">
+      <Link aria-label="Cerrar crear impuesto" className="pricingCreateDrawerBackdropLink" href={closeHref} />
+      <aside aria-labelledby="pricing-tax-drawer-title" aria-modal="true" className="adminSideDrawer pricingCreateDrawer" role="dialog">
+        <div className="adminSideDrawerHeader">
+          <div>
+            <h2 id="pricing-tax-drawer-title">Crear impuesto</h2>
+            <p>Define la regla fiscal disponible para el contexto activo.</p>
+          </div>
+          <Link className="adminButton adminButtonTiny" href={closeHref}>Cerrar</Link>
+        </div>
+        <TaxDefinitionForm context={context} />
+      </aside>
+    </div>
   );
 }
 
@@ -407,42 +484,61 @@ function TaxActions({ record }: { record: PricingRecord }) {
 
 function PriceTableReferenceForm({ context }: { context: AdminContext }) {
   return (
-    <section className="pricingPanel">
-      <div className="pricingPanelHeader">
-        <h2>Crear price table</h2>
-      </div>
-      <form action={upsertPriceTableReferenceAction} className="pricingDenseForm">
-        <label className="adminField">
-          <span>Codigo</span>
-          <input name="code" placeholder="vip-table" />
-          <small>Valor que viaja como priceTableId.</small>
-        </label>
-        <label className="adminField">
-          <span>Nombre</span>
-          <input name="name" placeholder="VIP" />
-          <small>Etiqueta visible para operadores.</small>
-        </label>
-        <label className="adminField">
-          <span>Ayuda</span>
-          <input name="helpText" defaultValue="Tabla comercial que agrupa reglas y precios por contexto." />
-          <small>Texto de ayuda del selector.</small>
-        </label>
-        <label className="adminField">
-          <span>Moneda</span>
-          <input name="currency" defaultValue={context.currency} />
-          <small>Moneda recomendada para esta tabla.</small>
-        </label>
-        <label className="adminField">
-          <span>Estado</span>
-          <select name="active" defaultValue="true">
-            <option value="true">Activa</option>
-            <option value="false">Inactiva</option>
-          </select>
-          <small>Controla disponibilidad en selectores.</small>
-        </label>
-        <button className="adminButton adminButtonPrimary" type="submit">Guardar price table</button>
-      </form>
-    </section>
+    <form action={upsertPriceTableReferenceAction} className="pricingDenseForm">
+      <label className="adminField">
+        <span>Codigo</span>
+        <input name="code" placeholder="vip-table" />
+        <small>Valor que viaja como priceTableId.</small>
+      </label>
+      <label className="adminField">
+        <span>Nombre</span>
+        <input name="name" placeholder="VIP" />
+        <small>Etiqueta visible para operadores.</small>
+      </label>
+      <label className="adminField">
+        <span>Ayuda</span>
+        <input name="helpText" defaultValue="Tabla comercial que agrupa reglas y precios por contexto." />
+        <small>Texto de ayuda del selector.</small>
+      </label>
+      <label className="adminField">
+        <span>Moneda</span>
+        <input name="currency" defaultValue={context.currency} />
+        <small>Moneda recomendada para esta tabla.</small>
+      </label>
+      <label className="adminField">
+        <span>Estado</span>
+        <select name="active" defaultValue="true">
+          <option value="true">Activa</option>
+          <option value="false">Inactiva</option>
+        </select>
+        <small>Controla disponibilidad en selectores.</small>
+      </label>
+      <button className="adminButton adminButtonPrimary" type="submit">Guardar price table</button>
+    </form>
+  );
+}
+
+function PriceTableReferenceDrawer({ context, filters }: Pick<PricingAdminPageProps, "context" | "filters">) {
+  if (filters.tab !== "tables" || filters.priceTableDrawer !== "create") {
+    return null;
+  }
+
+  const closeHref = tabHref("tables", filters);
+
+  return (
+    <div className="adminDrawerBackdrop">
+      <Link aria-label="Cerrar crear price table" className="pricingCreateDrawerBackdropLink" href={closeHref} />
+      <aside aria-labelledby="pricing-price-table-drawer-title" aria-modal="true" className="adminSideDrawer pricingCreateDrawer" role="dialog">
+        <div className="adminSideDrawerHeader">
+          <div>
+            <h2 id="pricing-price-table-drawer-title">Crear price table</h2>
+            <p>Configura la tabla comercial que agrupa precios y reglas para el contexto activo.</p>
+          </div>
+          <Link className="adminButton adminButtonTiny" href={closeHref}>Cerrar</Link>
+        </div>
+        <PriceTableReferenceForm context={context} />
+      </aside>
+    </div>
   );
 }
 
@@ -546,53 +642,135 @@ function RuleActions({ record, priceTableId }: { record: PricingRecord; priceTab
   );
 }
 
-function FixedPriceForms({ filters, data }: { filters: PricingAdminPageProps["filters"]; data: PricingGovernanceData }) {
+function FixedPriceForm({ context, filters, data }: Pick<PricingAdminPageProps, "context" | "filters" | "data">) {
   return (
-    <section className="pricingPanel">
-      <div className="pricingPanelHeader">
-        <h2>Editar fixed price</h2>
-      </div>
-      <form action={upsertFixedPriceAction} className="pricingDenseForm">
+    <form action={upsertFixedPriceAction} className="pricingDenseForm">
+      <label className="adminField">
+        <span>Producto</span>
         <input name="productId" defaultValue={filters.productId ?? ""} placeholder="productId" aria-label="productId fixed price" />
+      </label>
+      <label className="adminField">
+        <span>Variante</span>
         <input name="itemId" defaultValue={filters.itemId ?? ""} placeholder="variantId" aria-label="variantId fixed price" />
+      </label>
+      <label className="adminField">
+        <span>Price table</span>
         <PriceTableSelect data={data} defaultValue={filters.priceTableId} label="priceTableId fixed price" />
-        <input name="fixedPriceMinor" type="number" min={0} placeholder="fixedPriceMinor" aria-label="fixedPriceMinor" />
-        <input name="basePriceMinor" type="number" min={0} placeholder="basePriceMinor" />
-        <input name="listPriceMinor" type="number" min={0} placeholder="listPriceMinor" />
-        <input name="currency" defaultValue="EUR" placeholder="currency" />
-        <input name="timezone" defaultValue="Europe/Madrid" placeholder="timezone" aria-label="timezone fixed price" />
+      </label>
+      <label className="adminField">
+        <span>Precio fijado (minor)</span>
+        <input name="fixedPriceMinor" type="number" min={0} placeholder="1499" aria-label="fixedPriceMinor" />
+      </label>
+      <label className="adminField">
+        <span>Precio base (minor)</span>
+        <input name="basePriceMinor" type="number" min={0} placeholder="1499" />
+      </label>
+      <label className="adminField">
+        <span>Precio de lista (minor)</span>
+        <input name="listPriceMinor" type="number" min={0} placeholder="opcional" />
+      </label>
+      <label className="adminField">
+        <span>Moneda</span>
+        <input name="currency" defaultValue={context.currency} placeholder="EUR" />
+      </label>
+      <label className="adminField">
+        <span>Zona horaria</span>
+        <input name="timezone" defaultValue="Europe/Madrid" placeholder="Europe/Madrid" aria-label="timezone fixed price" />
+      </label>
+      <label className="adminField">
+        <span>Impuestos</span>
         <select name="taxIncluded" defaultValue="true" aria-label="taxIncluded">
-          <option value="true">taxIncluded</option>
-          <option value="false">taxExcluded</option>
+          <option value="true">Incluidos</option>
+          <option value="false">No incluidos</option>
         </select>
-        <button className="adminButton adminButtonPrimary" type="submit">Guardar fixed price</button>
-      </form>
-      <form action={deleteFixedPriceAction} className="pricingDenseForm pricingDangerForm">
-        <input name="itemId" defaultValue={filters.itemId ?? ""} placeholder="variantId" aria-label="variantId delete fixed price" />
-        <PriceTableSelect data={data} defaultValue={filters.priceTableId} label="priceTableId delete fixed price" />
-        <input name="confirmDelete" placeholder="DELETE" aria-label="Confirmar borrar fixed price" />
-        <button className="adminButton adminButtonDanger" type="submit">Borrar fixed price</button>
-      </form>
-    </section>
+      </label>
+      <button className="adminButton adminButtonPrimary" type="submit">Guardar precio fijado</button>
+    </form>
   );
 }
 
-function PipelineForm({ filters, data }: { filters: PricingAdminPageProps["filters"]; data: PricingGovernanceData }) {
+function FixedPriceActions({ record }: { record: PricingRecord }) {
+  const itemId = String(record.itemId ?? "");
+  const priceTableId = String(record.priceTableId ?? "");
+
   return (
-    <section className="pricingPanel">
-      <div className="pricingPanelHeader">
-        <h2>Actualizacion masiva por tabla</h2>
-      </div>
-      <form action={updatePipelineCatalogAction} className="pricingDenseForm">
+    <form action={deleteFixedPriceAction} className="pricingInlineForm">
+      <input name="itemId" type="hidden" value={itemId} />
+      <input name="priceTableId" type="hidden" value={priceTableId} />
+      <input name="confirmDelete" placeholder="DELETE" aria-label="Confirmar borrar fixed price" />
+      <button className="adminButton adminButtonDanger" disabled={!itemId || !priceTableId} type="submit">Borrar</button>
+    </form>
+  );
+}
+
+function FixedPriceDrawer({ context, filters, data }: Pick<PricingAdminPageProps, "context" | "filters" | "data">) {
+  if (filters.tab !== "fixed" || filters.fixedPriceDrawer !== "create") {
+    return null;
+  }
+
+  const closeHref = tabHref("fixed", filters);
+
+  return (
+    <div className="adminDrawerBackdrop">
+      <Link aria-label="Cerrar crear precio fijado" className="pricingCreateDrawerBackdropLink" href={closeHref} />
+      <aside aria-labelledby="pricing-fixed-price-drawer-title" aria-modal="true" className="adminSideDrawer pricingCreateDrawer" role="dialog">
+        <div className="adminSideDrawerHeader">
+          <div>
+            <h2 id="pricing-fixed-price-drawer-title">Fijar precio</h2>
+            <p>Define un importe exacto para una variante y una Price table del contexto activo.</p>
+          </div>
+          <Link className="adminButton adminButtonTiny" href={closeHref}>Cerrar</Link>
+        </div>
+        <FixedPriceForm context={context} data={data} filters={filters} />
+      </aside>
+    </div>
+  );
+}
+
+function PipelineUpdateForm({ filters, data }: Pick<PricingAdminPageProps, "filters" | "data">) {
+  return (
+    <form action={updatePipelineCatalogAction} className="pricingDenseForm">
+      <label className="adminField">
+        <span>Price table</span>
         <PriceTableSelect data={data} defaultValue={filters.priceTableId} label="priceTableId pipeline" />
+      </label>
+      <label className="adminField">
+        <span>Estado</span>
         <select name="active" defaultValue="true" aria-label="active">
           <option value="true">Activar pipeline</option>
           <option value="false">Pausar pipeline</option>
         </select>
-        <input name="mode" placeholder="mode" defaultValue="rebuild" />
-        <button className="adminButton adminButtonPrimary" type="submit">Actualizar pipeline</button>
-      </form>
-    </section>
+      </label>
+      <label className="adminField">
+        <span>Modo</span>
+        <input name="mode" placeholder="rebuild" defaultValue="rebuild" />
+      </label>
+      <button className="adminButton adminButtonPrimary" type="submit">Actualizar pipeline</button>
+    </form>
+  );
+}
+
+function PipelineDrawer({ filters, data }: Pick<PricingAdminPageProps, "filters" | "data">) {
+  if (filters.tab !== "pipeline" || filters.pipelineDrawer !== "update") {
+    return null;
+  }
+
+  const closeHref = tabHref("pipeline", filters);
+
+  return (
+    <div className="adminDrawerBackdrop">
+      <Link aria-label="Cerrar actualizar pipeline" className="pricingCreateDrawerBackdropLink" href={closeHref} />
+      <aside aria-labelledby="pricing-pipeline-drawer-title" aria-modal="true" className="adminSideDrawer pricingCreateDrawer" role="dialog">
+        <div className="adminSideDrawerHeader">
+          <div>
+            <h2 id="pricing-pipeline-drawer-title">Actualizar pipeline</h2>
+            <p>Activa, pausa o reconstruye el catálogo de una Price table del contexto activo.</p>
+          </div>
+          <Link className="adminButton adminButtonTiny" href={closeHref}>Cerrar</Link>
+        </div>
+        <PipelineUpdateForm data={data} filters={filters} />
+      </aside>
+    </div>
   );
 }
 
@@ -615,15 +793,34 @@ export function PricingAdminPage({ context, data, filters }: PricingAdminPagePro
       {filters.pricingMessage ? <div className="adminBanner"><p>{filters.pricingMessage}</p></div> : null}
       <PricingReferenceDatalists data={data} context={context} />
       <nav className="adminTabs pricingTabs" aria-label="Pricing">
-        {tabs.map((tab) => (
-          <Link
-            className={`productEditorTab ${tab.id === activeTab ? "productEditorTabActive" : ""}`}
-            href={tabHref(tab.id, filters)}
-            key={tab.id}
-          >
-            {tab.label}
-          </Link>
-        ))}
+        {tabs.map((tab) => {
+          const tooltip = pricingTabTooltips[tab.id];
+
+          return tooltip ? (
+            <span className="pricingTabWithInfo" key={tab.id}>
+              <Link
+                className={`productEditorTab ${tab.id === activeTab ? "productEditorTabActive" : ""}`}
+                href={tabHref(tab.id, filters)}
+              >
+                {tab.label}
+              </Link>
+              <AdminInfoTooltip
+                description={tooltip.description}
+                example={tooltip.example}
+                label={tooltip.label}
+                title={tooltip.title}
+              />
+            </span>
+          ) : (
+            <Link
+              className={`productEditorTab ${tab.id === activeTab ? "productEditorTabActive" : ""}`}
+              href={tabHref(tab.id, filters)}
+              key={tab.id}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
       </nav>
       <PricingFilters filters={filters} data={data} />
 
@@ -635,14 +832,26 @@ export function PricingAdminPage({ context, data, filters }: PricingAdminPagePro
       ) : null}
       {activeTab === "taxes" ? (
         <>
-          <TaxDefinitionForm context={context} />
-          <RecordTable title="Impuestos" result={data.taxes} columns={["taxCode", "name", "rate", "country", "isActive"]} empty="No hay impuestos disponibles o falta permiso pricing.admin.read." actions={(record) => <TaxActions record={record} />} />
+          <RecordTable
+            title="Impuestos"
+            result={data.taxes}
+            columns={["taxCode", "name", "rate", "country", "isActive"]}
+            empty="No hay impuestos disponibles o falta permiso pricing.admin.read."
+            headerAction={<Link className="adminButton adminButtonPrimary" href={taxDrawerHref(filters)}>Crear impuesto</Link>}
+            actions={(record) => <TaxActions record={record} />}
+          />
         </>
       ) : null}
       {activeTab === "tables" ? (
         <>
-          <PriceTableReferenceForm context={context} />
-          <RecordTable title="Price tables" result={data.priceTables} columns={["priceTableId", "name", "currency", "active", "priority", "updatedAt"]} empty="No hay price tables." actions={(record) => <PriceTableActions record={record} />} />
+          <RecordTable
+            title="Price tables"
+            result={data.priceTables}
+            columns={["priceTableId", "name", "currency", "active", "priority", "updatedAt"]}
+            empty="No hay price tables."
+            headerAction={<Link className="adminButton adminButtonPrimary" href={priceTableDrawerHref(filters)}>Crear price table</Link>}
+            actions={(record) => <PriceTableActions record={record} />}
+          />
         </>
       ) : null}
       {activeTab === "references" ? (
@@ -681,9 +890,15 @@ export function PricingAdminPage({ context, data, filters }: PricingAdminPagePro
       ) : null}
       {activeTab === "fixed" ? (
         <>
-          <FixedPriceForms filters={filters} data={data} />
           {!filters.itemId ? <div className="adminBanner adminBannerInfo"><p>Informa variantId para consultar fixed prices existentes.</p></div> : null}
-          <RecordTable title="Fixed prices" result={data.fixedPrices} columns={["itemId", "productId", "priceTableId", "fixedPriceMinor", "basePriceMinor", "listPriceMinor", "currency", "taxIncluded", "active"]} empty="No hay fixed prices para la variante." />
+          <RecordTable
+            title="Precios fijados"
+            result={data.fixedPrices}
+            columns={["itemId", "productId", "priceTableId", "fixedPriceMinor", "basePriceMinor", "listPriceMinor", "currency", "taxIncluded", "active"]}
+            empty="No hay precios fijados para la variante."
+            headerAction={<Link className="adminButton adminButtonPrimary" href={fixedPriceDrawerHref(filters)}>Fijar precio</Link>}
+            actions={(record) => <FixedPriceActions record={record} />}
+          />
         </>
       ) : null}
       {activeTab === "computed" ? (
@@ -702,11 +917,20 @@ export function PricingAdminPage({ context, data, filters }: PricingAdminPagePro
       ) : null}
       {activeTab === "pipeline" ? (
         <>
-          <PipelineForm filters={filters} data={data} />
-          <RecordTable title="Pipeline catalog" result={data.pipeline} columns={["priceTableId", "active", "status", "lastRunAt", "updatedAt"]} empty="No hay pipeline catalog para el contexto." />
+          <RecordTable
+            title="Pipeline catalog"
+            result={data.pipeline}
+            columns={["priceTableId", "active", "status", "lastRunAt", "updatedAt"]}
+            empty="No hay pipeline catalog para el contexto."
+            headerAction={<Link className="adminButton adminButtonPrimary" href={pipelineDrawerHref(filters)}>Actualizar pipeline</Link>}
+          />
           <RecordDetails title="Pipeline tabla seleccionada" result={data.pipelineTable} />
         </>
       ) : null}
+      <TaxDefinitionDrawer context={context} filters={filters} />
+      <PriceTableReferenceDrawer context={context} filters={filters} />
+      <FixedPriceDrawer context={context} data={data} filters={filters} />
+      <PipelineDrawer data={data} filters={filters} />
     </main>
   );
 }

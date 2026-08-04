@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { requestBff } from "../../shared/bff/client";
+import { requestStorefrontBff } from "../../shared/bff/storefront-client";
 import type { StorefrontAuthActionState } from "./auth-types";
 import {
   getStorefrontSignupHumanVerificationConfig,
@@ -148,7 +148,7 @@ export async function loginStorefrontCustomer(
     };
   }
 
-  const result = await requestBff<StorefrontLoginResponse>("/auth/login", {
+  const result = await requestStorefrontBff<StorefrontLoginResponse>("/auth/login", {
     withAuth: false,
     context: { locale: context.locale },
     init: {
@@ -216,7 +216,7 @@ export async function signupStorefrontCustomer(
     };
   }
 
-  const result = await requestBff<StorefrontSignupResponse>("/auth/signup", {
+  const result = await requestStorefrontBff<StorefrontSignupResponse>("/auth/signup", {
     withAuth: false,
     context: { locale: context.locale },
     init: {
@@ -296,7 +296,7 @@ export async function requestStorefrontPasswordReset(
     };
   }
 
-  const result = await requestBff<{ status: "accepted" }>("/auth/password-reset/request", {
+  const result = await requestStorefrontBff<{ status: "accepted" }>("/auth/password-reset/request", {
     withAuth: false,
     context: { locale: context.locale },
     init: {
@@ -345,7 +345,7 @@ export async function confirmStorefrontPasswordReset(
     };
   }
 
-  const result = await requestBff<{ status: "password_reset" }>("/auth/password-reset/confirm", {
+  const result = await requestStorefrontBff<{ status: "password_reset" }>("/auth/password-reset/confirm", {
     withAuth: false,
     context: { locale: context.locale },
     init: {
@@ -390,7 +390,7 @@ export async function resendStorefrontActivation(
     };
   }
 
-  const result = await requestBff<{ status: "accepted" }>("/auth/activation/resend", {
+  const result = await requestStorefrontBff<{ status: "accepted" }>("/auth/activation/resend", {
     withAuth: false,
     context: { locale: context.locale },
     init: {
@@ -433,7 +433,7 @@ export async function activateStorefrontCustomer(token: string): Promise<Storefr
     };
   }
 
-  const result = await requestBff<{ status: "activated" | "already_active" }>("/auth/activate", {
+  const result = await requestStorefrontBff<{ status: "activated" | "already_active" }>("/auth/activate", {
     withAuth: false,
     init: {
       method: "POST",

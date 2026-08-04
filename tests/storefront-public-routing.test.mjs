@@ -91,7 +91,7 @@ test("public routing contract rejects unknown or incomplete BFF outcomes", () =>
 });
 
 test("public page client consumes only the composed Storefront BFF page", () => {
-  assert.match(client, /requestBff<unknown>/);
+  assert.match(client, /requestStorefrontBff<unknown>/);
   assert.match(client, /\/storefront\/page\?/);
   assert.match(client, /withAuth: false/);
   assert.match(client, /getStorefrontContext/);
@@ -140,7 +140,7 @@ test("public catch-all dispatches resolved types without exposing technical ids"
 });
 
 test("public redirect resolution uses the BFF and preserves exact HTTP semantics", () => {
-  assert.match(pathClient, /requestBff<unknown>/);
+  assert.match(pathClient, /requestStorefrontBff<unknown>/);
   assert.match(pathClient, /\/storefront\/resolve-path\?/);
   assert.match(pathClient, /withAuth: false/);
   assert.match(pathClient, /isStorefrontPublicPathResolution/);

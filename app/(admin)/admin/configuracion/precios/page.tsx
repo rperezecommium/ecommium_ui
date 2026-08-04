@@ -15,6 +15,10 @@ type PreciosPageProps = {
     customerGroup?: string;
     quantity?: string;
     pricingMessage?: string;
+    taxDrawer?: string;
+    priceTableDrawer?: string;
+    fixedPriceDrawer?: string;
+    pipelineDrawer?: string;
   }>;
 };
 
@@ -49,6 +53,10 @@ export default async function PreciosPage({ searchParams }: PreciosPageProps) {
     customerGroup: params?.customerGroup,
     quantity: params?.quantity,
     pricingMessage: params?.pricingMessage,
+    taxDrawer: params?.taxDrawer === "create" ? "create" as const : undefined,
+    priceTableDrawer: params?.priceTableDrawer === "create" ? "create" as const : undefined,
+    fixedPriceDrawer: params?.fixedPriceDrawer === "create" ? "create" as const : undefined,
+    pipelineDrawer: params?.pipelineDrawer === "update" ? "update" as const : undefined,
   };
   const data = await getPricingGovernanceData(context, filters);
 

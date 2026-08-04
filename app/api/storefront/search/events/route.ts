@@ -1,4 +1,4 @@
-import { requestBff } from "../../../../../src/shared/bff/client";
+import { requestStorefrontBff } from "../../../../../src/shared/bff/storefront-client";
 import { normalizeStorefrontVisitorId, visitorIdFromCookieHeader } from "../../../../../src/modules/storefront/visitor";
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   const visitorId = normalizeStorefrontVisitorId(payloadVisitorId) === "storefront-anonymous"
     ? visitorIdFromCookieHeader(request.headers.get("cookie"))
     : normalizeStorefrontVisitorId(payloadVisitorId);
-  const result = await requestBff<Record<string, unknown>>("/storefront/search/events", {
+  const result = await requestStorefrontBff<Record<string, unknown>>("/storefront/search/events", {
     context: {
       locale: typeof asRecord(payload).locale === "string" ? String(asRecord(payload).locale) : undefined,
     },

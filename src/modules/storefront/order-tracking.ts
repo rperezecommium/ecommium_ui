@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestStorefrontBff } from "../../shared/bff/storefront-client";
 import type { BffResult } from "../../shared/bff/types";
 import { getStorefrontCustomerAuthorizationHeader } from "./storefront-customer-session";
 import { getStorefrontContext } from "./storefront-context";
@@ -97,7 +97,7 @@ export async function getStorefrontOrderTracking(
     };
   }
 
-  return requestBff<StorefrontOrderTracking>(
+  return requestStorefrontBff<StorefrontOrderTracking>(
     `/storefront/order-tracking/${encodeURIComponent(reference)}?${params.toString()}`,
     {
       withAuth: false,
@@ -118,7 +118,7 @@ export async function requestStorefrontTrackingAccessRecovery(
   }
 
   const { context, params } = trackingParams();
-  return requestBff<{ accepted: true }>(
+  return requestStorefrontBff<{ accepted: true }>(
     `/storefront/order-tracking/access-recovery?${params.toString()}`,
     {
       withAuth: false,

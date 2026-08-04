@@ -1,4 +1,4 @@
-import { requestBff } from "../../../../../src/shared/bff/client";
+import { requestStorefrontBff } from "../../../../../src/shared/bff/storefront-client";
 import { getStorefrontContext } from "../../../../../src/modules/storefront/storefront-context";
 import { getStorefrontCustomerAuthorizationHeader } from "../../../../../src/modules/storefront/storefront-customer-session";
 
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
     return errorResponse("Métodos de pago guest requieren guestSessionId.", 400);
   }
 
-  const result = await requestBff<unknown>(`/payments/payment-systems?${params.toString()}`, {
+  const result = await requestStorefrontBff<unknown>(`/payments/payment-systems?${params.toString()}`, {
     context: {
       locale: params.get("locale") ?? undefined,
     },

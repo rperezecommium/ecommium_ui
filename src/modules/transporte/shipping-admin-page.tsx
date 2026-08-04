@@ -58,7 +58,6 @@ const tabs: Array<{ id: ShippingAdminTab; label: string }> = [
   { id: "services", label: "Servicios" },
   { id: "rules", label: "Reglas de tarifa" },
   { id: "quote", label: "Simulador" },
-  { id: "fulfillments", label: "Fulfillments" },
 ];
 
 function tabHref(tab: ShippingAdminTab, filters: ShippingAdminPageProps["filters"]) {

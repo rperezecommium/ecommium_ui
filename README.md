@@ -146,7 +146,8 @@ Portability contract:
 
 Environment variables:
 
-- `ECOMMIUM_BFF_BASE_URL`, defaults to `http://localhost:3010/api/v1`.
+- `ECOMMIUM_STOREFRONT_BFF_BASE_URL`, URL server-side del BFF Storefront; defaults to `http://localhost:3025/api/v1`.
+- `ECOMMIUM_BFF_BASE_URL`, variable de compatibilidad del cliente Admin actual; no se usa para Storefront.
 - `ECOMMIUM_ADMIN_BFF_TOKEN`, optional server-side admin token sent to the BFF
   as `Authorization: Bearer <token>`. Do not expose it with `NEXT_PUBLIC_*`.
 - `ECOMMIUM_DEFAULT_ORGANIZATION_ID`, optional initial organization context.

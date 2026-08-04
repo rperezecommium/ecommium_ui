@@ -127,7 +127,7 @@ test("storefront account UI lets customers manage their own active sessions", ()
   assert.match(routeSource, /value === "invoices" \|\| value === "sessions"/);
   assert.match(accountSource, /StorefrontDeviceSessionsData/);
   assert.match(accountSource, /StorefrontLogoutAllSessionsResponse/);
-  assert.match(accountSource, /requestBff<StorefrontDeviceSessionsData>\("\/auth\/sessions"/);
+  assert.match(accountSource, /requestStorefrontBff<StorefrontDeviceSessionsData>\("\/auth\/sessions"/);
   assert.match(accountSource, /logoutCurrentStorefrontSession/);
   assert.match(accountSource, /\/auth\/sessions\/logout-current/);
   assert.match(accountSource, /logoutAllStorefrontSessions/);

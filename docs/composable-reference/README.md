@@ -72,7 +72,8 @@ Reglas derivadas:
 
 ## Principios de integracion UI-BFF
 
-- Base esperada local: `ECOMMIUM_BFF_BASE_URL=http://localhost:3010/api/v1`.
+- Base Storefront local: `ECOMMIUM_STOREFRONT_BFF_BASE_URL=http://localhost:3025/api/v1`.
+- `ECOMMIUM_BFF_BASE_URL` queda como compatibilidad temporal del cliente Admin actual y no debe utilizarse en Storefront.
 - Si el BFF Admin exige auth en desarrollo, la UI puede usar `ECOMMIUM_ADMIN_BFF_TOKEN` solo server-side para enviar `Authorization: Bearer <token>`. No debe exponerse como `NEXT_PUBLIC_*`.
 - Admin usa rutas `/api/v1/admin/*`.
 - Storefront usa rutas `/api/v1/storefront/*`.

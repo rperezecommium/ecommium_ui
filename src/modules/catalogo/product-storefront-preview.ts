@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestStorefrontBff } from "../../shared/bff/storefront-client";
 import type { AdminContext } from "../../shared/config/admin-context";
 import type { ProductEditorData } from "./product-editor-types";
 
@@ -265,7 +265,7 @@ export async function getProductStorefrontPreview(
     channel: context.channel,
   });
   const requestedPath = `/storefront/pdp/${encodeURIComponent(productSlug)}?${params.toString()}`;
-  const result = await requestBff(requestedPath, {
+  const result = await requestStorefrontBff(requestedPath, {
     context,
     withAuth: false,
     parse: (payload) => parseStorefrontPdp(payload, context.currency, context.locale),

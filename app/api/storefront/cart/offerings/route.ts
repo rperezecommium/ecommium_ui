@@ -1,4 +1,4 @@
-import { requestBff } from "../../../../../src/shared/bff/client";
+import { requestStorefrontBff } from "../../../../../src/shared/bff/storefront-client";
 import { getStorefrontContext } from "../../../../../src/modules/storefront/storefront-context";
 import { getStorefrontCustomerAuthorizationHeader } from "../../../../../src/modules/storefront/storefront-customer-session";
 
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     return errorResponse("Carrito guest requiere guestSessionId.", 400);
   }
 
-  const result = await requestBff<unknown>(
+  const result = await requestStorefrontBff<unknown>(
     `/orderforms/${encodeURIComponent(orderFormId)}/items/${itemIndex}/offerings?${params.toString()}`,
     {
       context: {
@@ -157,7 +157,7 @@ export async function DELETE(request: Request) {
     return errorResponse("Carrito guest requiere guestSessionId.", 400);
   }
 
-  const result = await requestBff<unknown>(
+  const result = await requestStorefrontBff<unknown>(
     `/orderforms/${encodeURIComponent(orderFormId)}/items/${itemIndex}/offerings/${encodeURIComponent(offeringId)}?${params.toString()}`,
     {
       context: {

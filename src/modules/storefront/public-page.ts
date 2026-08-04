@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestStorefrontBff } from "../../shared/bff/storefront-client";
 import type { BffResult } from "../../shared/bff/types";
 import {
   isStorefrontPublicPageResponse,
@@ -51,7 +51,7 @@ export async function getStorefrontPublicPage(
     offset: String(offset),
   });
 
-  const result = await requestBff<unknown>(`/storefront/page?${params.toString()}`, {
+  const result = await requestStorefrontBff<unknown>(`/storefront/page?${params.toString()}`, {
     withAuth: false,
     context: { locale: context.locale },
     init: {

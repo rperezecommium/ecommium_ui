@@ -1,7 +1,8 @@
-import { requestBff } from "../../shared/bff/client";
+import {
+  requestStorefrontBff,
+  requestStorefrontBffResponse,
+} from "../../shared/bff/storefront-client";
 import type { BffResult } from "../../shared/bff/types";
-import { createBffHeaders } from "../../shared/bff/headers";
-import { bffBaseUrl } from "../../shared/config/env";
 import {
   getStorefrontCustomerAuthorizationHeader,
   getStorefrontCustomerSession,
@@ -258,35 +259,6 @@ async function storefrontAuthHeaders() {
   return authorization ? { authorization } : null;
 }
 
-function makeAuthUrl(path: string) {
-  const base = bffBaseUrl.endsWith("/") ? bffBaseUrl.slice(0, -1) : bffBaseUrl;
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${base}${normalizedPath}`;
-}
-
-function makeCorrelationId() {
-  return `ui-storefront-session-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-async function readMutationError(response: Response) {
-  const contentType = response.headers.get("content-type") ?? "";
-
-  if (contentType.includes("application/json")) {
-    const payload = (await response.json().catch(() => undefined)) as unknown;
-    if (typeof payload === "object" && payload !== null && "message" in payload) {
-      const message = (payload as { message?: unknown }).message;
-      if (Array.isArray(message)) {
-        return message.map(String).join("; ");
-      }
-      if (typeof message === "string" && message.trim()) {
-        return message.trim();
-      }
-    }
-  }
-
-  return response.text().catch(() => "");
-}
-
 export async function getStorefrontAccountData({
   invoicesLimit = "5",
   invoicesOffset = "0",
@@ -318,22 +290,22 @@ export async function getStorefrontAccountData({
   }
 
   const [profileResult, avatarResult, addressesResult, purchasesResult, invoicesResult, sessionsResult, afterSalesResult, selectedAfterSalesCase] = await Promise.all([
-    requestBff<ProfileResponse>(accountPath("/storefront/me/profile"), {
+    requestStorefrontBff<ProfileResponse>(accountPath("/storefront/me/profile"), {
       withAuth: false,
       context: { locale: context.locale },
       init: { headers },
     }),
-    requestBff<AvatarOptionsResponse>(accountPath("/storefront/me/avatar-options"), {
+    requestStorefrontBff<AvatarOptionsResponse>(accountPath("/storefront/me/avatar-options"), {
       withAuth: false,
       context: { locale: context.locale },
       init: { headers },
     }),
-    requestBff<StorefrontAddressBook>(accountPath("/storefront/me/addresses"), {
+    requestStorefrontBff<StorefrontAddressBook>(accountPath("/storefront/me/addresses"), {
       withAuth: false,
       context: { locale: context.locale },
       init: { headers },
     }),
-    requestBff<StorefrontPurchasesData>(accountPath("/storefront/me/purchases", {
+    requestStorefrontBff<StorefrontPurchasesData>(accountPath("/storefront/me/purchases", {
       limit: purchasesLimit,
       offset: purchasesOffset,
     }), {
@@ -341,7 +313,7 @@ export async function getStorefrontAccountData({
       context: { locale: context.locale },
       init: { headers },
     }),
-    requestBff<StorefrontInvoicesData>(accountPath("/storefront/me/invoices", {
+    requestStorefrontBff<StorefrontInvoicesData>(accountPath("/storefront/me/invoices", {
       limit: invoicesLimit,
       offset: invoicesOffset,
     }), {
@@ -349,12 +321,12 @@ export async function getStorefrontAccountData({
       context: { locale: context.locale },
       init: { headers },
     }),
-    requestBff<StorefrontDeviceSessionsData>("/auth/sessions", {
+    requestStorefrontBff<StorefrontDeviceSessionsData>("/auth/sessions", {
       withAuth: false,
       context: { locale: context.locale },
       init: { headers },
     }),
-    requestBff<StorefrontAfterSalesCasesData>(accountPath("/storefront/me/after-sales/cases", {
+    requestStorefrontBff<StorefrontAfterSalesCasesData>(accountPath("/storefront/me/after-sales/cases", {
       limit: afterSalesLimit,
       offset: afterSalesOffset,
     }), {
@@ -363,7 +335,7 @@ export async function getStorefrontAccountData({
       init: { headers },
     }),
     afterSalesCaseId
-      ? requestBff<StorefrontAfterSalesCaseDetail>(accountPath(`/storefront/me/after-sales/cases/${encodeURIComponent(afterSalesCaseId)}`), {
+      ? requestStorefrontBff<StorefrontAfterSalesCaseDetail>(accountPath(`/storefront/me/after-sales/cases/${encodeURIComponent(afterSalesCaseId)}`), {
           withAuth: false,
           context: { locale: context.locale },
           init: { headers },
@@ -408,7 +380,7 @@ export async function patchStorefrontCustomerProfile(
     };
   }
 
-  return requestBff<ProfileResponse>(accountPath("/storefront/me/profile"), {
+  return requestStorefrontBff<ProfileResponse>(accountPath("/storefront/me/profile"), {
     withAuth: false,
     context: { locale: getStorefrontContext().locale },
     init: {
@@ -436,7 +408,7 @@ export async function createStorefrontAfterSalesCase(
     };
   }
 
-  return requestBff<StorefrontAfterSalesCaseResponse>(accountPath("/storefront/me/after-sales/cases"), {
+  return requestStorefrontBff<StorefrontAfterSalesCaseResponse>(accountPath("/storefront/me/after-sales/cases"), {
     withAuth: false,
     context: { locale: getStorefrontContext().locale },
     init: {
@@ -482,7 +454,7 @@ async function afterSalesJsonMutation(
   if (!headers) {
     return { ok: false, status: 401, error: "Cliente no autenticado.", correlationId: "storefront-after-sales-local" };
   }
-  return requestBff<StorefrontAfterSalesCaseDetail>(accountPath(path), {
+  return requestStorefrontBff<StorefrontAfterSalesCaseDetail>(accountPath(path), {
     withAuth: false,
     context: { locale: getStorefrontContext().locale },
     init: {
@@ -502,7 +474,7 @@ export async function createStorefrontCustomerAddress(
     return unauthenticatedAddressResult();
   }
 
-  return requestBff<StorefrontAddressBook>(accountPath("/storefront/me/addresses"), {
+  return requestStorefrontBff<StorefrontAddressBook>(accountPath("/storefront/me/addresses"), {
     withAuth: false,
     context: { locale: getStorefrontContext().locale },
     init: {
@@ -526,7 +498,7 @@ export async function patchStorefrontCustomerAddress(
     return unauthenticatedAddressResult();
   }
 
-  return requestBff<StorefrontAddressBook>(accountPath(`/storefront/me/addresses/${encodeURIComponent(addressId)}`), {
+  return requestStorefrontBff<StorefrontAddressBook>(accountPath(`/storefront/me/addresses/${encodeURIComponent(addressId)}`), {
     withAuth: false,
     context: { locale: getStorefrontContext().locale },
     init: {
@@ -549,7 +521,7 @@ export async function deleteStorefrontCustomerAddress(
     return unauthenticatedAddressResult();
   }
 
-  return requestBff<StorefrontAddressBook>(accountPath(`/storefront/me/addresses/${encodeURIComponent(addressId)}`), {
+  return requestStorefrontBff<StorefrontAddressBook>(accountPath(`/storefront/me/addresses/${encodeURIComponent(addressId)}`), {
     withAuth: false,
     context: { locale: getStorefrontContext().locale },
     init: {
@@ -569,7 +541,7 @@ export async function setStorefrontCustomerAddressDefault(
     return unauthenticatedAddressResult();
   }
 
-  return requestBff<StorefrontAddressBook>(accountPath(`/storefront/me/addresses/${encodeURIComponent(addressId)}/default-${defaultKind}`), {
+  return requestStorefrontBff<StorefrontAddressBook>(accountPath(`/storefront/me/addresses/${encodeURIComponent(addressId)}/default-${defaultKind}`), {
     withAuth: false,
     context: { locale: getStorefrontContext().locale },
     init: {
@@ -581,45 +553,35 @@ export async function setStorefrontCustomerAddressDefault(
 
 export async function logoutCurrentStorefrontSession(): Promise<BffResult<void>> {
   const headers = await storefrontAuthHeaders();
-  const correlationId = makeCorrelationId();
 
   if (!headers) {
-    return unauthenticatedSessionMutationResult(correlationId);
+    return unauthenticatedSessionMutationResult("storefront-sessions-local");
   }
 
-  try {
-    const response = await fetch(makeAuthUrl("/auth/sessions/logout-current"), {
+  const result = await requestStorefrontBffResponse("/auth/sessions/logout-current", {
+    withAuth: false,
+    context: { locale: getStorefrontContext().locale },
+    init: {
       method: "POST",
-      cache: "no-store",
-      headers: createBffHeaders({
-        correlationId,
-        initHeaders: headers,
-        locale: getStorefrontContext().locale,
-      }),
-    });
+      headers,
+    },
+  });
 
-    if (!response.ok) {
-      return {
-        ok: false,
-        status: response.status,
-        error: await readMutationError(response) || `BFF responded with ${response.status}`,
-        correlationId,
-      };
-    }
-
-    return {
-      ok: true,
-      status: response.status,
-      data: undefined,
-      correlationId,
-    };
-  } catch (error) {
+  if (!result.ok) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "BFF request failed",
-      correlationId,
+      error: result.error,
+      status: result.status,
+      correlationId: result.correlationId,
     };
   }
+
+  return {
+    ok: true,
+    status: result.status,
+    data: undefined,
+    correlationId: result.correlationId,
+  };
 }
 
 export async function logoutAllStorefrontSessions(
@@ -636,7 +598,7 @@ export async function logoutAllStorefrontSessions(
     };
   }
 
-  return requestBff<StorefrontLogoutAllSessionsResponse>("/auth/sessions/logout-all", {
+  return requestStorefrontBff<StorefrontLogoutAllSessionsResponse>("/auth/sessions/logout-all", {
     withAuth: false,
     context: { locale: getStorefrontContext().locale },
     init: {

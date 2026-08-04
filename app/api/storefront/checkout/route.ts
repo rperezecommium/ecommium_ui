@@ -1,4 +1,4 @@
-import { requestBff } from "../../../../src/shared/bff/client";
+import { requestStorefrontBff } from "../../../../src/shared/bff/storefront-client";
 import { getStorefrontContext } from "../../../../src/modules/storefront/storefront-context";
 import { getStorefrontCustomerAuthorizationHeader } from "../../../../src/modules/storefront/storefront-customer-session";
 
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
   }
 
   if (action === "resolve-shipping-options") {
-    const result = await requestBff<unknown>(`/shipping/options/resolve?${params.toString()}`, {
+    const result = await requestStorefrontBff<unknown>(`/shipping/options/resolve?${params.toString()}`, {
       context: {
         locale: params.get("locale") ?? undefined,
       },
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
   }
 
   if (action === "create-order") {
-    const result = await requestBff<unknown>(`/orders?${params.toString()}`, {
+    const result = await requestStorefrontBff<unknown>(`/orders?${params.toString()}`, {
       context: {
         locale: params.get("locale") ?? undefined,
       },
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
     return errorResponse("Accion de checkout no soportada.", 400);
   }
 
-  const result = await requestBff<unknown>(endpoint.path, {
+  const result = await requestStorefrontBff<unknown>(endpoint.path, {
     context: {
       locale: params.get("locale") ?? undefined,
     },

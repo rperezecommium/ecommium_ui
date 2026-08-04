@@ -2682,7 +2682,7 @@ p {
 .productEditorTab {
   flex: 0 0 auto;
   min-height: 48px;
-  padding: 0 18px;
+  padding: 15px 18px;
   border: 0;
   border-right: 1px solid var(--admin-border-subtle);
   border-bottom: 3px solid transparent;
@@ -3886,6 +3886,85 @@ p {
   flex: 0 0 auto;
 }
 
+.pricingTabWithInfo {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-self: stretch;
+  min-height: 48px;
+}
+
+.pricingTabWithInfo .productEditorTab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding-right: 42px;
+}
+
+.pricingTabWithInfo .adminInfoTooltip {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+}
+
+.pricingTabWithInfo .adminInfoTooltipTrigger {
+  width: 20px;
+  min-height: 20px;
+  height: 20px;
+  padding: 0;
+}
+
+.adminInfoTooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.adminInfoTooltipTrigger {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  min-height: 48px;
+  padding: 0 8px 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--admin-text-muted);
+  cursor: help;
+}
+
+.adminInfoTooltipTrigger:hover,
+.adminInfoTooltipTrigger[aria-expanded="true"] {
+  color: var(--admin-primary-pressed);
+}
+
+.adminInfoTooltipTrigger:focus-visible {
+  outline: 2px solid var(--admin-focus-ring);
+  outline-offset: -4px;
+}
+
+.adminInfoTooltipContent {
+  position: fixed;
+  z-index: 60;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-popover);
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  pointer-events: auto;
+}
+
+.adminInfoTooltipContent strong {
+  font-size: 13px;
+}
+
 .pricingFilterBar {
   display: grid;
   grid-template-columns: minmax(180px, 260px) minmax(180px, 260px) auto;
@@ -3938,6 +4017,12 @@ p {
 .pricingPanelHeader p {
   color: var(--admin-text-muted);
   font-size: 12px;
+}
+
+.pricingPanelHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .pricingDefinitionGrid {
@@ -3998,6 +4083,34 @@ p {
   grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) auto;
   padding-top: 8px;
   border-top: 1px solid var(--admin-border-subtle);
+}
+
+.pricingPriceTableActions,
+.pricingPriceTableActivationForm,
+.pricingPriceTableDeleteForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.pricingPriceTableActions {
+  flex-wrap: nowrap;
+}
+
+.pricingPriceTableActivationForm,
+.pricingPriceTableDeleteForm {
+  flex: 0 0 auto;
+}
+
+.pricingPriceTableActions .adminButton {
+  width: 100px;
+  min-width: 100px;
+}
+
+.pricingPriceTableDeleteForm input {
+  width: 76px;
+  min-width: 76px;
 }
 
 .pricingDenseForm {
@@ -4341,6 +4454,16 @@ p {
   border-left: 1px solid var(--admin-border);
   background: var(--admin-surface);
   box-shadow: -18px 0 44px rgb(15 23 42 / 20%);
+}
+
+.pricingCreateDrawerBackdropLink {
+  position: absolute;
+  inset: 0;
+}
+
+.pricingCreateDrawer {
+  position: relative;
+  z-index: 1;
 }
 
 .customersDrawerBackdrop {
