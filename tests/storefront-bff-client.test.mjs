@@ -16,6 +16,7 @@ function transpile(source) {
 function loadModule(source, dependencies = {}, globals = {}) {
   const commonJsExports = {};
   const context = {
+    AbortSignal,
     Headers,
     Response,
     exports: commonJsExports,
@@ -42,11 +43,9 @@ const requestClientSource = readFileSync(new URL("../src/shared/bff/request-clie
 const storefrontClientSource = readFileSync(new URL("../src/shared/bff/storefront-client.ts", import.meta.url), "utf8");
 const envSource = readFileSync(new URL("../src/shared/config/env.ts", import.meta.url), "utf8");
 
-test("Storefront has an explicit BFF destination with the local 3025 fallback", () => {
-  const env = loadModule(envSource, {}, { process: { env: {} } });
-
-  assert.equal(env.storefrontBffBaseUrl, "http://localhost:3025/api/v1");
-  assert.match(storefrontClientSource, /storefrontBffBaseUrl/);
+test("Storefront resolves its BFF destination through validated runtime configuration", () => {
+  assert.match(storefrontClientSource, /getStorefrontBffBaseUrl/);
+  assert.doesNotMatch(envSource, /storefrontBffBaseUrl/);
   assert.doesNotMatch(storefrontClientSource, /adminBffToken|getAdminAuthorizationToken|getAdminRequestAuthorizationToken/);
 });
 
@@ -115,9 +114,19 @@ test("Storefront raw-response client preserves non-JSON Accept headers", async (
   }
 });
 
+test("BFF errors never expose raw upstream details", async () => {
+  const headers = loadModule(headersSource);
+  const requestClient = loadModule(requestClientSource, { "./headers": headers }, {
+    fetch: async () => new Response(JSON.stringify({ message: "database password=secret" }), { status: 500, headers: { "content-type": "application/json" } }),
+  });
+  const result = await requestClient.requestBffAt("http://storefront.test", "/sensitive");
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.error, "El servicio no está disponible temporalmente.");
+});
+
 test("Storefront wrapper does not receive an Admin token parameter", () => {
-  assert.match(storefrontClientSource, /requestBffAt\(storefrontBffBaseUrl, path, options\)/);
-  assert.match(storefrontClientSource, /requestBffResponseAt\(storefrontBffBaseUrl, path, options\)/);
+  assert.match(storefrontClientSource, /requestBffAt\(getStorefrontBffBaseUrl\(\), path, options\)/);
+  assert.match(storefrontClientSource, /requestBffResponseAt\(getStorefrontBffBaseUrl\(\), path, options\)/);
 });
 
 test("migrated Storefront readers, actions and technical handlers use the explicit client", () => {
@@ -168,6 +177,6 @@ test("Storefront E2E fixtures isolate the dedicated BFF destination", () => {
   ]) {
     const fixture = source(relativePath);
     assert.match(fixture, /ECOMMIUM_STOREFRONT_BFF_BASE_URL/);
-    assert.match(fixture, /ECOMMIUM_BFF_BASE_URL: "http:\/\/127\.0\.0\.1:1\/api\/v1"/);
+    assert.match(fixture, /ECOMMIUM_ADMIN_BFF_BASE_URL: "http:\/\/127\.0\.0\.1:1\/api\/v1"/);
   }
 });

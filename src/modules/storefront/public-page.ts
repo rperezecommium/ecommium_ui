@@ -32,7 +32,7 @@ export async function getStorefrontPublicPage(
   }
 
   const context = {
-    ...getStorefrontContext(),
+    ...await getStorefrontContext(),
     ...compactContext(options),
   };
   const limit = boundedPositiveInt(options.limit, defaultPageSize, maximumPageSize);

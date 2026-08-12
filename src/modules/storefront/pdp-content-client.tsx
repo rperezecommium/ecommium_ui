@@ -8,6 +8,7 @@ import { Check, Copy, Mail, Minus, Plus, RotateCcw, Search, Share2, ShieldCheck,
 import { StorefrontAddToCartButton } from "./cart-client";
 import type { StorefrontPdpData } from "./pdp";
 import { sendStorefrontSearchEvent } from "./search-events-client";
+import { sanitizeRichTextHtml } from "../../shared/security/rich-text";
 
 type Props = {
   data: StorefrontPdpData;
@@ -353,25 +354,6 @@ export function StorefrontPdpContentClient({ data }: Props) {
   );
 }
 
-const allowedStorefrontRichTextTags = new Set([
-  "a",
-  "blockquote",
-  "br",
-  "code",
-  "em",
-  "h2",
-  "h3",
-  "i",
-  "li",
-  "ol",
-  "p",
-  "pre",
-  "s",
-  "strong",
-  "strike",
-  "ul",
-]);
-
 function StorefrontRichText({
   className,
   fallback,
@@ -381,7 +363,7 @@ function StorefrontRichText({
   fallback?: string;
   html?: string;
 }) {
-  const sanitizedHtml = useMemo(() => sanitizeStorefrontRichTextHtml(html), [html]);
+  const sanitizedHtml = useMemo(() => sanitizeRichTextHtml(html), [html]);
 
   if (!sanitizedHtml) {
     return fallback ? <p className={className}>{fallback}</p> : null;
@@ -395,72 +377,6 @@ function StorefrontRichText({
   );
 }
 
-function sanitizeStorefrontRichTextHtml(html: string | undefined) {
-  if (!html?.trim()) {
-    return "";
-  }
-
-  return html
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
-    .replace(/<\/?([a-z][a-z0-9]*)(\s[^>]*)?>/gi, (match, rawTagName, rawAttributes = "") => {
-      const tagName = String(rawTagName).toLowerCase();
-      if (!allowedStorefrontRichTextTags.has(tagName)) {
-        return "";
-      }
-
-      if (match.startsWith("</")) {
-        return `</${tagName}>`;
-      }
-
-      if (tagName === "br") {
-        return "<br>";
-      }
-
-      if (tagName !== "a") {
-        return `<${tagName}>`;
-      }
-
-      const href = attributeValue(rawAttributes, "href");
-      const safeHref = href && isSafeStorefrontRichTextHref(href) ? href.trim() : "";
-      const title = attributeValue(rawAttributes, "title")?.trim();
-      const attributes = [
-        safeHref ? `href="${escapeHtmlAttribute(safeHref)}"` : "",
-        title ? `title="${escapeHtmlAttribute(title)}"` : "",
-        safeHref ? 'rel="noopener noreferrer"' : "",
-      ].filter(Boolean).join(" ");
-
-      return attributes ? `<a ${attributes}>` : "<a>";
-    })
-    .trim();
-}
-
-function attributeValue(attributes: string, name: string) {
-  const pattern = new RegExp(`${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s"'>]+))`, "i");
-  const match = attributes.match(pattern);
-  return match?.[2] ?? match?.[3] ?? match?.[4] ?? "";
-}
-
-function isSafeStorefrontRichTextHref(value: string) {
-  const normalized = value.trim().toLowerCase();
-  return (
-    normalized.startsWith("/") ||
-    normalized.startsWith("#") ||
-    normalized.startsWith("http://") ||
-    normalized.startsWith("https://") ||
-    normalized.startsWith("mailto:") ||
-    normalized.startsWith("tel:")
-  );
-}
-
-function escapeHtmlAttribute(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
 
 function richTextToPlainText(html: string | undefined) {
   return html

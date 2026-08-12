@@ -18,12 +18,12 @@ type PublicCommerceResultContext = {
   visitorId: string;
 };
 
-export function productPublicPageToPdpResult(
+export async function productPublicPageToPdpResult(
   publicPage: StorefrontProductPublicPage,
   request: PublicCommerceResultContext,
-): StorefrontPdpResult {
-  const context = getStorefrontContext();
-  const data = mapStorefrontPdpPayload(publicPage.page, {
+): Promise<StorefrontPdpResult> {
+  const context = await getStorefrontContext();
+  const data = await mapStorefrontPdpPayload(publicPage.page, {
     ...context,
     organizationId: publicPage.route.organizationId,
     shopId: publicPage.route.shopId,
@@ -45,7 +45,7 @@ export async function categoryPublicPageToPlpResult(
   publicPage: StorefrontCategoryPublicPage,
   request: PublicCommerceResultContext & { page?: string },
 ): Promise<StorefrontPlpResult> {
-  const context = getStorefrontContext();
+  const context = await getStorefrontContext();
   const categorySlug = lastPathSegment(publicPage.route.canonicalPath, "categoria");
   const data = await mapStorefrontPlpPayload(publicPage.page, {
     ...context,

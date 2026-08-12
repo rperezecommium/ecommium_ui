@@ -50,10 +50,9 @@ test("storefront PLP route exists outside admin", () => {
   assert.match(searchRouteSource, /getStorefrontSearch/);
   assert.match(searchRouteSource, /StorefrontPlpPage/);
   assert.match(searchRouteSource, /storefrontVisitorCookieName/);
-  assert.match(confirmationRouteSource, /StorefrontPurchaseCompleteClient/);
   assert.match(confirmationRouteSource, /StorefrontPaymentConfirmationClient/);
   assert.match(confirmationRouteSource, /transactionId/);
-  assert.match(confirmationRouteSource, /revenueMinor/);
+  assert.doesNotMatch(confirmationRouteSource, /revenueMinor|StorefrontPurchaseCompleteClient/);
   assert.doesNotMatch(confirmationRouteSource, /Payments\/BFF/);
   assert.doesNotMatch(confirmationRouteSource, /Resumen local/);
   assert.doesNotMatch(confirmationRouteSource, /Referencia de checkout/);
@@ -118,19 +117,13 @@ test("storefront PLP product cards expose availability ribbon and quick view", (
   assert.match(cssSource, /\.storefrontProductInfo b[\s\S]*font-size: 24px/);
 });
 
-test("storefront checkout confirmation records purchase complete events", () => {
+test("storefront checkout confirmation never reports purchase data from query parameters", () => {
   const confirmationRouteSource = readFileSync(path.resolve(root, "app/checkout/confirmation/page.tsx"), "utf8");
   const confirmationClientSource = readFileSync(path.resolve(root, "src/modules/storefront/payment-confirmation-client.tsx"), "utf8");
-  const purchaseClientSource = readFileSync(path.resolve(root, "src/modules/storefront/purchase-complete-client.tsx"), "utf8");
   const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
 
-  assert.match(purchaseClientSource, /eventType: "purchase-complete"/);
-  assert.match(purchaseClientSource, /purchaseTransaction/);
-  assert.match(purchaseClientSource, /currencyCode/);
-  assert.match(purchaseClientSource, /quantity: event\.quantity/);
-  assert.match(confirmationRouteSource, /productId/);
-  assert.match(confirmationRouteSource, /variantId/);
-  assert.match(confirmationRouteSource, /normalizeStorefrontVisitorId/);
+  assert.doesNotMatch(confirmationRouteSource, /StorefrontPurchaseCompleteClient/);
+  assert.doesNotMatch(confirmationRouteSource, /revenue|revenueMinor|taxMinor|costMinor|productId|variantId/);
   assert.match(confirmationRouteSource, /StorefrontPaymentConfirmationClient/);
   assert.match(confirmationRouteSource, /guestSessionId=\{guestSessionId\}/);
   assert.match(confirmationRouteSource, /orderId=\{orderId\}/);
@@ -297,6 +290,7 @@ test("storefront cart UI mutates orderforms through the BFF proxy", () => {
   assert.match(cartOfferingsRouteSource, /JSON\.stringify\(\{ offeringId \}\)/);
   assert.match(cartOfferingsRouteSource, /export async function DELETE/);
   assert.match(cartOfferingsRouteSource, /\/offerings\/\$\{encodeURIComponent\(offeringId\)\}/);
+  assert.match(cartOfferingsRouteSource, /jsonBody: false/);
   assert.match(cartOfferingsRouteSource, /Carrito guest requiere guestSessionId/);
   assert.match(cssSource, /\.storefrontCartLayout/);
   assert.match(cssSource, /\.storefrontCartItem/);
@@ -483,7 +477,7 @@ test("storefront PDP exposes image zoom interactions", () => {
 
 test("storefront PLP fetches public BFF listing with routePath for CMS targeting", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestStorefrontBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, options });
 
     if (pathValue === "/storefront/navigation/categories/tree/3") {
@@ -551,23 +545,12 @@ test("storefront PLP fetches public BFF listing with routePath for CMS targeting
   };
   const { getStorefrontPlp } = loadTsModule("src/modules/storefront/plp.ts", (specifier) => {
     if (specifier.endsWith("/shared/bff/storefront-client")) {
-      return { requestStorefrontBff: requestBff };
+      return { requestStorefrontBff };
     }
-    if (specifier.endsWith("/shared/config/env")) {
+    if (specifier.endsWith("./storefront-context")) {
       return {
-        defaultAdminContext: {
-          organizationId: "org-1",
-          shopId: "shop-1",
-          shopAlias: "",
-          locale: "es-ES",
-          currency: "EUR",
-          country: "ES",
-        },
-      };
-    }
-    if (specifier === "./storefront-context") {
-      return {
-        getStorefrontContext: () => ({
+        getStorefrontContext() {
+          return {
           organizationId: "org-1",
           shopId: "shop-1",
           shopAlias: "",
@@ -575,7 +558,8 @@ test("storefront PLP fetches public BFF listing with routePath for CMS targeting
           currency: "EUR",
           country: "ES",
           channel: "web",
-        }),
+          };
+        },
       };
     }
     return {};
@@ -604,7 +588,7 @@ test("storefront PLP fetches public BFF listing with routePath for CMS targeting
 
 test("storefront search fetches public BFF search with q and visitorId", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestStorefrontBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, options });
 
     if (pathValue === "/storefront/navigation/categories/tree/3") {
@@ -641,23 +625,12 @@ test("storefront search fetches public BFF search with q and visitorId", async (
   };
   const { getStorefrontSearch } = loadTsModule("src/modules/storefront/plp.ts", (specifier) => {
     if (specifier.endsWith("/shared/bff/storefront-client")) {
-      return { requestStorefrontBff: requestBff };
+      return { requestStorefrontBff };
     }
-    if (specifier.endsWith("/shared/config/env")) {
+    if (specifier.endsWith("./storefront-context")) {
       return {
-        defaultAdminContext: {
-          organizationId: "org-1",
-          shopId: "shop-1",
-          shopAlias: "",
-          locale: "es-ES",
-          currency: "EUR",
-          country: "ES",
-        },
-      };
-    }
-    if (specifier === "./storefront-context") {
-      return {
-        getStorefrontContext: () => ({
+        getStorefrontContext() {
+          return {
           organizationId: "org-1",
           shopId: "shop-1",
           shopAlias: "",
@@ -665,7 +638,8 @@ test("storefront search fetches public BFF search with q and visitorId", async (
           currency: "EUR",
           country: "ES",
           channel: "web",
-        }),
+          };
+        },
       };
     }
     return {};
@@ -700,7 +674,7 @@ test("storefront search fetches public BFF search with q and visitorId", async (
 
 test("storefront PDP maps product details, variants and specifications", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestStorefrontBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, options });
 
     if (pathValue === "/storefront/navigation/categories/tree/3") {
@@ -773,17 +747,20 @@ test("storefront PDP maps product details, variants and specifications", async (
   };
   const { getStorefrontPdp } = loadTsModule("src/modules/storefront/pdp.ts", (specifier) => {
     if (specifier.endsWith("/shared/bff/storefront-client")) {
-      return { requestStorefrontBff: requestBff };
+      return { requestStorefrontBff };
     }
-    if (specifier.endsWith("/shared/config/env")) {
+    if (specifier.endsWith("./storefront-context")) {
       return {
-        defaultAdminContext: {
-          organizationId: "org-1",
-          shopId: "shop-1",
-          shopAlias: "",
-          locale: "es-ES",
-          currency: "EUR",
-          country: "ES",
+        getStorefrontContext() {
+          return {
+            organizationId: "org-1",
+            shopId: "shop-1",
+            shopAlias: "",
+            locale: "es-ES",
+            currency: "EUR",
+            country: "ES",
+            channel: "web",
+          };
         },
       };
     }
@@ -826,7 +803,7 @@ test("storefront PDP maps product details, variants and specifications", async (
 
 test("storefront PDP does not fallback to PLP when public slug is missing", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestStorefrontBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, options });
     return {
       ok: false,
@@ -837,17 +814,20 @@ test("storefront PDP does not fallback to PLP when public slug is missing", asyn
   };
   const { getStorefrontPdp } = loadTsModule("src/modules/storefront/pdp.ts", (specifier) => {
     if (specifier.endsWith("/shared/bff/storefront-client")) {
-      return { requestStorefrontBff: requestBff };
+      return { requestStorefrontBff };
     }
-    if (specifier.endsWith("/shared/config/env")) {
+    if (specifier.endsWith("./storefront-context")) {
       return {
-        defaultAdminContext: {
-          organizationId: "org-1",
-          shopId: "shop-1",
-          shopAlias: "",
-          locale: "es-ES",
-          currency: "EUR",
-          country: "ES",
+        getStorefrontContext() {
+          return {
+            organizationId: "org-1",
+            shopId: "shop-1",
+            shopAlias: "",
+            locale: "es-ES",
+            currency: "EUR",
+            country: "ES",
+            channel: "web",
+          };
         },
       };
     }

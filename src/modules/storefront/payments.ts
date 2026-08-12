@@ -184,6 +184,41 @@ export function normalizeStorefrontPaymentMethod(value: unknown): StorefrontPaym
   };
 }
 
+const redirectHostsByProvider: Record<Exclude<StorefrontPaymentProvider, "unknown">, ReadonlySet<string>> = {
+  paypal: new Set(["www.paypal.com", "www.sandbox.paypal.com"]),
+  stripe: new Set(["checkout.stripe.com"]),
+};
+
+const redirectControlCharacters = /[\u0000-\u001F\u007F]/;
+
+export function validateStorefrontPaymentRedirectUrl(
+  provider: StorefrontPaymentProvider,
+  value: string | undefined,
+) {
+  const candidate = value?.trim();
+  if (!candidate || candidate.length > 2048 || redirectControlCharacters.test(candidate) || provider === "unknown") {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(candidate);
+    const allowedHosts = redirectHostsByProvider[provider];
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.port ||
+      !allowedHosts.has(url.hostname.toLowerCase())
+    ) {
+      return undefined;
+    }
+
+    return url.href;
+  } catch {
+    return undefined;
+  }
+}
+
 export function installedStorefrontPaymentMethods(methods: StorefrontPaymentMethod[]) {
   return methods.filter((method) => method.active && (method.provider === "paypal" || method.provider === "stripe"));
 }
@@ -296,17 +331,18 @@ export function decideStorefrontPaymentAction(
   const provider = method.provider;
 
   if (transaction.nextAction.type === "REDIRECT") {
-    if (transaction.nextAction.redirectUrl) {
+    const redirectUrl = validateStorefrontPaymentRedirectUrl(provider, transaction.nextAction.redirectUrl);
+    if (redirectUrl) {
       return {
         kind: "redirect",
         provider,
-        redirectUrl: transaction.nextAction.redirectUrl,
+        redirectUrl,
       };
     }
 
     return {
       kind: "unsupported",
-      message: "La pasarela no devolvio una URL de redireccion.",
+      message: "La pasarela no devolvio una URL de redireccion valida.",
       provider,
     };
   }

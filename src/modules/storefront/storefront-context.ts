@@ -1,53 +1,99 @@
-import { defaultAdminContext } from "../../shared/config/env";
+import { headers } from "next/headers";
+import { requestStorefrontBff } from "../../shared/bff/storefront-client";
+import {
+  getStorefrontRuntimeContextHints,
+  StorefrontConfigurationError,
+  type StorefrontRuntimeContext,
+} from "../../shared/config/storefront-env";
 
-export type StorefrontContext = {
-  organizationId: string;
-  shopId: string;
-  shopAlias: string;
-  locale: string;
-  currency: string;
-  country: string;
-  channel: string;
+export type StorefrontContext = StorefrontRuntimeContext;
+
+const storefrontContextHeader = "x-ecommium-storefront-context";
+
+type ResolveStorefrontContextInput = {
+  host?: string | null;
+  organizationId?: string | null;
+  shopAlias?: string | null;
 };
 
-const localStorefrontDefaults: StorefrontContext = {
-  organizationId: "11111111-1111-4111-8111-111111111111",
-  shopId: "22222222-2222-4222-8222-222222222222",
-  shopAlias: "tienda-barcelona",
-  locale: "es-ES",
-  currency: "EUR",
-  country: "ES",
-  channel: "web",
-};
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
+}
 
-export function getStorefrontContext(): StorefrontContext {
-  return {
-    organizationId:
-      process.env.ECOMMIUM_STOREFRONT_ORGANIZATION_ID ||
-      defaultAdminContext.organizationId ||
-      localStorefrontDefaults.organizationId,
-    shopId:
-      process.env.ECOMMIUM_STOREFRONT_SHOP_ID ||
-      defaultAdminContext.shopId ||
-      localStorefrontDefaults.shopId,
-    shopAlias:
-      process.env.ECOMMIUM_STOREFRONT_SHOP_ALIAS ||
-      defaultAdminContext.shopAlias ||
-      localStorefrontDefaults.shopAlias,
-    locale:
-      process.env.ECOMMIUM_STOREFRONT_LOCALE ||
-      defaultAdminContext.locale ||
-      localStorefrontDefaults.locale,
-    currency:
-      process.env.ECOMMIUM_STOREFRONT_CURRENCY ||
-      defaultAdminContext.currency ||
-      localStorefrontDefaults.currency,
-    country:
-      process.env.ECOMMIUM_STOREFRONT_COUNTRY ||
-      defaultAdminContext.country ||
-      localStorefrontDefaults.country,
-    channel:
-      process.env.ECOMMIUM_STOREFRONT_CHANNEL ||
-      localStorefrontDefaults.channel,
+function asString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function parseResolvedContext(value: unknown): StorefrontContext {
+  const record = asRecord(value);
+  const settings = asRecord(record.effectiveSettings);
+  const context = {
+    organizationId: asString(record.organizationId),
+    shopId: asString(record.shopId),
+    shopAlias: asString(record.shopAlias),
+    locale: asString(record.locale) || asString(settings.defaultLocale) || "es-ES",
+    currency: asString(record.currency) || asString(settings.defaultCurrency) || "EUR",
+    country: asString(record.country) || asString(settings.defaultCountry) || "ES",
+    channel: asString(record.channel) || asString(settings.defaultChannel) || "web",
   };
+
+  if (!context.organizationId || !context.shopId) {
+    throw new StorefrontConfigurationError(
+      "El BFF devolvió un contexto Storefront incompleto.",
+    );
+  }
+
+  return context;
+}
+
+export function serializeStorefrontContext(context: StorefrontContext) {
+  return encodeURIComponent(JSON.stringify(context));
+}
+
+function parseSerializedStorefrontContext(value: string | null): StorefrontContext | null {
+  if (!value || value.length > 4096) return null;
+
+  try {
+    return parseResolvedContext(JSON.parse(decodeURIComponent(value)));
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveStorefrontContext(
+  input: ResolveStorefrontContextInput = {},
+): Promise<StorefrontContext> {
+  const hints = getStorefrontRuntimeContextHints();
+  const params = new URLSearchParams();
+  const host = input.host?.trim();
+  const organizationId = input.organizationId?.trim() || hints.organizationId;
+  const shopAlias = input.shopAlias?.trim() || hints.shopAlias;
+
+  if (host) params.set("host", host);
+  if (organizationId) params.set("organizationId", organizationId);
+  if (shopAlias) params.set("shopAlias", shopAlias);
+
+  const result = await requestStorefrontBff<unknown>(
+    `/storefront/context/resolve?${params.toString()}`,
+    { withAuth: false },
+  );
+  if (!result.ok) {
+    throw new StorefrontConfigurationError(
+      "No se pudo resolver una tienda pública para esta dirección.",
+    );
+  }
+
+  return parseResolvedContext(result.data);
+}
+
+export async function getStorefrontContext(): Promise<StorefrontContext> {
+  const requestHeaders = await headers();
+  const injected = parseSerializedStorefrontContext(
+    requestHeaders.get(storefrontContextHeader),
+  );
+  if (injected) return injected;
+
+  return resolveStorefrontContext({
+    host: requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host"),
+  });
 }

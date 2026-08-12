@@ -22,8 +22,8 @@ function errorResponse(message: string, status: number) {
   );
 }
 
-function storefrontParams() {
-  const context = getStorefrontContext();
+async function storefrontParams() {
+  const context = await getStorefrontContext();
   const params = new URLSearchParams({
     organizationId: context.organizationId,
     locale: context.locale,
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     return errorResponse("Inicia sesión para guardar direcciones.", 401);
   }
 
-  const params = storefrontParams();
+  const params = await storefrontParams();
   const result = await requestStorefrontBff<unknown>(`/storefront/me/addresses?${params.toString()}`, {
     context: {
       locale: params.get("locale") ?? undefined,

@@ -118,7 +118,7 @@ test("public catch-all resolves unmatched storefront paths through the page clie
   assert.match(catchAll, /pathSegments\.join\("\/"\)/);
   assert.match(catchAll, /loadPublicPage\(publicPath, first\(query\.page\), first\(query\.limit\), visitorId\)/);
   assert.match(catchAll, /storefrontVisitorCookieName/);
-  assert.doesNotMatch(catchAll, /requestBff|services\/cms|services\/routing-seo/);
+  assert.doesNotMatch(catchAll, /requestAdminBff|services\/cms|services\/routing-seo/);
 });
 
 test("public catch-all keeps private and existing storefront surfaces reserved", () => {
@@ -177,7 +177,7 @@ test("generic product routes reuse the operative PDP without a second product re
   assert.match(publicView, /productPublicPageToPdpResult\(data/);
   assert.match(publicView, /<StorefrontPdpPage result=\{result\}/);
   assert.match(commerceAdapter, /mapStorefrontPdpPayload\(publicPage\.page/);
-  assert.match(pdp, /export function mapStorefrontPdpPayload/);
+  assert.match(pdp, /export async function mapStorefrontPdpPayload/);
   assert.doesNotMatch(commerceAdapter, /getStorefrontPdp\(/);
   assert.doesNotMatch(publicView, /Producto encontrado/);
 });

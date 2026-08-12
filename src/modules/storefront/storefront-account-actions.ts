@@ -348,7 +348,11 @@ export async function closeStorefrontAccountSessions(
 }
 
 export async function logoutStorefrontCustomer(): Promise<void> {
-  await clearStorefrontCustomerSession();
+  try {
+    await logoutCurrentStorefrontSession();
+  } finally {
+    await clearStorefrontCustomerSession();
+  }
   revalidatePath("/");
   redirect("/");
 }

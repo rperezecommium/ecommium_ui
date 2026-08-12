@@ -1,16 +1,6 @@
 import { requestStorefrontBff } from "../../shared/bff/storefront-client";
-import { defaultAdminContext } from "../../shared/config/env";
 import { normalizeStorefrontVisitorId } from "./visitor";
-
-type StorefrontContext = {
-  organizationId: string;
-  shopId: string;
-  shopAlias: string;
-  locale: string;
-  currency: string;
-  country: string;
-  channel: string;
-};
+import { getStorefrontContext, type StorefrontContext } from "./storefront-context";
 
 export type StorefrontPdpVariant = {
   variantId: string;
@@ -104,26 +94,6 @@ export type StorefrontPdpResult = {
   data?: StorefrontPdpData;
 };
 
-const localStorefrontDefaults: StorefrontContext = {
-  organizationId: "11111111-1111-4111-8111-111111111111",
-  shopId: "22222222-2222-4222-8222-222222222222",
-  shopAlias: "tienda-barcelona",
-  locale: "es-ES",
-  currency: "EUR",
-  country: "ES",
-  channel: "web",
-};
-
-const storefrontContext: StorefrontContext = {
-  organizationId: process.env.ECOMMIUM_STOREFRONT_ORGANIZATION_ID || defaultAdminContext.organizationId || localStorefrontDefaults.organizationId,
-  shopId: process.env.ECOMMIUM_STOREFRONT_SHOP_ID || defaultAdminContext.shopId || localStorefrontDefaults.shopId,
-  shopAlias: process.env.ECOMMIUM_STOREFRONT_SHOP_ALIAS || defaultAdminContext.shopAlias || localStorefrontDefaults.shopAlias,
-  locale: process.env.ECOMMIUM_STOREFRONT_LOCALE || defaultAdminContext.locale || localStorefrontDefaults.locale,
-  currency: process.env.ECOMMIUM_STOREFRONT_CURRENCY || defaultAdminContext.currency || localStorefrontDefaults.currency,
-  country: process.env.ECOMMIUM_STOREFRONT_COUNTRY || defaultAdminContext.country || localStorefrontDefaults.country,
-  channel: process.env.ECOMMIUM_STOREFRONT_CHANNEL || localStorefrontDefaults.channel,
-};
-
 type StorefrontPdpOverrides = Partial<StorefrontContext & {
   categorySlug: string;
   productId: string;
@@ -135,12 +105,12 @@ export type StorefrontPdpPayloadOptions = Partial<StorefrontContext> & {
   visitorId?: string;
 };
 
-export function mapStorefrontPdpPayload(
+export async function mapStorefrontPdpPayload(
   payload: unknown,
   options: StorefrontPdpPayloadOptions,
-): StorefrontPdpData {
+): Promise<StorefrontPdpData> {
   const context = {
-    ...storefrontContext,
+    ...await getStorefrontContext(),
     ...compactContext(options),
   };
 
@@ -158,7 +128,7 @@ export async function getStorefrontPdp(
   overrides: StorefrontPdpOverrides = {},
 ): Promise<StorefrontPdpResult> {
   const context = {
-    ...storefrontContext,
+    ...await getStorefrontContext(),
     ...compactContext(overrides),
   };
   const contextParams = buildContextParams(context);

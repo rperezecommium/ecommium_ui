@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { getStorefrontContext, type StorefrontContext } from "./storefront-context";
 
 export type StorefrontCustomerSession = {
   accessToken: string;
@@ -68,9 +69,20 @@ function parseSession(value: string | undefined): StorefrontCustomerSession | nu
   }
 }
 
+export function isStorefrontCustomerSessionForContext(
+  session: Pick<StorefrontCustomerSession, "organizationId" | "shopId">,
+  context: Pick<StorefrontContext, "organizationId" | "shopId">,
+) {
+  return session.organizationId === context.organizationId && session.shopId === context.shopId;
+}
+
 export async function getStorefrontCustomerSession(): Promise<StorefrontCustomerSession | null> {
   const cookieStore = await cookies();
-  return parseSession(cookieStore.get(storefrontCustomerSessionCookieName)?.value);
+  const session = parseSession(cookieStore.get(storefrontCustomerSessionCookieName)?.value);
+  if (!session || !isStorefrontCustomerSessionForContext(session, await getStorefrontContext())) {
+    return null;
+  }
+  return session;
 }
 
 export async function getStorefrontCustomerAuthorizationHeader(): Promise<string | null> {
@@ -79,6 +91,10 @@ export async function getStorefrontCustomerAuthorizationHeader(): Promise<string
 }
 
 export async function saveStorefrontCustomerSession(input: StorefrontCustomerSessionInput): Promise<void> {
+  if (!isStorefrontCustomerSessionForContext(input, await getStorefrontContext())) {
+    throw new Error("La sesion Customer no coincide con el tenant Storefront activo.");
+  }
+
   const cookieStore = await cookies();
   const expiresAt = new Date(
     Date.now() + Math.max(0, input.expiresInSeconds) * 1000,

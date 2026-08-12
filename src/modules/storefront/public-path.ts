@@ -6,9 +6,11 @@ import {
 } from "./public-page-contract";
 import { normalizeStorefrontPublicPath } from "./public-page";
 import { getStorefrontContext } from "./storefront-context";
+import type { StorefrontContext } from "./storefront-context";
 
 export async function resolveStorefrontPublicPath(
   path: string,
+  resolvedContext?: StorefrontContext,
 ): Promise<BffResult<StorefrontPublicPathResolution>> {
   const publicPath = normalizeStorefrontPublicPath(path);
   if (!publicPath) {
@@ -20,7 +22,7 @@ export async function resolveStorefrontPublicPath(
     };
   }
 
-  const context = getStorefrontContext();
+  const context = resolvedContext ?? await getStorefrontContext();
   const params = new URLSearchParams({
     organizationId: context.organizationId,
     shopId: context.shopId,

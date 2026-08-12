@@ -153,7 +153,8 @@ test("storefront checkout starts payment transactions and persists redirect atte
   assert.match(clientSource, /createStorefrontPaymentCorrelationId/);
   assert.match(clientSource, /buildPaymentTransactionPayload/);
   assert.match(clientSource, /buildPaymentInventorySnapshot/);
-  assert.match(clientSource, /window\.location\.assign\(decision\.redirectUrl\)/);
+  assert.match(clientSource, /validateStorefrontPaymentRedirectUrl/);
+  assert.match(clientSource, /window\.location\.assign\(redirectUrl\)/);
   assert.match(clientSource, /\/checkout\/payments\/\$\{provider\}\/return/);
   assert.match(clientSource, /\/checkout\/payments\/\$\{provider\}\/cancel/);
   assert.match(clientSource, /transactionId: input\.transactionId/);

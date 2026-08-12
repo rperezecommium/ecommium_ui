@@ -33,8 +33,8 @@ function errorResponse(message: string, status: number) {
   );
 }
 
-function cartContextParams() {
-  const context = getStorefrontContext();
+async function cartContextParams() {
+  const context = await getStorefrontContext();
   const params = new URLSearchParams({
     organizationId: context.organizationId,
     locale: context.locale,
@@ -63,10 +63,17 @@ function responsePayload(payload: unknown, params: URLSearchParams) {
     : { orderform: payload, storefrontContext };
 }
 
-function passthroughHeaders(authorization: string | null, guestSessionId?: string) {
+function passthroughHeaders(
+  authorization: string | null,
+  guestSessionId?: string,
+  options: { jsonBody?: boolean } = { jsonBody: true },
+) {
   const headers: Record<string, string> = {
-    "content-type": "application/json",
+    accept: "application/json",
   };
+  if (options.jsonBody !== false) {
+    headers["content-type"] = "application/json";
+  }
   if (authorization) {
     headers.authorization = authorization;
   }
@@ -93,7 +100,7 @@ export async function POST(request: Request) {
     return errorResponse("Agregar servicio requiere offeringId.", 400);
   }
 
-  const params = cartContextParams();
+  const params = await cartContextParams();
   if (guestSessionId) {
     params.set("guestSessionId", guestSessionId);
   }
@@ -147,7 +154,7 @@ export async function DELETE(request: Request) {
     return errorResponse("Quitar servicio requiere offeringId.", 400);
   }
 
-  const params = cartContextParams();
+  const params = await cartContextParams();
   if (guestSessionId) {
     params.set("guestSessionId", guestSessionId);
   }
@@ -165,7 +172,7 @@ export async function DELETE(request: Request) {
       },
       init: {
         method: "DELETE",
-        headers: passthroughHeaders(authorization, guestSessionId),
+        headers: passthroughHeaders(authorization, guestSessionId, { jsonBody: false }),
       },
       withAuth: false,
     },

@@ -138,7 +138,7 @@ export async function loginStorefrontCustomer(
   const email = formString(formData, "email");
   const password = formString(formData, "password");
   const redirectTo = safeRedirectPath(formString(formData, "redirectTo"), "/account");
-  const context = getStorefrontContext();
+  const context = await getStorefrontContext();
 
   if (!email || !password) {
     return {
@@ -195,7 +195,7 @@ export async function signupStorefrontCustomer(
   const startedAt = formString(formData, "startedAt");
   const turnstileToken = formString(formData, "turnstileToken");
   const redirectTo = formString(formData, "redirectTo");
-  const context = getStorefrontContext();
+  const context = await getStorefrontContext();
   const humanVerification = getStorefrontSignupHumanVerificationConfig();
 
   if (!email || !password || !firstName || !lastName) {
@@ -286,7 +286,7 @@ export async function requestStorefrontPasswordReset(
 ): Promise<StorefrontAuthActionState> {
   void previousState;
   const email = formString(formData, "email");
-  const context = getStorefrontContext();
+  const context = await getStorefrontContext();
 
   if (!email) {
     return {
@@ -336,7 +336,7 @@ export async function confirmStorefrontPasswordReset(
   void previousState;
   const token = formString(formData, "token");
   const password = formString(formData, "password");
-  const context = getStorefrontContext();
+  const context = await getStorefrontContext();
 
   if (!token || !password) {
     return {
@@ -380,7 +380,7 @@ export async function resendStorefrontActivation(
 ): Promise<StorefrontAuthActionState> {
   void previousState;
   const email = formString(formData, "email");
-  const context = getStorefrontContext();
+  const context = await getStorefrontContext();
 
   if (!email) {
     return {

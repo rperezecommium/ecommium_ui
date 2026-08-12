@@ -22,8 +22,8 @@ function errorResponse(message: string, status: number) {
   );
 }
 
-function paymentsContextParams(requestUrl: URL, input: Record<string, unknown>) {
-  const context = getStorefrontContext();
+async function paymentsContextParams(requestUrl: URL, input: Record<string, unknown>) {
+  const context = await getStorefrontContext();
   const params = new URLSearchParams({
     organizationId: context.organizationId,
     locale: context.locale,
@@ -74,7 +74,7 @@ function stripUiOnlyFields(input: Record<string, unknown>) {
 export async function POST(request: Request) {
   const input = asRecord(await request.json().catch(() => null));
   const requestUrl = new URL(request.url);
-  const params = paymentsContextParams(requestUrl, input);
+  const params = await paymentsContextParams(requestUrl, input);
   const guestSessionId = asString(params.get("guestSessionId"));
   const authorization = await getStorefrontCustomerAuthorizationHeader();
 

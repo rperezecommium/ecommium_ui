@@ -31,7 +31,7 @@ export async function StorefrontResolvedPublicPage({
   }
 
   if (data.kind === "PRODUCT") {
-    const result = productPublicPageToPdpResult(data, { correlationId, status, visitorId });
+    const result = await productPublicPageToPdpResult(data, { correlationId, status, visitorId });
     return <StorefrontPdpPage result={result} productSlug={result.data?.slug ?? data.route.requestedPath} />;
   }
 

@@ -98,7 +98,7 @@ export async function mapStorefrontPlpPayload(
   options: StorefrontPlpPayloadOptions,
 ): Promise<StorefrontPlpData> {
   const context = {
-    ...getStorefrontContext(),
+    ...await getStorefrontContext(),
     ...compactContext(options),
   };
   const currentPage = positiveInt(options.page, 1);
@@ -111,6 +111,7 @@ export async function mapStorefrontPlpPayload(
     buildContextParams(context).toString(),
     options.publicPath,
     categories,
+    context.currency,
   );
 }
 
@@ -119,7 +120,7 @@ export async function getStorefrontPlp(
   overrides: StorefrontPlpOverrides = {},
 ): Promise<StorefrontPlpResult> {
   const context = {
-    ...getStorefrontContext(),
+    ...await getStorefrontContext(),
     ...compactContext(overrides),
   };
   const limit = positiveInt(overrides.limit, 16);
@@ -156,7 +157,7 @@ export async function getStorefrontPlp(
     requestedPath,
     status: result.status,
     correlationId: result.correlationId,
-    data: mapPlpPayload(result.data, categorySlug, currentPage, contextParams.toString(), publicPath, categories),
+    data: mapPlpPayload(result.data, categorySlug, currentPage, contextParams.toString(), publicPath, categories, context.currency),
   };
 }
 
@@ -165,7 +166,7 @@ export async function getStorefrontSearch(
   overrides: StorefrontPlpOverrides = {},
 ): Promise<StorefrontPlpResult> {
   const context = {
-    ...getStorefrontContext(),
+    ...await getStorefrontContext(),
     ...compactContext(overrides),
   };
   const searchQuery = query.trim();
@@ -249,6 +250,7 @@ function mapPlpPayload(
   contextQuery: string,
   publicPath: string,
   categories: StorefrontCategoryLink[],
+  fallbackCurrency: string,
 ): StorefrontPlpData {
   const root = asRecord(payload);
   const cmsBlocks = asRecord(root.cmsBlocks);
@@ -266,7 +268,7 @@ function mapPlpPayload(
     contextQuery,
     publicPath,
     categories,
-    products: listItems(root.products).map(mapProduct),
+    products: listItems(root.products).map((product) => mapProduct(product, fallbackCurrency)),
     cmsBlocks: {
       beforeList: listItems(cmsBlocks.beforeList).map(mapBlock),
       afterList: listItems(cmsBlocks.afterList).map(mapBlock),
@@ -310,7 +312,7 @@ function mapSearchPayload(
   visitorId: string,
 ): StorefrontPlpData {
   const root = asRecord(payload);
-  const products = searchItems(root).map(mapProduct);
+  const products = searchItems(root).map((product) => mapProduct(product, context.currency));
   const limit = asNumber(root.limit) ?? 16;
   const total = asNumber(root.total) ?? asNumber(root.searchTotal) ?? products.length;
   const offset = asNumber(root.offset) ?? 0;
@@ -420,7 +422,7 @@ function titleFromSlug(slug: string) {
     .join(" ") || "Categoria";
 }
 
-function mapProduct(value: unknown): StorefrontPlpProduct {
+function mapProduct(value: unknown, fallbackCurrency: string): StorefrontPlpProduct {
   const product = asRecord(value);
   const image = asRecord(product.image);
   const price = asRecord(product.price);
@@ -431,7 +433,7 @@ function mapProduct(value: unknown): StorefrontPlpProduct {
     asNumber(price.amountMinor);
   const previousAmountMinor =
     asNumber(price.previousAmountMinor) ?? asNumber(price.listAmountMinor);
-  const currency = asString(price.currency) ?? getStorefrontContext().currency;
+  const currency = asString(price.currency) ?? fallbackCurrency;
 
   return {
     productId: asString(product.productId) ?? asString(product.variantId) ?? "product",

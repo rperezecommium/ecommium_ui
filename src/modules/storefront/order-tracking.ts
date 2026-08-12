@@ -54,8 +54,8 @@ function normalizeOrderReference(value: string) {
   return value.trim();
 }
 
-function trackingParams() {
-  const context = getStorefrontContext();
+async function trackingParams() {
+  const context = await getStorefrontContext();
   return {
     context,
     params: new URLSearchParams({
@@ -81,7 +81,7 @@ export async function getStorefrontOrderTracking(
     };
   }
 
-  const { context, params } = trackingParams();
+  const { context, params } = await trackingParams();
 
   if (token) {
     params.set("trackingAccessToken", token);
@@ -117,7 +117,7 @@ export async function requestStorefrontTrackingAccessRecovery(
     return invalidTrackingRequest("Indica una referencia y un email validos.");
   }
 
-  const { context, params } = trackingParams();
+  const { context, params } = await trackingParams();
   return requestStorefrontBff<{ accepted: true }>(
     `/storefront/order-tracking/access-recovery?${params.toString()}`,
     {

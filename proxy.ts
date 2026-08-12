@@ -1,8 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { isSafeStorefrontTarget, resolveStorefrontPublicPath } from "./src/modules/storefront/public-path";
+import {
+  resolveStorefrontContext,
+  serializeStorefrontContext,
+} from "./src/modules/storefront/storefront-context";
 import { refreshAdminTokens } from "./src/shared/auth/admin-session-refresh";
 
 const adminSessionCookieName = "ecommium_employee_session";
+const maximumPublicPathLength = 2048;
+const maximumPublicQueryLength = 2048;
+const maximumPublicPathSegments = 12;
 
 const reservedFirstSegments = new Set([
   "_next", "public-system", "account", "admin", "api", "assets", "auth", "cart", "checkout", "storefront",
@@ -15,7 +22,20 @@ export async function proxy(request: NextRequest) {
 
   if (!isPublicCandidate(request)) return NextResponse.next();
 
-  const resolution = await resolveStorefrontPublicPath(request.nextUrl.pathname);
+  let storefrontContext;
+  try {
+    storefrontContext = await resolveStorefrontContext({
+      host: request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+      shopAlias: request.nextUrl.searchParams.get("shopAlias"),
+    });
+  } catch {
+    const unavailableTarget = request.nextUrl.clone();
+    unavailableTarget.pathname = "/public-system/storefront-unavailable";
+    unavailableTarget.search = "";
+    return NextResponse.rewrite(unavailableTarget, { status: 503 });
+  }
+
+  const resolution = await resolveStorefrontPublicPath(request.nextUrl.pathname, storefrontContext);
   if (!resolution.ok) {
     if (resolution.status === 404 && request.nextUrl.pathname !== "/") {
       const notFoundTarget = request.nextUrl.clone();
@@ -23,16 +43,25 @@ export async function proxy(request: NextRequest) {
       notFoundTarget.search = "";
       return NextResponse.rewrite(notFoundTarget, { status: 404 });
     }
-    return NextResponse.next();
+    return nextWithStorefrontContext(request, storefrontContext);
   }
-  if (resolution.data.kind !== "REDIRECT") return NextResponse.next();
-  if (!isSafeStorefrontTarget(resolution.data.toPath)) return NextResponse.next();
-  if (resolution.data.toPath === request.nextUrl.pathname) return NextResponse.next();
+  if (resolution.data.kind !== "REDIRECT") return nextWithStorefrontContext(request, storefrontContext);
+  if (!isSafeStorefrontTarget(resolution.data.toPath)) return nextWithStorefrontContext(request, storefrontContext);
+  if (resolution.data.toPath === request.nextUrl.pathname) return nextWithStorefrontContext(request, storefrontContext);
 
   const target = request.nextUrl.clone();
   target.pathname = resolution.data.toPath;
   target.search = "";
   return NextResponse.redirect(target, resolution.data.statusCode);
+}
+
+function nextWithStorefrontContext(
+  request: NextRequest,
+  context: Awaited<ReturnType<typeof resolveStorefrontContext>>,
+) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-ecommium-storefront-context", serializeStorefrontContext(context));
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 async function refreshExpiredAdminSession(request: NextRequest) {
@@ -81,7 +110,9 @@ async function refreshExpiredAdminSession(request: NextRequest) {
 
 function isPublicCandidate(request: NextRequest) {
   if (request.method !== "GET" && request.method !== "HEAD") return false;
+  if (request.nextUrl.pathname.length > maximumPublicPathLength || request.nextUrl.search.length > maximumPublicQueryLength) return false;
   const segments = request.nextUrl.pathname.split("/").filter(Boolean);
+  if (segments.length > maximumPublicPathSegments) return false;
   const firstSegment = segments[0]?.toLowerCase();
   if (!firstSegment) return request.nextUrl.pathname === "/";
   if (reservedFirstSegments.has(firstSegment)) return false;

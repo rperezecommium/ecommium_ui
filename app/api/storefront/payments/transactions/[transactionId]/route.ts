@@ -24,8 +24,8 @@ function errorResponse(message: string, status: number) {
   );
 }
 
-function paymentsContextParams(requestUrl: URL) {
-  const context = getStorefrontContext();
+async function paymentsContextParams(requestUrl: URL) {
+  const context = await getStorefrontContext();
   const params = new URLSearchParams({
     organizationId: context.organizationId,
     locale: context.locale,
@@ -74,7 +74,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   const requestUrl = new URL(request.url);
-  const params = paymentsContextParams(requestUrl);
+  const params = await paymentsContextParams(requestUrl);
   const guestSessionId = asString(params.get("guestSessionId"));
   const authorization = await getStorefrontCustomerAuthorizationHeader();
 

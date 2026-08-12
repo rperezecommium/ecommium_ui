@@ -20,6 +20,7 @@ function loadPaymentsModule(storage = createStorage()) {
   const moduleContext = {
     Headers,
     Response,
+    URL,
     URLSearchParams,
     crypto: {
       randomUUID: () => "uuid-test",
@@ -107,6 +108,39 @@ test("storefront payments decide redirect and reject missing redirect urls", () 
   });
 
   assert.equal(decideStorefrontPaymentAction({ provider: "stripe" }, missingUrl).kind, "unsupported");
+});
+
+test("storefront payments accept only exact HTTPS redirect hosts for each PSP", () => {
+  const { decideStorefrontPaymentAction, validateStorefrontPaymentRedirectUrl } = loadPaymentsModule();
+  const invalidUrls = [
+    "javascript:alert(1)",
+    "data:text/html,alert(1)",
+    "http://www.paypal.com/checkoutnow",
+    "https://paypal.com.evil.test/checkoutnow",
+    "https://www.paypal.com@evil.test/checkoutnow",
+    "https://www.paypal.com:444/checkoutnow",
+    "//www.paypal.com/checkoutnow",
+    "/checkoutnow",
+    "https://www.paypal.com/checkout\nnow",
+  ];
+
+  for (const value of invalidUrls) {
+    assert.equal(validateStorefrontPaymentRedirectUrl("paypal", value), undefined, value);
+    assert.equal(decideStorefrontPaymentAction(
+      { provider: "paypal" },
+      { nextAction: { type: "REDIRECT", redirectUrl: value } },
+    ).kind, "unsupported", value);
+  }
+
+  assert.equal(
+    validateStorefrontPaymentRedirectUrl("paypal", "https://www.paypal.com/checkoutnow?token=ok"),
+    "https://www.paypal.com/checkoutnow?token=ok",
+  );
+  assert.equal(
+    validateStorefrontPaymentRedirectUrl("stripe", "https://checkout.stripe.com/c/pay/test"),
+    "https://checkout.stripe.com/c/pay/test",
+  );
+  assert.equal(validateStorefrontPaymentRedirectUrl("stripe", "https://www.paypal.com/checkoutnow"), undefined);
 });
 
 test("storefront payments normalize composed complete-return responses", () => {

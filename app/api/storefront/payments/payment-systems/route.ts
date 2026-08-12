@@ -18,8 +18,8 @@ function errorResponse(message: string, status: number) {
   );
 }
 
-function paymentsContextParams(requestUrl: URL) {
-  const context = getStorefrontContext();
+async function paymentsContextParams(requestUrl: URL) {
+  const context = await getStorefrontContext();
   const params = new URLSearchParams({
     organizationId: context.organizationId,
     locale: context.locale,
@@ -68,7 +68,7 @@ function responsePayload(payload: unknown, params: URLSearchParams) {
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
-  const params = paymentsContextParams(requestUrl);
+  const params = await paymentsContextParams(requestUrl);
   const guestSessionId = asString(params.get("guestSessionId"));
   const authorization = await getStorefrontCustomerAuthorizationHeader();
 

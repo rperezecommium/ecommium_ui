@@ -14,8 +14,8 @@ function errorResponse(message: string, status: number) {
   );
 }
 
-function cartContextParams() {
-  const context = getStorefrontContext();
+async function cartContextParams() {
+  const context = await getStorefrontContext();
   const params = new URLSearchParams({
     organizationId: context.organizationId,
     locale: context.locale,
@@ -69,7 +69,7 @@ function passthroughHeaders(authorization: string | null, guestSessionId?: strin
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
-  const params = cartContextParams();
+  const params = await cartContextParams();
   appendGuestParams(params, requestUrl);
 
   const authorization = await getStorefrontCustomerAuthorizationHeader();

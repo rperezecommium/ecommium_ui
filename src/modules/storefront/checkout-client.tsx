@@ -48,6 +48,7 @@ import {
   readStorefrontPaymentReceipt,
   saveStorefrontPaymentAttempt,
   saveStorefrontPaymentReceipt,
+  validateStorefrontPaymentRedirectUrl,
   type StorefrontPaymentMethod,
 } from "./payments";
 
@@ -576,6 +577,10 @@ export function StorefrontCheckoutClient() {
       const decision = decideStorefrontPaymentAction(selectedMethod, transaction);
 
       if (decision.kind === "redirect") {
+        const redirectUrl = validateStorefrontPaymentRedirectUrl(decision.provider, decision.redirectUrl);
+        if (!redirectUrl) {
+          throw new Error("La URL de redireccion del proveedor no es valida.");
+        }
         saveStorefrontPaymentAttempt(createStorefrontPaymentAttempt({
           actor: isAuthenticatedCheckout(checkoutContext) ? "customer" : "guest",
           amountMinor: totals.grandTotal,
@@ -592,7 +597,7 @@ export function StorefrontCheckoutClient() {
           transactionId: transaction.transactionId || transactionId,
         }));
         setMessage("Redirigiendo al proveedor de pago...");
-        window.location.assign(decision.redirectUrl);
+        window.location.assign(redirectUrl);
         return;
       }
 

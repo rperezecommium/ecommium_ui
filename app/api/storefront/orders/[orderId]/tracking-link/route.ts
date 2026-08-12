@@ -4,7 +4,7 @@ import { getStorefrontCustomerAuthorizationHeader } from "../../../../../../src/
 
 export async function POST(request: Request, context: { params: Promise<{ orderId: string }> }) {
   const [{ orderId }, requestUrl] = await Promise.all([context.params, Promise.resolve(new URL(request.url))]);
-  const storefront = getStorefrontContext();
+  const storefront = await getStorefrontContext();
   const guestSessionId = requestUrl.searchParams.get("guestSessionId")?.trim();
   const authorization = await getStorefrontCustomerAuthorizationHeader();
   const params = new URLSearchParams({ organizationId: storefront.organizationId, shopId: storefront.shopId });

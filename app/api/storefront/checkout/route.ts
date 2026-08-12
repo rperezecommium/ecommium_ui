@@ -22,8 +22,8 @@ function errorResponse(message: string, status: number) {
   );
 }
 
-function cartContextParams() {
-  const context = getStorefrontContext();
+async function cartContextParams() {
+  const context = await getStorefrontContext();
   const params = new URLSearchParams({
     organizationId: context.organizationId,
     locale: context.locale,
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
   const guestSessionId = asString(input.guestSessionId);
   const orderFormId = asString(input.orderFormId);
   const payload = asRecord(input.payload);
-  const params = cartContextParams();
+  const params = await cartContextParams();
 
   if (guestSessionId) {
     params.set("guestSessionId", guestSessionId);

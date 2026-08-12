@@ -69,12 +69,21 @@ Reglas derivadas:
 - ADR-0117: backend-only; toda UI externa vive fuera del repo backend y consume solo BFF.
 - ADR-0118: Invoice es owner de facturacion fiscal y documentos.
 - ADR-0119: After Sales es owner de postventa y orquestacion de devoluciones/cambios.
+- ADR-0148: separa el BFF en `bff/storeFront` y `bff/storeAdmin`; los contratos
+  HTTP se conservan y cada superficie cambia exclusivamente su URL base.
 
 ## Principios de integracion UI-BFF
 
-- Base Storefront local: `ECOMMIUM_STOREFRONT_BFF_BASE_URL=http://localhost:3025/api/v1`.
-- `ECOMMIUM_BFF_BASE_URL` queda como compatibilidad temporal del cliente Admin actual y no debe utilizarse en Storefront.
-- Si el BFF Admin exige auth en desarrollo, la UI puede usar `ECOMMIUM_ADMIN_BFF_TOKEN` solo server-side para enviar `Authorization: Bearer <token>`. No debe exponerse como `NEXT_PUBLIC_*`.
+- Storefront desplegado exige `ECOMMIUM_STOREFRONT_BFF_BASE_URL`, `ECOMMIUM_STOREFRONT_ORGANIZATION_ID` y `ECOMMIUM_STOREFRONT_SHOP_ID`; la URL debe usar HTTPS fuera de desarrollo. No hereda defaults Admin ni selecciona un tenant fixture. Para una demo local controlada se debe declarar `ECOMMIUM_UI_ALLOW_STOREFRONT_FIXTURES=true` en desarrollo.
+- Base StoreAdmin local: `ECOMMIUM_ADMIN_BFF_BASE_URL=http://localhost:3026/api/v1`.
+- La UI usa los clientes server-side explicitos `storefront-client` y
+  `admin-client`. No usa `ECOMMIUM_BFF_BASE_URL` ni el puerto legacy `3010`.
+  No se requiere `NEXT_PUBLIC_ADMIN_BFF_URL`: el navegador llama solo a la UI
+  same-origin y Next.js resuelve la URL Admin en el servidor.
+- Admin solo acepta el bearer de una sesión Employee validada por BFF. La cookie
+  de UI se firma con `ECOMMIUM_UI_ADMIN_SESSION_SECRET` (mínimo 32 caracteres)
+  y puede verificar temporalmente `ECOMMIUM_UI_ADMIN_SESSION_PREVIOUS_SECRET`
+  durante una rotación; nunca usa un bearer técnico como fallback.
 - Admin usa rutas `/api/v1/admin/*`.
 - Storefront usa rutas `/api/v1/storefront/*`.
 - Enviar `Authorization` cuando exista sesion.
@@ -156,10 +165,9 @@ Flujo UI obligatorio:
 
 `Activa` en UI significa contexto seleccionado por el usuario Admin en cookie/sesion. No es un atributo global de `Shop`. Si se muestra junto a `status=ACTIVE`, diferenciarlo como `Contexto activo` frente a `Estado operativo`.
 
-La sesion visual de desarrollo no autentica contra el BFF. Las llamadas Admin
-reales requieren `Authorization`, obtenido desde BFF Sessions y persistido en
-cookie httpOnly por la UI, o desde `ECOMMIUM_ADMIN_BFF_TOKEN` como fallback
-server-side de desarrollo.
+Las llamadas Admin reales requieren `Authorization` obtenido desde BFF Sessions
+y persistido en una cookie httpOnly firmada por la UI. No existe un fallback
+server-side que sustituya la identidad del Employee.
 
 Gap confirmado el 2026-06-16 contra el BFF local: los endpoints
 `/api/v1/admin/sessions/login`, `/api/v1/admin/sessions/me` y

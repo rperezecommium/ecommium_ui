@@ -22,8 +22,8 @@ function errorResponse(message: string, status: number) {
   );
 }
 
-function cartContextParams() {
-  const context = getStorefrontContext();
+async function cartContextParams() {
+  const context = await getStorefrontContext();
   const params = new URLSearchParams({
     organizationId: context.organizationId,
     locale: context.locale,
@@ -87,7 +87,7 @@ async function mutateItems(request: Request, method: "POST" | "PATCH") {
     return errorResponse("La mutacion del carrito requiere items.", 400);
   }
 
-  const params = cartContextParams();
+  const params = await cartContextParams();
   if (input.guestSessionId) {
     params.set("guestSessionId", input.guestSessionId);
   }
@@ -135,7 +135,7 @@ export async function DELETE(request: Request) {
     return errorResponse("Vaciar carrito requiere orderFormId.", 400);
   }
 
-  const params = cartContextParams();
+  const params = await cartContextParams();
   if (input.guestSessionId) {
     params.set("guestSessionId", input.guestSessionId);
   }

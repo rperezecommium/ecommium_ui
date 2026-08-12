@@ -1,4 +1,4 @@
-import { storefrontBffBaseUrl } from "../config/env";
+import { getStorefrontBffBaseUrl } from "../config/storefront-env";
 import { requestBffAt, requestBffResponseAt } from "./request-client";
 import type { BffRequestOptions } from "./request-client";
 import type { BffResult } from "./types";
@@ -13,7 +13,7 @@ export function requestStorefrontBff<T>(
   path: string,
   options: BffRequestOptions<T> = {},
 ): Promise<BffResult<T>> {
-  return requestBffAt(storefrontBffBaseUrl, path, options);
+  return requestBffAt(getStorefrontBffBaseUrl(), path, options);
 }
 
 /**
@@ -24,5 +24,5 @@ export function requestStorefrontBffResponse(
   path: string,
   options: BffRequestOptions<unknown> = {},
 ): Promise<BffResult<Response>> {
-  return requestBffResponseAt(storefrontBffBaseUrl, path, options);
+  return requestBffResponseAt(getStorefrontBffBaseUrl(), path, options);
 }
