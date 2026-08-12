@@ -1,5 +1,4 @@
 export type BffHeaderOptions = {
-  adminToken?: string;
   authorizationToken?: string;
   correlationId: string;
   initHeaders?: HeadersInit;
@@ -7,7 +6,6 @@ export type BffHeaderOptions = {
 };
 
 export function createBffHeaders({
-  adminToken,
   authorizationToken,
   correlationId,
   initHeaders,
@@ -20,9 +18,8 @@ export function createBffHeaders({
   }
   headers.set("x-correlation-id", correlationId);
 
-  const token = authorizationToken ?? adminToken;
-  if (token && !headers.has("authorization")) {
-    headers.set("authorization", `Bearer ${token}`);
+  if (authorizationToken && !headers.has("authorization")) {
+    headers.set("authorization", `Bearer ${authorizationToken}`);
   }
 
   if (locale) {

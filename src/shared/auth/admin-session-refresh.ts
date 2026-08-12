@@ -1,3 +1,5 @@
+import { adminBffBaseUrl } from "../config/env";
+
 type RefreshTokensResult =
   | {
       ok: true;
@@ -16,8 +18,7 @@ function asToken(value: unknown) {
 }
 
 function refreshUrl() {
-  const base = (process.env.ECOMMIUM_BFF_BASE_URL ?? "http://localhost:3010/api/v1")
-    .replace(/\/$/, "");
+  const base = adminBffBaseUrl.replace(/\/$/, "");
   return `${base}/auth/refresh`;
 }
 

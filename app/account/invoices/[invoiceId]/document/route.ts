@@ -4,6 +4,8 @@ import { getStorefrontContext } from "../../../../../src/modules/storefront/stor
 import { getStorefrontCustomerAuthorizationHeader } from "../../../../../src/modules/storefront/storefront-customer-session";
 import { invoicePdfFilename, renderInvoiceDocumentPdf } from "../../../../../src/shared/invoice/invoice-document-pdf";
 
+const maximumInvoiceDocumentBytes = 10 * 1024 * 1024;
+
 function safeFilenamePart(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) || "invoice";
 }
@@ -43,7 +45,7 @@ export async function GET(
     return new Response("Customer authentication is required", { status: 401 });
   }
 
-  const context = getStorefrontContext();
+  const context = await getStorefrontContext();
   const searchParams = new URLSearchParams({
     organizationId: context.organizationId,
     shopId: context.shopId,
@@ -71,11 +73,24 @@ export async function GET(
   const response = result.data;
 
   const contentType = response.headers.get("content-type") ?? "";
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > maximumInvoiceDocumentBytes) {
+    return new Response("Invoice document exceeds the allowed size", { status: 413 });
+  }
   const headers = new Headers();
   headers.set("cache-control", "private, no-store");
+  headers.set("x-content-type-options", "nosniff");
 
   if (contentType.includes("application/json")) {
-    const payload = (await response.json().catch(() => undefined)) as unknown;
+    const content = await response.arrayBuffer();
+    if (content.byteLength > maximumInvoiceDocumentBytes) return new Response("Invoice document exceeds the allowed size", { status: 413 });
+    const payload = (() => {
+      try {
+        return JSON.parse(Buffer.from(content).toString("utf8")) as unknown;
+      } catch {
+        return undefined;
+      }
+    })();
     const html = htmlFromPayload(payload);
     if (html) {
       const pdf = renderInvoiceDocumentPdf(payload, html);
@@ -92,6 +107,7 @@ export async function GET(
   }
 
   const content = await response.arrayBuffer();
+  if (content.byteLength > maximumInvoiceDocumentBytes) return new Response("Invoice document exceeds the allowed size", { status: 413 });
   if (contentType.includes("application/pdf")) {
     headers.set("content-type", contentType);
     headers.set(

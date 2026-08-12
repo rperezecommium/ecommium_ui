@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
-import { canUseDevAdminSession } from "./admin-bearer";
+import { sealAdminSessionCookie, unsealAdminSessionCookie } from "./admin-session-cookie";
+import { getAdminRequestSession } from "./admin-request-session";
 
 export type AdminSession = {
   accessToken?: string;
@@ -20,33 +21,98 @@ export type AdminSession = {
 
 export const sessionCookieName = "ecommium_employee_session";
 
-const devSession: AdminSession = {
-  accessToken: undefined,
-  employeeId: "dev-employee",
-  name: "Admin Ecommium",
-  email: "admin@ecommium.local",
-  profile: "SuperAdmin",
-  principalType: "EMPLOYEE",
-  scope: "admin",
-  roles: ["super-admin"],
-  permissions: ["admin:*"],
+type PersistedAdminSession = Omit<AdminSession, "roles" | "permissions"> & {
+  roles?: string[];
+  permissions?: string[];
 };
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function asStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.map(asString).filter(Boolean)
+    : [];
+}
+
+function decodeBase64Url(input: string): string {
+  const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+  const padLength = (4 - (base64.length % 4)) % 4;
+  return Buffer.from(`${base64}${"=".repeat(padLength)}`, "base64").toString("utf8");
+}
+
+function decodeAccessTokenClaims(accessToken?: string): Record<string, unknown> {
+  if (!accessToken) {
+    return {};
+  }
+
+  const [, payloadSegment] = accessToken.split(".");
+  if (!payloadSegment) {
+    return {};
+  }
+
+  try {
+    return asRecord(JSON.parse(decodeBase64Url(payloadSegment)));
+  } catch {
+    return {};
+  }
+}
+
+function compactElevatedPermissions(permissions: string[]) {
+  const elevated = new Set(["*", "admin:*", "system.admin"]);
+  return permissions.filter((permission) => elevated.has(permission.trim().toLowerCase()));
+}
+
+function toPersistedAdminSession(session: AdminSession): PersistedAdminSession {
+  const persisted: PersistedAdminSession = { ...session };
+
+  const elevatedPermissions = compactElevatedPermissions(session.permissions);
+  if (elevatedPermissions.length > 0) {
+    persisted.permissions = elevatedPermissions;
+  } else {
+    delete persisted.permissions;
+  }
+
+  if (session.roles.length === 0) {
+    delete persisted.roles;
+  }
+
+  return persisted;
+}
+
 function parseSession(value: string | undefined): AdminSession | null {
-  if (!value) {
+  const unsealed = unsealAdminSessionCookie(value);
+  if (!unsealed) {
     return null;
   }
 
   try {
-    const parsed = JSON.parse(value) as AdminSession;
+    const parsed = JSON.parse(unsealed) as PersistedAdminSession;
+    const tokenClaims = decodeAccessTokenClaims(parsed.accessToken);
+    const principalType = asString(parsed.principalType || tokenClaims.principalType).toUpperCase();
+    const scope = asString(parsed.scope || tokenClaims.scope).toLowerCase();
+    const permissions = asStringArray(parsed.permissions);
+    const tokenPermissions = asStringArray(tokenClaims.permissions);
+    const roles = asStringArray(parsed.roles);
+    const tokenRoles = asStringArray(tokenClaims.roles);
+
     if (
+      typeof parsed.accessToken === "string" &&
+      parsed.accessToken.trim() &&
       typeof parsed.employeeId === "string" &&
+      parsed.employeeId.trim() &&
       typeof parsed.name === "string" &&
       typeof parsed.email === "string" &&
-      Array.isArray(parsed.permissions)
+      principalType === "EMPLOYEE" &&
+      scope === "admin"
     ) {
       return {
-        accessToken: typeof parsed.accessToken === "string" ? parsed.accessToken : undefined,
+        accessToken: parsed.accessToken,
         refreshToken: typeof parsed.refreshToken === "string" ? parsed.refreshToken : undefined,
         expiresAt: typeof parsed.expiresAt === "string" ? parsed.expiresAt : undefined,
         sessionId: typeof parsed.sessionId === "string" ? parsed.sessionId : undefined,
@@ -54,17 +120,10 @@ function parseSession(value: string | undefined): AdminSession | null {
         name: parsed.name,
         email: parsed.email,
         profile: parsed.profile,
-        principalType:
-          parsed.principalType === "ADMIN" ||
-          parsed.principalType === "EMPLOYEE" ||
-          parsed.principalType === "CUSTOMER"
-            ? parsed.principalType
-            : "EMPLOYEE",
-        scope: parsed.scope === "storefront" ? "storefront" : "admin",
-        roles: Array.isArray(parsed.roles)
-          ? parsed.roles.filter((role): role is string => typeof role === "string")
-          : [],
-        permissions: parsed.permissions.filter((permission): permission is string => typeof permission === "string"),
+        principalType: "EMPLOYEE",
+        scope: "admin",
+        roles: roles.length > 0 ? roles : tokenRoles,
+        permissions: permissions.length > 0 ? permissions : tokenPermissions,
         organizationId: typeof parsed.organizationId === "string" ? parsed.organizationId : undefined,
         shopId: typeof parsed.shopId === "string" ? parsed.shopId : undefined,
       };
@@ -77,6 +136,11 @@ function parseSession(value: string | undefined): AdminSession | null {
 }
 
 export async function getAdminSession(): Promise<AdminSession | null> {
+  const requestSession = getAdminRequestSession();
+  if (requestSession) {
+    return requestSession;
+  }
+
   const cookieStore = await cookies();
   return parseSession(cookieStore.get(sessionCookieName)?.value);
 }
@@ -87,8 +151,17 @@ export async function getAdminAuthorizationToken() {
 }
 
 export async function saveAdminSession(session: AdminSession) {
+  if (
+    !session.accessToken ||
+    !session.employeeId ||
+    session.principalType !== "EMPLOYEE" ||
+    session.scope !== "admin"
+  ) {
+    throw new Error("Only an authenticated Employee/admin session can be persisted");
+  }
+
   const cookieStore = await cookies();
-  cookieStore.set(sessionCookieName, JSON.stringify(session), {
+  cookieStore.set(sessionCookieName, sealAdminSessionCookie(JSON.stringify(toPersistedAdminSession(session))), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -99,13 +172,4 @@ export async function saveAdminSession(session: AdminSession) {
 export async function clearAdminSession() {
   const cookieStore = await cookies();
   cookieStore.delete(sessionCookieName);
-}
-
-export async function createDevSession() {
-  if (!canUseDevAdminSession()) {
-    return false;
-  }
-
-  await saveAdminSession(devSession);
-  return true;
 }

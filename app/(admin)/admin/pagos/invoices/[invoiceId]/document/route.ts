@@ -1,17 +1,9 @@
 import { NextRequest } from "next/server";
-import { adminBffToken, bffBaseUrl } from "../../../../../../../src/shared/config/env";
-import { getAdminAuthorizationToken } from "../../../../../../../src/shared/auth/session";
-import { getAdminContext } from "../../../../../../../src/shared/config/admin-context";
-import { createBffHeaders } from "../../../../../../../src/shared/bff/headers";
+import { requestAdminBffResponseAsEmployee } from "../../../../../../../src/shared/bff/admin-client";
+import { requireAdminRouteAccess } from "../../../../../../../src/shared/auth/require-admin-route-access";
 import { invoicePdfFilename, renderInvoiceDocumentPdf } from "../../../../../../../src/shared/invoice/invoice-document-pdf";
 
-function makeCorrelationId() {
-  return "ui-admin-invoice-" + Date.now() + "-" + Math.random().toString(16).slice(2);
-}
-
-function normalizeBffBaseUrl() {
-  return bffBaseUrl.endsWith("/") ? bffBaseUrl.slice(0, -1) : bffBaseUrl;
-}
+const maximumInvoiceDocumentBytes = 10 * 1024 * 1024;
 
 function safeFilenamePart(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) || "invoice";
@@ -47,43 +39,56 @@ export async function GET(
     return new Response("invoiceId is required", { status: 400 });
   }
 
-  const [context, token] = await Promise.all([
-    getAdminContext(),
-    getAdminAuthorizationToken(),
-  ]);
-  if (!context.organizationId || !context.shopId) {
-    return new Response("Admin context is required", { status: 428 });
+  const access = await requireAdminRouteAccess("invoices.manage");
+  if (!access.ok) {
+    return access.response;
   }
 
-  const url = new URL(
-    normalizeBffBaseUrl() + "/admin/invoices/" + encodeURIComponent(normalizedInvoiceId) + "/document",
-  );
-  url.searchParams.set("organizationId", context.organizationId);
-  url.searchParams.set("shopId", context.shopId);
+  const { context } = access.data;
 
-  const response = await fetch(url, {
-    cache: "no-store",
-    headers: createBffHeaders({
-      adminToken: token ?? adminBffToken,
-      correlationId: makeCorrelationId(),
-      initHeaders: { accept: "application/json,text/html,*/*" },
-      locale: context.locale,
-    }),
+  const query = new URLSearchParams({
+    organizationId: context.organizationId,
+    shopId: context.shopId,
   });
+  const result = await requestAdminBffResponseAsEmployee(
+    `/admin/invoices/${encodeURIComponent(normalizedInvoiceId)}/document?${query.toString()}`,
+    access.data.accessToken,
+    {
+      context,
+      init: { headers: { accept: "application/json,text/html,*/*" } },
+    },
+  );
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    return new Response(detail || "BFF admin invoice document failed with " + response.status, {
-      status: response.status,
-    });
+  if (!result.ok) {
+    if (result.status === 401) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    if (result.status === 403 || result.status === 404) {
+      return new Response("Not found", { status: 404 });
+    }
+    return new Response("Invoice document is temporarily unavailable", { status: result.status && result.status >= 500 ? result.status : 502 });
   }
 
+  const response = result.data;
   const contentType = response.headers.get("content-type") ?? "";
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > maximumInvoiceDocumentBytes) {
+    return new Response("Invoice document exceeds the allowed size", { status: 413 });
+  }
   const headers = new Headers();
   headers.set("cache-control", "private, no-store");
+  headers.set("x-content-type-options", "nosniff");
 
   if (contentType.includes("application/json")) {
-    const payload = await response.json().catch(() => undefined) as unknown;
+    const content = await response.arrayBuffer();
+    if (content.byteLength > maximumInvoiceDocumentBytes) return new Response("Invoice document exceeds the allowed size", { status: 413 });
+    const payload = (() => {
+      try {
+        return JSON.parse(Buffer.from(content).toString("utf8")) as unknown;
+      } catch {
+        return undefined;
+      }
+    })();
     const html = htmlFromPayload(payload);
     if (html) {
       const pdf = renderInvoiceDocumentPdf(payload, html);
@@ -100,6 +105,7 @@ export async function GET(
   }
 
   const content = await response.arrayBuffer();
+  if (content.byteLength > maximumInvoiceDocumentBytes) return new Response("Invoice document exceeds the allowed size", { status: 413 });
   if (contentType.includes("application/pdf")) {
     headers.set("content-type", contentType);
     headers.set(

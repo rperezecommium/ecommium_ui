@@ -1,10 +1,5 @@
-export const bffBaseUrl =
-  process.env.ECOMMIUM_BFF_BASE_URL ?? "http://localhost:3010/api/v1";
-
-export const storefrontBffBaseUrl =
-  process.env.ECOMMIUM_STOREFRONT_BFF_BASE_URL ?? "http://localhost:3025/api/v1";
-
-export const adminBffToken = process.env.ECOMMIUM_ADMIN_BFF_TOKEN ?? "";
+export const adminBffBaseUrl =
+  process.env.ECOMMIUM_ADMIN_BFF_BASE_URL ?? "http://localhost:3026/api/v1";
 
 export const searchGcsBucket =
   process.env.ECOMMIUM_SEARCH_GCS_BUCKET ?? "ecommium_media";

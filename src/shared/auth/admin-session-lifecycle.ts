@@ -1,4 +1,4 @@
-import { bffBaseUrl } from "../config/env";
+import { adminBffBaseUrl } from "../config/env";
 
 export type AdminSessionState = {
   status: "ACTIVE";
@@ -22,7 +22,7 @@ type LifecycleResult<T> =
   | { ok: false; status: number };
 
 function lifecycleUrl(path: string) {
-  return `${bffBaseUrl.replace(/\/$/, "")}/admin/session${path}`;
+  return `${adminBffBaseUrl.replace(/\/$/, "")}/admin/session${path}`;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

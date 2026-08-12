@@ -1,17 +1,9 @@
 import { NextRequest } from "next/server";
-import { getAdminAuthorizationToken } from "../../../../../../src/shared/auth/session";
-import { getAdminContext, hasRequiredAdminContext } from "../../../../../../src/shared/config/admin-context";
-import { adminBffToken, bffBaseUrl } from "../../../../../../src/shared/config/env";
+import { requestAdminBffResponseAsEmployee } from "../../../../../../src/shared/bff/admin-client";
+import { requireAdminRouteAccess } from "../../../../../../src/shared/auth/require-admin-route-access";
+import { isSafeInlineMediaType, maximumMediaBytes } from "../../../../../../src/shared/security/media-upload";
 
 const allowedVariants = new Set(["original", "small_default", "medium_default", "large_default"]);
-
-function makeCorrelationId() {
-  return "ui-media-" + Date.now() + "-" + Math.random().toString(16).slice(2);
-}
-
-function normalizeBffBaseUrl() {
-  return bffBaseUrl.endsWith("/") ? bffBaseUrl.slice(0, -1) : bffBaseUrl;
-}
 
 export async function GET(
   request: NextRequest,
@@ -23,51 +15,57 @@ export async function GET(
     return new Response("mediaAssetId is required", { status: 400 });
   }
 
-  const context = await getAdminContext();
-  if (!hasRequiredAdminContext(context)) {
-    return new Response("Admin context is required", { status: 400 });
+  const access = await requireAdminRouteAccess("media.assets.write");
+  if (!access.ok) {
+    return access.response;
   }
+
+  const { context } = access.data;
 
   const requestedVariant = request.nextUrl.searchParams.get("variant") ?? "medium_default";
   const variant = allowedVariants.has(requestedVariant) ? requestedVariant : "medium_default";
-  const url = new URL(
-    normalizeBffBaseUrl() + "/admin/media/assets/" + encodeURIComponent(normalizedMediaAssetId) + "/content",
+  const query = new URLSearchParams({
+    organizationId: context.organizationId,
+    shopId: context.shopId,
+    variant,
+  });
+  const result = await requestAdminBffResponseAsEmployee(
+    `/admin/media/assets/${encodeURIComponent(normalizedMediaAssetId)}/content?${query.toString()}`,
+    access.data.accessToken,
+    {
+      context,
+      init: { headers: { accept: "*/*" } },
+    },
   );
-  url.searchParams.set("organizationId", context.organizationId);
-  url.searchParams.set("shopId", context.shopId);
-  url.searchParams.set("variant", variant);
 
-  const headers = new Headers({
-    accept: "*/*",
-    "x-correlation-id": makeCorrelationId(),
-    "x-locale": context.locale,
-  });
-  const token = await getAdminAuthorizationToken();
-  const authorizationToken = token ?? adminBffToken;
-  if (authorizationToken) {
-    headers.set("authorization", "Bearer " + authorizationToken);
+  if (!result.ok) {
+    if (result.status === 401) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    if (result.status === 403 || result.status === 404) {
+      return new Response("Not found", { status: 404 });
+    }
+    return new Response("Media content is temporarily unavailable", { status: result.status && result.status >= 500 ? result.status : 502 });
   }
 
-  const response = await fetch(url, {
-    cache: "no-store",
-    headers,
-  });
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    return new Response(detail || "BFF media content failed with " + response.status, {
-      status: response.status,
-    });
+  const response = result.data;
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > maximumMediaBytes) {
+    return new Response("Media content exceeds the allowed size", { status: 413 });
   }
-
   const content = await response.arrayBuffer();
+  if (content.byteLength > maximumMediaBytes) {
+    return new Response("Media content exceeds the allowed size", { status: 413 });
+  }
   const responseHeaders = new Headers();
   responseHeaders.set("cache-control", "private, no-store");
-  responseHeaders.set("content-type", response.headers.get("content-type") ?? "application/octet-stream");
-  const contentLength = response.headers.get("content-length");
-  if (contentLength) {
-    responseHeaders.set("content-length", contentLength);
+  responseHeaders.set("x-content-type-options", "nosniff");
+  const mediaType = isSafeInlineMediaType(response.headers.get("content-type"));
+  responseHeaders.set("content-type", mediaType ?? "application/octet-stream");
+  if (!mediaType) {
+    responseHeaders.set("content-disposition", `attachment; filename="media-${encodeURIComponent(normalizedMediaAssetId)}"`);
   }
+  responseHeaders.set("content-length", String(content.byteLength));
 
   return new Response(content, {
     status: 200,

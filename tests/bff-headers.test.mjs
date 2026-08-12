@@ -23,14 +23,14 @@ vm.runInNewContext(outputText, moduleContext);
 
 const { createBffHeaders } = moduleContext.module.exports;
 
-test("adds the server-side admin BFF token as a bearer authorization header", () => {
+test("adds the explicit session bearer authorization header", () => {
   const headers = createBffHeaders({
-    adminToken: "admin-token",
+    authorizationToken: "session-token",
     correlationId: "corr-1",
     locale: "es-ES",
   });
 
-  assert.equal(headers.get("authorization"), "Bearer admin-token");
+  assert.equal(headers.get("authorization"), "Bearer session-token");
   assert.equal(headers.get("x-correlation-id"), "corr-1");
   assert.equal(headers.get("x-locale"), "es-ES");
   assert.equal(headers.get("accept"), "application/json");
@@ -38,7 +38,7 @@ test("adds the server-side admin BFF token as a bearer authorization header", ()
 
 test("does not override an explicit authorization header", () => {
   const headers = createBffHeaders({
-    adminToken: "admin-token",
+    authorizationToken: "session-token",
     correlationId: "corr-2",
     initHeaders: {
       authorization: "Bearer request-token",

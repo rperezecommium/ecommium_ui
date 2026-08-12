@@ -13,3 +13,7 @@ export function runWithAdminRequestSession<T>(
 export function getAdminRequestAuthorizationToken() {
   return adminRequestSessionStorage.getStore()?.accessToken;
 }
+
+export function getAdminRequestSession() {
+  return adminRequestSessionStorage.getStore() ?? null;
+}

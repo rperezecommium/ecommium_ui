@@ -8,6 +8,13 @@ export type BffRequestOptions<T> = {
   withAuth?: boolean;
 };
 
+export const bffRequestTimeoutMs = 15_000;
+
+function bffRequestSignal(existingSignal?: AbortSignal | null) {
+  const timeoutSignal = AbortSignal.timeout(bffRequestTimeoutMs);
+  return existingSignal ? AbortSignal.any([existingSignal, timeoutSignal]) : timeoutSignal;
+}
+
 function makeCorrelationId() {
   return `ui-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -21,24 +28,16 @@ export function makeBffUrl(baseUrl: string, path: string) {
   return `${normalizeBffBaseUrl(baseUrl)}${normalizedPath}`;
 }
 
-async function readErrorMessage(response: Response) {
-  const contentType = response.headers.get("content-type") ?? "";
-
-  if (contentType.includes("application/json")) {
-    const payload = await response.json().catch(() => undefined) as unknown;
-    if (typeof payload === "object" && payload !== null && "message" in payload) {
-      const message = (payload as { message?: unknown }).message;
-      if (Array.isArray(message)) {
-        return message.map(String).join("; ");
-      }
-      if (typeof message === "string" && message.trim()) {
-        return message.trim();
-      }
-    }
-  }
-
-  const text = await response.text().catch(() => "");
-  return text.trim();
+export function publicBffError(status?: number) {
+  if (status === 400 || status === 422) return "La solicitud no es válida.";
+  if (status === 401) return "Tu sesión ha caducado. Inicia sesión de nuevo.";
+  if (status === 403) return "No tienes permiso para realizar esta acción.";
+  if (status === 404) return "El recurso solicitado no está disponible.";
+  if (status === 409) return "No se pudo completar la operación por un conflicto.";
+  if (status === 413) return "La solicitud supera el tamaño permitido.";
+  if (status === 415) return "El formato de la solicitud no está permitido.";
+  if (status === 429) return "Demasiadas solicitudes. Inténtalo de nuevo en unos minutos.";
+  return "El servicio no está disponible temporalmente.";
 }
 
 export async function requestBffAt<T>(
@@ -70,10 +69,10 @@ export async function requestBffAt<T>(
       status: responseResult.status,
       correlationId: responseResult.correlationId,
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "BFF response is not valid JSON",
+      error: publicBffError(responseResult.status),
       status: responseResult.status,
       correlationId: responseResult.correlationId,
     };
@@ -105,13 +104,13 @@ export async function requestBffResponseAt(
       ...options.init,
       cache: "no-store",
       headers,
+      signal: bffRequestSignal(options.init?.signal),
     });
 
     if (!response.ok) {
-      const detail = await readErrorMessage(response);
       return {
         ok: false,
-        error: detail || fallbackError?.(response.status) || `BFF responded with ${response.status}`,
+        error: publicBffError(response.status),
         status: response.status,
         correlationId,
       };
@@ -123,10 +122,10 @@ export async function requestBffResponseAt(
       status: response.status,
       correlationId,
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "BFF request failed",
+      error: publicBffError(),
       correlationId,
     };
   }
