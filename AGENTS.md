@@ -12,6 +12,7 @@ Antes de implementar cualquier modulo, la IA debe leer:
 2. `README.md` de este repo.
 3. `package.json`, `next.config.ts`, `tsconfig.json`, `eslint.config.mjs`.
 4. `docs/composable-reference/README.md`: snapshot local del composable, sus decisiones relevantes y contratos BFF para UI.
+5. `securityReadme.md`: backlog de seguridad vigente. Todo hallazgo marcado como pendiente debe preservarse, revisarse antes de tocar su superficie y actualizarse solo con evidencia de correccion y pruebas.
 
 La IA no debe trasladarse al repo backend para leer documentacion o codigo, salvo pedido explicito del usuario. Si falta contexto, debe trabajar con la referencia local, inspeccionar este repo de UI, validar contra el BFF disponible y dejar el gap documentado.
 
@@ -199,15 +200,22 @@ Headers obligatorios cuando apliquen:
 
 Variables esperadas:
 
-- `ECOMMIUM_STOREFRONT_BFF_BASE_URL`: URL server-side del BFF Storefront; localmente `http://localhost:3025/api/v1`.
-- `ECOMMIUM_BFF_BASE_URL`: variable de compatibilidad del cliente Admin actual. No debe usarse en nuevas llamadas Storefront.
-- `ECOMMIUM_ADMIN_BFF_TOKEN`: token admin server-side opcional para desarrollo/integracion, enviado como `Authorization: Bearer <token>` por el cliente BFF compartido. Nunca exponerlo como `NEXT_PUBLIC_*`.
+- `ECOMMIUM_STOREFRONT_BFF_BASE_URL`: URL server-side obligatoria del BFF Storefront; debe usar HTTPS fuera de desarrollo.
+- `ECOMMIUM_STOREFRONT_ORGANIZATION_ID` y `ECOMMIUM_STOREFRONT_SHOP_ID`: contexto canónico obligatorio para Storefront desplegado; no heredan `ECOMMIUM_DEFAULT_*` de Admin.
+- `ECOMMIUM_UI_ALLOW_STOREFRONT_FIXTURES=true`: habilita el fixture local solo en desarrollo explícito; no funciona en producción.
+- `ECOMMIUM_ADMIN_BFF_BASE_URL`: URL server-side del BFF StoreAdmin; localmente `http://localhost:3026/api/v1`.
+- `ECOMMIUM_UI_ADMIN_SESSION_SECRET`: secreto server-side de al menos 32 caracteres para firmar la cookie Admin. Es obligatorio en todos los entornos.
+- `ECOMMIUM_UI_ADMIN_SESSION_PREVIOUS_SECRET`: secreto anterior opcional, usado solo durante una rotacion controlada.
 - `NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL`: URL publica de la UI si se necesita para metadata.
 - Nunca exponer URLs internas de `services/*` al navegador.
 
-La sesion local de desarrollo solo desbloquea la UI. Para llamadas reales Admin,
-el token debe venir de BFF Sessions (`/admin/sessions/login`) y guardarse en una
-cookie httpOnly de UI, o temporalmente de `ECOMMIUM_ADMIN_BFF_TOKEN`.
+La UI usa `storefront-client` y `admin-client` de forma explicita. No debe
+introducir `ECOMMIUM_BFF_BASE_URL` ni dependencias de `:3010`: ese proceso
+legacy no forma parte de la topologia operativa de clientes externos.
+
+Para llamadas Admin, el bearer debe venir de BFF Sessions y persistirse en una
+cookie httpOnly firmada por la UI. Ninguna petición iniciada por usuario puede
+usar un bearer técnico como sustituto de la sesión Employee.
 
 ## Modulos Admin y endpoints BFF
 Los endpoints listados son la primera referencia operativa. Antes de implementar, validar en `.docs/06-interfaces/00-frontend-bff-contracts.md` porque el contrato puede haber evolucionado.
@@ -632,3 +640,13 @@ Antes de cerrar una tarea:
 - WordPress Site Health: https://wordpress.org/documentation/article/site-health-screen/
 - Web Vitals: https://web.dev/articles/vitals
 - Lighthouse Performance Scoring: https://developer.chrome.com/docs/lighthouse/performance/performance-scoring
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function StorefrontUnavailablePage() {
   return (
     <main className="storefrontUnavailablePage">
@@ -8,7 +10,7 @@ export default function StorefrontUnavailablePage() {
           La dirección todavía no está asociada a una tienda activa o el servicio
           está temporalmente indisponible. Vuelve a intentarlo en unos minutos.
         </p>
-        <a href="/">Reintentar</a>
+        <Link href="/">Reintentar</Link>
       </section>
     </main>
   );

@@ -146,10 +146,15 @@ Portability contract:
 
 Environment variables:
 
-- `ECOMMIUM_STOREFRONT_BFF_BASE_URL`, URL server-side del BFF Storefront; defaults to `http://localhost:3025/api/v1`.
-- `ECOMMIUM_BFF_BASE_URL`, variable de compatibilidad del cliente Admin actual; no se usa para Storefront.
-- `ECOMMIUM_ADMIN_BFF_TOKEN`, optional server-side admin token sent to the BFF
-  as `Authorization: Bearer <token>`. Do not expose it with `NEXT_PUBLIC_*`.
+- `ECOMMIUM_STOREFRONT_BFF_BASE_URL`, URL server-side del BFF Storefront. Es obligatoria y debe usar HTTPS fuera de desarrollo.
+- `ECOMMIUM_STOREFRONT_ORGANIZATION_ID` y `ECOMMIUM_STOREFRONT_SHOP_ID`, contexto canónico obligatorio del Storefront desplegado. No se heredan de las variables Admin.
+- `ECOMMIUM_STOREFRONT_SHOP_ALIAS`, `ECOMMIUM_STOREFRONT_LOCALE`, `ECOMMIUM_STOREFRONT_CURRENCY`, `ECOMMIUM_STOREFRONT_COUNTRY` y `ECOMMIUM_STOREFRONT_CHANNEL`, metadatos opcionales del contexto Storefront.
+- `ECOMMIUM_UI_ALLOW_STOREFRONT_FIXTURES=true`, solo para desarrollo local explícito; habilita el fixture local y nunca funciona en producción.
+- `ECOMMIUM_ADMIN_BFF_BASE_URL`, URL server-side del BFF StoreAdmin; defaults to `http://localhost:3026/api/v1`.
+- `ECOMMIUM_UI_ADMIN_SESSION_SECRET`, server-side secret of at least 32
+  characters used to sign Admin session cookies. Required in every environment.
+- `ECOMMIUM_UI_ADMIN_SESSION_PREVIOUS_SECRET`, optional previous signing secret
+  accepted only while rotating `ECOMMIUM_UI_ADMIN_SESSION_SECRET`.
 - `ECOMMIUM_DEFAULT_ORGANIZATION_ID`, optional initial organization context.
 - `ECOMMIUM_DEFAULT_SHOP_ID`, optional initial shop context.
 - `ECOMMIUM_DEFAULT_SHOP_ALIAS`, optional human shop alias. It helps resolve a
@@ -157,10 +162,14 @@ Environment variables:
 - `ECOMMIUM_DEFAULT_LOCALE`, defaults to `es-ES`.
 - `ECOMMIUM_DEFAULT_CURRENCY`, defaults to `EUR`.
 - `ECOMMIUM_DEFAULT_COUNTRY`, defaults to `ES`.
-- `ECOMMIUM_ADMIN_DEV_SESSION=1`, enables a local httpOnly development session
-  button on `/auth/login`.
 
-Admin authentication uses the BFF Auth/Sessions contract observed locally:
+Storefront and Admin use different, server-side BFF clients. The legacy
+`ECOMMIUM_BFF_BASE_URL` and port `3010` are not runtime configuration for this
+UI.
+
+Admin authentication uses the BFF Auth/Sessions contract observed locally. The
+UI only forwards a bearer issued for the authenticated Employee; it never falls
+back to a technical server token:
 
 - `POST /api/v1/auth/login`, with `email`, `password`, and `scope=admin`.
   `organizationId` and `shopId` are optional when an Admin context is already
@@ -172,7 +181,11 @@ Admin authentication uses the BFF Auth/Sessions contract observed locally:
 The legacy `/api/v1/admin/sessions/*` endpoints documented in the first UI
 snapshot returned `404` against the local BFF on 2026-06-16, while `/auth/*`
 responded with validation/auth errors as expected. Tokens are stored only in the
-server-side httpOnly UI cookie.
+server-side httpOnly UI cookie. The persisted Admin cookie keeps a compact
+session shape: it stores the bearer pair and identity metadata, but does not
+duplicate large `roles` or `permissions` arrays outside the access token. Those
+UI-facing claims are reconstructed from the bearer while authorization
+continues to be enforced by the BFF.
 The UI rotates Admin tokens through a technical Route Handler before expiry.
 Browser tabs coordinate the request without reading the httpOnly cookie or
 writing tokens to `localStorage`.
