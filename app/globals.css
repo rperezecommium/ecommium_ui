@@ -20,6 +20,58 @@
   --admin-shadow-popover: 0 8px 24px rgba(54, 58, 65, 0.16);
 }
 
+.storefrontUnavailablePage {
+  align-items: center;
+  background: radial-gradient(circle at top, #f7f8fb 0, #eef1f5 52%, #e6eaf0 100%);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.storefrontUnavailablePanel {
+  background: #fff;
+  border: 1px solid #dfe4eb;
+  border-radius: 20px;
+  box-shadow: 0 22px 70px rgb(20 32 50 / 10%);
+  max-width: 620px;
+  padding: clamp(28px, 6vw, 56px);
+  text-align: center;
+}
+
+.storefrontUnavailableEyebrow {
+  color: #53657c;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+
+.storefrontUnavailablePanel h1 {
+  color: #152033;
+  font-size: clamp(30px, 6vw, 48px);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.storefrontUnavailablePanel > p:not(.storefrontUnavailableEyebrow) {
+  color: #59687c;
+  line-height: 1.7;
+  margin: 20px auto 28px;
+}
+
+.storefrontUnavailablePanel a {
+  background: #152033;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 700;
+  padding: 12px 22px;
+  text-decoration: none;
+}
+
 .adminSessionRecovery {
   position: fixed;
   right: 20px;

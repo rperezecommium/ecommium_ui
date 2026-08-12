@@ -20,7 +20,7 @@ const context = {
   channel: "web",
 };
 
-function loadShippingAdminModule(requestBff) {
+function loadShippingAdminModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/transporte/shipping-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -36,8 +36,8 @@ function loadShippingAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
 
       throw new Error(`Unexpected test require: ${specifier}`);
@@ -113,7 +113,7 @@ function assertScopedPath(pathValue) {
 
 test("shipping admin reads configuration through scoped Admin BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     assert.equal(pathValue.startsWith("/admin/shipping/configuration?"), true);
     return ok({
@@ -125,7 +125,7 @@ test("shipping admin reads configuration through scoped Admin BFF", async () => 
       rateRules: [],
     }, options);
   };
-  const { getShippingAdminData } = loadShippingAdminModule(requestBff);
+  const { getShippingAdminData } = loadShippingAdminModule(requestAdminBff);
 
   const data = await getShippingAdminData(context, { tab: "summary", includeInactive: false });
 
@@ -149,12 +149,12 @@ test("shipping admin hides fulfillment from configuration tabs", () => {
 
 test("shipping admin loads only the fulfillment queue when its tab is active", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     assert.equal(pathValue.startsWith("/admin/shipping/fulfillments?"), true);
     return ok({ items: [], total: 0, limit: 25, offset: 50 }, options);
   };
-  const { getShippingAdminData } = loadShippingAdminModule(requestBff);
+  const { getShippingAdminData } = loadShippingAdminModule(requestAdminBff);
 
   const data = await getShippingAdminData(context, {
     tab: "fulfillments",
@@ -179,7 +179,7 @@ test("shipping admin loads only the fulfillment queue when its tab is active", a
 
 test("shipping admin reads the selected fulfillment alongside its queue", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push(pathValue);
     if (pathValue.startsWith("/admin/shipping/fulfillments?")) {
       return ok({ items: [], total: 1, limit: 25, offset: 0 }, options);
@@ -212,7 +212,7 @@ test("shipping admin reads the selected fulfillment alongside its queue", async 
 
     throw new Error(`Unexpected BFF path: ${pathValue}`);
   };
-  const { getShippingAdminData } = loadShippingAdminModule(requestBff);
+  const { getShippingAdminData } = loadShippingAdminModule(requestAdminBff);
 
   const data = await getShippingAdminData(context, {
     tab: "fulfillments",
@@ -228,7 +228,7 @@ test("shipping admin reads the selected fulfillment alongside its queue", async 
 
 test("shipping admin quote simulator posts to shipping options through BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET", body: options.init?.body });
 
     if (pathValue.startsWith("/admin/shipping/configuration?")) {
@@ -278,7 +278,7 @@ test("shipping admin quote simulator posts to shipping options through BFF", asy
 
     throw new Error(`Unexpected BFF path: ${pathValue}`);
   };
-  const { getShippingAdminData } = loadShippingAdminModule(requestBff);
+  const { getShippingAdminData } = loadShippingAdminModule(requestAdminBff);
 
   const data = await getShippingAdminData(context, {
     tab: "quote",
@@ -308,11 +308,11 @@ test("shipping admin quote simulator posts to shipping options through BFF", asy
 
 test("shipping admin mutations use PUT through scoped Admin BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method, body: options.init?.body });
     return ok({ carrierId: "carrier-standard", active: false }, options);
   };
-  const { mutateShipping } = loadShippingAdminModule(requestBff);
+  const { mutateShipping } = loadShippingAdminModule(requestAdminBff);
 
   await mutateShipping(
     context,
@@ -337,11 +337,11 @@ test("shipping admin mutations use PUT through scoped Admin BFF", async () => {
 
 test("shipping admin active updates use PATCH through scoped Admin BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method, body: options.init?.body });
     return ok({ carrierId: "carrier-standard", active: false }, options);
   };
-  const { patchShippingActive } = loadShippingAdminModule(requestBff);
+  const { patchShippingActive } = loadShippingAdminModule(requestAdminBff);
 
   await patchShippingActive(
     context,
@@ -357,7 +357,7 @@ test("shipping admin active updates use PATCH through scoped Admin BFF", async (
 
 test("shipping admin lists scoped fulfillments with the exact status and pagination", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     return ok({
       items: [{
@@ -414,7 +414,7 @@ test("shipping admin lists scoped fulfillments with the exact status and paginat
       offset: 25,
     }, options);
   };
-  const { getShippingFulfillments } = loadShippingAdminModule(requestBff);
+  const { getShippingFulfillments } = loadShippingAdminModule(requestAdminBff);
 
   const result = await getShippingFulfillments(context, {
     status: "PACKED",
@@ -437,7 +437,7 @@ test("shipping admin lists scoped fulfillments with the exact status and paginat
 
 test("shipping admin reads one fulfillment through BFF and reports its logistic permission", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     if (pathValue.includes("/fulfillments/denied?")) {
       return {
@@ -472,7 +472,7 @@ test("shipping admin reads one fulfillment through BFF and reports its logistic 
       deliveredAt: null,
     }, options);
   };
-  const { getShippingFulfillment } = loadShippingAdminModule(requestBff);
+  const { getShippingFulfillment } = loadShippingAdminModule(requestAdminBff);
 
   const result = await getShippingFulfillment(context, "fulfillment with spaces");
 
@@ -491,7 +491,7 @@ test("shipping admin reads one fulfillment through BFF and reports its logistic 
 
 test("shipping admin transitions a fulfillment through the scoped BFF endpoint", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method, body: JSON.parse(options.init?.body ?? "{}") });
     return ok({
       fulfillment: {
@@ -519,7 +519,7 @@ test("shipping admin transitions a fulfillment through the scoped BFF endpoint",
       },
     }, options);
   };
-  const { transitionShippingFulfillment } = loadShippingAdminModule(requestBff);
+  const { transitionShippingFulfillment } = loadShippingAdminModule(requestAdminBff);
 
   const result = await transitionShippingFulfillment(context, "fulfillment-1", {
     status: "SHIPPED",

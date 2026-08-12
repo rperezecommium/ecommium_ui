@@ -7,7 +7,7 @@ import ts from "typescript";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname);
 
-function loadOrganizationShopModule(requestBff, adminBffToken = "server-admin-token") {
+function loadOrganizationShopModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/configuracion/organization-shop.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -22,13 +22,9 @@ function loadOrganizationShopModule(requestBff, adminBffToken = "server-admin-to
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
-      if (specifier.endsWith("/shared/config/env")) {
-        return { adminBffToken };
-      }
-
       return {};
     },
   };
@@ -37,9 +33,9 @@ function loadOrganizationShopModule(requestBff, adminBffToken = "server-admin-to
   return moduleContext.module.exports;
 }
 
-test("admin context directory uses post-login available context endpoint", async () => {
+test("admin context directory uses an Employee bearer obtained after login", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       withAuth: options.withAuth,
@@ -73,19 +69,19 @@ test("admin context directory uses post-login available context endpoint", async
 
     throw new Error(`Unexpected BFF path: ${pathValue}`);
   };
-  const { getOrganizationShopDirectory } = loadOrganizationShopModule(requestBff);
+  const { getOrganizationShopDirectory } = loadOrganizationShopModule(requestAdminBff);
 
-  const directory = await getOrganizationShopDirectory({ withSessionAuth: false });
+  const directory = await getOrganizationShopDirectory({ accessToken: "employee-token" });
 
   assert.equal(directory.source, "bff");
   assert.equal(directory.organizations[0].shops[0].shopAlias, "tienda-barcelona");
   assert.equal(calls.length, 1);
   assert.equal(calls.every((call) => call.withAuth === false), true);
-  assert.equal(calls.every((call) => call.authorization === "Bearer server-admin-token"), true);
+  assert.equal(calls.every((call) => call.authorization === "Bearer employee-token"), true);
 });
 
 test("admin context directory preserves shops nested inside organizations", async () => {
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     if (pathValue === "/admin/context/available") {
       return {
         ok: true,
@@ -113,7 +109,7 @@ test("admin context directory preserves shops nested inside organizations", asyn
 
     throw new Error(`Unexpected BFF path: ${pathValue}`);
   };
-  const { getAvailableAdminContexts } = loadOrganizationShopModule(requestBff);
+  const { getAvailableAdminContexts } = loadOrganizationShopModule(requestAdminBff);
 
   const result = await getAvailableAdminContexts({ accessToken: "access-token-1" });
 
@@ -125,7 +121,7 @@ test("admin context directory preserves shops nested inside organizations", asyn
 
 test("admin context directory reports unavailable when authorization is missing", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       withAuth: options.withAuth,
@@ -138,7 +134,7 @@ test("admin context directory reports unavailable when authorization is missing"
       correlationId: "corr-missing-auth",
     };
   };
-  const { getOrganizationShopDirectory } = loadOrganizationShopModule(requestBff, "");
+  const { getOrganizationShopDirectory } = loadOrganizationShopModule(requestAdminBff);
 
   const directory = await getOrganizationShopDirectory({ withSessionAuth: false });
 
@@ -149,7 +145,7 @@ test("admin context directory reports unavailable when authorization is missing"
 });
 
 test("admin BFF auth is centralized through the resolved request session", () => {
-  const bffClientSource = readFileSync(path.resolve(root, "src/shared/bff/client.ts"), "utf8");
+  const bffClientSource = readFileSync(path.resolve(root, "src/shared/bff/admin-client.ts"), "utf8");
   const layoutSource = readFileSync(path.resolve(root, "app/(admin)/admin/layout.tsx"), "utf8");
   const contextPageSource = readFileSync(path.resolve(root, "app/(admin)/admin/configuracion/contexto/page.tsx"), "utf8");
 

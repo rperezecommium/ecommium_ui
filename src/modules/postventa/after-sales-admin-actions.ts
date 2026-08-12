@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import { getAdminContext } from "../../shared/config/admin-context";
 
 const PATCH_ACTIONS = new Set(["review", "approve", "reject", "receive-return", "resolve", "close"]);
@@ -71,7 +71,7 @@ async function mutateCase(
   caseTab?: string,
 ): Promise<never> {
   const context = await getAdminContext();
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(`/admin/after-sales/cases/${encodeURIComponent(caseId)}/${pathSuffix}`, context.organizationId, context.shopId),
     { context, init },
   );

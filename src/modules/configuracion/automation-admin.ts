@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
@@ -371,7 +371,7 @@ function invalidSelection<T>(message: string): BffResult<T> {
 }
 
 export async function getAutomationHealth(context: AdminContext) {
-  return requestBff<AutomationHealth>("/admin/automation/health", { context });
+  return requestAdminBff<AutomationHealth>("/admin/automation/health", { context });
 }
 
 export async function listAutomationEmailTemplates(context: AdminContext): Promise<BffResult<AutomationEmailTemplateList>> {
@@ -379,7 +379,7 @@ export async function listAutomationEmailTemplates(context: AdminContext): Promi
     return missingContext("Define organizationId y shopId para consultar plantillas de email.");
   }
 
-  return requestBff<AutomationEmailTemplateList>(
+  return requestAdminBff<AutomationEmailTemplateList>(
     scopedPath("/admin/communications/templates/email", context, {
       locale: context.locale,
       limit: "100",
@@ -398,7 +398,7 @@ export async function listAutomationRules(
     return missingContext("Define organizationId y shopId para consultar reglas de automatizacion.");
   }
 
-  return requestBff<AutomationRuleList>(
+  return requestAdminBff<AutomationRuleList>(
     scopedPath("/admin/automation/rules", context, {
       status: filters.ruleStatus,
       eventType: filters.eventType,
@@ -422,7 +422,7 @@ export async function getAutomationRule(
     return invalidSelection("Selecciona una regla para ver su detalle.");
   }
 
-  return requestBff<AutomationRule>(
+  return requestAdminBff<AutomationRule>(
     scopedPath(`/admin/automation/rules/${encodeURIComponent(normalizedRuleId)}`, context),
     { context },
   );
@@ -436,7 +436,7 @@ export async function createAutomationRule(
     return missingContext("Define organizationId y shopId para crear la regla de automatizacion.");
   }
 
-  return requestBff<AutomationRule>(
+  return requestAdminBff<AutomationRule>(
     scopedPath("/admin/automation/rules", context),
     {
       context,
@@ -463,7 +463,7 @@ export async function patchAutomationRule(
     return invalidSelection("Selecciona una regla para editar.");
   }
 
-  return requestBff<AutomationRule>(
+  return requestAdminBff<AutomationRule>(
     scopedPath(`/admin/automation/rules/${encodeURIComponent(normalizedRuleId)}`, context),
     {
       context,
@@ -490,7 +490,7 @@ export async function transitionAutomationRule(
     return invalidSelection("Selecciona una regla para cambiar su estado.");
   }
 
-  return requestBff<AutomationRule>(
+  return requestAdminBff<AutomationRule>(
     scopedPath(`/admin/automation/rules/${encodeURIComponent(normalizedRuleId)}/${transition}`, context),
     {
       context,
@@ -509,7 +509,7 @@ export async function listAutomationExecutions(
     return missingContext("Define organizationId y shopId para consultar ejecuciones de automatizacion.");
   }
 
-  return requestBff<AutomationExecutionList>(
+  return requestAdminBff<AutomationExecutionList>(
     scopedPath("/admin/automation/executions", context, {
       status: filters.executionStatus,
       ruleId: filters.ruleId,
@@ -534,7 +534,7 @@ export async function getAutomationExecution(
     return invalidSelection("Selecciona una ejecucion para ver su detalle.");
   }
 
-  return requestBff<AutomationExecutionDetail>(
+  return requestAdminBff<AutomationExecutionDetail>(
     scopedPath(`/admin/automation/executions/${encodeURIComponent(normalizedExecutionId)}`, context),
     { context },
   );
@@ -553,7 +553,7 @@ export async function retryAutomationExecution(
     return invalidSelection("Selecciona una ejecucion fallida para reintentar.");
   }
 
-  return requestBff<AutomationExecutionDetail>(
+  return requestAdminBff<AutomationExecutionDetail>(
     scopedPath(`/admin/automation/executions/${encodeURIComponent(normalizedExecutionId)}/retry`, context),
     {
       context,
@@ -572,7 +572,7 @@ export async function bootstrapAutomationTrackingEmailDefaults(
     return missingContext("Define organizationId y shopId para activar reglas tracking de automatizacion.");
   }
 
-  return requestBff<AutomationEmailDefaultsResponse>(
+  return requestAdminBff<AutomationEmailDefaultsResponse>(
     scopedPath("/admin/automation/rules/tracking-email-defaults", context),
     {
       context,
@@ -593,7 +593,7 @@ export async function bootstrapAutomationInvoiceEmailDefaults(
     return missingContext("Define organizationId y shopId para activar reglas de factura de automatizacion.");
   }
 
-  return requestBff<AutomationEmailDefaultsResponse>(
+  return requestAdminBff<AutomationEmailDefaultsResponse>(
     scopedPath("/admin/automation/rules/invoice-email-defaults", context),
     {
       context,

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import { getAdminContext } from "../../shared/config/admin-context";
 
 function asString(value: FormDataEntryValue | null | undefined) {
@@ -73,7 +73,7 @@ export async function applyInvoiceFiltersAction(formData: FormData): Promise<nev
 export async function issueInvoiceFromFiscalConsoleAction(formData: FormData): Promise<never> {
   const context = await getAdminContext();
   const orderId = requiredString(formData.get("orderId"), "orderId");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath("/admin/invoices/issue", context.organizationId, context.shopId),
     {
       context,
@@ -104,7 +104,7 @@ export async function createFiscalInvoiceAdjustmentAction(formData: FormData): P
   const amountMinor = requiredPositiveInteger(formData.get("amountMinor"), "Importe");
   const currency = asString(formData.get("currency")) ?? context.currency;
   const reason = requiredString(formData.get("reason"), "Motivo");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath("/admin/invoices/adjustments", context.organizationId, context.shopId),
     {
       context,

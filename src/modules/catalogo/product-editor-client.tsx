@@ -51,6 +51,7 @@ import {
   validateProductDraft,
   validateProductPublicationReadiness,
 } from "./product-editor-validation";
+import { sanitizeRichTextHtml } from "../../shared/security/rich-text";
 
 type ProductEditorClientProps = {
   contextIdentity: string;
@@ -815,94 +816,6 @@ function offeringName(
   return offering.localizedName.find((item) => item.locale === locale)?.value ??
     offering.localizedName[0]?.value ??
     offering.name;
-}
-
-const allowedRichTextTags = new Set([
-  "a",
-  "blockquote",
-  "br",
-  "code",
-  "em",
-  "h2",
-  "h3",
-  "i",
-  "li",
-  "ol",
-  "p",
-  "pre",
-  "s",
-  "strong",
-  "strike",
-  "ul",
-]);
-
-function isSafeRichTextHref(value: string) {
-  const normalized = value.trim().toLowerCase();
-  return (
-    normalized.startsWith("/") ||
-    normalized.startsWith("#") ||
-    normalized.startsWith("http://") ||
-    normalized.startsWith("https://") ||
-    normalized.startsWith("mailto:") ||
-    normalized.startsWith("tel:")
-  );
-}
-
-function sanitizeRichTextHtml(html: string) {
-  if (!html.trim() || typeof document === "undefined") {
-    return "";
-  }
-
-  const template = document.createElement("template");
-  template.innerHTML = html;
-
-  function cleanNode(node: Node): Node | null {
-    if (node.nodeType === Node.TEXT_NODE) {
-      return document.createTextNode(node.textContent ?? "");
-    }
-
-    if (node.nodeType !== Node.ELEMENT_NODE) {
-      return null;
-    }
-
-    const element = node as HTMLElement;
-    const tagName = element.tagName.toLowerCase();
-    const cleanChildren = Array.from(element.childNodes)
-      .map(cleanNode)
-      .filter((child): child is Node => Boolean(child));
-
-    if (!allowedRichTextTags.has(tagName)) {
-      const fragment = document.createDocumentFragment();
-      cleanChildren.forEach((child) => fragment.appendChild(child));
-      return fragment;
-    }
-
-    const cleanElement = document.createElement(tagName);
-    if (tagName === "a") {
-      const href = element.getAttribute("href");
-      if (href && isSafeRichTextHref(href)) {
-        cleanElement.setAttribute("href", href.trim());
-        cleanElement.setAttribute("rel", "noopener noreferrer");
-      }
-      const title = element.getAttribute("title");
-      if (title) {
-        cleanElement.setAttribute("title", title);
-      }
-    }
-
-    cleanChildren.forEach((child) => cleanElement.appendChild(child));
-    return cleanElement;
-  }
-
-  const wrapper = document.createElement("div");
-  Array.from(template.content.childNodes).forEach((node) => {
-    const cleanNodeResult = cleanNode(node);
-    if (cleanNodeResult) {
-      wrapper.appendChild(cleanNodeResult);
-    }
-  });
-
-  return wrapper.innerHTML;
 }
 
 type RichTextPreviewProps = {

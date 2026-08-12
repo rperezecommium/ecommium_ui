@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 
@@ -510,7 +510,7 @@ async function readShippingConfiguration(
     includeInactive: filters.includeInactive ? "true" : "false",
   });
   const endpoint = `/admin/shipping/configuration?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: normalizeConfiguration,
   });
@@ -533,7 +533,7 @@ async function resolveShippingQuote(
     selectedAddress: {},
     logisticsInfo: [],
   };
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     init: {
       method: "POST",
@@ -559,7 +559,7 @@ export async function getShippingFulfillments(
   });
   const endpoint = `/admin/shipping/fulfillments?${params.toString()}`;
   const fallback: ShippingFulfillmentsData = { items: [], total: 0, limit: 25, offset: 0 };
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: normalizeFulfillments,
   });
@@ -575,7 +575,7 @@ export async function getShippingFulfillment(
 ): Promise<ShippingAdminResult<ShippingFulfillment | null>> {
   const params = makeScopedParams(context);
   const endpoint = `/admin/shipping/fulfillments/${encodeURIComponent(fulfillmentId)}?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: normalizeFulfillment,
   });
@@ -592,7 +592,7 @@ export async function transitionShippingFulfillment(
 ) {
   const params = makeScopedParams(context);
   const endpoint = `/admin/shipping/fulfillments/${encodeURIComponent(fulfillmentId)}/status?${params.toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "PATCH",
@@ -608,7 +608,7 @@ export async function mutateShipping(
   path: string,
   payload: Record<string, unknown>,
 ) {
-  return requestBff(path, {
+  return requestAdminBff(path, {
     context,
     init: {
       method: "PUT",
@@ -624,7 +624,7 @@ export async function patchShippingActive(
   path: string,
   active: boolean,
 ) {
-  return requestBff(path, {
+  return requestAdminBff(path, {
     context,
     init: {
       method: "PATCH",

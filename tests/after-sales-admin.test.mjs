@@ -20,7 +20,7 @@ const context = {
   channel: "web",
 };
 
-function loadAfterSalesAdminModule(requestBff) {
+function loadAfterSalesAdminModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/postventa/after-sales-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -35,8 +35,8 @@ function loadAfterSalesAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return {
@@ -60,7 +60,7 @@ function loadAfterSalesAdminModule(requestBff) {
 }
 
 function loadAfterSalesActionsModule({
-  requestBff,
+  requestAdminBff,
   getAdminContext = async () => context,
   revalidatePath = () => undefined,
   redirect = (url) => {
@@ -89,8 +89,8 @@ function loadAfterSalesActionsModule({
       if (specifier === "next/navigation") {
         return { redirect };
       }
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return { getAdminContext };
@@ -155,7 +155,7 @@ test("after-sales admin capabilities map after-sales permissions", () => {
 
 test("after-sales admin loads health list and selected case through BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     const raw = pathValue.includes("/health")
       ? { service: "after-sales", status: "ok", persistence: { reachable: true }, events: { publisherEnabled: true, consumerEnabled: true } }
@@ -186,8 +186,8 @@ test("after-sales admin loads health list and selected case through BFF", async 
 
     return { ok: true, data: options.parse ? options.parse(raw) : raw, status: 200, correlationId: "corr-after-sales" };
   };
-  const { getAfterSalesAdminData } = loadAfterSalesAdminModule(requestBff);
-  const { buildAfterSalesAuditTimeline } = loadAfterSalesAdminModule(requestBff);
+  const { getAfterSalesAdminData } = loadAfterSalesAdminModule(requestAdminBff);
+  const { buildAfterSalesAuditTimeline } = loadAfterSalesAdminModule(requestAdminBff);
   const capabilities = { canManageAfterSales: true };
 
   const data = await getAfterSalesAdminData(context, { caseId: "case-1", status: "SUBMITTED", customerId: "customer-1", orderId: "order-1", assignedEmployeeId: "employee-1" }, capabilities);
@@ -213,7 +213,7 @@ test("after-sales admin loads health list and selected case through BFF", async 
 
 test("after-sales admin actions mutate case lifecycle through scoped BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method,
@@ -221,7 +221,7 @@ test("after-sales admin actions mutate case lifecycle through scoped BFF", async
     });
     return { ok: true, data: {}, status: 200, correlationId: "corr-after-sales" };
   };
-  const actions = loadAfterSalesActionsModule({ requestBff });
+  const actions = loadAfterSalesActionsModule({ requestAdminBff });
   const formData = new FormData();
   formData.set("caseId", "case-1");
   formData.set("assignedEmployeeId", "employee-2");

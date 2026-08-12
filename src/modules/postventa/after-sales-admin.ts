@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminSession } from "../../shared/auth/session";
 import type { AdminContext } from "../../shared/config/admin-context";
@@ -511,21 +511,21 @@ export async function getAfterSalesAdminData(
     : null;
 
   const [health, cases, selectedCase, employees] = await Promise.all([
-    requestBff<AfterSalesAdminHealth>("/admin/after-sales/health", {
+    requestAdminBff<AfterSalesAdminHealth>("/admin/after-sales/health", {
       context,
       parse: normalizeHealth,
     }),
-    requestBff<AfterSalesAdminCaseList>(listPath, {
+    requestAdminBff<AfterSalesAdminCaseList>(listPath, {
       context,
       parse: normalizeCaseList,
     }),
     selectedPath
-      ? requestBff<AfterSalesAdminCase>(selectedPath, {
+      ? requestAdminBff<AfterSalesAdminCase>(selectedPath, {
           context,
           parse: normalizeAfterSalesCase,
         })
       : Promise.resolve({ ok: true as const, data: null, status: 200, correlationId: "after-sales-admin-no-selection" }),
-    requestBff<AfterSalesAdminEmployee[]>(scopedPath("/admin/employees", context), {
+    requestAdminBff<AfterSalesAdminEmployee[]>(scopedPath("/admin/employees", context), {
       context,
       parse: normalizeEmployees,
     }),
@@ -535,7 +535,7 @@ export async function getAfterSalesAdminData(
     : null;
   const selectedOrderId = selectedCase.ok ? selectedCase.data?.orderId : undefined;
   const orderReferences = selectedOrderId
-    ? await requestBff<AfterSalesAdminOrderReferences>(
+    ? await requestAdminBff<AfterSalesAdminOrderReferences>(
         scopedPath(`/admin/orders/${encodeURIComponent(selectedOrderId)}`, context),
         { context, parse: normalizeOrderReferences },
       )

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ExternalLink, ImageIcon, Trash2, Upload } from "lucide-react";
 import type { AdminContext } from "../../shared/config/admin-context";
+import { safeMediaInputAccept } from "../../shared/security/media-upload";
 import type { MediaAdminCollection, MediaAdminListResult } from "./media-admin";
 
 type Action = (formData: FormData) => Promise<void>;
@@ -350,7 +351,7 @@ function CollectionDetailDrawer({
           </div>
           <label className="adminField adminFieldFull">
             <span>Archivos</span>
-            <input multiple name="files" type="file" />
+            <input multiple name="files" type="file" accept={safeMediaInputAccept} />
           </label>
           <div className="mediaAdminUploadMeta">
             <label className="adminField">
@@ -481,7 +482,7 @@ export function MediaAdminPage({
             </label>
             <label className="adminField">
               <span>Archivos</span>
-              <input multiple name="files" type="file" />
+              <input multiple name="files" type="file" accept={safeMediaInputAccept} />
             </label>
             <label className="adminField">
               <span>Alt comun</span>

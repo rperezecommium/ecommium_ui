@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { plainProductText, slugifyProductValue } from "./product-editor-draft";
@@ -254,7 +254,7 @@ export async function listCatalogAttributeFeatureData(
 ): Promise<CatalogAttributeFeatureData> {
   const params = makeScopedParams(context, { limit: "100", offset: "0" });
   const endpoint = `/admin/specifications/groups?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: (value) => listItems(value),
   });
@@ -277,7 +277,7 @@ export async function listCatalogAttributeFeatureData(
       return Promise.resolve(null);
     }
     const detailEndpoint = `/admin/specifications/groups/${encodeURIComponent(groupId)}?${makeScopedParams(context).toString()}`;
-    return requestBff(detailEndpoint, {
+    return requestAdminBff(detailEndpoint, {
       context,
       parse: (value) => parseGroup(value, context.locale),
     });
@@ -296,7 +296,7 @@ export async function listCatalogAttributeFeatureData(
 
 export async function getCatalogSpecificationGroup(context: AdminContext, groupId: string) {
   const endpoint = `/admin/specifications/groups/${encodeURIComponent(groupId)}?${makeScopedParams(context).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     parse: (value) => parseGroup(value, context.locale),
   });
@@ -349,7 +349,7 @@ export async function createCatalogSpecificationField(
       { ...fieldPayload, position: current.data.fields.length + 1 },
     ];
     const endpoint = `/admin/specifications/groups/${encodeURIComponent(input.groupId)}?${makeScopedParams(context).toString()}`;
-    return requestBff(endpoint, {
+    return requestAdminBff(endpoint, {
       context,
       init: {
         method: "PATCH",
@@ -362,7 +362,7 @@ export async function createCatalogSpecificationField(
 
   const groupName = plainProductText(input.groupName || `${name} group`);
   const endpoint = `/admin/specifications/groups?${makeScopedParams(context).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "POST",
@@ -411,7 +411,7 @@ export async function updateCatalogSpecificationField(
     };
   });
   const endpoint = `/admin/specifications/groups/${encodeURIComponent(input.groupId)}?${makeScopedParams(context).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "PATCH",
@@ -453,7 +453,7 @@ export async function addCatalogSpecificationValue(
     };
   });
   const endpoint = `/admin/specifications/groups/${encodeURIComponent(input.groupId)}?${makeScopedParams(context).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "PATCH",
@@ -491,7 +491,7 @@ export async function removeCatalogSpecificationValue(
     };
   });
   const endpoint = `/admin/specifications/groups/${encodeURIComponent(input.groupId)}?${makeScopedParams(context).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "PATCH",

@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 
@@ -338,8 +338,8 @@ export async function getSeoAdminData(
     offset: filters.offset ?? "0",
   }).toString()}`;
   const [routesResult, redirectsResult] = await Promise.all([
-    requestBff(routesEndpoint, { context, parse: normalizeRoutesList }),
-    requestBff(redirectsEndpoint, { context, parse: normalizeRedirectsList }),
+    requestAdminBff(routesEndpoint, { context, parse: normalizeRoutesList }),
+    requestAdminBff(redirectsEndpoint, { context, parse: normalizeRedirectsList }),
   ]);
 
   const sitemap = filters.tab === "sitemap"
@@ -367,7 +367,7 @@ async function listSeoSitemap(
   filters: SeoAdminFilters,
 ): Promise<SeoAdminResult<SeoSitemap>> {
   const endpoint = `/admin/routing-seo/sitemap?${makeScopedParams(context, { locale: filters.locale }).toString()}`;
-  const result = await requestBff(endpoint, { context, parse: normalizeSitemap });
+  const result = await requestAdminBff(endpoint, { context, parse: normalizeSitemap });
   const fallback = {
     organizationId: context.organizationId,
     shopId: context.shopId,
@@ -388,7 +388,7 @@ async function resolveSeoPath(
     locale: filters.locale,
     path: filters.path || "/",
   }).toString()}`;
-  const result = await requestBff(endpoint, { context, parse: normalizeResolve });
+  const result = await requestAdminBff(endpoint, { context, parse: normalizeResolve });
 
   return result.ok
     ? { source: "bff", data: result.data }
@@ -403,7 +403,7 @@ export async function createSeoRoute(
   const endpoint = `/admin/routing-seo/routes?${makeScopedParams(context, { locale }).toString()}`;
   const sanitizedPayload = sanitizeRoutePayload(payload);
 
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "POST",
@@ -423,7 +423,7 @@ export async function patchSeoRoute(
   const endpoint = `/admin/routing-seo/routes/${encodeURIComponent(routeId)}?${makeScopedParams(context, { locale }).toString()}`;
   const sanitizedPayload = sanitizeRoutePatchPayload(payload);
 
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "PATCH",
@@ -441,7 +441,7 @@ export async function createSeoRedirect(
 ) {
   const endpoint = `/admin/routing-seo/redirects?${makeScopedParams(context, { locale }).toString()}`;
 
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "POST",

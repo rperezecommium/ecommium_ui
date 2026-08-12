@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import {
   clearAdminContext,
   getAdminContext,
@@ -209,7 +209,7 @@ export function decideAdminContextResolution(
 }
 
 export async function loadAvailableAdminContexts(accessToken: string): Promise<AvailableAdminContext[]> {
-  const organizationsResult = await requestBff("/admin/organizations-shops/organizations?limit=100&offset=0", {
+  const organizationsResult = await requestAdminBff("/admin/organizations-shops/organizations?limit=100&offset=0", {
     withAuth: false,
     init: {
       headers: authHeader(accessToken),
@@ -232,7 +232,7 @@ export async function loadAvailableAdminContexts(accessToken: string): Promise<A
         limit: "100",
         offset: "0",
       });
-      const result = await requestBff(`/admin/organizations-shops/shops?${params.toString()}`, {
+      const result = await requestAdminBff(`/admin/organizations-shops/shops?${params.toString()}`, {
         withAuth: false,
         init: {
           headers: authHeader(accessToken),

@@ -1,6 +1,5 @@
 import type { AdminContext } from "../../shared/config/admin-context";
-import { requestBff } from "../../shared/bff/client";
-import { adminBffToken } from "../../shared/config/env";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 
 export type OrganizationOption = {
   id: string;
@@ -442,6 +441,9 @@ function fallbackSettings(context: AdminContext, message?: string, correlationId
 
 type DirectoryRequestOptions = {
   withSessionAuth?: boolean;
+  accessToken?: string;
+  preferredOrganizationId?: string;
+  preferredShopId?: string;
 };
 
 function directoryRequestOptions(options: DirectoryRequestOptions = {}) {
@@ -449,16 +451,7 @@ function directoryRequestOptions(options: DirectoryRequestOptions = {}) {
     return {};
   }
 
-  return {
-    withAuth: false,
-    init: adminBffToken
-      ? {
-          headers: {
-            authorization: `Bearer ${adminBffToken}`,
-          },
-        }
-      : undefined,
-  };
+  return { withAuth: false };
 }
 
 function availableContextRequestOptions(options: DirectoryRequestOptions & { accessToken?: string } = {}) {
@@ -477,13 +470,21 @@ function availableContextRequestOptions(options: DirectoryRequestOptions & { acc
 }
 
 export async function getAvailableAdminContexts(
-  options: DirectoryRequestOptions & { accessToken?: string } = {},
+  options: DirectoryRequestOptions = {},
 ): Promise<
   | ({ ok: true } & AvailableAdminContextDirectory)
   | { ok: false; error: string; status?: number; correlationId?: string }
 > {
-  const endpoint = "/admin/context/available";
-  const result = await requestBff(endpoint, {
+  const params = new URLSearchParams();
+  if (options.preferredOrganizationId?.trim()) {
+    params.set("preferredOrganizationId", options.preferredOrganizationId.trim());
+  }
+  if (options.preferredShopId?.trim()) {
+    params.set("preferredShopId", options.preferredShopId.trim());
+  }
+  const query = params.toString();
+  const endpoint = `/admin/context/available${query ? `?${query}` : ""}`;
+  const result = await requestAdminBff(endpoint, {
     ...availableContextRequestOptions(options),
     parse: parseAvailableAdminContext,
   });
@@ -517,7 +518,7 @@ export async function getOrganizationShopDirectory(
   }
 
   const organizationsEndpoint = "/admin/organizations-shops/organizations?limit=100&offset=0";
-  const organizationsResult = await requestBff(organizationsEndpoint, {
+  const organizationsResult = await requestAdminBff(organizationsEndpoint, {
     ...directoryRequestOptions(options),
     parse: parseOrganizationList,
   });
@@ -543,11 +544,11 @@ export async function getOrganizationShopDirectory(
       const shopGroupsEndpoint = `/admin/organizations-shops/shop-groups?${params.toString()}`;
       const shopsEndpoint = `/admin/organizations-shops/shops?${params.toString()}`;
       const [shopGroupsResult, shopsResult] = await Promise.all([
-        requestBff(shopGroupsEndpoint, {
+        requestAdminBff(shopGroupsEndpoint, {
           ...directoryRequestOptions(options),
           parse: (value) => parseShopGroupList(value, organization.id),
         }),
-        requestBff(shopsEndpoint, {
+        requestAdminBff(shopsEndpoint, {
           ...directoryRequestOptions(options),
           parse: (value) => parseShopList(value, organization.id),
         }),
@@ -586,7 +587,7 @@ export async function resolveShopContext(
     organizationId,
     shopAlias,
   });
-  const result = await requestBff(`/admin/organizations-shops/shops/context/resolve?${params.toString()}`, {
+  const result = await requestAdminBff(`/admin/organizations-shops/shops/context/resolve?${params.toString()}`, {
     ...directoryRequestOptions(options),
     parse: (value) => normalizeShop(value, organizationId),
   });
@@ -622,7 +623,7 @@ export async function resolveShopContextById(
     organizationId,
     shopId,
   });
-  const result = await requestBff(`/admin/organizations-shops/shops/context/resolve?${params.toString()}`, {
+  const result = await requestAdminBff(`/admin/organizations-shops/shops/context/resolve?${params.toString()}`, {
     parse: (value) => normalizeShop(value, organizationId),
   });
 
@@ -665,7 +666,7 @@ export async function getShopSettingsInheritance(
     params.set("shopAlias", context.shopAlias);
   }
 
-  const result = await requestBff(`/admin/organizations-shops/shops/context/resolve?${params.toString()}`, {
+  const result = await requestAdminBff(`/admin/organizations-shops/shops/context/resolve?${params.toString()}`, {
     context,
     parse: parseSettingsInheritance,
   });

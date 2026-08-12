@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminSession } from "../../shared/auth/session";
 import type { AdminContext } from "../../shared/config/admin-context";
@@ -773,7 +773,7 @@ export async function getCustomerOverview(
     recentLimit: String(parsePositiveInteger(filters.purchasesLimit, 5, 20)),
   });
   const endpoint = `/admin/customers/${encodeURIComponent(customerId)}/overview?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: normalizeOverview,
   });
@@ -801,7 +801,7 @@ export async function getCustomersList(
     offset: String(offset),
   });
   const endpoint = `/admin/customers?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: normalizeList,
   });
@@ -824,7 +824,7 @@ export async function getCustomerDetail(
 
   const params = makeScopedParams(context);
   const endpoint = `/admin/customers/${encodeURIComponent(customerId)}?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: normalizeCustomer,
   });
@@ -847,7 +847,7 @@ export async function getCustomerByReference(
 
   const params = makeScopedParams(context, { customerReference });
   const endpoint = `/admin/customers/by-reference?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: normalizeCustomer,
   });
@@ -870,7 +870,7 @@ export async function getCustomerAddresses(
 
   const params = makeScopedParams(context);
   const endpoint = `/admin/customers/${encodeURIComponent(customerId)}/addresses?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: normalizeAddresses,
   });
@@ -897,7 +897,7 @@ export async function getCustomerPurchases(
     offset: String(parseOffset(filters.purchasesOffset)),
   });
   const endpoint = `/admin/customers/${encodeURIComponent(customerId)}/purchases?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: normalizePurchases,
   });

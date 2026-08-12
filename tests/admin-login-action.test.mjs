@@ -156,9 +156,9 @@ const moduleContext = {
         },
       };
     }
-    if (specifier.endsWith("/shared/bff/client")) {
+    if (specifier.endsWith("/shared/bff/admin-client")) {
       return {
-        requestBff: async (path, options = {}) => {
+        requestAdminBff: async (path, options = {}) => {
           events.push({ type: "bff", path, options });
 
           if (path === "/auth/login") {
@@ -216,7 +216,7 @@ const moduleContext = {
             }, options);
           }
 
-          if (path === "/admin/context/available") {
+          if (path.startsWith("/admin/context/available")) {
             if (scenario.availableStatus) {
               return {
                 ok: false,
@@ -263,6 +263,15 @@ const moduleContext = {
           clearContextCalls += 1;
         },
         getAdminContext: async () => ({ locale: "es-ES", currency: "EUR", country: "ES", channel: "admin" }),
+        getAdminContextForPrincipal: async () => scenario.preferredContext ?? ({
+          organizationId: "",
+          shopId: "",
+          locale: "es-ES",
+          currency: "EUR",
+          country: "ES",
+          channel: "admin",
+        }),
+        hasRequiredAdminContext: (context) => Boolean(context.organizationId && context.shopId),
         saveAdminContext: async (context) => {
           savedContext = context;
         },
@@ -292,8 +301,8 @@ const moduleContext = {
         exports: realExports,
         module: { exports: realExports },
         require(realSpecifier) {
-          if (realSpecifier.endsWith("/shared/bff/client")) {
-            return moduleContext.require("../../shared/bff/client");
+          if (realSpecifier.endsWith("/shared/bff/admin-client")) {
+            return moduleContext.require("../../shared/bff/admin-client");
           }
           if (realSpecifier.endsWith("/shared/config/env")) {
             return { adminBffToken: "" };
@@ -463,6 +472,30 @@ test("admin login always prefers BFF defaultContext over manual shop selection",
   assert.equal(savedContext.shopId, "07071977-aa11-4f34-b030-b7efed2e2cd6");
   assert.equal(savedContext.shopAlias, "tienda-ui-1780565845946");
   assert.equal(clearContextCalls, 0);
+});
+
+test("admin login sends the remembered shop to the BFF as a validated preference", async () => {
+  resetScenario({
+    availableContext: multipleShopsWithDefaultContext,
+    preferredContext: {
+      organizationId: "11111111-1111-4111-8111-111111111111",
+      shopId: "07071977-aa11-4f34-b030-b7efed2e2cd6",
+      locale: "es-ES",
+      currency: "EUR",
+      country: "ES",
+      channel: "admin",
+    },
+  });
+
+  await assert.rejects(() => submitLogin("/admin"), { url: "/admin" });
+
+  const availableCall = events.find((event) => (
+    event.type === "bff" && event.path.startsWith("/admin/context/available?")
+  ));
+  assert.ok(availableCall);
+  assert.match(availableCall.path, /preferredOrganizationId=11111111-1111-4111-8111-111111111111/);
+  assert.match(availableCall.path, /preferredShopId=07071977-aa11-4f34-b030-b7efed2e2cd6/);
+  assert.equal(savedContext.shopId, "07071977-aa11-4f34-b030-b7efed2e2cd6");
 });
 
 test("admin login persists BFF defaultContext even when directory omits shop details", async () => {

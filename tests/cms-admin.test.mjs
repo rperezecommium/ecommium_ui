@@ -38,10 +38,10 @@ function loadCmsBlocksModule() {
   return loadTsModule("packages/cms-blocks/src/index.ts");
 }
 
-function loadCmsAdminModule(requestBff) {
+function loadCmsAdminModule(requestAdminBff) {
   return loadTsModule("src/modules/cms/cms-admin.ts", (specifier) => {
-    if (specifier.endsWith("/shared/bff/client")) {
-      return { requestBff };
+    if (specifier.endsWith("/shared/bff/admin-client")) {
+      return { requestAdminBff };
     }
     if (specifier === "./cms-blocks") {
       return loadCmsBlocksModule();
@@ -573,7 +573,7 @@ test("cms block builder exposes the first interactive builder surface", () => {
 
 test("cms admin data uses scoped BFF endpoints and maps permissions", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method ?? "GET",
@@ -637,7 +637,7 @@ test("cms admin data uses scoped BFF endpoints and maps permissions", async () =
       correlationId: "corr-list",
     };
   };
-  const { getCmsAdminData } = loadCmsAdminModule(requestBff);
+  const { getCmsAdminData } = loadCmsAdminModule(requestAdminBff);
 
   const data = await getCmsAdminData(context, {
     status: "DRAFT",
@@ -664,7 +664,7 @@ test("cms admin data uses scoped BFF endpoints and maps permissions", async () =
 
 test("cms admin data loads page settings, resolved layout and templates for editor", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push(pathValue);
     let raw;
     if (pathValue.includes("/resolved-settings")) {
@@ -748,7 +748,7 @@ test("cms admin data loads page settings, resolved layout and templates for edit
     }
     return { ok: true, data: options.parse ? options.parse(raw) : raw, correlationId: "corr" };
   };
-  const { getCmsAdminData } = loadCmsAdminModule(requestBff);
+  const { getCmsAdminData } = loadCmsAdminModule(requestAdminBff);
 
   const data = await getCmsAdminData(context, { pageId: "page-1" });
 
@@ -1128,7 +1128,7 @@ test("cms page UI documents the Routing SEO and builder strategy", () => {
 
 test("cms settings client exposes scoped BFF accessors", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method ?? "GET",
@@ -1239,7 +1239,7 @@ test("cms settings client exposes scoped BFF accessors", async () => {
     patchCmsGlobalSettings,
     patchCmsPageSettings,
     patchCmsTemplate,
-  } = loadCmsAdminModule(requestBff);
+  } = loadCmsAdminModule(requestAdminBff);
 
   const global = await getCmsGlobalSettings(context, "es-ES");
   const fontOptions = await getCmsFontOptions(context, "es-ES");
@@ -1279,7 +1279,7 @@ test("cms settings client exposes scoped BFF accessors", async () => {
 
 test("cms visual module definitions use shop-scoped BFF writes", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method ?? "GET",
@@ -1317,7 +1317,7 @@ test("cms visual module definitions use shop-scoped BFF writes", async () => {
     createCmsVisualModuleDefinition,
     createCmsVisualModuleDefinitionDraftRevision,
     updateCmsVisualModuleDefinitionDraft,
-  } = loadCmsAdminModule(requestBff);
+  } = loadCmsAdminModule(requestAdminBff);
   const modulePayload = {
     schemaVersion: 2,
     moduleId: "heroModule-test",

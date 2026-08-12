@@ -1,6 +1,6 @@
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 
 export type CommunicationsProvider = "stub" | "smtp" | "sendgrid" | "resend";
@@ -249,7 +249,7 @@ export async function uploadEmailTemplateImage(
     file: File;
   },
 ): Promise<BffResult<EmailTemplateImageUpload>> {
-  const list = await requestBff<unknown>(
+  const list = await requestAdminBff<unknown>(
     scopedPath("/admin/media/collections", context, {
       productId: input.templateId,
       limit: "1",
@@ -269,11 +269,11 @@ export async function uploadEmailTemplateImage(
   formData.set("metadata", JSON.stringify([{ alt: { [input.locale]: input.file.name } }]));
 
   const response = existingCollectionId
-    ? await requestBff<unknown>(
+    ? await requestAdminBff<unknown>(
       scopedPath(`/admin/media/collections/${encodeURIComponent(existingCollectionId)}/items`, context),
       { context, init: { method: "POST", body: formData } },
     )
-    : await requestBff<unknown>(
+    : await requestAdminBff<unknown>(
       scopedPath("/admin/media/collections", context),
       {
         context,
@@ -314,7 +314,7 @@ export async function listEmailTemplateImages(
   context: AdminContext,
   templateId: string,
 ): Promise<BffResult<EmailTemplateImageUpload[]>> {
-  const result = await requestBff<unknown>(
+  const result = await requestAdminBff<unknown>(
     scopedPath("/admin/media/collections", context, {
       productId: templateId,
       limit: "1",
@@ -337,7 +337,7 @@ export async function hardDeleteEmailTemplateImage(
   context: AdminContext,
   input: Pick<EmailTemplateImageUpload, "mediaCollectionId" | "mediaAssetId">,
 ): Promise<BffResult<{ deleted?: boolean }>> {
-  return requestBff(
+  return requestAdminBff(
     scopedPath(
       `/admin/media/collections/${encodeURIComponent(input.mediaCollectionId)}/items/${encodeURIComponent(input.mediaAssetId)}`,
       context,
@@ -375,11 +375,11 @@ export async function getCommunicationsAdminData(
     ? getEmailDelivery(context, filters.deliveryId)
     : Promise.resolve(undefined);
   const [settings, authTemplates, deliveries, selectedDeliveryResult] = await Promise.all([
-    requestBff<EmailProviderSettings>(
+    requestAdminBff<EmailProviderSettings>(
       scopedPath("/admin/communications/settings/email-provider", context),
       { context },
     ),
-    requestBff<EmailTemplateList>(
+    requestAdminBff<EmailTemplateList>(
       scopedPath("/admin/communications/templates/email", context, {
         locale: context.locale,
         limit: filters.templatesLimit ?? "50",
@@ -404,7 +404,7 @@ export async function listEmailDeliveries(
   context: AdminContext,
   filters: EmailDeliveryAuditFilters = {},
 ) {
-  return requestBff<EmailDeliveryList>(
+  return requestAdminBff<EmailDeliveryList>(
     scopedPath("/admin/communications/deliveries", context, {
       status: filters.deliveryStatus,
       templateKey: filters.deliveryTemplateKey,
@@ -418,14 +418,14 @@ export async function listEmailDeliveries(
 }
 
 export async function getEmailDelivery(context: AdminContext, deliveryId: string) {
-  return requestBff<EmailDeliveryRecord>(
+  return requestAdminBff<EmailDeliveryRecord>(
     scopedPath(`/admin/communications/deliveries/${encodeURIComponent(deliveryId)}`, context),
     { context },
   );
 }
 
 export async function retryEmailDelivery(context: AdminContext, deliveryId: string) {
-  return requestBff<EmailDeliveryRecord>(
+  return requestAdminBff<EmailDeliveryRecord>(
     scopedPath(`/admin/communications/deliveries/${encodeURIComponent(deliveryId)}/retry`, context),
     {
       context,
@@ -442,7 +442,7 @@ export async function createEmailTemplate(
   context: AdminContext,
   payload: Required<Pick<EmailTemplateWritePayload, "templateKey" | "locale">> & EmailTemplateWritePayload,
 ) {
-  return requestBff<EmailTemplateRecord>(
+  return requestAdminBff<EmailTemplateRecord>(
     scopedPath("/admin/communications/templates/email", context),
     {
       context,
@@ -460,7 +460,7 @@ export async function patchEmailTemplate(
   templateId: string,
   payload: EmailTemplateWritePayload,
 ) {
-  return requestBff<EmailTemplateRecord>(
+  return requestAdminBff<EmailTemplateRecord>(
     scopedPath(`/admin/communications/templates/email/${encodeURIComponent(templateId)}`, context),
     {
       context,
@@ -478,7 +478,7 @@ export async function previewEmailTemplate(
   templateId: string,
   data?: Record<string, unknown>,
 ) {
-  return requestBff<EmailTemplatePreview>(
+  return requestAdminBff<EmailTemplatePreview>(
     scopedPath(`/admin/communications/templates/email/${encodeURIComponent(templateId)}/preview`, context),
     {
       context,
@@ -496,7 +496,7 @@ export async function transitionEmailTemplate(
   templateId: string,
   transition: "activate" | "deactivate" | "archive",
 ) {
-  return requestBff<EmailTemplateRecord>(
+  return requestAdminBff<EmailTemplateRecord>(
     scopedPath(`/admin/communications/templates/email/${encodeURIComponent(templateId)}/${transition}`, context),
     {
       context,
@@ -513,7 +513,7 @@ export async function patchEmailProviderSettings(
   context: AdminContext,
   payload: Record<string, unknown>,
 ) {
-  return requestBff<EmailProviderSettings>(
+  return requestAdminBff<EmailProviderSettings>(
     scopedPath("/admin/communications/settings/email-provider", context),
     {
       context,
@@ -530,7 +530,7 @@ export async function bootstrapAuthEmailTemplates(
   context: AdminContext,
   payload: { locale: string; overwrite: boolean },
 ) {
-  return requestBff<{ locale: string; created: number; updated: number; existing: number }>(
+  return requestAdminBff<{ locale: string; created: number; updated: number; existing: number }>(
     scopedPath("/admin/communications/templates/email/auth-defaults", context),
     {
       context,
@@ -554,7 +554,7 @@ export async function sendCommunicationsTestEmail(
     sourceEventId: string;
   },
 ) {
-  return requestBff<EmailDeliveryRecord>(
+  return requestAdminBff<EmailDeliveryRecord>(
     scopedPath("/admin/communications/email/send", context),
     {
       context,

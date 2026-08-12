@@ -23,7 +23,7 @@ function source(relativePath) {
   return readFileSync(path.resolve(root, relativePath), "utf8");
 }
 
-function loadAutomationAdminModule(requestBff) {
+function loadAutomationAdminModule(requestAdminBff) {
   const moduleSource = source("src/modules/configuracion/automation-admin.ts");
   const { outputText } = ts.transpileModule(moduleSource, {
     compilerOptions: {
@@ -38,8 +38,8 @@ function loadAutomationAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return {
@@ -421,7 +421,7 @@ test("automation phase six keeps advanced rules intact and migrates only exact v
 test("automation admin route delegates reads to the data layer without direct BFF calls", () => {
   const routeSource = source("app/(admin)/admin/configuracion/automatizacion/page.tsx");
 
-  assert.doesNotMatch(routeSource, /requestBff/);
+  assert.doesNotMatch(routeSource, /requestAdminBff/);
   assert.match(routeSource, /normalizeDrawer/);
   assert.match(routeSource, /rule-create/);
   assert.match(routeSource, /rule-edit/);
@@ -440,7 +440,7 @@ test("automation admin route delegates reads to the data layer without direct BF
 test("automation admin data layer uses scoped BFF endpoints for health rules executions and defaults", async () => {
   const dataSource = source("src/modules/configuracion/automation-admin.ts");
   const calls = [];
-  const requestBff = async (pathValue) => {
+  const requestAdminBff = async (pathValue) => {
     calls.push(pathValue);
     if (pathValue === "/admin/automation/health") {
       return {
@@ -516,7 +516,7 @@ test("automation admin data layer uses scoped BFF endpoints for health rules exe
       },
     };
   };
-  const { getAutomationAdminData } = loadAutomationAdminModule(requestBff);
+  const { getAutomationAdminData } = loadAutomationAdminModule(requestAdminBff);
 
   const data = await getAutomationAdminData(context, {
     eventType: "shipping.fulfillment.shipped.v1",
@@ -552,7 +552,7 @@ test("automation admin data layer uses scoped BFF endpoints for health rules exe
 
 test("automation admin reads selected rule and execution details through scoped BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue) => {
+  const requestAdminBff = async (pathValue) => {
     calls.push(pathValue);
     if (pathValue.startsWith("/admin/automation/rules/rule-1?")) {
       return {
@@ -624,7 +624,7 @@ test("automation admin reads selected rule and execution details through scoped 
     getAutomationAdminData,
     getAutomationRule,
     getAutomationExecution,
-  } = loadAutomationAdminModule(requestBff);
+  } = loadAutomationAdminModule(requestAdminBff);
 
   const rule = await getAutomationRule(context, "rule-1");
   const execution = await getAutomationExecution(context, "execution-1");
@@ -643,7 +643,7 @@ test("automation admin reads selected rule and execution details through scoped 
 
 test("automation admin transitions selected rules through scoped BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options) => {
+  const requestAdminBff = async (pathValue, options) => {
     calls.push([pathValue, options?.init]);
     return {
       ok: true,
@@ -664,7 +664,7 @@ test("automation admin transitions selected rules through scoped BFF", async () 
       },
     };
   };
-  const { transitionAutomationRule } = loadAutomationAdminModule(requestBff);
+  const { transitionAutomationRule } = loadAutomationAdminModule(requestAdminBff);
 
   const result = await transitionAutomationRule(context, "rule-1", "pause");
 
@@ -679,7 +679,7 @@ test("automation admin transitions selected rules through scoped BFF", async () 
 
 test("automation admin creates and edits rule definitions through scoped BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options) => {
+  const requestAdminBff = async (pathValue, options) => {
     calls.push([pathValue, options?.init]);
     return {
       ok: true,
@@ -700,7 +700,7 @@ test("automation admin creates and edits rule definitions through scoped BFF", a
       },
     };
   };
-  const { createAutomationRule, patchAutomationRule } = loadAutomationAdminModule(requestBff);
+  const { createAutomationRule, patchAutomationRule } = loadAutomationAdminModule(requestAdminBff);
   const payload = {
     name: "Tracking enviado",
     description: "Aviso al cliente",
@@ -728,7 +728,7 @@ test("automation admin creates and edits rule definitions through scoped BFF", a
 
 test("automation admin retries selected executions through scoped BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options) => {
+  const requestAdminBff = async (pathValue, options) => {
     calls.push([pathValue, options?.init]);
     return {
       ok: true,
@@ -757,7 +757,7 @@ test("automation admin retries selected executions through scoped BFF", async ()
       },
     };
   };
-  const { retryAutomationExecution } = loadAutomationAdminModule(requestBff);
+  const { retryAutomationExecution } = loadAutomationAdminModule(requestAdminBff);
 
   const result = await retryAutomationExecution(context, "execution-1");
 
@@ -772,7 +772,7 @@ test("automation admin retries selected executions through scoped BFF", async ()
 
 test("automation admin default bootstraps post tenant-scoped payloads through BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options) => {
+  const requestAdminBff = async (pathValue, options) => {
     calls.push([pathValue, options?.init]);
     return {
       ok: true,
@@ -784,7 +784,7 @@ test("automation admin default bootstraps post tenant-scoped payloads through BF
   const {
     bootstrapAutomationTrackingEmailDefaults,
     bootstrapAutomationInvoiceEmailDefaults,
-  } = loadAutomationAdminModule(requestBff);
+  } = loadAutomationAdminModule(requestAdminBff);
 
   await bootstrapAutomationTrackingEmailDefaults(context, { locale: "es-ES", overwrite: true });
   await bootstrapAutomationInvoiceEmailDefaults(context, { locale: "es-ES", overwrite: false });
@@ -805,7 +805,7 @@ test("automation admin default bootstraps post tenant-scoped payloads through BF
 
 test("automation admin default bootstraps remain blocked without tenant context", async () => {
   const calls = [];
-  const requestBff = async (pathValue) => {
+  const requestAdminBff = async (pathValue) => {
     calls.push(pathValue);
     return {
       ok: true,
@@ -817,7 +817,7 @@ test("automation admin default bootstraps remain blocked without tenant context"
   const {
     bootstrapAutomationTrackingEmailDefaults,
     bootstrapAutomationInvoiceEmailDefaults,
-  } = loadAutomationAdminModule(requestBff);
+  } = loadAutomationAdminModule(requestAdminBff);
 
   const tracking = await bootstrapAutomationTrackingEmailDefaults(
     { ...context, organizationId: "", shopId: "" },
@@ -837,7 +837,7 @@ test("automation admin default bootstraps remain blocked without tenant context"
 
 test("automation admin data layer keeps tenant-scoped reads blocked without admin context", async () => {
   const calls = [];
-  const requestBff = async (pathValue) => {
+  const requestAdminBff = async (pathValue) => {
     calls.push(pathValue);
     return {
       ok: true,
@@ -846,7 +846,7 @@ test("automation admin data layer keeps tenant-scoped reads blocked without admi
       data: { status: "ok", service: "automation" },
     };
   };
-  const { getAutomationAdminData } = loadAutomationAdminModule(requestBff);
+  const { getAutomationAdminData } = loadAutomationAdminModule(requestAdminBff);
   const data = await getAutomationAdminData({ ...context, organizationId: "", shopId: "" });
 
   assert.deepEqual(calls, ["/admin/automation/health"]);

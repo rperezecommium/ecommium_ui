@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import { getAdminContext } from "../../shared/config/admin-context";
 import { buildEmployeesMutationPath } from "./employees";
 
@@ -88,7 +88,7 @@ export async function createEmployeeAction(formData: FormData) {
     fail(tab, "El password inicial debe tener minimo 8 caracteres.");
   }
 
-  const result = await requestBff(buildEmployeesMutationPath("/admin/employees", context.organizationId, context.shopId), {
+  const result = await requestAdminBff(buildEmployeesMutationPath("/admin/employees", context.organizationId, context.shopId), {
     context,
     init: {
       method: "POST",
@@ -114,7 +114,7 @@ export async function updateEmployeeAction(formData: FormData) {
     fail(tab, "Selecciona un empleado para editar.");
   }
 
-  const result = await requestBff(
+  const result = await requestAdminBff(
     buildEmployeesMutationPath(`/admin/employees/${encodeURIComponent(employeeId)}`, context.organizationId, context.shopId),
     {
       context,
@@ -143,7 +143,7 @@ export async function updateEmployeeStatusAction(formData: FormData) {
     fail(tab, "Selecciona un empleado para cambiar estado.");
   }
 
-  const result = await requestBff(
+  const result = await requestAdminBff(
     buildEmployeesMutationPath(`/admin/employees/${encodeURIComponent(employeeId)}/status`, context.organizationId, context.shopId),
     {
       context,
@@ -172,7 +172,7 @@ export async function updateEmployeeShopScopesAction(formData: FormData) {
     fail(tab, "Selecciona un empleado para asignar tiendas.");
   }
 
-  const result = await requestBff(
+  const result = await requestAdminBff(
     buildEmployeesMutationPath(`/admin/employees/${encodeURIComponent(employeeId)}/shop-scopes`, context.organizationId, context.shopId),
     {
       context,
@@ -201,7 +201,7 @@ export async function createProfileAction(formData: FormData) {
     fail(tab, "El nombre del perfil es obligatorio.");
   }
 
-  const result = await requestBff(
+  const result = await requestAdminBff(
     buildEmployeesMutationPath("/admin/employees/profiles", context.organizationId, context.shopId),
     {
       context,
@@ -235,7 +235,7 @@ export async function updateProfileAction(formData: FormData) {
     fail(tab, "Selecciona un perfil para editar.");
   }
 
-  const result = await requestBff(
+  const result = await requestAdminBff(
     buildEmployeesMutationPath(`/admin/employees/profiles/${encodeURIComponent(profileId)}`, context.organizationId, context.shopId),
     {
       context,
@@ -269,7 +269,7 @@ export async function updateProfilePermissionsAction(formData: FormData) {
     fail(tab, "Selecciona un perfil para asignar permisos.");
   }
 
-  const result = await requestBff(
+  const result = await requestAdminBff(
     buildEmployeesMutationPath(
       `/admin/employees/profiles/${encodeURIComponent(profileId)}/permissions`,
       context.organizationId,

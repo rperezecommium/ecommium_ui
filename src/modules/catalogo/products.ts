@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { listCatalogAttributeFeatureData } from "./catalog-attributes-features";
 import { listCatalogEntities, toLookupOptions } from "./catalog-taxonomy";
@@ -1158,7 +1158,7 @@ async function getProductListPrice(context: AdminContext, productId: string): Pr
     active: "true",
     currency: context.currency ?? "EUR",
   });
-  const result = await requestBff(`/admin/prices?${params.toString()}`, {
+  const result = await requestAdminBff(`/admin/prices?${params.toString()}`, {
     context,
     parse: parseFirstProductPrice,
   });
@@ -1206,7 +1206,7 @@ async function getProductListAvailabilityBatch(context: AdminContext, variantIds
   }
 
   const params = makeScopedParams(context);
-  const result = await requestBff(`/admin/inventory/availability/resolve-batch?${params.toString()}`, {
+  const result = await requestAdminBff(`/admin/inventory/availability/resolve-batch?${params.toString()}`, {
     context,
     init: {
       method: "POST",
@@ -1230,7 +1230,7 @@ async function getProductListAvailabilityBatch(context: AdminContext, variantIds
 
 async function getProductListDefaultVariantId(context: AdminContext, productId: string) {
   const params = makeScopedParams(context);
-  const result = await requestBff(`/admin/products/${encodeURIComponent(productId)}/variants?${params.toString()}`, {
+  const result = await requestAdminBff(`/admin/products/${encodeURIComponent(productId)}/variants?${params.toString()}`, {
     context,
     parse: parseDefaultVariantId,
   });
@@ -1300,7 +1300,7 @@ export async function getAdminProducts(
   }
 
   const endpoint = `/admin/products?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: parseProductList,
   });
@@ -1340,7 +1340,7 @@ export async function getAdminProductEditorData(context: AdminContext, productId
     warehouseId: "main-warehouse",
   });
   const endpoint = `/admin/products/${encodeURIComponent(productId)}/editor-state?${params.toString()}`;
-  const editorState = await requestBff(endpoint, {
+  const editorState = await requestAdminBff(endpoint, {
     context,
     parse: (value) => parseEditorState(value, context.locale, context.currency),
   });
@@ -1449,7 +1449,7 @@ export async function getProductEditorLookups(context: AdminContext): Promise<Pr
 async function getShippingCarrierLookups(context: AdminContext) {
   const params = makeScopedParams(context, { includeInactive: "false" });
   const endpoint = `/admin/shipping/configuration?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: parseShippingConfiguration,
   });
@@ -1527,7 +1527,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
 
   return {
     createProduct(payload: ProductCatalogCreatePayload) {
-      return requestBff(scopedPath("/admin/products"), {
+      return requestAdminBff(scopedPath("/admin/products"), {
         context,
         init: {
           method: "POST",
@@ -1540,7 +1540,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     updateProduct(productId: string, payload: ProductCatalogUpdatePayload) {
-      return requestBff(scopedPath(`/admin/products/${encodeURIComponent(productId)}`), {
+      return requestAdminBff(scopedPath(`/admin/products/${encodeURIComponent(productId)}`), {
         context,
         init: {
           method: "PATCH",
@@ -1553,13 +1553,13 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     getProduct(productId: string) {
-      return requestBff(scopedPath(`/admin/products/${encodeURIComponent(productId)}`), {
+      return requestAdminBff(scopedPath(`/admin/products/${encodeURIComponent(productId)}`), {
         context,
         parse: parseProduct,
       });
     },
     listVariants(productId: string) {
-      return requestBff(scopedPath(`/admin/products/${encodeURIComponent(productId)}/variants`, {
+      return requestAdminBff(scopedPath(`/admin/products/${encodeURIComponent(productId)}/variants`, {
         limit: "100",
         offset: "0",
       }), {
@@ -1568,7 +1568,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     createVariant(productId: string, payload: ProductVariantCreatePayload) {
-      return requestBff(scopedPath(`/admin/products/${encodeURIComponent(productId)}/variants`), {
+      return requestAdminBff(scopedPath(`/admin/products/${encodeURIComponent(productId)}/variants`), {
         context,
         init: {
           method: "POST",
@@ -1581,7 +1581,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     updateVariant(variantId: string, payload: ProductVariantUpdatePayload) {
-      return requestBff(scopedPath(`/admin/variants/${encodeURIComponent(variantId)}`), {
+      return requestAdminBff(scopedPath(`/admin/variants/${encodeURIComponent(variantId)}`), {
         context,
         init: {
           method: "PATCH",
@@ -1594,7 +1594,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     deleteVariant(variantId: string) {
-      return requestBff(scopedPath(`/admin/variants/${encodeURIComponent(variantId)}`, { mode: "soft" }), {
+      return requestAdminBff(scopedPath(`/admin/variants/${encodeURIComponent(variantId)}`, { mode: "soft" }), {
         context,
         init: {
           method: "DELETE",
@@ -1603,7 +1603,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     createVariantOption(variantId: string, payload: ProductVariantOptionPayload) {
-      return requestBff(scopedPath(`/admin/variants/${encodeURIComponent(variantId)}/options`), {
+      return requestAdminBff(scopedPath(`/admin/variants/${encodeURIComponent(variantId)}/options`), {
         context,
         init: {
           method: "POST",
@@ -1616,7 +1616,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     updateVariantOption(variantId: string, variantOptionId: string, payload: ProductVariantOptionPayload) {
-      return requestBff(scopedPath(`/admin/variants/${encodeURIComponent(variantId)}/options/${encodeURIComponent(variantOptionId)}`), {
+      return requestAdminBff(scopedPath(`/admin/variants/${encodeURIComponent(variantId)}/options/${encodeURIComponent(variantOptionId)}`), {
         context,
         init: {
           method: "PATCH",
@@ -1629,7 +1629,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     deleteVariantOption(variantId: string, variantOptionId: string) {
-      return requestBff(scopedPath(`/admin/variants/${encodeURIComponent(variantId)}/options/${encodeURIComponent(variantOptionId)}`, { mode: "soft" }), {
+      return requestAdminBff(scopedPath(`/admin/variants/${encodeURIComponent(variantId)}/options/${encodeURIComponent(variantOptionId)}`, { mode: "soft" }), {
         context,
         init: {
           method: "DELETE",
@@ -1649,7 +1649,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       formData.set("defaultLocale", input.defaultLocale);
       formData.set("metadata", JSON.stringify(input.metadata.map(({ isMain, alt, title }) => ({ isMain, alt, title }))));
 
-      return requestBff(scopedPath("/admin/media/collections"), {
+      return requestAdminBff(scopedPath("/admin/media/collections"), {
         context,
         init: {
           method: "POST",
@@ -1668,7 +1668,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       formData.set("defaultLocale", input.defaultLocale);
       formData.set("metadata", JSON.stringify(input.metadata.map(({ isMain, alt, title }) => ({ isMain, alt, title }))));
 
-      return requestBff(scopedPath(`/admin/media/collections/${encodeURIComponent(input.mediaCollectionId)}/items`), {
+      return requestAdminBff(scopedPath(`/admin/media/collections/${encodeURIComponent(input.mediaCollectionId)}/items`), {
         context,
         init: {
           method: "POST",
@@ -1678,7 +1678,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     deleteMediaItem(input) {
-      return requestBff(scopedPath(`/admin/media/collections/${encodeURIComponent(input.mediaCollectionId)}/items/${encodeURIComponent(input.mediaAssetId)}`, { mode: "soft" }), {
+      return requestAdminBff(scopedPath(`/admin/media/collections/${encodeURIComponent(input.mediaCollectionId)}/items/${encodeURIComponent(input.mediaAssetId)}`, { mode: "soft" }), {
         context,
         init: {
           method: "DELETE",
@@ -1687,7 +1687,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     assignVariantMedia(input) {
-      return requestBff(scopedPath(`/admin/variants/${encodeURIComponent(input.variantId)}/media/bulk`), {
+      return requestAdminBff(scopedPath(`/admin/variants/${encodeURIComponent(input.variantId)}/media/bulk`), {
         context,
         init: {
           method: "POST",
@@ -1704,7 +1704,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     clearVariantMedia(input) {
-      return requestBff(scopedPath(`/admin/variants/${encodeURIComponent(input.variantId)}/media`), {
+      return requestAdminBff(scopedPath(`/admin/variants/${encodeURIComponent(input.variantId)}/media`), {
         context,
         init: {
           method: "DELETE",
@@ -1713,7 +1713,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     setVariantMainMedia(input) {
-      return requestBff(scopedPath(`/admin/variants/${encodeURIComponent(input.variantId)}/media/main`), {
+      return requestAdminBff(scopedPath(`/admin/variants/${encodeURIComponent(input.variantId)}/media/main`), {
         context,
         init: {
           method: "PUT",
@@ -1729,7 +1729,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     createProductPrice(input: { productId: string; price: PriceDraft }) {
-      return requestBff(scopedPath("/admin/prices"), {
+      return requestAdminBff(scopedPath("/admin/prices"), {
         context,
         init: {
           method: "POST",
@@ -1745,7 +1745,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     updatePrice(input) {
-      return requestBff(scopedPath(`/admin/prices/${encodeURIComponent(input.pricingId)}`), {
+      return requestAdminBff(scopedPath(`/admin/prices/${encodeURIComponent(input.pricingId)}`), {
         context,
         init: {
           method: "PATCH",
@@ -1774,7 +1774,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     deletePrice(input) {
-      return requestBff(scopedPath(`/admin/prices/${encodeURIComponent(input.pricingId)}`, { mode: "soft" }), {
+      return requestAdminBff(scopedPath(`/admin/prices/${encodeURIComponent(input.pricingId)}`, { mode: "soft" }), {
         context,
         init: {
           method: "DELETE",
@@ -1783,7 +1783,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     createVariantPrice(input) {
-      return requestBff(scopedPath("/admin/prices"), {
+      return requestAdminBff(scopedPath("/admin/prices"), {
         context,
         init: {
           method: "POST",
@@ -1820,7 +1820,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       setParam("quantity", input.quantity ?? 1);
       setParam("at", input.at);
 
-      return requestBff(`/admin/pricing/preview?${params.toString()}`, {
+      return requestAdminBff(`/admin/pricing/preview?${params.toString()}`, {
         context,
         parse: asAppliedPricePreview,
       });
@@ -1836,13 +1836,13 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       if (params.type) {
         query.type = params.type;
       }
-      return requestBff(scopedPath("/admin/offerings", query), {
+      return requestAdminBff(scopedPath("/admin/offerings", query), {
         context,
         parse: parseOfferingList,
       });
     },
     createOffering(payload: ProductOfferingCreatePayload) {
-      return requestBff(scopedPath("/admin/offerings"), {
+      return requestAdminBff(scopedPath("/admin/offerings"), {
         context,
         init: {
           method: "POST",
@@ -1861,7 +1861,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     updateOffering(input) {
-      return requestBff(scopedPath(`/admin/offerings/${encodeURIComponent(input.offeringId)}`), {
+      return requestAdminBff(scopedPath(`/admin/offerings/${encodeURIComponent(input.offeringId)}`), {
         context,
         init: {
           method: "PATCH",
@@ -1880,7 +1880,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     deactivateOffering(offeringId: string) {
-      return requestBff(scopedPath(`/admin/offerings/${encodeURIComponent(offeringId)}`), {
+      return requestAdminBff(scopedPath(`/admin/offerings/${encodeURIComponent(offeringId)}`), {
         context,
         init: {
           method: "DELETE",
@@ -1895,7 +1895,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     attachOfferingToVariant(input) {
-      return requestBff(scopedPath(`/admin/offerings/${encodeURIComponent(input.offeringId)}/variants/${encodeURIComponent(input.variantId)}`), {
+      return requestAdminBff(scopedPath(`/admin/offerings/${encodeURIComponent(input.offeringId)}/variants/${encodeURIComponent(input.variantId)}`), {
         context,
         init: {
           method: "PUT",
@@ -1904,7 +1904,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     detachOfferingFromVariant(input) {
-      return requestBff(scopedPath(`/admin/offerings/${encodeURIComponent(input.offeringId)}/variants/${encodeURIComponent(input.variantId)}`), {
+      return requestAdminBff(scopedPath(`/admin/offerings/${encodeURIComponent(input.offeringId)}/variants/${encodeURIComponent(input.variantId)}`), {
         context,
         init: {
           method: "DELETE",
@@ -1913,7 +1913,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     setOfferingVariantActivation(input) {
-      return requestBff(scopedPath(`/admin/offerings/${encodeURIComponent(input.offeringId)}/variants/${encodeURIComponent(input.variantId)}/activation`), {
+      return requestAdminBff(scopedPath(`/admin/offerings/${encodeURIComponent(input.offeringId)}/variants/${encodeURIComponent(input.variantId)}/activation`), {
         context,
         init: {
           method: "PUT",
@@ -1926,7 +1926,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     listOfferingsByVariant(variantId: string) {
-      return requestBff(scopedPath(`/admin/offerings/variants/${encodeURIComponent(variantId)}`, {
+      return requestAdminBff(scopedPath(`/admin/offerings/variants/${encodeURIComponent(variantId)}`, {
         locale: context.locale,
         includeInactive: "true",
       }), {
@@ -1935,7 +1935,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       });
     },
     resolveOfferingsBatchByVariants(variantIds: string[]) {
-      return requestBff(scopedPath("/admin/offerings/variants/resolve-batch", {
+      return requestAdminBff(scopedPath("/admin/offerings/variants/resolve-batch", {
         locale: context.locale,
         includeInactive: "true",
       }), {
@@ -1952,7 +1952,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
     },
     putStockLevel(input: { variantId: string; stock: StockDraft }) {
       const params = makeScopedParams(context);
-      return requestBff(`/admin/inventory/stock-levels?${params.toString()}`, {
+      return requestAdminBff(`/admin/inventory/stock-levels?${params.toString()}`, {
         context,
         init: {
           method: "PUT",

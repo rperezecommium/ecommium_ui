@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminSession } from "../../shared/auth/session";
 import type { AdminContext } from "../../shared/config/admin-context";
@@ -213,12 +213,12 @@ export async function getInvoiceAdminData(
     ? scopedPath(`/admin/invoices/${encodeURIComponent(filters.invoiceId)}`, context)
     : null;
   const [invoices, selectedInvoice] = await Promise.all([
-    requestBff<InvoiceAdminList>(listPath, {
+    requestAdminBff<InvoiceAdminList>(listPath, {
       context,
       parse: normalizeInvoiceList,
     }),
     selectedPath
-      ? requestBff<InvoiceAdminInvoice>(selectedPath, {
+      ? requestAdminBff<InvoiceAdminInvoice>(selectedPath, {
           context,
           parse: normalizeInvoice,
         })

@@ -7,7 +7,7 @@ import ts from "typescript";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname);
 
-function loadSearchAdminModule(requestBff) {
+function loadSearchAdminModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/search/search-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -22,8 +22,8 @@ function loadSearchAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return {
@@ -114,7 +114,7 @@ test("search admin is exposed under catalog navigation with search permission al
 
 test("search admin calls scoped BFF health and query preview endpoints", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method ?? "GET",
@@ -132,7 +132,7 @@ test("search admin calls scoped BFF health and query preview endpoints", async (
 
     return { ok: true, data: options.parse ? options.parse(raw) : raw };
   };
-  const { getSearchAdminData } = loadSearchAdminModule(requestBff);
+  const { getSearchAdminData } = loadSearchAdminModule(requestAdminBff);
 
   const data = await getSearchAdminData(context, {
     preview: "1",
@@ -160,7 +160,7 @@ test("search admin calls scoped BFF health and query preview endpoints", async (
 
 test("search admin controls tab loads controls and serving configs through scoped BFF endpoints", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
 
     const raw = pathValue.startsWith("/admin/search/controls?")
@@ -171,7 +171,7 @@ test("search admin controls tab loads controls and serving configs through scope
 
     return { ok: true, data: options.parse ? options.parse(raw) : raw };
   };
-  const { getSearchAdminData } = loadSearchAdminModule(requestBff);
+  const { getSearchAdminData } = loadSearchAdminModule(requestAdminBff);
 
   const data = await getSearchAdminData(context, { tab: "controls" });
 
@@ -187,11 +187,11 @@ test("search admin controls tab loads controls and serving configs through scope
 
 test("search admin index and feed tabs keep lab preview idle until forms submit", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     return { ok: true, data: options.parse ? options.parse({ provider: "fake" }) : { provider: "fake" } };
   };
-  const { getSearchAdminData } = loadSearchAdminModule(requestBff);
+  const { getSearchAdminData } = loadSearchAdminModule(requestAdminBff);
 
   const indexData = await getSearchAdminData(context, { tab: "index", query: "pastillas" });
   const feedData = await getSearchAdminData(context, { tab: "feed", query: "pastillas" });
@@ -205,8 +205,8 @@ test("search admin index and feed tabs keep lab preview idle until forms submit"
 });
 
 test("search admin maps read failures to search permission guidance", async () => {
-  const requestBff = async () => ({ ok: false, status: 403, error: "Forbidden" });
-  const { getSearchAdminHealth } = loadSearchAdminModule(requestBff);
+  const requestAdminBff = async () => ({ ok: false, status: 403, error: "Forbidden" });
+  const { getSearchAdminHealth } = loadSearchAdminModule(requestAdminBff);
 
   const health = await getSearchAdminHealth(context);
 

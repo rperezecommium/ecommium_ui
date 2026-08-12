@@ -20,7 +20,7 @@ const context = {
   channel: "web",
 };
 
-function loadInvoicesAdminModule(requestBff) {
+function loadInvoicesAdminModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/pagos/invoices-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -35,8 +35,8 @@ function loadInvoicesAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return {
@@ -55,7 +55,7 @@ function loadInvoicesAdminModule(requestBff) {
 }
 
 function loadInvoicesActionsModule({
-  requestBff,
+  requestAdminBff,
   getAdminContext = async () => context,
   revalidatePath = () => undefined,
   redirect = (url) => {
@@ -83,8 +83,8 @@ function loadInvoicesActionsModule({
       if (specifier === "next/navigation") {
         return { redirect };
       }
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return { getAdminContext };
@@ -139,7 +139,7 @@ test("invoices admin capabilities map fiscal permissions", () => {
 
 test("invoices admin loads the commercial list and selected detail through BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     const raw = pathValue.includes("/admin/invoices/invoice-1?")
       ? { invoiceId: "invoice-1", orderId: "order-1", status: "ISSUED", currency: "EUR", totalMinor: 1234, lines: [{ lineId: "line-1", name: "Producto" }] }
@@ -147,7 +147,7 @@ test("invoices admin loads the commercial list and selected detail through BFF",
 
     return { ok: true, data: options.parse ? options.parse(raw) : raw, status: 200, correlationId: "corr-invoices" };
   };
-  const { getInvoiceAdminData } = loadInvoicesAdminModule(requestBff);
+  const { getInvoiceAdminData } = loadInvoicesAdminModule(requestAdminBff);
   const capabilities = { canManageInvoices: true };
 
   const data = await getInvoiceAdminData(context, { invoiceId: "invoice-1", orderId: "order-1", status: "ISSUED" }, capabilities);
@@ -162,7 +162,7 @@ test("invoices admin loads the commercial list and selected detail through BFF",
 
 test("invoices admin actions issue invoices and create fiscal adjustments through scoped BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method,
@@ -170,7 +170,7 @@ test("invoices admin actions issue invoices and create fiscal adjustments throug
     });
     return { ok: true, data: {}, status: 200, correlationId: "corr-invoices" };
   };
-  const { createFiscalInvoiceAdjustmentAction, issueInvoiceFromFiscalConsoleAction } = loadInvoicesActionsModule({ requestBff });
+  const { createFiscalInvoiceAdjustmentAction, issueInvoiceFromFiscalConsoleAction } = loadInvoicesActionsModule({ requestAdminBff });
   const formData = new FormData();
   formData.set("orderId", "order-1");
   formData.set("invoiceId", "invoice-1");

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getAdminContext } from "../../../../../src/shared/config/admin-context";
-import { getAdminSession } from "../../../../../src/shared/auth/session";
+import { refreshAdminEmployeeSession } from "../../../../../src/modules/auth/admin-session-actions";
 import {
   getCustomerByReference,
   getCustomerDetailAdminData,
@@ -40,7 +40,7 @@ export default async function CustomerDetailRoute({ params, searchParams }: Cust
   const [{ customerReference }, context, session] = await Promise.all([
     params,
     getAdminContext(),
-    getAdminSession(),
+    refreshAdminEmployeeSession(),
   ]);
   const query: CustomersAdminFilters & { tab?: string } = await searchParams ?? {};
   const capabilities = getCustomersAdminCapabilities(session);

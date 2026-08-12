@@ -53,7 +53,7 @@ function configurationPayload(configurationState = "PERSISTED") {
   };
 }
 
-function loadModule(requestBff) {
+function loadModule(requestAdminBff) {
   const source = readFileSync(
     path.resolve(root, "src/modules/configuracion/checkout-configuration-admin.ts"),
     "utf8",
@@ -71,8 +71,8 @@ function loadModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return {
@@ -186,7 +186,7 @@ function configurationFormData(overrides = {}) {
 
 test("checkout configuration reads the Admin BFF endpoint with tenant scope", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ pathValue, options });
     return {
       ok: true,
@@ -195,7 +195,7 @@ test("checkout configuration reads the Admin BFF endpoint with tenant scope", as
       correlationId: "corr-checkout",
     };
   };
-  const { getCheckoutConfigurationAdminData } = loadModule(requestBff);
+  const { getCheckoutConfigurationAdminData } = loadModule(requestAdminBff);
 
   const result = await getCheckoutConfigurationAdminData(context);
 
@@ -235,7 +235,7 @@ test("checkout configuration does not call BFF without an active shop context", 
 
 test("checkout configuration PATCH is tenant scoped and validates the returned contract", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ pathValue, options });
     return {
       ok: true,
@@ -244,7 +244,7 @@ test("checkout configuration PATCH is tenant scoped and validates the returned c
       correlationId: "corr-checkout",
     };
   };
-  const { patchCheckoutConfigurationAdminData } = loadModule(requestBff);
+  const { patchCheckoutConfigurationAdminData } = loadModule(requestAdminBff);
   const patch = {
     storeContext: { defaultLocale: "es-ES", defaultCurrency: "EUR", defaultCountry: "ES" },
     orderFormConfiguration: {
@@ -404,7 +404,7 @@ test("checkout configuration is exposed from the protected Admin configuration a
   assert.match(permissions, /"admin:checkout:view": \["admin:checkout:view", "checkout\.configuration\.write"\]/);
   assert.match(route, /getCheckoutConfigurationAdminData/);
   assert.match(route, /drawer/);
-  assert.doesNotMatch(route, /requestBff/);
+  assert.doesNotMatch(route, /requestAdminBff/);
   assert.match(route, /getAdminSession/);
   assert.match(route, /can\(session, "admin:checkout:view"\)/);
 

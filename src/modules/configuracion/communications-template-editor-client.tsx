@@ -25,6 +25,7 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { safeMediaInputAccept } from "../../shared/security/media-upload";
 import type {
   CommunicationsAdminFilters,
   EmailTemplatePreview,
@@ -408,7 +409,7 @@ function EmailHtmlEditor({
         </button>
         <input
           ref={imageInputRef}
-          accept="image/*"
+          accept={safeMediaInputAccept}
           aria-label="Archivo de imagen de la plantilla"
           className="visuallyHidden"
           type="file"

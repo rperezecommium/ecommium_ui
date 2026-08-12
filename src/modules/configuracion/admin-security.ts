@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 
 export type AdminStepUpState = {
   status: "REQUIRED" | "VERIFIED";
@@ -79,8 +79,8 @@ function parseSessions(value: unknown): AdminDeviceSession[] {
 
 export async function getAdminSecurityData(): Promise<AdminSecurityData> {
   const [stepUpResult, sessionsResult] = await Promise.all([
-    requestBff("/admin/session/step-up", { parse: parseStepUp }),
-    requestBff("/admin/sessions", { parse: parseSessions }),
+    requestAdminBff("/admin/session/step-up", { parse: parseStepUp }),
+    requestAdminBff("/admin/sessions", { parse: parseSessions }),
   ]);
 
   return {

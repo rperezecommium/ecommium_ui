@@ -20,7 +20,7 @@ const context = {
   channel: "web",
 };
 
-function loadMediaAdminModule(requestBff) {
+function loadMediaAdminModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/catalogo/media-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -38,8 +38,8 @@ function loadMediaAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       throw new Error(`Unexpected test require: ${specifier}`);
     },
@@ -66,7 +66,7 @@ function assertScoped(pathValue) {
 
 test("media admin lists collections through scoped Admin BFF endpoint", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     return ok({
       total: 1,
@@ -89,7 +89,7 @@ test("media admin lists collections through scoped Admin BFF endpoint", async ()
       }],
     }, options);
   };
-  const { listMediaCollections } = loadMediaAdminModule(requestBff);
+  const { listMediaCollections } = loadMediaAdminModule(requestAdminBff);
 
   const result = await listMediaCollections(context, { q: "galeria", status: "all", limit: 25, offset: 5 });
 
@@ -106,7 +106,7 @@ test("media admin lists collections through scoped Admin BFF endpoint", async ()
 
 test("media admin hydrates listed collections so thumbnails are available", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     if (pathValue.startsWith("/admin/media/collections/collection-with-preview?")) {
       return ok({
@@ -141,7 +141,7 @@ test("media admin hydrates listed collections so thumbnails are available", asyn
       }],
     }, options);
   };
-  const { listMediaCollections } = loadMediaAdminModule(requestBff);
+  const { listMediaCollections } = loadMediaAdminModule(requestAdminBff);
 
   const result = await listMediaCollections(context, { limit: 50, offset: 0 });
 
@@ -157,7 +157,7 @@ test("media admin hydrates listed collections so thumbnails are available", asyn
 
 test("media admin creates collections using the multipart BFF endpoint", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET", body: options.init?.body });
     return ok({
       collection: {
@@ -173,7 +173,7 @@ test("media admin creates collections using the multipart BFF endpoint", async (
       },
     }, options);
   };
-  const { createMediaCollection } = loadMediaAdminModule(requestBff);
+  const { createMediaCollection } = loadMediaAdminModule(requestAdminBff);
   const file = new File(["binary"], "new.jpg", { type: "image/jpeg" });
 
   const result = await createMediaCollection(context, {
@@ -203,7 +203,7 @@ test("media admin creates collections using the multipart BFF endpoint", async (
 
 test("media admin appends assets to existing collections using multipart", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET", body: options.init?.body });
     return ok({
       collection: {
@@ -213,7 +213,7 @@ test("media admin appends assets to existing collections using multipart", async
       },
     }, options);
   };
-  const { addMediaCollectionItems } = loadMediaAdminModule(requestBff);
+  const { addMediaCollectionItems } = loadMediaAdminModule(requestAdminBff);
   const file = new File(["binary"], "append.png", { type: "image/png" });
 
   const result = await addMediaCollectionItems(context, {
@@ -233,7 +233,7 @@ test("media admin appends assets to existing collections using multipart", async
 
 test("media admin reads collection detail and soft deletes only with mode soft", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     if ((options.init?.method ?? "GET") === "DELETE") {
       return ok({ deleted: true }, options);
@@ -250,7 +250,7 @@ test("media admin reads collection detail and soft deletes only with mode soft",
       }],
     }, options);
   };
-  const { getMediaCollection, softDeleteMediaCollection } = loadMediaAdminModule(requestBff);
+  const { getMediaCollection, softDeleteMediaCollection } = loadMediaAdminModule(requestAdminBff);
 
   const detail = await getMediaCollection(context, "collection-2");
   const deleted = await softDeleteMediaCollection(context, "collection-2");
@@ -269,7 +269,7 @@ test("media admin reads collection detail and soft deletes only with mode soft",
 
 test("media admin updates collection and asset through scoped patch endpoints", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method ?? "GET",
@@ -283,7 +283,7 @@ test("media admin updates collection and asset through scoped patch endpoints", 
       },
     }, options);
   };
-  const { updateMediaAsset, updateMediaCollection } = loadMediaAdminModule(requestBff);
+  const { updateMediaAsset, updateMediaCollection } = loadMediaAdminModule(requestAdminBff);
 
   await updateMediaCollection(context, "collection-patch", { title: "Galeria patch" });
   await updateMediaAsset(context, {
@@ -316,11 +316,11 @@ test("media admin updates collection and asset through scoped patch endpoints", 
 
 test("media admin soft deletes assets only with mode soft", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     return ok({ deleted: true }, options);
   };
-  const { softDeleteMediaAsset } = loadMediaAdminModule(requestBff);
+  const { softDeleteMediaAsset } = loadMediaAdminModule(requestAdminBff);
 
   const result = await softDeleteMediaAsset(context, "collection-delete", "asset-delete");
 

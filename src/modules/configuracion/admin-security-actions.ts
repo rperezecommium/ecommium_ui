@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 
 const securityPath = "/admin/configuracion/seguridad";
 
@@ -17,7 +17,7 @@ export async function verifyAdminStepUpAction(formData: FormData) {
   const currentPassword = text(formData.get("currentPassword"));
   if (!currentPassword) finish("error", "Escribe tu contraseña actual para confirmar esta acción.");
 
-  const result = await requestBff("/admin/session/step-up", {
+  const result = await requestAdminBff("/admin/session/step-up", {
     init: {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -30,7 +30,7 @@ export async function verifyAdminStepUpAction(formData: FormData) {
 }
 
 export async function logoutOtherAdminSessionsAction() {
-  const result = await requestBff("/admin/sessions/logout-others", {
+  const result = await requestAdminBff("/admin/sessions/logout-others", {
     init: { method: "POST" },
   });
 
@@ -42,7 +42,7 @@ export async function revokeAdminDeviceSessionAction(formData: FormData) {
   const sessionId = text(formData.get("sessionId"));
   if (!sessionId) finish("error", "No se identificó el dispositivo que quieres cerrar.");
 
-  const result = await requestBff(`/admin/sessions/${encodeURIComponent(sessionId)}/revoke`, {
+  const result = await requestAdminBff(`/admin/sessions/${encodeURIComponent(sessionId)}/revoke`, {
     init: { method: "POST" },
   });
 

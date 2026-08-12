@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import { getAdminContext } from "../../shared/config/admin-context";
 
 function value(formData: FormData, key: string) {
@@ -107,7 +107,7 @@ export async function createPaymentSystemAction(formData: FormData) {
     maxInstallments: numberValue(formData, "maxInstallments"),
   };
 
-  const result = await requestBff(scopedPath("/admin/payments/payment-systems", context.organizationId, context.shopId), {
+  const result = await requestAdminBff(scopedPath("/admin/payments/payment-systems", context.organizationId, context.shopId), {
     context,
     init: {
       method: "POST",
@@ -133,7 +133,7 @@ export async function createPaymentAffiliationAction(formData: FormData) {
     active: boolValue(formData, "active"),
   };
 
-  const result = await requestBff(scopedPath("/admin/payments/affiliations", context.organizationId, context.shopId), {
+  const result = await requestAdminBff(scopedPath("/admin/payments/affiliations", context.organizationId, context.shopId), {
     context,
     init: {
       method: "POST",
@@ -164,7 +164,7 @@ export async function createPaymentRuleAction(formData: FormData) {
     active: boolValue(formData, "active"),
   };
 
-  const result = await requestBff(scopedPath("/admin/payments/rules", context.organizationId, context.shopId), {
+  const result = await requestAdminBff(scopedPath("/admin/payments/rules", context.organizationId, context.shopId), {
     context,
     init: {
       method: "POST",
@@ -192,7 +192,7 @@ export async function setPaymentResourceActiveAction(formData: FormData) {
     paymentsRedirect(tab, "Falta recurso Payments o identificador.", includeInactive);
   }
 
-  const result = await requestBff(scopedPath(resourcePath(resource, id), context.organizationId, context.shopId), {
+  const result = await requestAdminBff(scopedPath(resourcePath(resource, id), context.organizationId, context.shopId), {
     context,
     init: {
       method: "PATCH",
@@ -223,7 +223,7 @@ export async function createPaymentRefundAction(formData: FormData) {
     throw new Error("Faltan datos para solicitar el reembolso.");
   }
 
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(`/admin/payments/transactions/${encodeURIComponent(transactionId)}/refunds`, context.organizationId, context.shopId),
     {
       context,
@@ -261,7 +261,7 @@ export async function createPaymentCancellationAction(formData: FormData) {
     throw new Error("Faltan datos para solicitar la cancelación.");
   }
 
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(`/admin/payments/transactions/${encodeURIComponent(transactionId)}/cancellations`, context.organizationId, context.shopId),
     {
       context,

@@ -1,5 +1,5 @@
 import { getAdminContext } from "../../../../src/shared/config/admin-context";
-import { getAdminSession } from "../../../../src/shared/auth/session";
+import { refreshAdminEmployeeSession } from "../../../../src/modules/auth/admin-session-actions";
 import { getCustomersAdminCapabilities, getCustomersAdminData } from "../../../../src/modules/clientes/customers-admin";
 import { CustomersAdminPage } from "../../../../src/modules/clientes/customers-admin-page";
 import type { CustomersAdminFilters } from "../../../../src/modules/clientes/customers-admin-types";
@@ -22,7 +22,7 @@ function addressModeParam(value: string | undefined) {
 export default async function ClientesPage({ searchParams }: ClientesPageProps) {
   const [context, session] = await Promise.all([
     getAdminContext(),
-    getAdminSession(),
+    refreshAdminEmployeeSession(),
   ]);
   const capabilities = getCustomersAdminCapabilities(session);
   const params = await searchParams ?? {};

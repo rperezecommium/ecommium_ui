@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
@@ -198,7 +198,7 @@ async function getSearch<T>(
   fallback: T,
   parse: (value: unknown) => T,
 ): Promise<SearchAdminResult<T>> {
-  const result = await requestBff(path, { context, parse });
+  const result = await requestAdminBff(path, { context, parse });
 
   if (!result.ok) {
     return unavailable(path, fallback, result);
@@ -214,7 +214,7 @@ async function postSearch<T>(
   body: Record<string, unknown>,
   parse: (value: unknown) => T,
 ): Promise<SearchAdminResult<T>> {
-  const result = await requestBff(path, {
+  const result = await requestAdminBff(path, {
     context,
     init: {
       method: "POST",
@@ -308,7 +308,7 @@ export async function mutateSearch(
   method: "POST" | "PATCH" | "DELETE",
   body?: Record<string, unknown>,
 ): Promise<BffResult<SearchAdminRecord>> {
-  return requestBff(path, {
+  return requestAdminBff(path, {
     context,
     init: {
       method,

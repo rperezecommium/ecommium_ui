@@ -20,7 +20,7 @@ const context = {
   channel: "web",
 };
 
-function loadPromotionsAdminModule(requestBff) {
+function loadPromotionsAdminModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/promociones/promotions-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -36,8 +36,8 @@ function loadPromotionsAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
 
       return {};
@@ -50,7 +50,7 @@ function loadPromotionsAdminModule(requestBff) {
 
 test("promotions admin lists coupons through BFF Admin facade", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
 
     return {
@@ -81,7 +81,7 @@ test("promotions admin lists coupons through BFF Admin facade", async () => {
         : {},
     };
   };
-  const { getPromotionsAdminData } = loadPromotionsAdminModule(requestBff);
+  const { getPromotionsAdminData } = loadPromotionsAdminModule(requestAdminBff);
 
   const data = await getPromotionsAdminData(context, { status: "all", q: "welcome" });
 
@@ -93,7 +93,7 @@ test("promotions admin lists coupons through BFF Admin facade", async () => {
 
 test("promotions admin creates, updates and deletes coupons through BFF modes", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method ?? "GET",
@@ -111,7 +111,7 @@ test("promotions admin creates, updates and deletes coupons through BFF modes", 
     createPromotionCoupon,
     deletePromotionCoupon,
     updatePromotionCoupon,
-  } = loadPromotionsAdminModule(requestBff);
+  } = loadPromotionsAdminModule(requestAdminBff);
 
   await createPromotionCoupon(context, { couponCode: "WELCOME10", name: "Welcome" });
   await updatePromotionCoupon(context, "WELCOME10", { active: false });

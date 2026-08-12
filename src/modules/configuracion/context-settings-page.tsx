@@ -171,10 +171,7 @@ export function ContextSettingsPage({
               : "No se pudo conectar con el BFF de Ecommium."}
           </strong>
           {isUnauthorized ? (
-            <p>
-              Configura <code>ECOMMIUM_ADMIN_BFF_TOKEN</code> en el servidor de
-              Next.js para enviar <code>Authorization: Bearer &lt;token&gt;</code>.
-            </p>
+            <p>Inicia sesión con un Employee autorizado y vuelve a intentarlo.</p>
           ) : (
             <p>
               Para listar Organizations y Shops, levanta el backend canonico.

@@ -21,7 +21,7 @@ const context = {
 };
 
 function loadProductActionsModule({
-  requestBff,
+  requestAdminBff,
   getAdminContext,
   makeProductGateway = () => ({}),
   getAdminProductEditorData = async () => ({ ok: false, error: "not mocked" }),
@@ -59,8 +59,8 @@ function loadProductActionsModule({
       if (specifier.endsWith("/shared/config/admin-context")) {
         return { getAdminContext };
       }
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier === "./catalog-taxonomy") {
         return {
@@ -151,7 +151,7 @@ function productDraft() {
 
 test("saveProductDraftAction sends one idempotent product save operation to BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, options });
     assert.equal(pathValue.startsWith("/admin/product-save-operations?"), true);
     assert.match(pathValue, /[?&]organizationId=org-barcelona(?:&|$)/);
@@ -200,7 +200,7 @@ test("saveProductDraftAction sends one idempotent product save operation to BFF"
     };
   };
   const { saveProductDraftAction } = loadProductActionsModule({
-    requestBff,
+    requestAdminBff,
     getAdminContext: async () => context,
   });
   const formData = new FormData();
@@ -246,7 +246,7 @@ test("saveProductDraftAction strips read-only routing SEO fields before BFF", as
       },
     ],
   };
-  const requestBff = async (_pathValue, options = {}) => {
+  const requestAdminBff = async (_pathValue, options = {}) => {
     const sentDraft = JSON.parse(options.init.body.get("draft"));
     calls.push(sentDraft);
 
@@ -280,7 +280,7 @@ test("saveProductDraftAction strips read-only routing SEO fields before BFF", as
     };
   };
   const { saveProductDraftAction } = loadProductActionsModule({
-    requestBff,
+    requestAdminBff,
     getAdminContext: async () => context,
   });
   const formData = new FormData();
@@ -308,7 +308,7 @@ test("saveProductDraftAction forwards product specification selections to BFF", 
       },
     ],
   };
-  const requestBff = async (_pathValue, options = {}) => {
+  const requestAdminBff = async (_pathValue, options = {}) => {
     calls.push({ body: options.init.body });
     const sentDraft = JSON.parse(options.init.body.get("draft"));
 
@@ -335,7 +335,7 @@ test("saveProductDraftAction forwards product specification selections to BFF", 
     };
   };
   const { saveProductDraftAction } = loadProductActionsModule({
-    requestBff,
+    requestAdminBff,
     getAdminContext: async () => context,
   });
   const formData = new FormData();
@@ -418,8 +418,8 @@ test("previewAppliedProductPriceAction delegates to product gateway with Admin c
     },
   });
   const { previewAppliedProductPriceAction } = loadProductActionsModule({
-    requestBff: async () => {
-      throw new Error("requestBff should not be called directly");
+    requestAdminBff: async () => {
+      throw new Error("requestAdminBff should not be called directly");
     },
     getAdminContext: async () => context,
     makeProductGateway,
@@ -450,7 +450,7 @@ test("deactivateProductAction hides product through BFF and inactivates SEO rout
   const gatewayCalls = [];
   const routeCalls = [];
   const revalidated = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     routeCalls.push({ path: pathValue, options });
     assert.match(pathValue, /^\/admin\/routing-seo\/routes\/route-/);
     assert.equal(options.init?.method, "PATCH");
@@ -525,7 +525,7 @@ test("deactivateProductAction hides product through BFF and inactivates SEO rout
     };
   };
   const { deactivateProductAction } = loadProductActionsModule({
-    requestBff,
+    requestAdminBff,
     getAdminContext: async () => context,
     getAdminProductEditorData,
     makeProductGateway,
@@ -582,7 +582,7 @@ test("bulkDeactivateProductsAction hides selected products through BFF", async (
       taxCode: "standard",
     },
   };
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     routeCalls.push({ path: pathValue, options });
     assert.match(pathValue, /^\/admin\/routing-seo\/routes\/route-product-/);
     assert.equal(options.init?.method, "PATCH");
@@ -627,7 +627,7 @@ test("bulkDeactivateProductsAction hides selected products through BFF", async (
     },
   });
   const { bulkDeactivateProductsAction } = loadProductActionsModule({
-    requestBff,
+    requestAdminBff,
     getAdminContext: async () => context,
     getAdminProductEditorData,
     makeProductGateway,
@@ -688,7 +688,7 @@ test("saveProductDraftAction forwards product-centric specific prices to BFF", a
     priority: 100,
   }];
 
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     assert.equal(pathValue.startsWith("/admin/product-save-operations?"), true);
     const sentDraft = JSON.parse(options.init.body.get("draft"));
     assert.equal(sentDraft.pricing.specificPrices.length, 1);
@@ -726,7 +726,7 @@ test("saveProductDraftAction forwards product-centric specific prices to BFF", a
     };
   };
   const { saveProductDraftAction } = loadProductActionsModule({
-    requestBff,
+    requestAdminBff,
     getAdminContext: async () => context,
   });
   const formData = new FormData();
@@ -740,7 +740,7 @@ test("saveProductDraftAction forwards product-centric specific prices to BFF", a
 });
 
 test("saveProductDraftAction preserves BFF recovery actions for partial failures", async () => {
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     assert.equal(pathValue.startsWith("/admin/product-save-operations?"), true);
     const raw = {
       ok: false,
@@ -780,7 +780,7 @@ test("saveProductDraftAction preserves BFF recovery actions for partial failures
     };
   };
   const { saveProductDraftAction } = loadProductActionsModule({
-    requestBff,
+    requestAdminBff,
     getAdminContext: async () => context,
   });
   const formData = new FormData();
@@ -800,9 +800,9 @@ test("saveProductDraftAction preserves BFF recovery actions for partial failures
 test("saveProductDraftAction fails before BFF when Admin context is missing", async () => {
   let called = false;
   const { saveProductDraftAction } = loadProductActionsModule({
-    requestBff: async () => {
+    requestAdminBff: async () => {
       called = true;
-      throw new Error("requestBff should not be called");
+      throw new Error("requestAdminBff should not be called");
     },
     getAdminContext: async () => ({ ...context, organizationId: "", shopId: "" }),
   });
@@ -818,7 +818,7 @@ test("saveProductDraftAction fails before BFF when Admin context is missing", as
 
 test("readProductDraftMediaStateAction rehydrates persisted draft media through BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, options });
     assert.equal(pathValue.startsWith("/admin/product-drafts/client-draft-1?"), true);
     assert.match(pathValue, /[?&]organizationId=org-barcelona(?:&|$)/);
@@ -865,7 +865,7 @@ test("readProductDraftMediaStateAction rehydrates persisted draft media through 
     };
   };
   const { readProductDraftMediaStateAction } = loadProductActionsModule({
-    requestBff,
+    requestAdminBff,
     getAdminContext: async () => context,
   });
 
@@ -880,7 +880,7 @@ test("readProductDraftMediaStateAction rehydrates persisted draft media through 
 
 test("uploadProductDraftMediaAction sends one idempotent draft media upload to BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, options });
     assert.equal(pathValue.startsWith("/admin/product-drafts/client-draft-1/media?"), true);
     assert.match(pathValue, /[?&]organizationId=org-barcelona(?:&|$)/);
@@ -930,7 +930,7 @@ test("uploadProductDraftMediaAction sends one idempotent draft media upload to B
     };
   };
   const { uploadProductDraftMediaAction } = loadProductActionsModule({
-    requestBff,
+    requestAdminBff,
     getAdminContext: async () => context,
   });
   const formData = new FormData();

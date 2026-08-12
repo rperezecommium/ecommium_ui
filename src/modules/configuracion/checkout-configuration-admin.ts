@@ -1,6 +1,6 @@
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 
 export type CheckoutConfigurationState = "INITIAL" | "PERSISTED";
@@ -179,7 +179,7 @@ export async function getCheckoutConfigurationAdminData(
     };
   }
 
-  return requestBff(configurationPath(context), {
+  return requestAdminBff(configurationPath(context), {
     context,
     parse: parseCheckoutConfigurationResponse,
   });
@@ -198,7 +198,7 @@ export async function patchCheckoutConfigurationAdminData(
     };
   }
 
-  return requestBff(configurationPath(context), {
+  return requestAdminBff(configurationPath(context), {
     context,
     init: {
       method: "PATCH",

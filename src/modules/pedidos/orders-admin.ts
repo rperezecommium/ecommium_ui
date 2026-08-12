@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminSession } from "../../shared/auth/session";
 import type { AdminContext } from "../../shared/config/admin-context";
@@ -476,13 +476,13 @@ export async function getOrdersAdminData(
 
   const [orders, selectedOrder] = await Promise.all([
     capabilities.canReadOrders
-      ? requestBff<AdminOrdersList>(
+      ? requestAdminBff<AdminOrdersList>(
           scopedPath("/admin/orders", context, { customerId, limit, offset }),
           { context, parse: normalizeOrdersList },
         )
       : unavailable<AdminOrdersList>("Falta permiso orders.read."),
     orderId && capabilities.canReadOrders
-      ? requestBff<AdminOrderDetail | null>(
+      ? requestAdminBff<AdminOrderDetail | null>(
           scopedPath(`/admin/orders/${encodeURIComponent(orderId)}`, context),
           { context, parse: normalizeOrderDetail },
         )

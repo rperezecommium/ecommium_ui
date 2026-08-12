@@ -33,9 +33,9 @@ const moduleContext = {
         },
       };
     }
-    if (specifier.endsWith("/shared/bff/client")) {
+    if (specifier.endsWith("/shared/bff/admin-client")) {
       return {
-        requestBff: async (path, options = {}) => {
+        requestAdminBff: async (path, options = {}) => {
           bffCalls.push({ path, options });
           return { ok: true, data: {}, status: 200, correlationId: "test-correlation" };
         },

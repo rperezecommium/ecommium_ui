@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 
@@ -165,7 +165,7 @@ export async function getPromotionsAdminData(
   const endpoint = `/admin/promotions/coupons?${makeScopedParams(context, {
     includeInactive,
   }).toString()}`;
-  const result = await requestBff(endpoint, { context, parse: normalizeCouponList });
+  const result = await requestAdminBff(endpoint, { context, parse: normalizeCouponList });
 
   if (!result.ok) {
     return {
@@ -195,7 +195,7 @@ export async function createPromotionCoupon(
 ) {
   const endpoint = `/admin/promotions/coupons?${makeScopedParams(context).toString()}`;
 
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "POST",
@@ -213,7 +213,7 @@ export async function updatePromotionCoupon(
 ) {
   const endpoint = `/admin/promotions/coupons/${encodeURIComponent(couponCode)}?${makeScopedParams(context).toString()}`;
 
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "PATCH",
@@ -233,7 +233,7 @@ export async function deletePromotionCoupon(
     mode,
   }).toString()}`;
 
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "DELETE",

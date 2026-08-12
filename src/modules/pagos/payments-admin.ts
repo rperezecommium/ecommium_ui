@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminSession } from "../../shared/auth/session";
 import type { AdminContext } from "../../shared/config/admin-context";
@@ -468,20 +468,20 @@ export async function getPaymentsAdminData(
   const transactionOffset = Number(filters.transactionOffset);
   const selectedTransactionId = filters.transactionId?.trim();
   const [paymentSystems, affiliations, rules, cardLookup, transactions, transactionEvidence] = await Promise.all([
-    requestBff<PaymentSystemAdminRecord[]>(scopedPath("/admin/payments/payment-systems", context, { includeInactive }), {
+    requestAdminBff<PaymentSystemAdminRecord[]>(scopedPath("/admin/payments/payment-systems", context, { includeInactive }), {
       context,
       parse: normalizePaymentSystems,
     }),
-    requestBff<PaymentAffiliationAdminRecord[]>(scopedPath("/admin/payments/affiliations", context, { includeInactive }), {
+    requestAdminBff<PaymentAffiliationAdminRecord[]>(scopedPath("/admin/payments/affiliations", context, { includeInactive }), {
       context,
       parse: normalizeAffiliations,
     }),
-    requestBff<PaymentRuleAdminRecord[]>(scopedPath("/admin/payments/rules", context, { includeInactive }), {
+    requestAdminBff<PaymentRuleAdminRecord[]>(scopedPath("/admin/payments/rules", context, { includeInactive }), {
       context,
       parse: normalizeRules,
     }),
     cardBin
-      ? requestBff<PaymentsCardLookupResult>(scopedPath("/admin/payments/card-lookup", context), {
+      ? requestAdminBff<PaymentsCardLookupResult>(scopedPath("/admin/payments/card-lookup", context), {
           context,
           init: {
             method: "POST",
@@ -492,7 +492,7 @@ export async function getPaymentsAdminData(
         })
       : Promise.resolve({ ok: true as const, data: null, status: 200, correlationId: "payments-admin-no-card-lookup" }),
     shouldLoadTransactions && capabilities.canViewOperations
-      ? requestBff<PaymentOperationsAdminPage>(scopedPath("/admin/payments/transactions", context, {
+      ? requestAdminBff<PaymentOperationsAdminPage>(scopedPath("/admin/payments/transactions", context, {
           status: filters.transactionStatus,
           referenceId: filters.transactionReference,
           limit: Number.isInteger(transactionLimit) && transactionLimit > 0 ? String(Math.min(transactionLimit, 100)) : "25",
@@ -507,7 +507,7 @@ export async function getPaymentsAdminData(
             : "La bandeja de operaciones no se ha solicitado.",
         )),
     selectedTransactionId && capabilities.canViewOperations
-      ? requestBff<PaymentTransactionEvidence>(
+      ? requestAdminBff<PaymentTransactionEvidence>(
           scopedPath(`/admin/payments/transactions/${encodeURIComponent(selectedTransactionId)}`, context),
           { context, parse: normalizePaymentTransactionEvidence },
         )

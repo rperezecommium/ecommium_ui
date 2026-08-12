@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAdminContext } from "../../shared/config/admin-context";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import { createCatalogEntity, listCatalogEntities, toLookupOptions, type CatalogEntityKind } from "./catalog-taxonomy";
 import { getAdminProductEditorData, makeProductGateway } from "./products";
 import type {
@@ -52,7 +52,7 @@ async function patchProductRouteInactive(
     locale,
   });
 
-  return requestBff(`/admin/routing-seo/routes/${encodeURIComponent(routeId)}?${params.toString()}`, {
+  return requestAdminBff(`/admin/routing-seo/routes/${encodeURIComponent(routeId)}?${params.toString()}`, {
     context,
     init: {
       method: "PATCH",
@@ -217,7 +217,7 @@ export async function uploadProductDraftMediaAction(
     locale: context.locale,
   });
 
-  const result = await requestBff<ProductDraftMediaUploadReport>(
+  const result = await requestAdminBff<ProductDraftMediaUploadReport>(
     `/admin/product-drafts/${encodeURIComponent(normalizedClientDraftId)}/media?${params.toString()}`,
     {
       context,
@@ -283,7 +283,7 @@ export async function readProductDraftMediaStateAction(clientDraftId: string): P
     shopId: context.shopId,
     locale: context.locale,
   });
-  const result = await requestBff<ProductDraftMediaStateReport>(
+  const result = await requestAdminBff<ProductDraftMediaStateReport>(
     `/admin/product-drafts/${encodeURIComponent(normalizedClientDraftId)}?${params.toString()}`,
     {
       context,
@@ -490,7 +490,7 @@ export async function saveProductDraftAction(formData: FormData): Promise<Produc
       : crypto.randomUUID();
   formData.set("draft", JSON.stringify(sanitizeDraftForBff(draft)));
 
-  const result = await requestBff<ProductSaveReport>(`/admin/product-save-operations?${params.toString()}`, {
+  const result = await requestAdminBff<ProductSaveReport>(`/admin/product-save-operations?${params.toString()}`, {
     context,
     init: {
       method: "POST",

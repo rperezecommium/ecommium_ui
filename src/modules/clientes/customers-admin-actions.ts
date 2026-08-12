@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import { getAdminSession } from "../../shared/auth/session";
 import { getAdminContext } from "../../shared/config/admin-context";
 
@@ -100,7 +100,7 @@ async function customerJsonMutation(
 ): Promise<never> {
   const context = await getAdminContext();
   const customerId = requiredString(formData.get("customerId"), "customerId");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(`/admin/customers/${encodeURIComponent(customerId)}${pathSuffix}`, context.organizationId, context.shopId),
     {
       context,
@@ -129,7 +129,7 @@ async function customerEmptyMutation(
 ): Promise<never> {
   const context = await getAdminContext();
   const customerId = requiredString(formData.get("customerId"), "customerId");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(`/admin/customers/${encodeURIComponent(customerId)}${pathSuffix}`, context.organizationId, context.shopId),
     {
       context,
@@ -210,7 +210,7 @@ export async function createCustomerAction(formData: FormData): Promise<never> {
     ...profilePayload(formData),
   };
 
-  const result = await requestBff<{ customerId?: string }>(
+  const result = await requestAdminBff<{ customerId?: string }>(
     scopedPath("/admin/customers", context.organizationId, context.shopId),
     {
       context,
@@ -233,7 +233,7 @@ export async function createCustomerAction(formData: FormData): Promise<never> {
 export async function updateCustomerProfileAction(formData: FormData): Promise<never> {
   const context = await getAdminContext();
   const customerId = requiredString(formData.get("customerId"), "customerId");
-  const result = await requestBff<{ customerId?: string }>(
+  const result = await requestAdminBff<{ customerId?: string }>(
     scopedPath(`/admin/customers/${encodeURIComponent(customerId)}`, context.organizationId, context.shopId),
     {
       context,
@@ -256,7 +256,7 @@ export async function updateCustomerProfileAction(formData: FormData): Promise<n
 export async function createCustomerAddressAction(formData: FormData): Promise<never> {
   const context = await getAdminContext();
   const customerId = requiredString(formData.get("customerId"), "customerId");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(`/admin/customers/${encodeURIComponent(customerId)}/addresses`, context.organizationId, context.shopId),
     {
       context,
@@ -280,7 +280,7 @@ export async function updateCustomerAddressAction(formData: FormData): Promise<n
   const context = await getAdminContext();
   const customerId = requiredString(formData.get("customerId"), "customerId");
   const addressId = requiredString(formData.get("addressId"), "addressId");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(
       `/admin/customers/${encodeURIComponent(customerId)}/addresses/${encodeURIComponent(addressId)}`,
       context.organizationId,
@@ -308,7 +308,7 @@ export async function deleteCustomerAddressAction(formData: FormData): Promise<n
   const context = await getAdminContext();
   const customerId = requiredString(formData.get("customerId"), "customerId");
   const addressId = requiredString(formData.get("addressId"), "addressId");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(
       `/admin/customers/${encodeURIComponent(customerId)}/addresses/${encodeURIComponent(addressId)}`,
       context.organizationId,
@@ -332,7 +332,7 @@ export async function setDefaultShippingAddressAction(formData: FormData): Promi
   const context = await getAdminContext();
   const customerId = requiredString(formData.get("customerId"), "customerId");
   const addressId = requiredString(formData.get("addressId"), "addressId");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(
       `/admin/customers/${encodeURIComponent(customerId)}/addresses/${encodeURIComponent(addressId)}/default-shipping`,
       context.organizationId,
@@ -356,7 +356,7 @@ export async function setDefaultBillingAddressAction(formData: FormData): Promis
   const context = await getAdminContext();
   const customerId = requiredString(formData.get("customerId"), "customerId");
   const addressId = requiredString(formData.get("addressId"), "addressId");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(
       `/admin/customers/${encodeURIComponent(customerId)}/addresses/${encodeURIComponent(addressId)}/default-billing`,
       context.organizationId,
@@ -434,7 +434,7 @@ export async function testResetCustomerAction(formData: FormData): Promise<never
   const context = await getAdminContext();
   const customerId = requiredString(formData.get("customerId"), "customerId");
   const confirmEmail = requiredString(formData.get("confirmEmail"), "Email").toLowerCase();
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(`/admin/customers/${encodeURIComponent(customerId)}/test-reset`, context.organizationId, context.shopId),
     {
       context,

@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 
@@ -217,7 +217,7 @@ async function hydrateCollectionPreview(
   }
 
   const params = makeScopedParams(context);
-  const result = await requestBff(
+  const result = await requestAdminBff(
     `/admin/media/collections/${encodeURIComponent(collection.mediaCollectionId)}?${params.toString()}`,
     {
       context,
@@ -261,7 +261,7 @@ export async function listMediaCollections(
   }
 
   const endpoint = `/admin/media/collections?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: (value) => parseCollectionList(value, context.locale),
   });
@@ -299,7 +299,7 @@ export async function getMediaCollection(
 ): Promise<BffResult<MediaAdminCollection>> {
   const params = makeScopedParams(context);
 
-  return requestBff(`/admin/media/collections/${encodeURIComponent(mediaCollectionId)}?${params.toString()}`, {
+  return requestAdminBff(`/admin/media/collections/${encodeURIComponent(mediaCollectionId)}?${params.toString()}`, {
     context,
     parse: (value) => parseCollection(value, context.locale) ?? {
       mediaCollectionId,
@@ -360,7 +360,7 @@ export async function createMediaCollection(
     title: input.assetTitle,
   })));
 
-  return requestBff(`/admin/media/collections?${params.toString()}`, {
+  return requestAdminBff(`/admin/media/collections?${params.toString()}`, {
     context,
     init: {
       method: "POST",
@@ -403,7 +403,7 @@ export async function addMediaCollectionItems(
     title: input.assetTitle,
   })));
 
-  return requestBff(
+  return requestAdminBff(
     `/admin/media/collections/${encodeURIComponent(input.mediaCollectionId)}/items?${params.toString()}`,
     {
       context,
@@ -432,7 +432,7 @@ export async function updateMediaCollection(
 ): Promise<BffResult<MediaAdminCollection>> {
   const params = makeScopedParams(context);
 
-  return requestBff(`/admin/media/collections/${encodeURIComponent(mediaCollectionId)}?${params.toString()}`, {
+  return requestAdminBff(`/admin/media/collections/${encodeURIComponent(mediaCollectionId)}?${params.toString()}`, {
     context,
     init: {
       method: "PATCH",
@@ -488,7 +488,7 @@ export async function updateMediaAsset(
     ...(metadata.alt || metadata.title ? { metadata } : {}),
   };
 
-  return requestBff(
+  return requestAdminBff(
     `/admin/media/collections/${encodeURIComponent(input.mediaCollectionId)}/items/${encodeURIComponent(input.mediaAssetId)}?${params.toString()}`,
     {
       context,
@@ -517,7 +517,7 @@ export async function softDeleteMediaCollection(
 ): Promise<BffResult<{ deleted?: boolean; status?: string }>> {
   const params = makeScopedParams(context, { mode: "soft" });
 
-  return requestBff(`/admin/media/collections/${encodeURIComponent(mediaCollectionId)}?${params.toString()}`, {
+  return requestAdminBff(`/admin/media/collections/${encodeURIComponent(mediaCollectionId)}?${params.toString()}`, {
     context,
     init: {
       method: "DELETE",
@@ -533,7 +533,7 @@ export async function softDeleteMediaAsset(
 ): Promise<BffResult<{ deleted?: boolean; status?: string }>> {
   const params = makeScopedParams(context, { mode: "soft" });
 
-  return requestBff(
+  return requestAdminBff(
     `/admin/media/collections/${encodeURIComponent(mediaCollectionId)}/items/${encodeURIComponent(mediaAssetId)}?${params.toString()}`,
     {
       context,

@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 import type { ProductLookupOption, ProductTaxLookupOption } from "./product-editor-types";
@@ -209,7 +209,7 @@ async function getPricing<T>(
   fallback: T,
   parse: (value: unknown) => T,
 ): Promise<PricingAdminResult<T>> {
-  const result = await requestBff(path, { context, parse });
+  const result = await requestAdminBff(path, { context, parse });
 
   if (!result.ok) {
     return unavailable(path, fallback, result);
@@ -225,7 +225,7 @@ async function postPricing<T>(
   body: Record<string, unknown>,
   parse: (value: unknown) => T,
 ): Promise<PricingAdminResult<T>> {
-  const result = await requestBff(path, {
+  const result = await requestAdminBff(path, {
     context,
     init: {
       method: "POST",
@@ -443,7 +443,7 @@ export async function mutatePricing(
   method: "POST" | "PATCH" | "PUT" | "DELETE",
   payload?: Record<string, unknown>,
 ) {
-  const result = await requestBff(path, {
+  const result = await requestAdminBff(path, {
     context,
     init: {
       method,

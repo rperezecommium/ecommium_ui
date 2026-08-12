@@ -1,5 +1,5 @@
-import { getAdminSession } from "../../../../src/shared/auth/session";
 import { getAdminContext } from "../../../../src/shared/config/admin-context";
+import { refreshAdminEmployeeSession } from "../../../../src/modules/auth/admin-session-actions";
 import { getOrdersAdminCapabilities, getOrdersAdminData } from "../../../../src/modules/pedidos/orders-admin";
 import { OrdersAdminPage } from "../../../../src/modules/pedidos/orders-admin-page";
 import type { OrdersAdminFilters } from "../../../../src/modules/pedidos/orders-admin";
@@ -11,7 +11,7 @@ type PedidosPageProps = {
 export default async function PedidosPage({ searchParams }: PedidosPageProps) {
   const [context, session, params] = await Promise.all([
     getAdminContext(),
-    getAdminSession(),
+    refreshAdminEmployeeSession(),
     searchParams,
   ]);
   const filters: OrdersAdminFilters = {

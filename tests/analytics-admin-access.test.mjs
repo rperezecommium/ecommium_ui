@@ -17,5 +17,5 @@ test("Analytics is available as a protected top-level Admin area", () => {
   assert.match(permissions, /"admin:analytics:view": \["admin:analytics:view", "analytics\.reports\.read"\]/);
   assert.match(route, /getAdminSession/);
   assert.match(route, /can\(session, "admin:analytics:view"\)/);
-  assert.doesNotMatch(route, /requestBff/);
+  assert.doesNotMatch(route, /requestAdminBff/);
 });

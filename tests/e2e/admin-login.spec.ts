@@ -2699,7 +2699,7 @@ async function startNext() {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      ECOMMIUM_BFF_BASE_URL: `http://127.0.0.1:${bffPort}/api/v1`,
+      ECOMMIUM_ADMIN_BFF_BASE_URL: `http://127.0.0.1:${bffPort}/api/v1`,
       ECOMMIUM_ADMIN_BFF_TOKEN: "server-admin-token",
     },
   });

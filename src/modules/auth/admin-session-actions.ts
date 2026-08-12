@@ -1,10 +1,15 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requestBff } from "../../shared/bff/client";
-import { adminBffToken } from "../../shared/config/env";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import { hasUsableAdminBearer } from "../../shared/auth/admin-bearer";
-import { clearAdminContext, getAdminContext, saveAdminContext } from "../../shared/config/admin-context";
+import {
+  clearAdminContext,
+  getAdminContext,
+  getAdminContextForPrincipal,
+  hasRequiredAdminContext,
+  saveAdminContext,
+} from "../../shared/config/admin-context";
 import {
   clearAdminSession,
   getAdminSession,
@@ -95,7 +100,7 @@ function contextFromDefault(
 }
 
 async function fetchCurrentSessionWithToken(accessToken: string) {
-  return await requestBff("/auth/me", {
+  return await requestAdminBff("/auth/me", {
     withAuth: false,
     init: {
       headers: makeAuthHeader(accessToken),
@@ -142,7 +147,7 @@ async function loginAdminWithCredentials({
     loginRedirect(nextPath, "Email y password son obligatorios.");
   }
 
-  const loginResult = await requestBff("/auth/login", {
+  const loginResult = await requestAdminBff("/auth/login", {
     withAuth: false,
     init: {
       method: "POST",
@@ -165,8 +170,17 @@ async function loginAdminWithCredentials({
   }
 
   const session = mergeAuthSessions(loginResult.data, meResult.data);
+  const preferredContext = await getAdminContextForPrincipal(
+    session.employeeId || session.email,
+  );
   const availableContexts = await getAvailableAdminContexts({
     accessToken: loginResult.data.accessToken,
+    ...(hasRequiredAdminContext(preferredContext)
+      ? {
+          preferredOrganizationId: preferredContext.organizationId,
+          preferredShopId: preferredContext.shopId,
+        }
+      : {}),
   });
 
   if (!availableContexts.ok) {
@@ -180,7 +194,7 @@ async function loginAdminWithCredentials({
   }
 
   const shops = availableContexts.directory.organizations.flatMap((organization) => organization.shops);
-  const currentContext = await getAdminContext();
+  const currentContext = preferredContext;
   const selectedDefaultShop = availableContexts.defaultContext
     ? shops.find((shop) => (
         shop.organizationId === availableContexts.defaultContext?.organizationId &&
@@ -226,14 +240,13 @@ export async function logoutAdminEmployee() {
   const session = await getAdminSession();
 
   if (session?.accessToken) {
-    await requestBff("/auth/logout", {
+    await requestAdminBff("/auth/logout", {
       init: {
         method: "POST",
       },
     });
   }
 
-  await clearAdminContext();
   await clearAdminSession();
   redirect("/auth/login");
 }
@@ -253,7 +266,7 @@ export async function refreshAdminEmployeeSession() {
     return current;
   }
 
-  const meResult = await requestBff("/auth/me", {
+  const meResult = await requestAdminBff("/auth/me", {
     parse: parseMeResult,
   });
 
@@ -271,13 +284,6 @@ export async function refreshAdminEmployeeSession() {
   }
 
   if (!current.refreshToken) {
-    if (adminBffToken) {
-      return {
-        ...current,
-        accessToken: undefined,
-      };
-    }
-
     return null;
   }
 

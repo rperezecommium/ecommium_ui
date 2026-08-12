@@ -85,14 +85,7 @@ function parseContextCookieEnvelope(value: string | undefined): AdminContextCook
   }
 }
 
-export async function getAdminContext(): Promise<AdminContext> {
-  const cookieStore = await cookies();
-  const session = await getAdminSession();
-  const cookieContext = parseCookieContext(
-    cookieStore.get(contextCookieName)?.value,
-    principalContextKey(session),
-  );
-
+function completeAdminContext(cookieContext: Partial<AdminContext>): AdminContext {
   return {
     organizationId: cookieContext.organizationId ?? "",
     shopId: cookieContext.shopId ?? "",
@@ -105,6 +98,25 @@ export async function getAdminContext(): Promise<AdminContext> {
     country: cookieContext.country ?? defaultAdminContext.country,
     channel: cookieContext.channel ?? defaultAdminContext.channel,
   };
+}
+
+export async function getAdminContextForPrincipal(principalId: string): Promise<AdminContext> {
+  const cookieStore = await cookies();
+  return completeAdminContext(parseCookieContext(
+    cookieStore.get(contextCookieName)?.value,
+    principalId.trim() || undefined,
+  ));
+}
+
+export async function getAdminContext(): Promise<AdminContext> {
+  const cookieStore = await cookies();
+  const session = await getAdminSession();
+  const cookieContext = parseCookieContext(
+    cookieStore.get(contextCookieName)?.value,
+    principalContextKey(session),
+  );
+
+  return completeAdminContext(cookieContext);
 }
 
 export function hasRequiredAdminContext(context: AdminContext) {

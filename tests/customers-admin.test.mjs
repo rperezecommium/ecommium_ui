@@ -7,7 +7,7 @@ import ts from "typescript";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname);
 
-function loadCustomersAdminModule(requestBff) {
+function loadCustomersAdminModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/clientes/customers-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -22,8 +22,8 @@ function loadCustomersAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return {
@@ -42,7 +42,7 @@ function loadCustomersAdminModule(requestBff) {
 }
 
 function loadCustomersActionsModule({
-  requestBff,
+  requestAdminBff,
   getAdminContext = async () => context,
   getAdminSession = async () => ({
     employeeId: "employee-1",
@@ -76,8 +76,8 @@ function loadCustomersActionsModule({
       if (specifier === "next/navigation") {
         return { redirect };
       }
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/auth/session")) {
         return { getAdminSession };
@@ -114,7 +114,7 @@ test("customers admin route renders the module instead of the placeholder", () =
   const dataSource = readFileSync(path.resolve(root, "src/modules/clientes/customers-admin.ts"), "utf8");
 
   assert.match(routeSource, /getCustomersAdminData/);
-  assert.match(routeSource, /getAdminSession/);
+  assert.match(routeSource, /refreshAdminEmployeeSession/);
   assert.match(routeSource, /getCustomersAdminCapabilities/);
   assert.match(routeSource, /CustomersAdminPage/);
   assert.match(detailRouteSource, /getCustomerByReference/);
@@ -250,7 +250,7 @@ test("customers admin capabilities map granular session permissions", () => {
 
 test("customers admin loads list through scoped BFF endpoint with filters and pagination", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     const raw = {
       items: [
@@ -276,7 +276,7 @@ test("customers admin loads list through scoped BFF endpoint with filters and pa
 
     return { ok: true, data: options.parse ? options.parse(raw) : raw };
   };
-  const { getCustomersAdminData } = loadCustomersAdminModule(requestBff);
+  const { getCustomersAdminData } = loadCustomersAdminModule(requestAdminBff);
 
   const data = await getCustomersAdminData(context, {
     q: "ada",
@@ -297,7 +297,7 @@ test("customers admin loads list through scoped BFF endpoint with filters and pa
 
 test("customers admin initial page preloads all customers without filters", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     const raw = {
       items: [
@@ -318,7 +318,7 @@ test("customers admin initial page preloads all customers without filters", asyn
 
     return { ok: true, data: options.parse ? options.parse(raw) : raw };
   };
-  const { getCustomersAdminData } = loadCustomersAdminModule(requestBff);
+  const { getCustomersAdminData } = loadCustomersAdminModule(requestAdminBff);
 
   const data = await getCustomersAdminData(context, {});
 
@@ -336,7 +336,7 @@ test("customers admin initial page preloads all customers without filters", asyn
 
 test("customers admin loads detail, addresses and purchases when drawer is open", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     const raw = pathValue.includes("/overview?")
       ? {
@@ -492,7 +492,7 @@ test("customers admin loads detail, addresses and purchases when drawer is open"
 
     return { ok: true, data: options.parse ? options.parse(raw) : raw };
   };
-  const { buildCustomerAdminTimeline, getCustomersAdminData } = loadCustomersAdminModule(requestBff);
+  const { buildCustomerAdminTimeline, getCustomersAdminData } = loadCustomersAdminModule(requestAdminBff);
 
   const data = await getCustomersAdminData(context, {
     drawer: "detail",
@@ -531,7 +531,7 @@ test("customers admin loads detail, addresses and purchases when drawer is open"
 
 test("customers admin skips purchases endpoint when purchases permission is missing", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     const raw = pathValue.includes("/overview?")
       ? {
@@ -557,7 +557,7 @@ test("customers admin skips purchases endpoint when purchases permission is miss
 
     return { ok: true, data: options.parse ? options.parse(raw) : raw };
   };
-  const { getCustomersAdminData } = loadCustomersAdminModule(requestBff);
+  const { getCustomersAdminData } = loadCustomersAdminModule(requestAdminBff);
 
   const data = await getCustomersAdminData(context, {
     drawer: "detail",
@@ -579,8 +579,8 @@ test("customers admin skips purchases endpoint when purchases permission is miss
 });
 
 test("customers admin maps read failures to customers permission guidance", async () => {
-  const requestBff = async () => ({ ok: false, status: 403, error: "Forbidden" });
-  const { getCustomersList } = loadCustomersAdminModule(requestBff);
+  const requestAdminBff = async () => ({ ok: false, status: 403, error: "Forbidden" });
+  const { getCustomersList } = loadCustomersAdminModule(requestAdminBff);
 
   const result = await getCustomersList(context, {});
 
@@ -591,7 +591,7 @@ test("customers admin maps read failures to customers permission guidance", asyn
 
 test("customers admin create action posts a scoped profile payload", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method,
@@ -600,7 +600,7 @@ test("customers admin create action posts a scoped profile payload", async () =>
     });
     return { ok: true, data: { customerId: "customer-1" }, status: 201, correlationId: "corr-customers" };
   };
-  const { createCustomerAction } = loadCustomersActionsModule({ requestBff });
+  const { createCustomerAction } = loadCustomersActionsModule({ requestAdminBff });
   const formData = new FormData();
   formData.set("email", "ADA@EXAMPLE.COM");
   formData.set("firstName", "Ada");
@@ -636,7 +636,7 @@ test("customers admin create action posts a scoped profile payload", async () =>
 
 test("customers admin update action patches profile fields through BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method,
@@ -645,7 +645,7 @@ test("customers admin update action patches profile fields through BFF", async (
     });
     return { ok: true, data: { customerId: "customer-1" }, status: 200, correlationId: "corr-customers" };
   };
-  const { updateCustomerProfileAction } = loadCustomersActionsModule({ requestBff });
+  const { updateCustomerProfileAction } = loadCustomersActionsModule({ requestAdminBff });
   const formData = new FormData();
   formData.set("customerId", "customer-1");
   formData.set("firstName", "Ada");
@@ -675,7 +675,7 @@ test("customers admin update action patches profile fields through BFF", async (
 
 test("customers admin address create and update actions send canonical payloads", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method,
@@ -687,7 +687,7 @@ test("customers admin address create and update actions send canonical payloads"
   const {
     createCustomerAddressAction,
     updateCustomerAddressAction,
-  } = loadCustomersActionsModule({ requestBff });
+  } = loadCustomersActionsModule({ requestAdminBff });
 
   const formData = new FormData();
   formData.set("customerId", "customer-1");
@@ -737,7 +737,7 @@ test("customers admin address create and update actions send canonical payloads"
 
 test("customers admin address default and delete actions use BFF endpoints", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method });
     return { ok: true, data: {}, status: 200, correlationId: "corr-customers" };
   };
@@ -745,7 +745,7 @@ test("customers admin address default and delete actions use BFF endpoints", asy
     deleteCustomerAddressAction,
     setDefaultBillingAddressAction,
     setDefaultShippingAddressAction,
-  } = loadCustomersActionsModule({ requestBff });
+  } = loadCustomersActionsModule({ requestAdminBff });
   const formData = new FormData();
   formData.set("customerId", "customer-1");
   formData.set("addressId", "address-1");
@@ -778,7 +778,7 @@ test("customers admin address default and delete actions use BFF endpoints", asy
 
 test("customers admin customer 360 actions use scoped BFF endpoints", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method,
@@ -799,7 +799,7 @@ test("customers admin customer 360 actions use scoped BFF endpoints", async () =
     setCustomerAccountActivationAction,
     updateCustomerPrivacyRequestStatusAction,
     updateCustomerTaskStatusAction,
-  } = loadCustomersActionsModule({ requestBff });
+  } = loadCustomersActionsModule({ requestAdminBff });
   const formData = new FormData();
   formData.set("customerId", "customer-1");
   formData.set("active", "false");

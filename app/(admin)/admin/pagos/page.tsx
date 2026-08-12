@@ -1,5 +1,5 @@
-import { getAdminSession } from "../../../../src/shared/auth/session";
 import { getAdminContext } from "../../../../src/shared/config/admin-context";
+import { refreshAdminEmployeeSession } from "../../../../src/modules/auth/admin-session-actions";
 import { getInvoiceAdminCapabilities, getInvoiceAdminData } from "../../../../src/modules/pagos/invoices-admin";
 import type { InvoiceAdminFilters } from "../../../../src/modules/pagos/invoices-admin";
 import { getPaymentsAdminCapabilities, getPaymentsAdminData, type PaymentsAdminFilters } from "../../../../src/modules/pagos/payments-admin";
@@ -18,7 +18,7 @@ type PagosPageProps = {
 export default async function PagosPage({ searchParams }: PagosPageProps) {
   const [context, session, params] = await Promise.all([
     getAdminContext(),
-    getAdminSession(),
+    refreshAdminEmployeeSession(),
     searchParams,
   ]);
   const filters: InvoiceAdminFilters = {

@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { getAvailableAdminContexts, type ShopOption } from "./organization-shop";
 
@@ -256,14 +256,14 @@ export function employeeProfileIdsOf(employee: EmployeeRecord) {
 
 export async function getEmployeesModuleData(context: AdminContext): Promise<EmployeesModuleData> {
   const errors: string[] = [];
-  const healthResult = await requestBff("/admin/employees/health", {
+  const healthResult = await requestAdminBff("/admin/employees/health", {
     parse: (value) => asRecord(value),
   });
 
   const [employeesResult, profilesResult, permissionsResult, availableContextsResult] = await Promise.all([
-    requestBff(employeesPath("/admin/employees", context), { context, parse: parseEmployees }),
-    requestBff(employeesPath("/admin/employees/profiles", context), { context, parse: parseProfiles }),
-    requestBff(employeesPath("/admin/employees/permissions/catalog", context), { context, parse: parsePermissions }),
+    requestAdminBff(employeesPath("/admin/employees", context), { context, parse: parseEmployees }),
+    requestAdminBff(employeesPath("/admin/employees/profiles", context), { context, parse: parseProfiles }),
+    requestAdminBff(employeesPath("/admin/employees/permissions/catalog", context), { context, parse: parsePermissions }),
     getAvailableAdminContexts(),
   ]);
 

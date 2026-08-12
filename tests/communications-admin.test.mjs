@@ -11,7 +11,7 @@ function source(relativePath) {
   return readFileSync(path.resolve(root, relativePath), "utf8");
 }
 
-function loadCommunicationsAdminModule(requestBff) {
+function loadCommunicationsAdminModule(requestAdminBff) {
   const moduleSource = source("src/modules/configuracion/communications-admin.ts");
   const { outputText } = ts.transpileModule(moduleSource, {
     compilerOptions: {
@@ -28,8 +28,8 @@ function loadCommunicationsAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return {
@@ -188,7 +188,7 @@ test("communications admin uses BFF endpoints for email provider and auth templa
 
 test("communications template client calls the scoped BFF CRUD, preview and lifecycle routes", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, context: options.context, init: options.init });
     return {
       ok: true,
@@ -203,7 +203,7 @@ test("communications template client calls the scoped BFF CRUD, preview and life
     patchEmailTemplate,
     previewEmailTemplate,
     transitionEmailTemplate,
-  } = loadCommunicationsAdminModule(requestBff);
+  } = loadCommunicationsAdminModule(requestAdminBff);
 
   await createEmailTemplate(context, {
     templateKey: "shipping.delivered",
@@ -240,7 +240,7 @@ test("communications template client calls the scoped BFF CRUD, preview and life
 
 test("communications template uploader reuses Media and returns only a public image URL", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, init: options.init });
     if (options.init?.method === "POST") {
       return {
@@ -257,7 +257,7 @@ test("communications template uploader reuses Media and returns only a public im
     }
     return { ok: true, status: 200, correlationId: "corr-list", data: { items: [] } };
   };
-  const { uploadEmailTemplateImage } = loadCommunicationsAdminModule(requestBff);
+  const { uploadEmailTemplateImage } = loadCommunicationsAdminModule(requestAdminBff);
 
   const result = await uploadEmailTemplateImage(
     { organizationId: "org-1", shopId: "shop-1", locale: "es-ES" },
@@ -489,7 +489,7 @@ test("communications retry rechecks the delivery and preserves the audit filters
 
 test("communications admin reads deliveries through the scoped BFF contract", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, context: options.context, init: options.init });
     return {
       ok: true,
@@ -503,7 +503,7 @@ test("communications admin reads deliveries through the scoped BFF contract", as
     shopId: "shop-1",
     locale: "es-ES",
   };
-  const { getCommunicationsAdminData, getEmailDelivery, retryEmailDelivery } = loadCommunicationsAdminModule(requestBff);
+  const { getCommunicationsAdminData, getEmailDelivery, retryEmailDelivery } = loadCommunicationsAdminModule(requestAdminBff);
 
   await getCommunicationsAdminData(context, {
     deliveryStatus: "FAILED",

@@ -24,7 +24,7 @@ function asRecord(value) {
   return typeof value === "object" && value !== null ? value : {};
 }
 
-function loadProductsModule(requestBff) {
+function loadProductsModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/catalogo/products.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -41,8 +41,8 @@ function loadProductsModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier === "./catalog-taxonomy") {
         return {
@@ -103,7 +103,7 @@ function assertScopedPath(pathValue) {
 
 test("product list and editor-state use Admin BFF endpoints scoped by active shop", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET", body: options.init?.body });
 
     if (pathValue.startsWith("/admin/products?")) {
@@ -152,7 +152,7 @@ test("product list and editor-state use Admin BFF endpoints scoped by active sho
 
     throw new Error(`Unexpected BFF path: ${pathValue}`);
   };
-  const { getAdminProducts, getAdminProductEditorData } = loadProductsModule(requestBff);
+  const { getAdminProducts, getAdminProductEditorData } = loadProductsModule(requestAdminBff);
 
   await getAdminProducts(context, { limit: 20, offset: 0 });
   const editorData = await getAdminProductEditorData(context, "product-1");
@@ -169,7 +169,7 @@ test("product list and editor-state use Admin BFF endpoints scoped by active sho
 
 test("product gateway sends organizationId and shopId on related Admin BFF paths", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET", body: options.init?.body });
 
     if (pathValue.includes("/media/collections")) {
@@ -190,7 +190,7 @@ test("product gateway sends organizationId and shopId on related Admin BFF paths
 
     return ok({ productId: "product-1", name: "Producto Barcelona", slug: "producto-barcelona", isActive: false, isVisible: true }, options);
   };
-  const { makeProductGateway } = loadProductsModule(requestBff);
+  const { makeProductGateway } = loadProductsModule(requestAdminBff);
   const gateway = makeProductGateway(context);
   const productPayload = {
     locale: "es-ES",

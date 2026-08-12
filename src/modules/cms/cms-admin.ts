@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 import {
@@ -959,12 +959,12 @@ export async function getCmsAdminData(
     limit: "50",
     offset: "0",
   }).toString()}`;
-  const pagesResult = await requestBff(endpoint, { context: { ...context, locale }, parse: normalizePagesList });
+  const pagesResult = await requestAdminBff(endpoint, { context: { ...context, locale }, parse: normalizePagesList });
   const visualModulesEndpoint = `/admin/cms/visual-modules?${makeShopScopedParams(context, {
     limit: "50",
     offset: "0",
   }).toString()}`;
-  const visualModulesResult = await requestBff(visualModulesEndpoint, {
+  const visualModulesResult = await requestAdminBff(visualModulesEndpoint, {
     context,
     parse: normalizeVisualModuleDefinitionsList,
   });
@@ -1004,7 +1004,7 @@ export async function getCmsAdminData(
   const detailEndpoint = `/admin/cms/pages/${encodeURIComponent(filters.pageId)}?${makeScopedParams(context, {
     locale,
   }).toString()}`;
-  const detailResult = await requestBff(detailEndpoint, {
+  const detailResult = await requestAdminBff(detailEndpoint, {
     context: { ...context, locale },
     parse: normalizePageDetail,
   });
@@ -1034,15 +1034,15 @@ export async function getCmsAdminData(
   }).toString()}`;
 
   const [pageSettingsResult, resolvedResult, templatesResult] = await Promise.all([
-    requestBff(pageSettingsEndpoint, {
+    requestAdminBff(pageSettingsEndpoint, {
       context: { ...context, locale },
       parse: normalizePageSettings,
     }),
-    requestBff(resolvedEndpoint, {
+    requestAdminBff(resolvedEndpoint, {
       context: { ...context, locale },
       parse: normalizeResolvedPageSettings,
     }),
-    requestBff(templatesEndpoint, {
+    requestAdminBff(templatesEndpoint, {
       context: { ...context, locale },
       parse: normalizeTemplateSettingsList,
     }),
@@ -1073,7 +1073,7 @@ export async function listCmsVisualModuleDefinitions(
     limit: String(filters.limit ?? 50),
     offset: String(filters.offset ?? 0),
   }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     parse: normalizeVisualModuleDefinitionsList,
   });
@@ -1084,7 +1084,7 @@ export async function createCmsVisualModuleDefinition(
   payload: CmsVisualModuleDefinitionPayload,
 ) {
   const endpoint = `/admin/cms/visual-modules?${makeShopScopedParams(context).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "POST",
@@ -1101,7 +1101,7 @@ export async function updateCmsVisualModuleDefinitionDraft(
   payload: CmsVisualModuleDefinitionDraftPatch,
 ) {
   const endpoint = `/admin/cms/visual-modules/${encodeURIComponent(definitionId)}/draft?${makeShopScopedParams(context).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "PATCH",
@@ -1118,7 +1118,7 @@ export async function createCmsVisualModuleDefinitionDraftRevision(
   payload: CmsVisualModuleDefinitionDraftRevisionPayload = {},
 ) {
   const endpoint = `/admin/cms/visual-modules/${encodeURIComponent(definitionId)}/draft-revisions?${makeShopScopedParams(context).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "POST",
@@ -1134,7 +1134,7 @@ export async function activateCmsVisualModuleDefinition(
   definitionId: string,
 ) {
   const endpoint = `/admin/cms/visual-modules/${encodeURIComponent(definitionId)}/activate?${makeShopScopedParams(context).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "POST",
@@ -1150,7 +1150,7 @@ export async function archiveCmsVisualModuleDefinition(
   definitionId: string,
 ) {
   const endpoint = `/admin/cms/visual-modules/${encodeURIComponent(definitionId)}/archive?${makeShopScopedParams(context).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context,
     init: {
       method: "POST",
@@ -1167,7 +1167,7 @@ export async function createCmsPage(
   locale?: string,
 ) {
   const endpoint = `/admin/cms/pages?${makeScopedParams(context, { locale: locale ?? context.locale }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: locale ?? context.locale },
     init: {
       method: "POST",
@@ -1187,7 +1187,7 @@ export async function updateCmsDraft(
   const endpoint = `/admin/cms/pages/${encodeURIComponent(pageId)}/draft?${makeScopedParams(context, {
     locale: locale ?? context.locale,
   }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: locale ?? context.locale },
     init: {
       method: "PATCH",
@@ -1202,7 +1202,7 @@ export async function publishCmsPage(context: AdminContext, pageId: string, loca
   const endpoint = `/admin/cms/pages/${encodeURIComponent(pageId)}/publish?${makeScopedParams(context, {
     locale: locale ?? context.locale,
   }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: locale ?? context.locale },
     init: {
       method: "POST",
@@ -1217,7 +1217,7 @@ export async function unpublishCmsPage(context: AdminContext, pageId: string, lo
   const endpoint = `/admin/cms/pages/${encodeURIComponent(pageId)}/unpublish?${makeScopedParams(context, {
     locale: locale ?? context.locale,
   }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: locale ?? context.locale },
     init: { method: "POST" },
     parse: normalizePageDetail,
@@ -1233,7 +1233,7 @@ export async function changeCmsPublishedPath(
   const endpoint = `/admin/cms/pages/${encodeURIComponent(pageId)}/path?${makeScopedParams(context, {
     locale: locale ?? context.locale,
   }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: locale ?? context.locale },
     init: {
       method: "PATCH",
@@ -1247,7 +1247,7 @@ export async function changeCmsPublishedPath(
 export async function getCmsGlobalSettings(context: AdminContext, locale?: string) {
   const effectiveLocale = locale ?? context.locale;
   const endpoint = `/admin/cms/settings/global?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: effectiveLocale },
     parse: normalizeGlobalSettings,
   });
@@ -1256,7 +1256,7 @@ export async function getCmsGlobalSettings(context: AdminContext, locale?: strin
 export async function getCmsFontOptions(context: AdminContext, locale?: string) {
   const effectiveLocale = locale ?? context.locale;
   const endpoint = `/admin/cms/font-options?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: effectiveLocale },
     parse: normalizeFontOptions,
   });
@@ -1269,7 +1269,7 @@ export async function patchCmsGlobalSettings(
 ) {
   const effectiveLocale = locale ?? context.locale;
   const endpoint = `/admin/cms/settings/global?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: effectiveLocale },
     init: {
       method: "PATCH",
@@ -1289,7 +1289,7 @@ export async function getCmsPageSettings(
   const endpoint = `/admin/cms/pages/${encodeURIComponent(pageId)}/settings?${makeScopedParams(context, {
     locale: effectiveLocale,
   }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: effectiveLocale },
     parse: normalizePageSettings,
   });
@@ -1305,7 +1305,7 @@ export async function patchCmsPageSettings(
   const endpoint = `/admin/cms/pages/${encodeURIComponent(pageId)}/settings?${makeScopedParams(context, {
     locale: effectiveLocale,
   }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: effectiveLocale },
     init: {
       method: "PATCH",
@@ -1325,7 +1325,7 @@ export async function getCmsResolvedPageSettings(
   const endpoint = `/admin/cms/pages/${encodeURIComponent(pageId)}/resolved-settings?${makeScopedParams(context, {
     locale: effectiveLocale,
   }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: effectiveLocale },
     parse: normalizeResolvedPageSettings,
   });
@@ -1344,7 +1344,7 @@ export async function listCmsTemplates(
     limit: String(filters.limit ?? 50),
     offset: String(filters.offset ?? 0),
   }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: effectiveLocale },
     parse: normalizeTemplateSettingsList,
   });
@@ -1357,7 +1357,7 @@ export async function createCmsTemplate(
 ) {
   const effectiveLocale = locale ?? context.locale;
   const endpoint = `/admin/cms/templates?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: effectiveLocale },
     init: {
       method: "POST",
@@ -1378,7 +1378,7 @@ export async function patchCmsTemplate(
   const endpoint = `/admin/cms/templates/${encodeURIComponent(templateId)}?${makeScopedParams(context, {
     locale: effectiveLocale,
   }).toString()}`;
-  return requestBff(endpoint, {
+  return requestAdminBff(endpoint, {
     context: { ...context, locale: effectiveLocale },
     init: {
       method: "PATCH",

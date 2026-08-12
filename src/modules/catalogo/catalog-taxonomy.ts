@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { plainProductText, slugifyProductValue } from "./product-editor-draft";
@@ -147,7 +147,7 @@ export async function listCatalogEntities(
   }
 
   const endpoint = `${endpointFor(kind)}?${params.toString()}`;
-  const result = await requestBff(endpoint, {
+  const result = await requestAdminBff(endpoint, {
     context,
     parse: (value) => parseEntityList(kind, context.locale, value),
   });
@@ -182,7 +182,7 @@ export async function createCatalogEntity(
   const name = plainProductText(input.name);
   const params = makeScopedParams(context);
 
-  return requestBff(`${endpointFor(kind)}?${params.toString()}`, {
+  return requestAdminBff(`${endpointFor(kind)}?${params.toString()}`, {
     context,
     init: {
       method: "POST",
@@ -211,7 +211,7 @@ export async function updateCatalogEntity(
   const name = plainProductText(input.name);
   const params = makeScopedParams(context);
 
-  return requestBff(`${endpointFor(kind)}/${encodeURIComponent(id)}?${params.toString()}`, {
+  return requestAdminBff(`${endpointFor(kind)}/${encodeURIComponent(id)}?${params.toString()}`, {
     context,
     init: {
       method: "PATCH",
@@ -239,7 +239,7 @@ export async function deleteCatalogEntity(
 ): Promise<BffResult<{ deleted?: boolean }>> {
   const params = makeScopedParams(context, { mode });
 
-  return requestBff(`${endpointFor(kind)}/${encodeURIComponent(id)}?${params.toString()}`, {
+  return requestAdminBff(`${endpointFor(kind)}/${encodeURIComponent(id)}?${params.toString()}`, {
     context,
     init: {
       method: "DELETE",

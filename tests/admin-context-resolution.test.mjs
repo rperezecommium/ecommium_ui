@@ -55,7 +55,7 @@ const moduleContext = {
     }
     if (id.includes("client")) {
       return {
-        requestBff: async (path, options) => {
+        requestAdminBff: async (path, options) => {
           bffCalls.push({ path, options });
 
           const response = bffResponses.shift();

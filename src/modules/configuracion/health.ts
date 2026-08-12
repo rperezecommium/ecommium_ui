@@ -1,6 +1,6 @@
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 
 export type ServiceHealthStatus = "ok" | "degraded" | "unavailable" | "skipped";
 
@@ -60,7 +60,7 @@ async function checkHealth(
   context: AdminContext,
 ): Promise<ServiceHealth> {
   const path = endpoint.key === "search" ? withContextQuery(endpoint.endpoint, context) : endpoint.endpoint;
-  const result = await requestBff(path, {
+  const result = await requestAdminBff(path, {
     context,
     parse: normalizeHealthPayload,
   });

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { getAdminContext, saveAdminContext } from "../../shared/config/admin-context";
 import { defaultAdminContext } from "../../shared/config/env";
@@ -148,7 +148,7 @@ export async function createShopAction(formData: FormData) {
   }
 
   const params = new URLSearchParams({ organizationId });
-  const result = await requestBff(`/admin/organizations-shops/shops?${params.toString()}`, {
+  const result = await requestAdminBff(`/admin/organizations-shops/shops?${params.toString()}`, {
     init: {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -194,7 +194,7 @@ export async function updateShopAction(formData: FormData) {
   }
 
   const params = new URLSearchParams({ organizationId });
-  const result = await requestBff(`/admin/organizations-shops/shops/${shopId}?${params.toString()}`, {
+  const result = await requestAdminBff(`/admin/organizations-shops/shops/${shopId}?${params.toString()}`, {
     context: current,
     init: {
       method: "PATCH",

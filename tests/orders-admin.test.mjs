@@ -20,7 +20,7 @@ const context = {
   channel: "web",
 };
 
-function loadOrdersAdminModule(requestBff) {
+function loadOrdersAdminModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/pedidos/orders-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -35,8 +35,8 @@ function loadOrdersAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return {
@@ -55,7 +55,7 @@ function loadOrdersAdminModule(requestBff) {
 }
 
 function loadOrdersActionsModule({
-  requestBff,
+  requestAdminBff,
   getAdminContext = async () => context,
   getAdminSession = async () => ({ employeeId: "employee-1", scope: "admin", permissions: ["admin:*"] }),
   revalidatePath = () => undefined,
@@ -84,8 +84,8 @@ function loadOrdersActionsModule({
       if (specifier === "next/navigation") {
         return { redirect };
       }
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/auth/session")) {
         return { getAdminSession };
@@ -255,7 +255,7 @@ test("orders admin fulfillment UI uses BFF primaryAction as the operation source
 
 test("orders admin loads solo lista y detalle del pedido mediante BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
     const raw = pathValue.includes("/admin/orders/order-1?")
       ? {
@@ -345,8 +345,8 @@ test("orders admin loads solo lista y detalle del pedido mediante BFF", async ()
 
     return { ok: true, data: options.parse ? options.parse(raw) : raw, status: 200, correlationId: "corr-orders" };
   };
-  const { getOrdersAdminData } = loadOrdersAdminModule(requestBff);
-  const { buildOrderAuditTimeline } = loadOrdersAdminModule(requestBff);
+  const { getOrdersAdminData } = loadOrdersAdminModule(requestAdminBff);
+  const { buildOrderAuditTimeline } = loadOrdersAdminModule(requestAdminBff);
   const capabilities = { canReadOrders: true, canManageInvoices: true, canManageAfterSales: true, canManageShipping: true };
 
   const data = await getOrdersAdminData(context, { orderId: "order-1", customerId: "customer-1" }, capabilities);
@@ -372,7 +372,7 @@ test("orders admin loads solo lista y detalle del pedido mediante BFF", async ()
 
 test("orders admin actions assign after-sales, issue invoice and create fiscal adjustments through scoped BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method,
@@ -386,7 +386,7 @@ test("orders admin actions assign after-sales, issue invoice and create fiscal a
     createInvoiceAdjustmentAction,
     issueOrderInvoiceAction,
     transitionFulfillmentStatusAction,
-  } = loadOrdersActionsModule({ requestBff });
+  } = loadOrdersActionsModule({ requestAdminBff });
   const formData = new FormData();
   formData.set("caseId", "case-1");
   formData.set("orderId", "order-1");
@@ -456,11 +456,11 @@ test("orders admin actions assign after-sales, issue invoice and create fiscal a
 
 test("orders admin fulfillment action redirects validation errors without calling BFF", async () => {
   const calls = [];
-  const requestBff = async () => {
+  const requestAdminBff = async () => {
     calls.push("called");
     return { ok: true, data: {}, status: 200, correlationId: "corr-orders" };
   };
-  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestBff });
+  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestAdminBff });
   const formData = new FormData();
   formData.set("orderId", "order-1");
   formData.set("status", "SHIPPED");
@@ -473,7 +473,7 @@ test("orders admin fulfillment action redirects validation errors without callin
 
 test("orders admin fulfillment action advances non-shipped states without tracking", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method,
@@ -481,7 +481,7 @@ test("orders admin fulfillment action advances non-shipped states without tracki
     });
     return { ok: true, data: {}, status: 200, correlationId: "corr-orders" };
   };
-  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestBff });
+  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestAdminBff });
   const formData = new FormData();
   formData.set("orderId", "order-1");
   formData.set("status", "PACKED");
@@ -499,8 +499,8 @@ test("orders admin fulfillment action advances non-shipped states without tracki
 });
 
 test("orders admin fulfillment action surfaces permission errors", async () => {
-  const requestBff = async () => ({ ok: false, error: "Forbidden", status: 403, correlationId: "corr-orders" });
-  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestBff });
+  const requestAdminBff = async () => ({ ok: false, error: "Forbidden", status: 403, correlationId: "corr-orders" });
+  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestAdminBff });
   const formData = new FormData();
   formData.set("orderId", "order-1");
   formData.set("status", "DELIVERED");
@@ -512,11 +512,11 @@ test("orders admin fulfillment action surfaces permission errors", async () => {
 
 test("orders admin fulfillment action rejects invalid status before BFF", async () => {
   const calls = [];
-  const requestBff = async () => {
+  const requestAdminBff = async () => {
     calls.push("called");
     return { ok: true, data: {}, status: 200, correlationId: "corr-orders" };
   };
-  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestBff });
+  const { transitionFulfillmentStatusAction } = loadOrdersActionsModule({ requestAdminBff });
   const formData = new FormData();
   formData.set("orderId", "order-1");
   formData.set("status", "DELIVERED_WITH_MAGIC");

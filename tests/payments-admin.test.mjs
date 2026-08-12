@@ -20,7 +20,7 @@ const context = {
   channel: "web",
 };
 
-function loadPaymentsAdminModule(requestBff) {
+function loadPaymentsAdminModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/pagos/payments-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -35,8 +35,8 @@ function loadPaymentsAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return {
@@ -58,7 +58,7 @@ function loadPaymentsActionsModule({
   redirect = (url) => {
     throw Object.assign(new Error("redirect"), { url });
   },
-  requestBff,
+  requestAdminBff,
   revalidatePath = () => undefined,
 }) {
   const source = readFileSync(path.resolve(root, "src/modules/pagos/payments-admin-actions.ts"), "utf8");
@@ -82,8 +82,8 @@ function loadPaymentsActionsModule({
       if (specifier === "next/navigation") {
         return { redirect };
       }
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
       if (specifier.endsWith("/shared/config/admin-context")) {
         return { getAdminContext };
@@ -195,7 +195,7 @@ test("payments admin capabilities map payments permissions", () => {
 
 test("payments admin loads payment systems affiliations rules and card lookup through scoped BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       body: options.init?.body ? JSON.parse(options.init.body) : undefined,
       method: options.init?.method ?? "GET",
@@ -210,7 +210,7 @@ test("payments admin loads payment systems affiliations rules and card lookup th
           : { bin: "424242", brand: "visa", paymentSystems: [{ paymentSystemId: "stripe-card", name: "Tarjeta", provider: "stripe" }] };
     return { ok: true, data: options.parse ? options.parse(raw) : raw, status: 200, correlationId: "corr-payments" };
   };
-  const { getPaymentsAdminData } = loadPaymentsAdminModule(requestBff);
+  const { getPaymentsAdminData } = loadPaymentsAdminModule(requestAdminBff);
 
   const data = await getPaymentsAdminData(context, { cardBin: "424242", includeInactive: "true" }, {
     canManagePayments: true,
@@ -234,7 +234,7 @@ test("payments admin loads payment systems affiliations rules and card lookup th
 
 test("payments admin loads tenant-scoped operations and normalizes their commercial data", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push(pathValue);
     const raw = pathValue.includes("/transactions")
       ? {
@@ -261,7 +261,7 @@ test("payments admin loads tenant-scoped operations and normalizes their commerc
       : { items: [] };
     return { ok: true, data: options.parse ? options.parse(raw) : raw, status: 200, correlationId: "corr-operations" };
   };
-  const { getPaymentsAdminData } = loadPaymentsAdminModule(requestBff);
+  const { getPaymentsAdminData } = loadPaymentsAdminModule(requestAdminBff);
   const data = await getPaymentsAdminData(context, {
     tab: "operaciones",
     transactionReference: "ORDER-1024",
@@ -283,7 +283,7 @@ test("payments admin loads tenant-scoped operations and normalizes their commerc
 
 test("payments admin loads safe refund evidence only for the selected transaction", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push(pathValue);
     const raw = pathValue.includes("/transactions/transaction-1")
       ? {
@@ -323,7 +323,7 @@ test("payments admin loads safe refund evidence only for the selected transactio
       : { items: [], summary: {} };
     return { ok: true, data: options.parse ? options.parse(raw) : raw, status: 200, correlationId: "corr-refund-evidence" };
   };
-  const { getPaymentsAdminData } = loadPaymentsAdminModule(requestBff);
+  const { getPaymentsAdminData } = loadPaymentsAdminModule(requestAdminBff);
   const data = await getPaymentsAdminData(context, { tab: "reembolsos", transactionId: "transaction-1" }, {
     canManagePayments: true,
     canViewPayments: true,
@@ -344,7 +344,7 @@ test("payments admin loads safe refund evidence only for the selected transactio
 
 test("payments admin create actions post canonical scoped payloads", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       body: options.init?.body ? JSON.parse(options.init.body) : undefined,
       method: options.init?.method,
@@ -352,7 +352,7 @@ test("payments admin create actions post canonical scoped payloads", async () =>
     });
     return { ok: true, data: {}, status: 201, correlationId: "corr-payments" };
   };
-  const { createPaymentAffiliationAction, createPaymentRuleAction, createPaymentSystemAction } = loadPaymentsActionsModule({ requestBff });
+  const { createPaymentAffiliationAction, createPaymentRuleAction, createPaymentSystemAction } = loadPaymentsActionsModule({ requestAdminBff });
   const method = new FormData();
   method.set("paymentSystemId", "stripe-card");
   method.set("name", "Tarjeta");
@@ -397,7 +397,7 @@ test("payments admin create actions post canonical scoped payloads", async () =>
 
 test("payments admin sends confirmed refund and cancellation requests to the canonical transaction endpoints", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method,
@@ -405,7 +405,7 @@ test("payments admin sends confirmed refund and cancellation requests to the can
     });
     return { ok: true, data: {}, status: 202, correlationId: "corr-operation-action" };
   };
-  const { createPaymentCancellationAction, createPaymentRefundAction } = loadPaymentsActionsModule({ requestBff });
+  const { createPaymentCancellationAction, createPaymentRefundAction } = loadPaymentsActionsModule({ requestAdminBff });
   const refund = new FormData();
   refund.set("transactionId", "transaction/1");
   refund.set("refundId", "8b4fae3f-9dea-453e-8f33-dba2a7e7f65e");
@@ -443,7 +443,7 @@ test("payments admin sends confirmed refund and cancellation requests to the can
 
 test("payments admin activation actions patch only allowed resources", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       body: options.init?.body ? JSON.parse(options.init.body) : undefined,
       method: options.init?.method,
@@ -451,7 +451,7 @@ test("payments admin activation actions patch only allowed resources", async () 
     });
     return { ok: true, data: {}, status: 200, correlationId: "corr-payments" };
   };
-  const { setPaymentResourceActiveAction } = loadPaymentsActionsModule({ requestBff });
+  const { setPaymentResourceActiveAction } = loadPaymentsActionsModule({ requestAdminBff });
   const method = new FormData();
   method.set("tab", "metodos");
   method.set("resource", "payment-systems");

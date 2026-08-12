@@ -17,7 +17,7 @@ const context = {
   channel: "web",
 };
 
-function loadModule(requestBff) {
+function loadModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/analitica/analytics-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
@@ -28,7 +28,7 @@ function loadModule(requestBff) {
     exports,
     module: { exports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) return { requestAdminBff };
       if (specifier.endsWith("/shared/config/admin-context")) {
         return { hasRequiredAdminContext: (value) => Boolean(value.organizationId && value.shopId) };
       }

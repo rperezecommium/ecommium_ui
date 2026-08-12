@@ -7,7 +7,7 @@ import ts from "typescript";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname);
 
-function loadPricingAdminModule(requestBff) {
+function loadPricingAdminModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/catalogo/pricing-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -23,8 +23,8 @@ function loadPricingAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
 
       return {};
@@ -69,7 +69,7 @@ test("pricing governance lives under configuration navigation with catalog redir
 
 test("pricing governance uses scoped BFF endpoints and maps read 403 permissions", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method ?? "GET",
@@ -95,7 +95,7 @@ test("pricing governance uses scoped BFF endpoints and maps read 403 permissions
       data: options.parse ? options.parse(raw) : raw,
     };
   };
-  const { getPricingGovernanceData } = loadPricingAdminModule(requestBff);
+  const { getPricingGovernanceData } = loadPricingAdminModule(requestAdminBff);
 
   const data = await getPricingGovernanceData(context, {
     tab: "computed",
@@ -118,7 +118,7 @@ test("pricing governance uses scoped BFF endpoints and maps read 403 permissions
 });
 
 test("pricing governance flattens fixed price records for table rendering", async () => {
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     const raw = pathValue.includes("/fixed?")
       ? {
           items: [
@@ -143,7 +143,7 @@ test("pricing governance flattens fixed price records for table rendering", asyn
       data: options.parse ? options.parse(raw) : raw,
     };
   };
-  const { getPricingGovernanceData } = loadPricingAdminModule(requestBff);
+  const { getPricingGovernanceData } = loadPricingAdminModule(requestAdminBff);
 
   const data = await getPricingGovernanceData(context, {
     tab: "fixed",
@@ -158,7 +158,7 @@ test("pricing governance flattens fixed price records for table rendering", asyn
 });
 
 test("pricing governance flattens computed-auto responses for table rendering", async () => {
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     const raw = pathValue.includes("/computed-auto/resolve-batch?")
       ? {
           items: [{
@@ -213,7 +213,7 @@ test("pricing governance flattens computed-auto responses for table rendering", 
       data: options.parse ? options.parse(raw) : raw,
     };
   };
-  const { getPricingGovernanceData } = loadPricingAdminModule(requestBff);
+  const { getPricingGovernanceData } = loadPricingAdminModule(requestAdminBff);
 
   const data = await getPricingGovernanceData(context, {
     tab: "computed-auto",
@@ -231,7 +231,7 @@ test("pricing governance flattens computed-auto responses for table rendering", 
 
 test("pricing governance forwards commercial context to computed-auto endpoints", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({
       path: pathValue,
       method: options.init?.method ?? "GET",
@@ -242,7 +242,7 @@ test("pricing governance forwards commercial context to computed-auto endpoints"
       data: options.parse ? options.parse(pathValue.includes("resolve-batch") ? { items: [] } : {}) : {},
     };
   };
-  const { getPricingGovernanceData } = loadPricingAdminModule(requestBff);
+  const { getPricingGovernanceData } = loadPricingAdminModule(requestAdminBff);
 
   await getPricingGovernanceData(context, {
     tab: "computed-auto",
@@ -297,7 +297,7 @@ test("price table row actions stay compact in one line", () => {
 
 test("pricing editor lookups preserve complete tax rules and collapse duplicates", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push(pathValue);
     let raw;
 
@@ -361,7 +361,7 @@ test("pricing editor lookups preserve complete tax rules and collapse duplicates
       data: options.parse ? options.parse(raw) : raw,
     };
   };
-  const { getPricingEditorLookups } = loadPricingAdminModule(requestBff);
+  const { getPricingEditorLookups } = loadPricingAdminModule(requestAdminBff);
 
   const lookups = await getPricingEditorLookups(context);
 
@@ -384,7 +384,7 @@ test("pricing editor lookups preserve complete tax rules and collapse duplicates
 });
 
 test("pricing editor lookups infer percentage taxes from partial BFF records", async () => {
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     const raw = pathValue.startsWith("/admin/pricing/taxes?")
       ? {
           items: [
@@ -402,7 +402,7 @@ test("pricing editor lookups infer percentage taxes from partial BFF records", a
       data: options.parse ? options.parse(raw) : raw,
     };
   };
-  const { getPricingEditorLookups } = loadPricingAdminModule(requestBff);
+  const { getPricingEditorLookups } = loadPricingAdminModule(requestAdminBff);
 
   const lookups = await getPricingEditorLookups(context);
 

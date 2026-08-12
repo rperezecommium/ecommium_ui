@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAdminContext } from "../../shared/config/admin-context";
+import { validateMediaUploads } from "../../shared/security/media-upload";
 import {
   addMediaCollectionItems,
   createMediaCollection,
@@ -56,17 +57,17 @@ export async function createMediaCollectionAction(formData: FormData) {
   const productId = text(formData.get("productId"));
   const title = text(formData.get("title"));
   const returnPath = safeReturnPath(formData.get("returnPath"));
-  const files = uploadedFiles(formData);
+  const upload = await validateMediaUploads(uploadedFiles(formData));
 
-  if (!productId || !title || files.length === 0) {
-    redirect(appendMessage(returnPath, "Indica producto, titulo y al menos un archivo."));
+  if (!productId || !title || !upload.ok) {
+    redirect(appendMessage(returnPath, !upload.ok ? upload.error : "Indica producto, titulo y al menos un archivo."));
   }
 
   const context = await getAdminContext();
   const result = await createMediaCollection(context, {
     productId,
     title,
-    files,
+    files: upload.files,
     defaultLocale: text(formData.get("defaultLocale")) || context.locale,
     alt: text(formData.get("alt")),
     assetTitle: text(formData.get("assetTitle")),
@@ -82,16 +83,16 @@ export async function createMediaCollectionAction(formData: FormData) {
 export async function addMediaCollectionItemsAction(formData: FormData) {
   const mediaCollectionId = text(formData.get("mediaCollectionId"));
   const returnPath = safeReturnPath(formData.get("returnPath"));
-  const files = uploadedFiles(formData);
+  const upload = await validateMediaUploads(uploadedFiles(formData));
 
-  if (!mediaCollectionId || files.length === 0) {
-    redirect(appendMessage(returnPath, "Selecciona al menos un archivo para anadir."));
+  if (!mediaCollectionId || !upload.ok) {
+    redirect(appendMessage(returnPath, !upload.ok ? upload.error : "Selecciona al menos un archivo para anadir."));
   }
 
   const context = await getAdminContext();
   const result = await addMediaCollectionItems(context, {
     mediaCollectionId,
-    files,
+    files: upload.files,
     defaultLocale: text(formData.get("defaultLocale")) || context.locale,
     alt: text(formData.get("alt")),
     assetTitle: text(formData.get("assetTitle")),

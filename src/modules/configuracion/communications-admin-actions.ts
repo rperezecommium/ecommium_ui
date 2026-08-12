@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAdminContext } from "../../shared/config/admin-context";
+import { validateMediaUpload } from "../../shared/security/media-upload";
 import {
   bootstrapAuthEmailTemplates,
   createEmailTemplate,
@@ -309,18 +310,19 @@ export async function uploadEmailTemplateImageAction(formData: FormData) {
   if (!templateId || !templateKey) {
     return { ok: false as const, error: "Guarda la plantilla antes de subir una imagen." };
   }
-  if (!(file instanceof File) || file.size === 0) {
+  if (!(file instanceof File)) {
     return { ok: false as const, error: "Selecciona una imagen válida." };
   }
-  if (!file.type.startsWith("image/")) {
-    return { ok: false as const, error: "Solo se permiten archivos de imagen." };
+  const upload = await validateMediaUpload(file);
+  if (!upload.ok) {
+    return { ok: false as const, error: upload.error };
   }
 
   const result = await uploadEmailTemplateImage(context, {
     templateId,
     templateKey,
     locale,
-    file,
+    file: upload.file,
   });
   if (!result.ok) {
     return {

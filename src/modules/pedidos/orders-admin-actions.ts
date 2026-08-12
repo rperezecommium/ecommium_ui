@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import { getAdminSession } from "../../shared/auth/session";
 import { getAdminContext } from "../../shared/config/admin-context";
 
@@ -83,7 +83,7 @@ export async function assignAfterSalesCaseAction(formData: FormData): Promise<ne
   const caseId = requiredString(formData.get("caseId"), "caseId");
   const orderId = asString(formData.get("orderId"));
   const assignedEmployeeId = requiredString(formData.get("assignedEmployeeId"), "Responsable");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(`/admin/after-sales/cases/${encodeURIComponent(caseId)}/assignment`, context.organizationId, context.shopId),
     {
       context,
@@ -109,7 +109,7 @@ export async function assignAfterSalesCaseAction(formData: FormData): Promise<ne
 export async function issueOrderInvoiceAction(formData: FormData): Promise<never> {
   const context = await getAdminContext();
   const orderId = requiredString(formData.get("orderId"), "orderId");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath("/admin/invoices/issue", context.organizationId, context.shopId),
     {
       context,
@@ -140,7 +140,7 @@ export async function createInvoiceAdjustmentAction(formData: FormData): Promise
   const amountMinor = requiredPositiveInteger(formData.get("amountMinor"), "Importe");
   const currency = asString(formData.get("currency")) ?? context.currency;
   const reason = requiredString(formData.get("reason"), "Motivo");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath("/admin/invoices/adjustments", context.organizationId, context.shopId),
     {
       context,
@@ -172,7 +172,7 @@ export async function createInvoiceAdjustmentAction(formData: FormData): Promise
 export async function createOrderFulfillmentAction(formData: FormData): Promise<never> {
   const context = await getAdminContext();
   const orderId = requiredString(formData.get("orderId"), "orderId");
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(`/admin/orders/${encodeURIComponent(orderId)}/fulfillment`, context.organizationId, context.shopId),
     {
       context,
@@ -215,7 +215,7 @@ export async function transitionFulfillmentStatusAction(formData: FormData): Pro
     body.carrierId = carrierId;
   }
 
-  const result = await requestBff(
+  const result = await requestAdminBff(
     scopedPath(`/admin/orders/${encodeURIComponent(orderId)}/fulfillment/status`, context.organizationId, context.shopId),
     {
       context,

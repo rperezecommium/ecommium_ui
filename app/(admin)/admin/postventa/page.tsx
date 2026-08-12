@@ -1,5 +1,5 @@
-import { getAdminSession } from "../../../../src/shared/auth/session";
 import { getAdminContext } from "../../../../src/shared/config/admin-context";
+import { refreshAdminEmployeeSession } from "../../../../src/modules/auth/admin-session-actions";
 import { getAfterSalesAdminCapabilities, getAfterSalesAdminData } from "../../../../src/modules/postventa/after-sales-admin";
 import { AfterSalesAdminPage } from "../../../../src/modules/postventa/after-sales-admin-page";
 import type { AfterSalesAdminFilters } from "../../../../src/modules/postventa/after-sales-admin";
@@ -11,7 +11,7 @@ type PostventaPageProps = {
 export default async function PostventaPage({ searchParams }: PostventaPageProps) {
   const [context, session, params] = await Promise.all([
     getAdminContext(),
-    getAdminSession(),
+    refreshAdminEmployeeSession(),
     searchParams,
   ]);
   const filters: AfterSalesAdminFilters = {

@@ -1,4 +1,4 @@
-import { requestBff } from "../../shared/bff/client";
+import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
@@ -340,7 +340,7 @@ async function enrichEventsWithCatalog(context: AdminContext, events: AnalyticsE
   const presentations = new Map<string, CatalogProductPresentation>();
   await mapConcurrent(productIds, 4, async (productId) => {
     const params = scopedParams(context, { locale: context.locale, currency: context.currency });
-    const result = await requestBff(`/admin/products/${encodeURIComponent(productId)}/editor-state?${params.toString()}`, {
+    const result = await requestAdminBff(`/admin/products/${encodeURIComponent(productId)}/editor-state?${params.toString()}`, {
       context,
       parse: normalizeCatalogPresentation,
     });
@@ -419,7 +419,7 @@ async function getAnalytics<T>(
   fallback: T,
   parse: (value: unknown) => T,
 ): Promise<AnalyticsAdminResult<T>> {
-  const result = await requestBff(endpoint, { context, parse });
+  const result = await requestAdminBff(endpoint, { context, parse });
   return result.ok ? { ok: true, data: result.data } : unavailable(fallback, result);
 }
 

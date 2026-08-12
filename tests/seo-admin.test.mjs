@@ -20,7 +20,7 @@ const context = {
   channel: "web",
 };
 
-function loadSeoAdminModule(requestBff) {
+function loadSeoAdminModule(requestAdminBff) {
   const source = readFileSync(path.resolve(root, "src/modules/configuracion/seo-admin.ts"), "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -36,8 +36,8 @@ function loadSeoAdminModule(requestBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
-      if (specifier.endsWith("/shared/bff/client")) {
-        return { requestBff };
+      if (specifier.endsWith("/shared/bff/admin-client")) {
+        return { requestAdminBff };
       }
 
       throw new Error(`Unexpected test require: ${specifier}`);
@@ -65,7 +65,7 @@ function assertScopedPath(pathValue) {
 
 test("seo admin reads routes and redirects through scoped Admin BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
 
     if (pathValue.startsWith("/admin/routing-seo/routes?")) {
@@ -115,7 +115,7 @@ test("seo admin reads routes and redirects through scoped Admin BFF", async () =
 
     throw new Error(`Unexpected BFF path: ${pathValue}`);
   };
-  const { getSeoAdminData } = loadSeoAdminModule(requestBff);
+  const { getSeoAdminData } = loadSeoAdminModule(requestAdminBff);
 
   const data = await getSeoAdminData(context, { tab: "summary", locale: "es-ES", status: "ACTIVE" });
 
@@ -129,7 +129,7 @@ test("seo admin reads routes and redirects through scoped Admin BFF", async () =
 
 test("seo admin resolve posts no browser direct calls and normalizes route response", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
 
     if (pathValue.startsWith("/admin/routing-seo/routes?")) {
@@ -156,7 +156,7 @@ test("seo admin resolve posts no browser direct calls and normalizes route respo
 
     throw new Error(`Unexpected BFF path: ${pathValue}`);
   };
-  const { getSeoAdminData } = loadSeoAdminModule(requestBff);
+  const { getSeoAdminData } = loadSeoAdminModule(requestAdminBff);
 
   const data = await getSeoAdminData(context, {
     tab: "resolve",
@@ -177,7 +177,7 @@ test("seo admin resolve posts no browser direct calls and normalizes route respo
 
 test("seo admin mutations use POST and PATCH through scoped Admin BFF", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method, body: options.init?.body });
     return ok({
       routeId: "route-product",
@@ -192,7 +192,7 @@ test("seo admin mutations use POST and PATCH through scoped Admin BFF", async ()
       updatedAt: "2026-06-30T00:00:00.000Z",
     }, options);
   };
-  const { createSeoRoute, patchSeoRoute, createSeoRedirect } = loadSeoAdminModule(requestBff);
+  const { createSeoRoute, patchSeoRoute, createSeoRedirect } = loadSeoAdminModule(requestAdminBff);
 
   await createSeoRoute(context, {
     path: "/producto-demo/p",
@@ -228,7 +228,7 @@ test("seo admin mutations use POST and PATCH through scoped Admin BFF", async ()
 });
 
 test("seo admin normalizes alias routes as non-indexable read-only canonical links", async () => {
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     if (pathValue.startsWith("/admin/routing-seo/routes?")) {
       return ok({
         total: 1,
@@ -257,7 +257,7 @@ test("seo admin normalizes alias routes as non-indexable read-only canonical lin
 
     throw new Error(`Unexpected BFF path: ${pathValue}`);
   };
-  const { getSeoAdminData } = loadSeoAdminModule(requestBff);
+  const { getSeoAdminData } = loadSeoAdminModule(requestAdminBff);
 
   const data = await getSeoAdminData(context, { tab: "routes", locale: "es-ES" });
   const alias = data.routes.data.items[0];
@@ -269,7 +269,7 @@ test("seo admin normalizes alias routes as non-indexable read-only canonical lin
 
 test("seo admin route mutations strip canonicalRouteId and force aliases out of sitemap", async () => {
   const calls = [];
-  const requestBff = async (pathValue, options = {}) => {
+  const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method, body: options.init?.body });
     return ok({
       routeId: "route-alias",
@@ -284,7 +284,7 @@ test("seo admin route mutations strip canonicalRouteId and force aliases out of 
       updatedAt: "2026-06-30T00:00:00.000Z",
     }, options);
   };
-  const { createSeoRoute, patchSeoRoute } = loadSeoAdminModule(requestBff);
+  const { createSeoRoute, patchSeoRoute } = loadSeoAdminModule(requestAdminBff);
 
   await createSeoRoute(context, {
     path: "/alias-demo/p",
