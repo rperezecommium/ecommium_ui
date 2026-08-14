@@ -71,6 +71,9 @@ Reglas derivadas:
 - ADR-0119: After Sales es owner de postventa y orquestacion de devoluciones/cambios.
 - ADR-0148: separa el BFF en `bff/storeFront` y `bff/storeAdmin`; los contratos
   HTTP se conservan y cada superficie cambia exclusivamente su URL base.
+- ADR-0154: Admin 0 se crea o adopta una única vez mediante un claim efímero o
+  una sesión SYSTEM con step-up. El instalador no crea Organizations/Shops y
+  queda terminal en `COMPLETED`.
 
 ## Principios de integracion UI-BFF
 
@@ -131,6 +134,36 @@ Reglas para pedidos guest:
   producción el dominio público real del Storefront.
 
 ### Admin: Organizations/Shops y contexto multistore
+
+#### Instalación de Admin 0
+
+La UI externa expone `/admin/installation` y consume exclusivamente:
+
+- `GET /api/v1/admin/installation/status`, público y `no-store`;
+- `POST /api/v1/admin/installation/fresh-completion`, público, con
+  `{ claim, email, password, firstName?, lastName? }`;
+- `POST /api/v1/admin/installation/adoption-completion`, autenticado SYSTEM y
+  con step-up reciente, con `{ newPassword }`.
+
+Las tres rutas requieren que StoreAdmin BFF opere con
+`ADMIN_INSTALLATION_SURFACE_MODE=ENABLED`. En modo ausente, inválido o
+`DISABLED`, BFF responde `503` + `no-store`; la UI no intenta llamar a
+Employees ni habilita un flujo alternativo.
+
+El status público admite únicamente
+`NOT_INITIALIZED|FRESH_CLAIM_REQUIRED|FRESH_READY|ADOPTION_REQUIRED|REVIEW_REQUIRED|COMPLETED`
+y flags `completeFresh|completeAdoption|contactOperator`. Nunca expone modo,
+versión, TTL, intentos, motivos, candidatos, emails o IDs. Fresh no emite una
+sesión. Adoption se precede por `POST /api/v1/admin/session/step-up` con la
+contraseña actual; al completar, BFF revoca todas las sesiones y la UI elimina
+sus cookies y exige login nuevo.
+
+Si una sesión autenticada tiene `tenantAccess.level=SYSTEM` y todavía no hay
+shops, el login conserva la sesión y abre el onboarding normal de contexto. La
+Organization se crea por `POST /admin/organizations-shops/organizations` y la
+Shop por `POST /admin/organizations-shops/shops`; el instalador nunca recibe ni
+crea esos recursos. Un Employee no SYSTEM sin tiendas sigue sin obtener acceso
+operativo.
 
 - `POST /api/v1/auth/login`
 - `GET /api/v1/auth/me`

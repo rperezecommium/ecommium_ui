@@ -134,6 +134,16 @@ const emptyAvailableContext = {
   selectionRequired: false,
 };
 
+const emptySystemAvailableContext = {
+  tenantAccess: {
+    level: "SYSTEM",
+    shopScopes: [],
+  },
+  organizations: [],
+  shops: [],
+  selectionRequired: false,
+};
+
 const defaultOnlyAvailableContext = {
   ...emptyAvailableContext,
   defaultContext: {
@@ -522,6 +532,29 @@ test("admin login blocks operational access when no shops are available", async 
 
   assert.equal(savedSession, null);
   assert.equal(savedContext, null);
+  assert.equal(clearContextCalls, 1);
+});
+
+test("SYSTEM admin keeps its session without shops and enters tenant onboarding", async () => {
+  resetScenario({ availableContext: emptySystemAvailableContext });
+
+  await assert.rejects(() => submitLogin("/admin"), (error) => {
+    assert.match(error.url, /^\/admin\/configuracion\/contexto\?tab=create-organization&contextNotice=/);
+    assert.match(decodeURIComponent(error.url), /sesión SYSTEM está activa/);
+    return true;
+  });
+
+  assert.equal(savedSession.employeeId, "employee-1");
+  assert.equal(savedContext, null);
+  assert.equal(clearContextCalls, 1);
+});
+
+test("SYSTEM admin without shops can return to the authenticated adoption route", async () => {
+  resetScenario({ availableContext: emptySystemAvailableContext });
+
+  await assert.rejects(() => submitLogin("/admin/installation"), { url: "/admin/installation" });
+
+  assert.equal(savedSession.employeeId, "employee-1");
   assert.equal(clearContextCalls, 1);
 });
 

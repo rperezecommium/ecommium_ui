@@ -10,6 +10,7 @@ import { isCurrentShop, withCurrentShopState } from "./organization-shop";
 type ContextSettingsPageProps = {
   activeTab?: string;
   context: AdminContext;
+  createOrganizationAction: (formData: FormData) => Promise<void>;
   createShopAction: (formData: FormData) => Promise<void>;
   directory: OrganizationShopDirectory;
   error?: string;
@@ -19,12 +20,13 @@ type ContextSettingsPageProps = {
   updateShopAction: (formData: FormData) => Promise<void>;
 };
 
-type ContextSettingsTab = "context" | "create-shop" | "edit-shop" | "inheritance";
+type ContextSettingsTab = "context" | "create-organization" | "create-shop" | "edit-shop" | "inheritance";
 
 const pendingAdminContextShopId = "__admin_context_pending__";
 
 const tabs: Array<{ id: ContextSettingsTab; label: string }> = [
   { id: "context", label: "Contexto" },
+  { id: "create-organization", label: "Crear Organization" },
   { id: "create-shop", label: "Crear tienda" },
   { id: "edit-shop", label: "Editar tienda" },
   { id: "inheritance", label: "Herencia" },
@@ -93,6 +95,7 @@ function normalizeTab(value: string | undefined): ContextSettingsTab {
 export function ContextSettingsPage({
   activeTab,
   context,
+  createOrganizationAction,
   createShopAction,
   directory,
   error,
@@ -152,6 +155,11 @@ export function ContextSettingsPage({
               Crear tienda
             </button>
           ) : null}
+          {tab === "create-organization" ? (
+            <button className="adminButton adminButtonPrimary" form="create-organization-form" type="submit">
+              Crear Organization
+            </button>
+          ) : null}
           {tab === "edit-shop" && editShop ? (
             <button className="adminButton adminButtonPrimary" form="edit-shop-form" type="submit">
               Guardar tienda
@@ -209,9 +217,9 @@ export function ContextSettingsPage({
             listar en el selector.
           </p>
           <div className="adminButtonRow">
-            <button className="adminButton adminButtonPrimary" type="button">
+            <a className="adminButton adminButtonPrimary" href={contextTabHref("create-organization")}>
               Crear Organization
-            </button>
+            </a>
             <a className="adminButton" href={contextTabHref("create-shop")}>
               Crear tienda despues de seleccionar o crear una Organization
             </a>
@@ -424,6 +432,66 @@ export function ContextSettingsPage({
               </tr>
             </tbody>
           </table>
+        </aside>
+      </section>
+
+      <section className="adminGrid adminSection" hidden={tab !== "create-organization"}>
+        <article className="adminCard">
+          <div className="adminCardHeader">
+            <div>
+              <h2>Crear Organization</h2>
+              <p>Este es el onboarding normal del tenant. No forma parte del instalador de Admin 0.</p>
+            </div>
+          </div>
+          <form action={createOrganizationAction} className="adminForm" id="create-organization-form">
+            <div className="adminFormGrid">
+              <label className="adminField">
+                <span>Nombre</span>
+                <input maxLength={200} name="name" placeholder="Ecommium Demo" required />
+              </label>
+              <label className="adminField">
+                <span>Razón social</span>
+                <input maxLength={200} name="legalName" placeholder="Ecommium Demo SL" />
+              </label>
+            </div>
+            <div className="adminFormGrid">
+              <label className="adminField">
+                <span>Locale inicial</span>
+                <select name="locale" defaultValue={context.locale}>
+                  <option value="es-ES">es-ES</option>
+                  <option value="en-US">en-US</option>
+                  <option value="pt-PT">pt-PT</option>
+                </select>
+              </label>
+              <label className="adminField">
+                <span>Currency inicial</span>
+                <select name="currency" defaultValue={context.currency}>
+                  <option value="EUR">EUR</option>
+                  <option value="USD">USD</option>
+                  <option value="GBP">GBP</option>
+                </select>
+              </label>
+              <label className="adminField">
+                <span>Country inicial</span>
+                <select name="country" defaultValue={context.country}>
+                  <option value="ES">ES</option>
+                  <option value="US">US</option>
+                  <option value="PT">PT</option>
+                </select>
+              </label>
+              <label className="adminField">
+                <span>Zona horaria</span>
+                <input defaultValue="Europe/Madrid" name="timezone" />
+              </label>
+            </div>
+            <button className="adminButton adminButtonPrimary" type="submit">Crear Organization y continuar</button>
+          </form>
+        </article>
+
+        <aside className="adminCard">
+          <h2>Siguiente paso</h2>
+          <p>Después crearás una Shop con nombre y shopAlias. El backend generará ambos IDs técnicos.</p>
+          <p className="adminMuted">La sesión SYSTEM se conserva durante este proceso sin inventar un tenant ni una tienda por defecto.</p>
         </aside>
       </section>
 

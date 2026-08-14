@@ -223,7 +223,44 @@ const emailProviderSettings = {
   createdAt: "2026-07-01T10:00:00.000Z",
   updatedAt: "2026-07-01T10:00:00.000Z",
 };
-let authEmailTemplates = [{
+
+type AuthEmailTemplateFixture = Record<string, unknown> & {
+  templateId: string;
+  templateKey: string;
+  locale: string;
+  subjectTemplate: string | null;
+  htmlTemplate?: string | null;
+  textTemplate?: string | null;
+  status: string;
+  requiredVariables: unknown[];
+  version: number;
+  updatedAt: string;
+  activatedAt: string | null;
+  archivedAt?: string | null;
+};
+
+type CommunicationsDeliveryAttemptFixture = {
+  attemptId: string;
+  provider: string;
+  status: string;
+  providerMessageId: string | null;
+  errorMessage: string | null;
+  occurredAt: string;
+};
+
+type CommunicationsDeliveryFixture = Record<string, unknown> & {
+  deliveryId: string;
+  templateKey: string;
+  recipient: { email: string; customerId: string };
+  status: string;
+  attempts: CommunicationsDeliveryAttemptFixture[];
+  errorMessage: string | null;
+  sentAt: string | null;
+  failedAt: string | null;
+  updatedAt: string;
+};
+
+let authEmailTemplates: AuthEmailTemplateFixture[] = [{
   templateId: "template-activation",
   templateKey: "customer.account.activation",
   locale: "es-ES",
@@ -234,7 +271,7 @@ let authEmailTemplates = [{
   updatedAt: "2026-07-01T10:00:00.000Z",
   activatedAt: "2026-07-01T10:00:00.000Z",
 }];
-let communicationsDeliveries = [{
+let communicationsDeliveries: CommunicationsDeliveryFixture[] = [{
   deliveryId: "delivery-failed-1",
   organizationId: defaultOrganizationId,
   shopId: barcelonaShopId,

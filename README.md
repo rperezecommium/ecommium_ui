@@ -30,6 +30,53 @@ Open http://localhost:5173 to view the app.
 The Admin foundation starts at `/admin` and expects all business data to come
 from the Ecommium BFF.
 
+### Instalación segura de Admin 0
+
+La ruta pública server-rendered `/admin/installation` implementa el proceso
+10/11 de ADR-0154 contra StoreAdmin BFF. No crea un backend Next.js alterno ni
+llama a `services/*`:
+
+- `NOT_INITIALIZED`, `FRESH_CLAIM_REQUIRED` y `REVIEW_REQUIRED` muestran solo
+  el siguiente paso operativo, sin candidatos, emails, IDs o motivos internos.
+- `FRESH_READY` acepta el claim efímero y la credencial elegida por el usuario;
+  nunca permite enviar roles, permisos, tenant o IDs.
+- `ADOPTION_REQUIRED` exige login Employee/Admin SYSTEM, reautenticación por
+  contraseña actual y una credencial nueva. Tras completar, limpia la cookie UI
+  porque BFF revoca todas las sesiones, incluida la actual.
+- `COMPLETED` cierra el instalador. El primer tenant se crea después mediante
+  los contratos normales de Organizations/Shops.
+
+El mecanismo vigente no envía un claim ni una contraseña por email, ni genera
+un enlace de activación. Un operador emite el claim de un solo uso desde la CLI
+de `Employees`, lo entrega por un canal operativo seguro y el futuro Admin 0
+lo introduce una sola vez en esta pantalla. La UI no guarda el claim y el BFF
+no acepta un destino o una URL enviados por el navegador. Si en el futuro se
+incorpora una invitación por enlace, deberá ampliar primero el contrato de
+`Employees`/StoreAdmin BFF y configurar una URL pública confiable de la UI por
+entorno; no debe resolverse ni inferirse desde el cliente.
+
+Una sesión SYSTEM sin tiendas se conserva y entra en
+`/admin/configuracion/contexto?tab=create-organization`. Desde allí crea la
+Organization y después la Shop; una sesión ordinaria sin tiendas continúa
+fallando cerrada. La certificación aislada se ejecuta con:
+
+```bash
+PLAYWRIGHT_HTML_OPEN=never npx playwright test tests/e2e/admin-installation.spec.ts
+node --test tests/admin-installation.test.mjs tests/admin-login-action.test.mjs
+```
+
+El proceso 11/11 se orquesta desde el repositorio backend mediante
+`scripts/admin-zero-final-certification.mjs`. Incluye estas pruebas, lint,
+Playwright y el build de producción. StoreAdmin BFF puede devolver `503` cuando
+`ADMIN_INSTALLATION_SURFACE_MODE` está deshabilitado; la UI falla cerrada y no
+intenta un backend alternativo.
+
+Para habilitar temporalmente esta superficie en un entorno controlado, el
+proceso StoreAdmin BFF requiere `ADMIN_INSTALLATION_SURFACE_MODE=ENABLED`. La
+UI conserva su propia URL pública en
+`NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL` para metadata; esa variable no autoriza
+la instalación ni sustituye la configuración confiable del BFF.
+
 ## CMS blocks
 
 `packages/cms-blocks` is the shared CMS block catalog for Admin, Storefront and

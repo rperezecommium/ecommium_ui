@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requestAdminBff } from "../../shared/bff/admin-client";
+import { getAdminSession } from "../../shared/auth/session";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { getAdminContext, saveAdminContext } from "../../shared/config/admin-context";
 import { defaultAdminContext } from "../../shared/config/env";
@@ -91,6 +92,87 @@ function parseShop(value: unknown): ShopOption {
     currency: typeof effectiveSettings.defaultCurrency === "string" ? effectiveSettings.defaultCurrency : undefined,
     country: typeof effectiveSettings.defaultCountry === "string" ? effectiveSettings.defaultCountry : undefined,
   };
+}
+
+function parseOrganization(value: unknown) {
+  const record = typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
+  return {
+    id: typeof record.organizationId === "string"
+      ? record.organizationId
+      : typeof record.id === "string"
+        ? record.id
+        : "",
+    name: typeof record.name === "string" ? record.name : "Organization",
+  };
+}
+
+function hasSystemOrganizationManagement(session: Awaited<ReturnType<typeof getAdminSession>>) {
+  if (!session || session.principalType !== "EMPLOYEE" || session.scope !== "admin") {
+    return false;
+  }
+
+  const roles = new Set(session.roles.map((role) => role.trim().toLowerCase()));
+  const permissions = new Set(session.permissions.map((permission) => permission.trim().toLowerCase()));
+  return (
+    (roles.has("admin") || roles.has("superadmin")) &&
+    (permissions.has("*") || permissions.has("admin:*") || permissions.has("organizations-shops.manage"))
+  );
+}
+
+export async function createOrganizationAction(formData: FormData) {
+  const session = await getAdminSession();
+  const current = await getAdminContext();
+  const name = asString(formData.get("name"));
+  const legalName = asString(formData.get("legalName"));
+
+  if (!hasSystemOrganizationManagement(session)) {
+    safeRedirect("/admin/configuracion/contexto", {
+      contextError: "La sesión actual no puede crear Organizations.",
+    });
+  }
+  if (!name || name.length > 200 || legalName.length > 200) {
+    safeRedirect("/admin/configuracion/contexto?tab=create-organization", {
+      contextError: "Nombre es obligatorio; nombre y razón social admiten un máximo de 200 caracteres.",
+    });
+  }
+
+  const result = await requestAdminBff("/admin/organizations-shops/organizations", {
+    init: {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name,
+        ...(legalName ? { legalName } : {}),
+        defaultSettings: {
+          defaultLocale: asString(formData.get("locale")) || current.locale,
+          defaultCurrency: asString(formData.get("currency")) || current.currency,
+          defaultCountry: asString(formData.get("country")) || current.country,
+          timezone: asString(formData.get("timezone")) || "Europe/Madrid",
+        },
+      }),
+    },
+    parse: parseOrganization,
+  });
+
+  if (!result.ok || !result.data.id) {
+    safeRedirect("/admin/configuracion/contexto?tab=create-organization", {
+      contextError: `No se pudo crear la Organization. ${result.ok ? "Respuesta sin organizationId." : result.error}`,
+    });
+  }
+
+  await saveAdminContext({
+    ...current,
+    organizationId: result.data.id,
+    shopId: "",
+    shopAlias: "",
+    shopName: "",
+    primaryDomain: "",
+    shopStatus: "",
+  });
+  revalidateAdminContextRoutes("/admin/configuracion/contexto");
+  safeRedirect("/admin/configuracion/contexto?tab=create-shop", {
+    contextNotice: `${result.data.name} fue creada. Crea ahora su primera tienda.`,
+  });
 }
 
 export async function updateAdminContext(formData: FormData) {

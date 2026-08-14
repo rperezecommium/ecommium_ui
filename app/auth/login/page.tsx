@@ -1,8 +1,11 @@
+import { redirect } from "next/navigation";
 import { loginAdminEmployee } from "../../../src/modules/auth/admin-session-actions";
+import { getAdminInstallationStatus } from "../../../src/modules/configuracion/admin-installation";
 
 type LoginPageProps = {
   searchParams?: Promise<{
     authError?: string;
+    authNotice?: string;
     next?: string;
   }>;
 };
@@ -10,6 +13,14 @@ type LoginPageProps = {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const nextPath = params?.next ?? "/admin";
+  const installation = await getAdminInstallationStatus();
+
+  if (
+    installation.ok &&
+    ["NOT_INITIALIZED", "FRESH_CLAIM_REQUIRED", "FRESH_READY", "REVIEW_REQUIRED"].includes(installation.data.state)
+  ) {
+    redirect("/admin/installation");
+  }
 
   return (
     <main className="loginPage">
@@ -38,7 +49,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </form>
 
         {params?.authError ? (
-          <div className="adminBanner adminBannerError">{params.authError}</div>
+          <div className="adminBanner adminBannerError" role="alert">{params.authError}</div>
+        ) : null}
+
+        {params?.authNotice ? (
+          <div className="adminBanner">{params.authNotice}</div>
         ) : null}
 
       </section>

@@ -1,5 +1,6 @@
 import { getAdminContext } from "../../../../../src/shared/config/admin-context";
 import {
+  createOrganizationAction,
   createShopAction,
   updateAdminContext,
   updateShopAction,
@@ -28,6 +29,7 @@ export default async function ContextoPage({ searchParams }: ContextoPageProps) 
     <ContextSettingsPage
       activeTab={params?.tab}
       context={context}
+      createOrganizationAction={createOrganizationAction}
       createShopAction={createShopAction}
       directory={directory}
       error={params?.contextError}

@@ -99,6 +99,23 @@ function contextFromDefault(
   };
 }
 
+function hasSystemTenantAccess(value: unknown) {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    (value as Record<string, unknown>).level === "SYSTEM"
+  );
+}
+
+function systemOnboardingPath(hasOrganizations: boolean) {
+  const message = hasOrganizations
+    ? "Tu sesión SYSTEM está activa. Crea la primera tienda para completar el contexto operativo."
+    : "Tu sesión SYSTEM está activa. Crea la primera Organization y después su tienda.";
+  const tab = hasOrganizations ? "create-shop" : "create-organization";
+  return `/admin/configuracion/contexto?tab=${tab}&contextNotice=${encodeURIComponent(message)}`;
+}
+
 async function fetchCurrentSessionWithToken(accessToken: string) {
   return await requestAdminBff("/auth/me", {
     withAuth: false,
@@ -203,6 +220,16 @@ async function loginAdminWithCredentials({
     : null;
 
   if (shops.length === 0 && !availableContexts.defaultContext) {
+    if (hasSystemTenantAccess(availableContexts.tenantAccess)) {
+      await saveAdminSession(session);
+      await clearAdminContext();
+      redirect(
+        nextPath === "/admin/installation"
+          ? nextPath
+          : systemOnboardingPath(availableContexts.directory.organizations.length > 0),
+      );
+    }
+
     await clearAdminContext();
     await clearAdminSession();
     loginRedirect(nextPath, "Acceso denegado operativo: tu usuario no tiene tiendas disponibles para operar el Admin.");

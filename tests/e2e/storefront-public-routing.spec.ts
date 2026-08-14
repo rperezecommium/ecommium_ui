@@ -13,7 +13,37 @@ let bffPort = 0;
 let nextPort = 0;
 let nextProcess: ChildProcessWithoutNullStreams;
 
-function route(path: string, entityType: "PRODUCT" | "CATEGORY" | "CMS_PAGE", entityId: string, canonicalPath = path) {
+type ResolvedRoute = {
+  kind: "ROUTE";
+  requestedPath: string;
+  canonicalPath: string;
+  isCanonical: boolean;
+  entityType: "PRODUCT" | "CATEGORY" | "CMS_PAGE";
+  entityId: string;
+  routeId: string;
+  canonicalRouteId: string;
+  organizationId: string;
+  shopId: string;
+  locale: string;
+};
+
+type ResolvedRedirect = {
+  kind: "REDIRECT";
+  requestedPath: string;
+  toPath: string;
+  statusCode: number;
+  redirectId: string;
+  organizationId: string;
+  shopId: string;
+  locale: string;
+};
+
+function route(
+  path: string,
+  entityType: "PRODUCT" | "CATEGORY" | "CMS_PAGE",
+  entityId: string,
+  canonicalPath = path,
+): ResolvedRoute {
   return {
     kind: "ROUTE",
     requestedPath: path,
@@ -29,7 +59,7 @@ function route(path: string, entityType: "PRODUCT" | "CATEGORY" | "CMS_PAGE", en
   };
 }
 
-function resolution(path: string) {
+function resolution(path: string): ResolvedRoute | ResolvedRedirect | null {
   if (path === "/") return route(path, "CMS_PAGE", "cms-home");
   if (path === "/cms-demo") return route(path, "CMS_PAGE", "cms-demo");
   if (path === "/cms-alias") return route(path, "CMS_PAGE", "cms-demo", "/cms-demo");
