@@ -283,12 +283,15 @@ async function waitForNext(url: string) {
 
 async function startNext() {
   nextPort = await freePort();
-  nextProcess = spawn("npx", ["next", "dev", "--webpack", "-p", String(nextPort)], {
+  nextProcess = spawn("npx", ["next", "start", "-p", String(nextPort)], {
     cwd: process.cwd(),
     env: {
       ...process.env,
       ECOMMIUM_ADMIN_BFF_BASE_URL: `http://127.0.0.1:${bffPort}/api/v1`,
       ECOMMIUM_UI_ADMIN_SESSION_SECRET: "playwright-admin-session-secret-2026",
+      ECOMMIUM_STOREFRONT_BFF_BASE_URL: "https://storefront.example.test/api/v1",
+      ECOMMIUM_STOREFRONT_ORGANIZATION_ID: "organization-playwright",
+      ECOMMIUM_STOREFRONT_SHOP_ID: "shop-playwright",
     },
   });
   await waitForNext(`http://127.0.0.1:${nextPort}/admin/installation`);

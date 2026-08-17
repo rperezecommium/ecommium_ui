@@ -13,6 +13,7 @@ export type AdminSession = {
   profile: "SuperAdmin" | "Admin" | "Operator" | "Viewer";
   principalType: "ADMIN" | "EMPLOYEE" | "CUSTOMER";
   scope: "admin" | "storefront";
+  credentialState?: "NORMAL" | "MUST_CHANGE_PASSWORD";
   roles: string[];
   permissions: string[];
   organizationId?: string;
@@ -38,6 +39,10 @@ function asStringArray(value: unknown) {
   return Array.isArray(value)
     ? value.map(asString).filter(Boolean)
     : [];
+}
+
+function credentialStateOf(value: unknown): AdminSession["credentialState"] {
+  return value === "MUST_CHANGE_PASSWORD" || value === "NORMAL" ? value : undefined;
 }
 
 function decodeBase64Url(input: string): string {
@@ -122,6 +127,7 @@ function parseSession(value: string | undefined): AdminSession | null {
         profile: parsed.profile,
         principalType: "EMPLOYEE",
         scope: "admin",
+        credentialState: credentialStateOf(parsed.credentialState ?? tokenClaims.credentialState),
         roles: roles.length > 0 ? roles : tokenRoles,
         permissions: permissions.length > 0 ? permissions : tokenPermissions,
         organizationId: typeof parsed.organizationId === "string" ? parsed.organizationId : undefined,

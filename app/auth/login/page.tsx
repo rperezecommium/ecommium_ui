@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { loginAdminEmployee } from "../../../src/modules/auth/admin-session-actions";
+import { getAdminPasswordRecoveryAvailability } from "../../../src/modules/auth/admin-password-recovery-availability";
 import { getAdminInstallationStatus } from "../../../src/modules/configuracion/admin-installation";
 
 type LoginPageProps = {
@@ -14,6 +16,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const nextPath = params?.next ?? "/admin";
   const installation = await getAdminInstallationStatus();
+  const passwordRecoveryAvailable = await getAdminPasswordRecoveryAvailability();
 
   if (
     installation.ok &&
@@ -47,6 +50,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Entrar con BFF Auth
           </button>
         </form>
+
+        {passwordRecoveryAvailable ? (
+          <p className="adminHelpText">
+            <Link href="/auth/admin/password-recovery" style={{ display: "block", marginTop: 10 }}>
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </p>
+        ) : null}
 
         {params?.authError ? (
           <div className="adminBanner adminBannerError" role="alert">{params.authError}</div>

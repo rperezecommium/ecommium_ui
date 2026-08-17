@@ -66,6 +66,10 @@ function normalizeScope(value: unknown): AdminSession["scope"] {
   return asString(value).toLowerCase() === "admin" ? "admin" : "storefront";
 }
 
+function normalizeCredentialState(value: unknown): AdminSession["credentialState"] {
+  return value === "MUST_CHANGE_PASSWORD" || value === "NORMAL" ? value : undefined;
+}
+
 function profileFromPrincipalType(principalType: AdminSession["principalType"]): AdminSession["profile"] {
   if (principalType === "ADMIN") {
     return "Admin";
@@ -191,6 +195,9 @@ export function parseAuthSessionPayload(
     profile: profileFromPrincipalType(principalType),
     principalType,
     scope,
+    credentialState: normalizeCredentialState(
+      session.credentialState ?? principal.credentialState ?? root.credentialState ?? tokenClaims.credentialState,
+    ),
     roles,
     permissions: permissions.length > 0 ? permissions : ["admin:view"],
     organizationId:
@@ -220,6 +227,7 @@ export function mergeAuthSessions(loginSession: AdminSession, meSession: AdminSe
     sessionId: meSession.sessionId ?? loginSession.sessionId,
     organizationId: meSession.organizationId ?? loginSession.organizationId,
     shopId: meSession.shopId ?? loginSession.shopId,
+    credentialState: meSession.credentialState ?? loginSession.credentialState,
     roles: meSession.roles.length > 0 ? meSession.roles : loginSession.roles,
     permissions: meSession.permissions.length > 0 ? meSession.permissions : loginSession.permissions,
   };

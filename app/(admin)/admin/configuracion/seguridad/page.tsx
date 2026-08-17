@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { getAdminSecurityData } from "../../../../../src/modules/configuracion/admin-security";
 import {
+  changeOwnAdminPasswordAction,
+} from "../../../../../src/modules/auth/admin-credential-actions";
+import {
   logoutOtherAdminSessionsAction,
   revokeAdminDeviceSessionAction,
   verifyAdminStepUpAction,
@@ -34,6 +37,32 @@ export default async function SeguridadPage({ searchParams }: SecurityPageProps)
       {params?.notice ? <div className="adminBanner">{params.notice}</div> : null}
       {params?.error ? <div className="adminBanner adminBannerError">{params.error}</div> : null}
       {data.errors.map((error) => <div className="adminBanner adminBannerError" key={error}>{error}</div>)}
+
+      <section className="adminCard">
+        <h2>Cambiar mi contraseña</h2>
+        <p>
+          Para proteger tu cuenta, confirma tu contraseña actual. El cambio cierra
+          las demás sesiones activas; esta sesión puede continuar si el BFF lo permite.
+        </p>
+        <form action={changeOwnAdminPasswordAction} className="adminForm">
+          <input name="returnTo" type="hidden" value="/admin/configuracion/seguridad" />
+          <label className="adminField">
+            <span>Contraseña actual</span>
+            <input autoComplete="current-password" name="currentPassword" required type="password" />
+          </label>
+          <div className="adminFormGrid adminFormGridTwo">
+            <label className="adminField">
+              <span>Nueva contraseña</span>
+              <input autoComplete="new-password" maxLength={256} minLength={8} name="newPassword" required type="password" />
+            </label>
+            <label className="adminField">
+              <span>Repite la nueva contraseña</span>
+              <input autoComplete="new-password" maxLength={256} minLength={8} name="confirmation" required type="password" />
+            </label>
+          </div>
+          <button className="adminButton adminButtonPrimary" type="submit">Cambiar contraseña</button>
+        </form>
+      </section>
 
       <section className="adminCard">
         <h2>Confirmación para acciones sensibles</h2>

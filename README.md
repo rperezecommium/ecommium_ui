@@ -77,6 +77,67 @@ UI conserva su propia URL pública en
 `NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL` para metadata; esa variable no autoriza
 la instalación ni sustituye la configuración confiable del BFF.
 
+### Credenciales Admin
+
+El proceso 10/12 de ADR-0155 consume únicamente StoreAdmin BFF y no crea una
+API de negocio en Next.js:
+
+- Antes de mostrar «¿Olvidaste tu contraseña?», la UI consulta por servidor
+  `GET /api/v1/admin/auth/password-recovery/availability`. Si no devuelve
+  explícitamente `{ available: true }`, oculta el enlace y el formulario;
+  nunca infiere cuentas ni entrega de email a partir de esta capacidad.
+- `/auth/admin/password-recovery` solicita recuperación con respuesta uniforme
+  solo cuando la capacidad está habilitada; no confirma si el email existe.
+- El enlace de email debe apuntar a
+  `/auth/admin/password-recovery/consume?token=...`. Esta ruta técnica elimina
+  el token de la URL, aplica `no-store` y `Referrer-Policy: no-referrer`, y lo
+  conserva solo en una cookie HttpOnly firmada de 15 minutos antes de mostrar
+  `/auth/admin/password-recovery/complete`.
+- `/admin/configuracion/seguridad` permite cambiar la contraseña propia. La UI
+  reautentica contra step-up y solicita revocar las demás sesiones; no guarda
+  ni registra contraseñas.
+- Si `GET /auth/me` devuelve `credentialState=MUST_CHANGE_PASSWORD`, la UI
+  redirige a `/admin/password` y bloquea el shell administrativo hasta crear
+  una contraseña personal.
+- Solo un SuperAdmin SYSTEM con `system.admin` ve en `Configuración > Equipo`
+  la acción de enviar una invitación de un solo uso para restablecer la
+  credencial de otro empleado. La UI no ofrece contraseña temporal.
+- En `Configuración > Equipo`, el selector de `Tienda predeterminada` solo
+  muestra los `shopScopes` ya asignados al empleado. Se persiste mediante
+  `PATCH /admin/employees/:employeeId/preferences` y aporta el contexto seguro
+  que necesita la recuperación de contraseña; `Employees` vuelve a validar la
+  misma invariante en servidor. Si una cuenta legacy tiene exactamente una
+  tienda permitida, `Sessions` puede usarla para recuperación sin solicitar
+  contexto en la pantalla pública; con varias, no adivina y necesita la
+  preferencia explícita.
+
+La URL base de recuperación es una configuración privada de Sessions/BFF por
+entorno; no se resuelve ni se recibe desde el navegador. La prueba focal se
+ejecuta con:
+
+```bash
+node --test tests/admin-credentials-ui.test.mjs tests/auth-session-payload.test.mjs
+npx playwright test tests/e2e/admin-credentials.spec.ts
+```
+
+El proceso 11/12 quedó certificado junto con Employees, Sessions, StoreAdmin
+BFF, Customer y Admin 0 mediante el gate del monorepo, ejecutado con Node 22:
+
+```bash
+node ../composable_ecommerce/scripts/admin-credentials-integrated-certification.mjs --full \
+  --ui-root="$(pwd)"
+```
+
+El gate usa BFFs simulados para sus e2e UI, no ejecuta migraciones ni tráfico
+contra entornos vivos; el rollout fail-closed del proceso 12/12 se certifica
+desde el monorepo antes de cualquier activación de cohorte.
+
+El proceso 12/12 establece `ADMIN_CREDENTIAL_SURFACE_MODE=DISABLED` como
+postura predeterminada del StoreAdmin BFF. Si la superficie no está habilitada
+para una cohorte, la UI recibe `503` genérico y no intenta ningún acceso directo
+a Sessions/Employees. El cambio a `ENABLED` y el rollback están documentados en
+el runbook del monorepo; nunca son una decisión del navegador.
+
 ## CMS blocks
 
 `packages/cms-blocks` is the shared CMS block catalog for Admin, Storefront and

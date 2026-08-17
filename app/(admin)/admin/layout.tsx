@@ -18,6 +18,10 @@ export default async function AdminLayout({
     redirect("/auth/login?next=/admin");
   }
 
+  if (session.credentialState === "MUST_CHANGE_PASSWORD") {
+    redirect("/admin/password");
+  }
+
   return runWithAdminRequestSession(session, async () => {
     const context = await getAdminContext();
     const directory = await getOrganizationShopDirectory();

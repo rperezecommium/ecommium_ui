@@ -17,7 +17,10 @@ type EmployeesAdminPageProps = {
   error?: string;
   initialTab?: EmployeesTab;
   notice?: string;
+  canResetCredentials: boolean;
+  resetEmployeeCredentialAction: (formData: FormData) => Promise<void>;
   updateEmployeeAction: (formData: FormData) => Promise<void>;
+  updateEmployeeDefaultShopAction: (formData: FormData) => Promise<void>;
   updateEmployeeShopScopesAction: (formData: FormData) => Promise<void>;
   updateEmployeeStatusAction: (formData: FormData) => Promise<void>;
   updateProfileAction: (formData: FormData) => Promise<void>;
@@ -96,11 +99,14 @@ export function EmployeesAdminPage({
   context,
   createEmployeeAction,
   createProfileAction,
+  canResetCredentials,
   data,
   error,
   initialTab = "employees",
   notice,
+  resetEmployeeCredentialAction,
   updateEmployeeAction,
+  updateEmployeeDefaultShopAction,
   updateEmployeeShopScopesAction,
   updateEmployeeStatusAction,
   updateProfileAction,
@@ -114,6 +120,9 @@ export function EmployeesAdminPage({
   const selectedEmployee = data.employees.find((employee) => employeeIdOf(employee) === selectedEmployeeId);
   const selectedProfile = data.profiles.find((profile) => profileIdOf(profile) === selectedProfileId);
   const selectedEmployeeShopScopes = new Set((selectedEmployee?.shopScopes ?? []).map(shopScopeKey));
+  const selectedEmployeeAllowedShops = data.availableShops.filter((shop) =>
+    selectedEmployeeShopScopes.has(shopScopeKey({ organizationId: shop.organizationId, shopId: shop.id })),
+  );
   const profileLabelById = useMemo(() => {
     return new Map(data.profiles.map((profile) => [profileIdOf(profile), profile.name || profileIdOf(profile)]));
   }, [data.profiles]);
@@ -360,6 +369,49 @@ export function EmployeesAdminPage({
                     <div className="adminEmptyState">Selecciona un empleado de la tabla.</div>
                   )}
                 </form>
+                <form action={updateEmployeeDefaultShopAction} className="adminForm" key={`${selectedEmployeeId || "empty"}-default-shop`}>
+                  <h3>Tienda predeterminada</h3>
+                  {selectedEmployee ? (
+                    <>
+                      <p className="adminMuted">
+                        Se utiliza como contexto inicial y para la recuperación de contraseña. Solo puedes elegir tiendas ya permitidas para este empleado.
+                      </p>
+                      <input name="employeeId" type="hidden" value={selectedEmployeeId} />
+                      <label className="adminField">
+                        <span>Tienda</span>
+                        <select defaultValue={selectedEmployee.defaultShopId ?? ""} name="defaultShopId" required>
+                          <option disabled value="">Selecciona una tienda permitida</option>
+                          {selectedEmployeeAllowedShops.map((shop) => (
+                            <option key={shopScopeKey({ organizationId: shop.organizationId, shopId: shop.id })} value={shop.id}>
+                              {shop.name}{shop.shopAlias ? ` (${shop.shopAlias})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {selectedEmployeeAllowedShops.length === 0 ? (
+                        <p className="adminMuted">Asigna al menos una tienda antes de definir la predeterminada.</p>
+                      ) : null}
+                      <button className="adminButton adminButtonPrimary" disabled={!canUseTenant || selectedEmployeeAllowedShops.length === 0} type="submit">
+                        Guardar tienda predeterminada
+                      </button>
+                    </>
+                  ) : (
+                    <div className="adminEmptyState">Selecciona un empleado de la tabla.</div>
+                  )}
+                </form>
+                {canResetCredentials && selectedEmployee ? (
+                  <form action={resetEmployeeCredentialAction} className="adminForm">
+                    <h3>Restablecer credenciales</h3>
+                    <p className="adminMuted">
+                      Envía una invitación de un solo uso para que esta persona cree
+                      su propia contraseña. No se genera ni se muestra una contraseña temporal.
+                    </p>
+                    <input name="employeeId" type="hidden" value={selectedEmployeeId} />
+                    <button className="adminButton adminButtonDanger" disabled={!canUseTenant} type="submit">
+                      Enviar invitación de credenciales
+                    </button>
+                  </form>
+                ) : null}
               </aside>
             </section>
           </div>

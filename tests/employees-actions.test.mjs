@@ -41,6 +41,14 @@ const moduleContext = {
         },
       };
     }
+    if (specifier.endsWith("/shared/auth/session")) {
+      return {
+        getAdminSession: async () => ({
+          roles: ["superadmin"],
+          permissions: ["system.admin"],
+        }),
+      };
+    }
     if (specifier.endsWith("/shared/config/admin-context")) {
       return {
         getAdminContext: async () => ({
@@ -72,7 +80,13 @@ const moduleContext = {
 
 vm.runInNewContext(outputText, moduleContext);
 
-const { createEmployeeAction, updateEmployeeAction, updateEmployeeShopScopesAction } = moduleContext.module.exports;
+const {
+  createEmployeeAction,
+  resetEmployeeCredentialAction,
+  updateEmployeeAction,
+  updateEmployeeDefaultShopAction,
+  updateEmployeeShopScopesAction,
+} = moduleContext.module.exports;
 
 test("employee create POST sends initial shop scopes", async () => {
   bffCalls.length = 0;
@@ -157,5 +171,46 @@ test("employee shop scopes PUT replaces allowed shop list", async () => {
         shopId: "22222222-2222-4222-8222-222222222222",
       },
     ],
+  });
+});
+
+test("employee default shop PATCH uses the security preferences contract", async () => {
+  bffCalls.length = 0;
+  const formData = new FormData();
+  formData.set("employeeId", "employee-limited");
+  formData.set("defaultShopId", "22222222-2222-4222-8222-222222222222");
+
+  await assert.rejects(
+    () => updateEmployeeDefaultShopAction(formData),
+    { url: "/admin/configuracion/equipo?tab=employees&notice=Tienda+predeterminada+actualizada." },
+  );
+
+  assert.equal(
+    bffCalls[0].path,
+    "/admin/employees/employee-limited/preferences?organizationId=11111111-1111-4111-8111-111111111111&shopId=22222222-2222-4222-8222-222222222222",
+  );
+  assert.equal(bffCalls[0].options.init.method, "PATCH");
+  assert.deepEqual(JSON.parse(bffCalls[0].options.init.body), {
+    preferences: { defaultShopId: "22222222-2222-4222-8222-222222222222" },
+  });
+});
+
+test("SuperAdmin reset always requests an invitation without a temporary password", async () => {
+  bffCalls.length = 0;
+  const formData = new FormData();
+  formData.set("employeeId", "employee-limited");
+
+  await assert.rejects(
+    () => resetEmployeeCredentialAction(formData),
+    { url: "/admin/configuracion/equipo?tab=employees&notice=Se+envi%C3%B3+una+invitaci%C3%B3n+de+un+solo+uso+para+crear+una+contrase%C3%B1a+nueva." },
+  );
+
+  assert.equal(
+    bffCalls[0].path,
+    "/admin/employees/employee-limited/credential-reset?organizationId=11111111-1111-4111-8111-111111111111",
+  );
+  assert.deepEqual(JSON.parse(bffCalls[0].options.init.body), {
+    mode: "INVITATION",
+    locale: "es-ES",
   });
 });

@@ -29,6 +29,11 @@ export type EmployeeRecord = {
   roles?: string[];
   permissions?: string[];
   shopScopes?: EmployeeShopScope[];
+  preferences?: {
+    defaultShopId?: string;
+    [key: string]: unknown;
+  };
+  defaultShopId?: string;
   [key: string]: unknown;
 };
 
@@ -126,6 +131,7 @@ function parseCollection<T>(value: unknown): EmployeesCollectionResponse<T> {
 
 function normalizeEmployee(value: unknown): EmployeeRecord {
   const record = asRecord(value);
+  const preferences = asRecord(record.preferences);
   const firstName = asString(record.firstName);
   const lastName = asString(record.lastName);
   const profileIds = asStringArray(record.profileIds);
@@ -148,6 +154,11 @@ function normalizeEmployee(value: unknown): EmployeeRecord {
     shopScopes: asArray(record.shopScopes)
       .map(normalizeShopScope)
       .filter((scope): scope is EmployeeShopScope => Boolean(scope)),
+    preferences: {
+      ...preferences,
+      defaultShopId: asString(preferences.defaultShopId) || undefined,
+    },
+    defaultShopId: asString(preferences.defaultShopId) || asString(record.defaultShopId) || undefined,
   };
 }
 

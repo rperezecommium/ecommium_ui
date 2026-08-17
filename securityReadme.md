@@ -311,6 +311,22 @@ Resolución parcial de UI:
   - `src/shared/auth/session.ts:57-63` usa defaults permisivos ante principal/scope invalidos.
 - Correccion requerida: intercambiar secretos de URL inmediatamente por nonce HttpOnly de vida corta y redirigir a URL limpia; redaccion de logs y `no-referrer`. Hacer parsing de sesion fail-closed y persistir permisos actualizados de `/auth/me`.
 
+Resolución parcial de UI para credenciales Admin:
+- Estado: EN PROGRESO
+- Fecha: 2026-08-14
+- Cambio: la recuperación Admin usa `/auth/admin/password-recovery/consume` como
+  Route Handler técnico. Extrae el token de la URL, lo firma en una cookie
+  HttpOnly de 15 minutos limitada al flujo, responde `no-store` y
+  `Referrer-Policy: no-referrer`, y redirige a un formulario sin token. Ningún
+  componente cliente ni almacenamiento web recibe ese secreto. El BFF sigue
+  siendo quien invalida/consume el token de un solo uso.
+- Pruebas: `node --test tests/admin-credentials-ui.test.mjs` cubre las rutas,
+  cookie firmada, limpieza de URL, no-store, no-referrer y el bloqueo
+  `MUST_CHANGE_PASSWORD`.
+- Pendiente para cierre: aplicar el mismo patrón a la recuperación y activación
+  Customer existentes, y sustituir el token sellado por un nonce verdaderamente
+  opaco cuando el contrato BFF exponga un intercambio de token seguro.
+
 ### SEC-014 — IP de cliente falsificable y anti-bot fail-open
 
 - Severidad: **MEDIA**, dependiente del ingress y rate limiting BFF.

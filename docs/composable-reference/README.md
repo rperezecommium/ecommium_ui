@@ -74,6 +74,10 @@ Reglas derivadas:
 - ADR-0154: Admin 0 se crea o adopta una única vez mediante un claim efímero o
   una sesión SYSTEM con step-up. El instalador no crea Organizations/Shops y
   queda terminal en `COMPLETED`.
+- ADR-0155: las credenciales de Employee/Admin se recuperan y cambian por una
+  superficie StoreAdmin separada de Customer. `Employees` conserva el estado
+  vivo `NORMAL|MUST_CHANGE_PASSWORD`; `Sessions` conserva hashes, tokens y
+  entrega de email; BFF es el único borde para UI.
 
 ## Principios de integracion UI-BFF
 
@@ -201,6 +205,38 @@ Flujo UI obligatorio:
 Las llamadas Admin reales requieren `Authorization` obtenido desde BFF Sessions
 y persistido en una cookie httpOnly firmada por la UI. No existe un fallback
 server-side que sustituya la identidad del Employee.
+
+#### Credenciales Admin (ADR-0155, proceso UI 10/12)
+
+StoreAdmin publica exclusivamente estas rutas para la UI Admin:
+
+- `GET /api/v1/admin/auth/password-recovery/availability`, pública y no
+  cacheable, respuesta cerrada `{ available: boolean }`. La UI solo muestra la
+  recuperación cuando es `true`; no revela cuentas ni entrega de correo.
+- `POST /api/v1/admin/auth/password-recovery/request`, pública, body cerrado
+  `{ email, locale? }`, respuesta uniforme `202 { accepted: true }`.
+- `POST /api/v1/admin/auth/password-recovery/complete`, pública, body cerrado
+  `{ token, newPassword }`; no inicia sesión y exige login posterior.
+- `POST /api/v1/admin/auth/password/change`, `EMPLOYEE/admin` con step-up,
+  body cerrado `{ currentPassword, newPassword, revokeOtherSessions? }`.
+- `POST /api/v1/admin/employees/:employeeId/credential-reset?organizationId=:org`,
+  SuperAdmin SYSTEM con `system.admin` y step-up. El body solo admite
+  `{ locale?, mode?: "INVITATION" | "TEMPORARY_PASSWORD", temporaryPassword? }`.
+  La UI usa únicamente `INVITATION`; nunca recibe `principalId`, token, hash ni
+  contraseña temporal.
+
+`GET /api/v1/auth/me`, login y refresh pueden devolver
+`credentialState=NORMAL|MUST_CHANGE_PASSWORD`. Ante el segundo valor la UI debe
+bloquear todo el shell Admin y permitir únicamente `/admin/password`, donde se
+reautentica con la contraseña actual y completa el cambio. El BFF mantiene la
+autorización final.
+
+La recuperación no guarda el token en JavaScript, `localStorage` ni
+`sessionStorage`. El enlace privado debe usar la ruta UI técnica
+`/auth/admin/password-recovery/consume?token=...`; esta intercambia la URL por
+una cookie HttpOnly firmada, de 15 minutos y limitada al path de recuperación,
+aplica `no-store` y redirige al formulario limpio. La URL pública de esa ruta
+la configura Sessions/BFF en servidor; no es una variable `NEXT_PUBLIC_*`.
 
 Gap confirmado el 2026-06-16 contra el BFF local: los endpoints
 `/api/v1/admin/sessions/login`, `/api/v1/admin/sessions/me` y

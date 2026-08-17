@@ -187,6 +187,11 @@ async function loginAdminWithCredentials({
   }
 
   const session = mergeAuthSessions(loginResult.data, meResult.data);
+  if (session.credentialState === "MUST_CHANGE_PASSWORD") {
+    await saveAdminSession(session);
+    await clearAdminContext();
+    redirect("/admin/password");
+  }
   const preferredContext = await getAdminContextForPrincipal(
     session.employeeId || session.email,
   );

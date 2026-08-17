@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requestAdminBff } from "../../shared/bff/admin-client";
+import { getAdminSession } from "../../shared/auth/session";
 import { getAdminContext } from "../../shared/config/admin-context";
 import { buildEmployeesMutationPath } from "./employees";
 
@@ -73,6 +74,15 @@ function buildEmployeePayload(formData: FormData, options: { includeShopScopes?:
     profileIds,
     ...(options.includeShopScopes ? { shopScopes: shopScopeValues(formData) } : {}),
   };
+}
+
+function canResetEmployeeCredential(session: Awaited<ReturnType<typeof getAdminSession>>) {
+  if (!session) return false;
+  const roles = new Set(session.roles.map((role) => role.toLowerCase()));
+  const permissions = new Set(session.permissions.map((permission) => permission.toLowerCase()));
+  return roles.has("superadmin") && (
+    permissions.has("system.admin") || permissions.has("*") || permissions.has("admin:*")
+  );
 }
 
 export async function createEmployeeAction(formData: FormData) {
@@ -162,6 +172,41 @@ export async function updateEmployeeStatusAction(formData: FormData) {
   finish(tab, active ? "Empleado activado." : "Empleado desactivado.");
 }
 
+export async function resetEmployeeCredentialAction(formData: FormData) {
+  const tab = "employees";
+  const context = await getTenant(tab);
+  const employeeId = asString(formData.get("employeeId"));
+  const session = await getAdminSession();
+
+  if (!employeeId) {
+    fail(tab, "Selecciona un empleado para restablecer sus credenciales.");
+  }
+
+  if (!canResetEmployeeCredential(session)) {
+    fail(tab, "Solo un SuperAdmin SYSTEM con el permiso correspondiente puede restablecer credenciales.");
+  }
+
+  const result = await requestAdminBff(
+    `/admin/employees/${encodeURIComponent(employeeId)}/credential-reset?organizationId=${encodeURIComponent(context.organizationId)}`,
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode: "INVITATION", locale: context.locale }),
+      },
+    },
+  );
+
+  if (!result.ok) {
+    fail(tab, result.status === 403
+      ? "Confirma tu identidad en Seguridad antes de restablecer credenciales."
+      : "No se pudo enviar la invitación de credenciales. Inténtalo de nuevo.");
+  }
+
+  finish(tab, "Se envió una invitación de un solo uso para crear una contraseña nueva.");
+}
+
 export async function updateEmployeeShopScopesAction(formData: FormData) {
   const tab = "employees";
   const context = await getTenant(tab);
@@ -189,6 +234,39 @@ export async function updateEmployeeShopScopesAction(formData: FormData) {
   }
 
   finish(tab, "Acceso a tiendas actualizado.");
+}
+
+export async function updateEmployeeDefaultShopAction(formData: FormData) {
+  const tab = "employees";
+  const context = await getTenant(tab);
+  const employeeId = asString(formData.get("employeeId"));
+  const defaultShopId = asString(formData.get("defaultShopId"));
+
+  if (!employeeId) {
+    fail(tab, "Selecciona un empleado para definir su tienda predeterminada.");
+  }
+
+  if (!defaultShopId) {
+    fail(tab, "Selecciona una tienda ya permitida para el empleado.");
+  }
+
+  const result = await requestAdminBff(
+    buildEmployeesMutationPath(`/admin/employees/${encodeURIComponent(employeeId)}/preferences`, context.organizationId, context.shopId),
+    {
+      context,
+      init: {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ preferences: { defaultShopId } }),
+      },
+    },
+  );
+
+  if (!result.ok) {
+    fail(tab, `No se pudo actualizar la tienda predeterminada. ${result.error}`);
+  }
+
+  finish(tab, "Tienda predeterminada actualizada.");
 }
 
 export async function createProfileAction(formData: FormData) {

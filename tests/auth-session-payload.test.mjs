@@ -96,6 +96,30 @@ test("keeps permissions and roles from auth/me over login defaults", () => {
   assert.equal(merged.shopId, "shop-1");
 });
 
+test("preserves the live MUST_CHANGE_PASSWORD signal from auth/me", () => {
+  const loginSession = parseAuthSessionPayload(
+    {
+      profile: { principalId: "employee-1", principalType: "EMPLOYEE" },
+      session: { scope: "admin" },
+      tokens: { accessToken: "login-token" },
+    },
+    { requireAccessToken: true },
+  );
+  const meSession = parseAuthSessionPayload(
+    {
+      principal: {
+        sub: "employee-1",
+        principalType: "EMPLOYEE",
+        scope: "admin",
+        credentialState: "MUST_CHANGE_PASSWORD",
+      },
+    },
+    { requireAccessToken: false },
+  );
+
+  assert.equal(mergeAuthSessions(loginSession, meSession).credentialState, "MUST_CHANGE_PASSWORD");
+});
+
 test("rejects admin principals without admin scope", () => {
   assert.throws(
     () =>
