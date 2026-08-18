@@ -4,6 +4,7 @@ import { CommunicationsTemplateEditor } from "./communications-template-editor-c
 import type {
   CommunicationsAdminData,
   CommunicationsAdminFilters,
+  CommunicationsHealth,
   EmailDeliveryRecord,
   EmailDeliveryStatus,
   EmailProviderSettings,
@@ -573,19 +574,25 @@ function TemplateTable({ data, filters }: Pick<Props, "data" | "filters">) {
   );
 }
 
-function TechnicalStatus({ context, settings }: Pick<Props, "context"> & { settings: EmailProviderSettings }) {
+function TechnicalStatus({ context, health, settings }: Pick<Props, "context"> & {
+  health?: CommunicationsHealth;
+  settings: EmailProviderSettings;
+}) {
   return (
     <aside className="adminCard communicationsTechnicalStatus">
       <div className="adminCardHeader">
         <div>
           <h2>Estado técnico</h2>
-          <p>Contexto y conexión activa de Communications.</p>
+          <p>Disponibilidad de Communications y configuración del proveedor.</p>
         </div>
       </div>
       <table className="adminTable adminTableCompact">
         <tbody>
           <tr><th>Organization</th><td>{context.organizationId || "Pendiente"}</td></tr>
           <tr><th>Shop</th><td>{context.shopId || "Pendiente"}</td></tr>
+          <tr><th>Servicio</th><td>{health ? "Disponible" : "No disponible"}</td></tr>
+          <tr><th>Canal email</th><td>{health?.channels.email.status === "enabled" ? "Disponible" : "No disponible"}</td></tr>
+          <tr><th>Proveedor del servicio</th><td>{health?.channels.email.provider ?? "-"}</td></tr>
           <tr><th>Host SMTP</th><td>{valueText(settings.smtpHost)}</td></tr>
           <tr><th>Usuario SMTP</th><td>{valueText(settings.smtpUser)}</td></tr>
           <tr><th>Última actualización</th><td>{valueText(settings.updatedAt)}</td></tr>
@@ -641,6 +648,11 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
       </div>
 
       {filters.notice ? <div className="adminBanner">{filters.notice}</div> : null}
+      {!data.health.ok ? (
+        <div className="adminBanner adminBannerError" role="alert">
+          Communications no está disponible. Las altas de cuenta están bloqueadas para evitar cuentas sin email de activación.
+        </div>
+      ) : null}
       {!data.settings.ok ? <div className="adminBanner adminBannerError">{data.settings.error}</div> : null}
 
       <section className="adminKpiGrid" aria-label="Resumen comunicaciones">
@@ -718,7 +730,11 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
           </div>
         </article>
 
-        <TechnicalStatus context={context} settings={settings} />
+        <TechnicalStatus
+          context={context}
+          health={data.health.ok ? data.health.data : undefined}
+          settings={settings}
+        />
       </section>
 
       <details className="adminCard communicationsCollapsible">

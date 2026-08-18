@@ -38,11 +38,11 @@ import {
   listEmailTemplateImagesAction,
   patchEmailTemplateAction,
   previewEmailTemplateAction,
+  testSendEmailTemplateAction,
   transitionEmailTemplateAction,
   uploadEmailTemplateImageAction,
 } from "./communications-admin-actions";
 
-const variablePattern = /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)*$/;
 const commonVariables = [
   "customer.name",
   "customer.email",
@@ -50,6 +50,125 @@ const commonVariables = [
   "fulfillment.trackingUrl",
   "emitter.name",
 ];
+
+const afterSalesStatusTemplateKeys = [
+  "after-sales.case.submitted",
+  "after-sales.case.under-review",
+  "after-sales.case.approved",
+  "after-sales.case.rejected",
+  "after-sales.return-authorized",
+  "after-sales.return-received",
+  "after-sales.refund-requested",
+  "after-sales.refund-completed",
+  "after-sales.refund-failed",
+  "after-sales.case.resolved",
+  "after-sales.case.closed",
+] as const;
+
+const afterSalesStatusTemplateVariables: Record<
+  string,
+  { required: string[]; available: string[] }
+> = Object.fromEntries(
+  afterSalesStatusTemplateKeys.map((templateKey) => [
+    templateKey,
+    {
+      required: ["caseId", "afterSalesAreaUrl"],
+      available: [
+        "caseId",
+        "afterSalesAreaUrl",
+        "customerName",
+        "orderId",
+        "caseType",
+        "status",
+        "reasonCode",
+        "notificationTitle",
+      ],
+    },
+  ]),
+);
+
+type TemplateVariableProfile = {
+  required: string[];
+  requiredAlternatives?: string[][];
+  available: string[];
+};
+
+const templateVariables: Record<string, TemplateVariableProfile> = {
+  "customer.account.activation": {
+    required: ["activationUrl", "expiresAt"],
+    available: ["activationUrl", "customerName", "expiresAt", "supportEmail"],
+  },
+  "customer.account.activation.reminder": {
+    required: ["activationUrl", "expiresAt"],
+    available: ["activationUrl", "customerName", "expiresAt", "supportEmail"],
+  },
+  "customer.account.activation.expiring": {
+    required: ["activationUrl", "expiresAt"],
+    available: ["activationUrl", "customerName", "expiresAt", "supportEmail"],
+  },
+  "customer.account.password-reset": {
+    required: ["passwordResetUrl", "expiresAt"],
+    available: ["passwordResetUrl", "customerName", "expiresAt", "supportEmail"],
+  },
+  "customer.account.password-changed": {
+    required: [],
+    available: ["customerName", "supportEmail"],
+  },
+  "employee.account.password-recovery": {
+    required: ["passwordRecoveryUrl", "expiresAt"],
+    available: ["passwordRecoveryUrl", "expiresAt", "supportEmail"],
+  },
+  "employee.account.credential-invitation": {
+    required: ["credentialInvitationUrl", "expiresAt"],
+    available: ["credentialInvitationUrl", "expiresAt", "supportEmail"],
+  },
+  "order.tracking.access": {
+    required: ["orderReference", "trackingUrl"],
+    available: ["orderReference", "trackingUrl"],
+  },
+  "order.confirmed": {
+    required: ["orderReference"],
+    available: ["customerName", "orderId", "orderReference"],
+  },
+  "shipping.preparing": {
+    required: ["orderReference"],
+    available: ["customerName", "orderId", "orderReference"],
+  },
+  "shipping.dispatched": {
+    required: ["orderReference"],
+    available: ["customerName", "orderId", "orderReference"],
+  },
+  "shipping.shipped": {
+    required: ["orderReference", "trackingNumber"],
+    available: ["customerName", "orderId", "orderReference", "trackingNumber"],
+  },
+  "shipping.delivered": {
+    required: ["orderReference"],
+    available: ["customerName", "orderId", "orderReference"],
+  },
+  "invoice.available": {
+    required: ["invoiceNumberFormatted", "invoiceAreaUrl"],
+    available: ["customerName", "orderId", "invoiceNumberFormatted", "totalMinor", "currency", "invoiceAreaUrl"],
+  },
+  "customer.created": {
+    required: [],
+    available: ["firstName", "lastName", "email", "customerId"],
+  },
+  "payment.success": {
+    required: [],
+    requiredAlternatives: [["orderId", "order.id"]],
+    available: ["customerName", "orderId", "order.id", "total", "totalMinor", "amountMinor", "currency"],
+  },
+  "shipping.failed": {
+    required: ["orderReference"],
+    available: ["customerName", "orderId", "orderReference", "fulfillmentId", "failureReason"],
+  },
+  "after-sales.case.customer-facing-message-posted": {
+    required: ["caseId", "messageBody", "afterSalesAreaUrl"],
+    available: ["caseId", "messageBody", "afterSalesAreaUrl", "customerName", "orderId"],
+  },
+  ...afterSalesStatusTemplateVariables,
+};
 
 type EditableField = "subject" | "html" | "text";
 
@@ -60,15 +179,13 @@ type Props = {
   closeHref: string;
 };
 
-function variablesFrom(value: string) {
-  return [
-    ...new Set(
-      value
-        .split(/[\n,]/)
-        .map((item) => item.trim())
-        .filter((item) => variablePattern.test(item)),
+function variablesUsedInContent(...fields: string[]) {
+  const matches = fields.flatMap((field) =>
+    [...field.matchAll(/\{\{\s*([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)*)\s*\}\}/g)].map(
+      (match) => match[1],
     ),
-  ];
+  );
+  return [...new Set(matches)];
 }
 
 function previewDataText(template: EmailTemplateRecord | undefined) {
@@ -548,7 +665,7 @@ function TemplateLifecycleActions({
         <input name="templateId" type="hidden" value={template.templateId} />
         <input name="transition" type="hidden" value={transition} />
         <button className="adminButton adminButtonPrimary" type="submit">
-          {transition === "activate" ? "Activar plantilla" : "Pausar plantilla"}
+          {transition === "activate" ? "Activar plantilla" : "Desactivar plantilla"}
         </button>
       </form>
       <form action={transitionEmailTemplateAction}>
@@ -579,23 +696,45 @@ export function CommunicationsTemplateEditor({
   const [textTemplate, setTextTemplate] = useState(
     template?.textTemplate ?? "",
   );
-  const [requiredVariables, setRequiredVariables] = useState(
-    template?.requiredVariables.join("\n") ?? "",
-  );
-  const [previewData, setPreviewData] = useState(previewDataText(template));
+  const [templateKey, setTemplateKey] = useState(template?.templateKey ?? "");
   const [activeField, setActiveField] = useState<EditableField>("html");
   const [pendingHtmlToken, setPendingHtmlToken] = useState<string>();
   const [preview, setPreview] = useState<EmailTemplatePreview>();
   const [previewError, setPreviewError] = useState<string>();
   const [isPreviewing, startPreview] = useTransition();
+  const [testRecipientEmail, setTestRecipientEmail] = useState("");
+  const [testFeedback, setTestFeedback] = useState<string>();
+  const [testError, setTestError] = useState<string>();
+  const [isTesting, startTest] = useTransition();
   const subjectRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
+  const templateVariableProfile = templateVariables[templateKey];
+  const contentVariables = useMemo(
+    () => variablesUsedInContent(subjectTemplate, htmlTemplate, textTemplate),
+    [htmlTemplate, subjectTemplate, textTemplate],
+  );
+  const requiredVariables = templateVariableProfile?.required ?? [];
+  const requiredVariableAlternatives =
+    templateVariableProfile?.requiredAlternatives ?? [];
+  const missingRequiredVariables = requiredVariables.filter(
+    (variable) => !contentVariables.includes(variable),
+  );
+  const missingRequiredAlternatives = requiredVariableAlternatives.filter(
+    (alternatives) =>
+      !alternatives.some((variable) => contentVariables.includes(variable)),
+  );
+  const missingCriticalVariables = [
+    ...missingRequiredVariables.map((variable) => `{{${variable}}}`),
+    ...missingRequiredAlternatives.map((alternatives) =>
+      alternatives.map((variable) => `{{${variable}}}`).join(" o "),
+    ),
+  ];
   const suggestedVariables = useMemo(
-    () => [
-      ...new Set([...variablesFrom(requiredVariables), ...commonVariables]),
-    ],
-    [requiredVariables],
+    () =>
+      templateVariableProfile?.available ??
+      [...new Set([...contentVariables, ...commonVariables])],
+    [contentVariables, templateVariableProfile],
   );
 
   function insertIntoField(
@@ -615,12 +754,6 @@ export function CommunicationsTemplateEditor({
 
   function insertVariable(variable: string) {
     const token = `{{${variable}}}`;
-    if (!variablesFrom(requiredVariables).includes(variable)) {
-      setRequiredVariables((current) =>
-        current.trim() ? `${current.trim()}\n${variable}` : variable,
-      );
-    }
-
     if (activeField === "subject") {
       insertIntoField(
         subjectTemplate,
@@ -644,16 +777,46 @@ export function CommunicationsTemplateEditor({
     }
     setPreviewError(undefined);
     startPreview(async () => {
-      const formData = new FormData();
-      formData.set("templateId", template.templateId);
-      formData.set("previewData", previewData);
-      const result = await previewEmailTemplateAction(formData);
-      if (result.ok) {
-        setPreview(result.data);
-      } else {
+      try {
+        const formData = new FormData();
+        formData.set("templateId", template.templateId);
+        formData.set("previewData", previewDataText(template));
+        const result = await previewEmailTemplateAction(formData);
+        if (result.ok) {
+          setPreview(result.data);
+          return;
+        }
         setPreview(undefined);
         setPreviewError(result.error);
+      } catch {
+        setPreview(undefined);
+        setPreviewError("No se pudo generar el preview. Inténtalo de nuevo.");
       }
+    });
+  }
+
+  function requestTemplateTest() {
+    if (!template) {
+      setTestError("Guarda la plantilla antes de probarla.");
+      return;
+    }
+    setTestError(undefined);
+    setTestFeedback(undefined);
+    startTest(async () => {
+      const formData = new FormData();
+      formData.set("templateId", template.templateId);
+      formData.set("recipientEmail", testRecipientEmail);
+      formData.set("previewData", previewDataText(template));
+      const result = await testSendEmailTemplateAction(formData);
+      if (!result.ok) {
+        setTestError(result.error);
+        return;
+      }
+      if (result.data.status !== "SENT") {
+        setTestError(result.data.errorMessage || "La prueba no pudo entregarse.");
+        return;
+      }
+      setTestFeedback(`Prueba enviada a ${testRecipientEmail}.`);
     });
   }
 
@@ -707,6 +870,8 @@ export function CommunicationsTemplateEditor({
                       name="templateKey"
                       placeholder="shipping.delivered"
                       required
+                      value={templateKey}
+                      onChange={(event) => setTemplateKey(event.target.value)}
                     />
                   ) : (
                     <input readOnly value={template?.templateKey ?? ""} />
@@ -725,40 +890,34 @@ export function CommunicationsTemplateEditor({
                   )}
                 </label>
               </div>
-              {!isCreate && template ? (
-                <span
-                  className={
-                    template.status === "ACTIVE"
-                      ? "adminBadge adminBadgeOk"
-                      : template.status === "DRAFT"
-                        ? "adminBadge adminBadgeWarn"
-                        : "adminBadge"
-                  }
-                >
-                  {template.status}
-                </span>
-              ) : null}
               <section
                 className="emailTemplateVariableLibrary"
                 aria-label="Variables disponibles"
               >
                 <div>
                   <strong>Variables</strong>
-                  <p>
-                    Inserta únicamente tokens declarativos.{" "}
-                    <code>{"{{emitter.name}}"}</code> es válido si existe en los
-                    datos; <code>{"{% emitter.name %}"}</code> no está
-                    soportado.
-                  </p>
+                  <p>Selecciona una para añadirla al contenido. Las marcadas como obligatorias deben aparecer en el email.</p>
                 </div>
+                {missingCriticalVariables.length ? (
+                  <div className="adminBanner adminBannerError" role="alert">
+                    Añade {missingCriticalVariables.join(" y ")} al asunto, HTML o texto plano para poder guardar esta plantilla.
+                  </div>
+                ) : null}
                 <div className="emailTemplateVariableChips">
                   {suggestedVariables.map((variable) => (
                     <button
                       key={variable}
-                      className="adminButton adminButtonTiny"
+                      className={`adminButton adminButtonTiny${requiredVariables.includes(variable) || requiredVariableAlternatives.some((alternatives) => alternatives.includes(variable)) ? " emailTemplateVariableRequired" : ""}`}
                       type="button"
                       onClick={() => insertVariable(variable)}
-                    >{`{{${variable}}}`}</button>
+                    >
+                      {`{{${variable}}}`}
+                      {requiredVariables.includes(variable)
+                        ? " · Obligatoria"
+                        : requiredVariableAlternatives.some((alternatives) => alternatives.includes(variable))
+                          ? " · Obligatoria (una de estas)"
+                          : ""}
+                    </button>
                   ))}
                 </div>
               </section>
@@ -802,27 +961,9 @@ export function CommunicationsTemplateEditor({
                   value={textTemplate}
                 />
               </label>
-              <label className="adminField">
-                <span>Variables requeridas</span>
-                <textarea
-                  name="requiredVariables"
-                  onChange={(event) => setRequiredVariables(event.target.value)}
-                  placeholder={"customer.name\norder.reference"}
-                  rows={4}
-                  value={requiredVariables}
-                />
-              </label>
-              <label className="adminField">
-                <span>Datos de preview (JSON)</span>
-                <textarea
-                  name="previewData"
-                  onChange={(event) => setPreviewData(event.target.value)}
-                  rows={8}
-                  spellCheck={false}
-                  value={previewData}
-                />
-              </label>
-              <button className="adminButton adminButtonPrimary" type="submit">
+              <input name="requiredVariables" type="hidden" value={contentVariables.join(",")} />
+              <input name="previewData" type="hidden" value={previewDataText(template)} />
+              <button className="adminButton adminButtonPrimary" disabled={missingCriticalVariables.length > 0} type="submit">
                 {isCreate ? "Crear borrador" : "Guardar borrador"}
               </button>
             </form>
@@ -832,8 +973,8 @@ export function CommunicationsTemplateEditor({
                   <div>
                     <h3>Preview desde Communications</h3>
                     <p>
-                      Se renderiza con los datos JSON indicados y en un iframe
-                      aislado.
+                      Comprueba los datos antes de usar la plantilla y muestra
+                      el email en un espacio aislado.
                     </p>
                   </div>
                   <button
@@ -852,6 +993,39 @@ export function CommunicationsTemplateEditor({
                 ) : null}
                 {preview ? (
                   <div className="emailTemplatePreviewResult">
+                    <div
+                      className={
+                        preview.readiness.previewStatus === "READY"
+                          ? "adminBanner adminBannerSuccess"
+                          : "adminBanner adminBannerError"
+                      }
+                      role="status"
+                    >
+                      <strong>
+                        {preview.readiness.previewStatus === "READY"
+                          ? "La plantilla está lista para estos datos."
+                          : preview.readiness.previewStatus === "DEGRADED"
+                            ? "La plantilla tiene datos opcionales pendientes."
+                            : "La plantilla no se puede enviar con estos datos."}
+                      </strong>
+                      {preview.readiness.issues.length ? (
+                        <ul>
+                          {preview.readiness.issues.map((issue) => (
+                            <li key={`${issue.code}-${issue.variable ?? ""}`}>
+                              {issue.message}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      <ul>
+                        {preview.readiness.variables.map((variable) => (
+                          <li key={variable.name}>
+                            {variable.critical ? "Necesaria: " : "Opcional: "}
+                            {`{{${variable.name}}}`} — {variable.status === "RESOLVED" ? "disponible" : variable.status === "MISSING" ? "no disponible" : "no válida"}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                     <p>
                       <strong>Asunto:</strong>{" "}
                       {preview.rendered.subject || "Sin asunto"}
@@ -862,6 +1036,35 @@ export function CommunicationsTemplateEditor({
                       title={`Preview de ${preview.templateKey}`}
                     />
                     <pre>{preview.rendered.text}</pre>
+                    <div className="communicationsTestForm">
+                      <label className="adminField">
+                        <span>Enviar prueba a</span>
+                        <input
+                          type="email"
+                          value={testRecipientEmail}
+                          onChange={(event) => setTestRecipientEmail(event.target.value)}
+                          placeholder="tu-email@empresa.com"
+                        />
+                      </label>
+                      <button
+                        className="adminButton"
+                        disabled={isTesting}
+                        type="button"
+                        onClick={requestTemplateTest}
+                      >
+                        {isTesting ? "Enviando…" : "Probar plantilla"}
+                      </button>
+                    </div>
+                    {testFeedback ? (
+                      <div className="adminBanner adminBannerSuccess" role="status">
+                        {testFeedback}
+                      </div>
+                    ) : null}
+                    {testError ? (
+                      <div className="adminBanner adminBannerError" role="alert">
+                        {testError}
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="adminMuted">

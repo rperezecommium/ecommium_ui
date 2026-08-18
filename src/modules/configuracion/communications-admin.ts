@@ -23,6 +23,19 @@ export type EmailProviderSettings = {
   updatedAt: string;
 };
 
+export type CommunicationsHealth = {
+  status: "ok";
+  service: "communications";
+  channels: {
+    email: {
+      status: "enabled" | "disabled";
+      provider: string;
+      fromConfigured: boolean;
+      apiKeyConfigured: boolean;
+    };
+  };
+};
+
 export type EmailTemplateRecord = {
   templateId: string;
   templateKey: string;
@@ -62,6 +75,23 @@ export type EmailTemplatePreview = {
     text: string;
   };
   usedVariables: string[];
+  readiness: {
+    scope: "ACCOUNT" | "TRANSACTIONAL" | "GENERIC";
+    activationEligible: boolean;
+    previewStatus: "READY" | "DEGRADED" | "BLOCKED";
+    variables: Array<{
+      name: string;
+      status: "RESOLVED" | "MISSING" | "INVALID";
+      declared: boolean;
+      used: boolean;
+      critical: boolean;
+    }>;
+    issues: Array<{
+      code: string;
+      message: string;
+      variable?: string;
+    }>;
+  };
 };
 
 export type EmailTemplateImageUpload = {
@@ -140,6 +170,7 @@ export type EmailDeliveryList = {
 };
 
 export type CommunicationsAdminData = {
+  health: BffResult<CommunicationsHealth>;
   settings: BffResult<EmailProviderSettings>;
   authTemplates: BffResult<EmailTemplateList>;
   deliveries: BffResult<EmailDeliveryList>;
@@ -364,6 +395,7 @@ export async function getCommunicationsAdminData(
     };
 
     return {
+      health: skipped,
       settings: skipped,
       authTemplates: skipped,
       deliveries: skipped,
@@ -374,7 +406,8 @@ export async function getCommunicationsAdminData(
   const selectedDelivery = filters.drawer === "delivery" && filters.deliveryId
     ? getEmailDelivery(context, filters.deliveryId)
     : Promise.resolve(undefined);
-  const [settings, authTemplates, deliveries, selectedDeliveryResult] = await Promise.all([
+  const [health, settings, authTemplates, deliveries, selectedDeliveryResult] = await Promise.all([
+    requestAdminBff<CommunicationsHealth>("/admin/communications/health", { context }),
     requestAdminBff<EmailProviderSettings>(
       scopedPath("/admin/communications/settings/email-provider", context),
       { context },
@@ -393,6 +426,7 @@ export async function getCommunicationsAdminData(
   ]);
 
   return {
+    health,
     settings,
     authTemplates,
     deliveries,
@@ -486,6 +520,27 @@ export async function previewEmailTemplate(
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(data ? { data } : {}),
+      },
+    },
+  );
+}
+
+export async function testSendEmailTemplate(
+  context: AdminContext,
+  templateId: string,
+  payload: {
+    recipientEmail: string;
+    data?: Record<string, unknown>;
+  },
+) {
+  return requestAdminBff<EmailDeliveryRecord>(
+    scopedPath(`/admin/communications/templates/email/${encodeURIComponent(templateId)}/test-send`, context),
+    {
+      context,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
       },
     },
   );

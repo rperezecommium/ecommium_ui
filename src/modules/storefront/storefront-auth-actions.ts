@@ -64,7 +64,7 @@ function safeRedirectPath(value: string, fallback: string) {
   return value;
 }
 
-function publicAuthError(status?: number) {
+function publicAuthError(status?: number, flow?: "signup") {
   if (status === 429) {
     return "Demasiados intentos. Espera unos minutos e intentalo de nuevo.";
   }
@@ -79,6 +79,10 @@ function publicAuthError(status?: number) {
 
   if (status === 400) {
     return "No se pudo validar el registro. Revisa los datos e intentalo de nuevo.";
+  }
+
+  if (status === 503 && flow === "signup") {
+    return "Ahora mismo no podemos enviar el email de activacion. No hemos creado tu cuenta ni guardado tus datos. Intentalo de nuevo en unos minutos.";
   }
 
   return "No se pudo completar la operacion. Intentalo de nuevo.";
@@ -252,7 +256,7 @@ export async function signupStorefrontCustomer(
   if (!result.ok) {
     return {
       status: "error",
-      message: publicAuthError(result.status),
+      message: publicAuthError(result.status, "signup"),
       email,
       verificationResetKey: verificationResetKey(),
     };

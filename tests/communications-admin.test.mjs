@@ -132,12 +132,14 @@ test("communications admin uses BFF endpoints for email provider and auth templa
   const editorSource = source("src/modules/configuracion/communications-template-editor-client.tsx");
 
   assert.match(dataSource, /\/admin\/communications\/settings\/email-provider/);
+  assert.match(dataSource, /\/admin\/communications\/health/);
   assert.match(dataSource, /\/admin\/communications\/templates\/email/);
   assert.match(dataSource, /\/admin\/communications\/templates\/email\/auth-defaults/);
   assert.match(dataSource, /\/admin\/communications\/email\/send/);
   assert.match(dataSource, /createEmailTemplate/);
   assert.match(dataSource, /patchEmailTemplate/);
   assert.match(dataSource, /previewEmailTemplate/);
+  assert.match(dataSource, /testSendEmailTemplate/);
   assert.match(dataSource, /transitionEmailTemplate/);
   assert.match(dataSource, /uploadEmailTemplateImage/);
   assert.match(dataSource, /listEmailTemplateImages/);
@@ -152,14 +154,15 @@ test("communications admin uses BFF endpoints for email provider and auth templa
   assert.match(pageSource, /function TemplateTable/);
   assert.match(pageSource, /CommunicationsTemplateEditor/);
   assert.match(pageSource, /Crear plantilla/);
-  assert.match(pageSource, /Plantillas email/);
+  assert.match(pageSource, /Plantillas de Customer/);
   assert.match(pageSource, /templatesLimit/);
   assert.match(pageSource, /Mostrando/);
   assert.match(editorSource, /transitionEmailTemplateAction/);
   assert.match(editorSource, /@tiptap\/react/);
   assert.match(editorSource, /EditorContent/);
-  assert.match(editorSource, /\{\{emitter\.name\}\}/);
+  assert.match(editorSource, /Selecciona una para añadirla al contenido/);
   assert.match(editorSource, /previewEmailTemplateAction/);
+  assert.match(editorSource, /Probar plantilla/);
   assert.match(editorSource, /sandbox=""/);
   assert.match(editorSource, /HTML fuente de la plantilla/);
   assert.match(editorSource, /@tiptap\/extension-link/);
@@ -299,7 +302,21 @@ test("communications template actions validate editor data and delegate through 
         ok: true,
         status: 200,
         correlationId: "corr-preview",
-        data: { templateId, templateKey: "shipping.delivered", rendered: { subject: "Preview", html: "<p>Preview</p>", text: "Preview" } },
+        data: {
+          templateId,
+          templateKey: "shipping.delivered",
+          locale: "es-ES",
+          status: "DRAFT",
+          usedVariables: [],
+          readiness: {
+            scope: "TRANSACTIONAL",
+            activationEligible: true,
+            previewStatus: "READY",
+            variables: [],
+            issues: [],
+          },
+          rendered: { subject: "Preview", html: "<p>Preview</p>", text: "Preview" },
+        },
       };
     },
     transitionEmailTemplate: async (_context, templateId, transition) => {
@@ -516,10 +533,11 @@ test("communications admin reads deliveries through the scoped BFF contract", as
   await getEmailDelivery(context, "delivery/1");
   await retryEmailDelivery(context, "delivery/1");
 
-  assert.equal(calls.length, 5);
-  assert.equal(calls[2].path, "/admin/communications/deliveries?organizationId=org-1&shopId=shop-1&status=FAILED&templateKey=shipping.delivered&sourceEventId=event-1&customerId=customer-1&limit=50&offset=20");
-  assert.equal(calls[3].path, "/admin/communications/deliveries/delivery%2F1?organizationId=org-1&shopId=shop-1");
-  assert.equal(calls[4].path, "/admin/communications/deliveries/delivery%2F1/retry?organizationId=org-1&shopId=shop-1");
-  assert.equal(calls[4].init.method, "POST");
-  assert.deepEqual(calls[2].context, context);
+  assert.equal(calls.length, 6);
+  assert.equal(calls[0].path, "/admin/communications/health");
+  assert.equal(calls[3].path, "/admin/communications/deliveries?organizationId=org-1&shopId=shop-1&status=FAILED&templateKey=shipping.delivered&sourceEventId=event-1&customerId=customer-1&limit=50&offset=20");
+  assert.equal(calls[4].path, "/admin/communications/deliveries/delivery%2F1?organizationId=org-1&shopId=shop-1");
+  assert.equal(calls[5].path, "/admin/communications/deliveries/delivery%2F1/retry?organizationId=org-1&shopId=shop-1");
+  assert.equal(calls[5].init.method, "POST");
+  assert.deepEqual(calls[3].context, context);
 });

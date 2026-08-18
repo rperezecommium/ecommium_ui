@@ -5858,6 +5858,7 @@ p {
   grid-template-columns: 1fr;
   align-content: start;
   align-items: stretch;
+  gap: 10px;
 }
 
 .emailTemplateDrawer {
@@ -5889,6 +5890,13 @@ p {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.emailTemplateVariableChips .emailTemplateVariableRequired {
+  border-color: #b45309;
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 700;
 }
 
 .emailTemplateHtmlEditor .richTextEditable {

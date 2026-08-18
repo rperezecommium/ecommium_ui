@@ -15,10 +15,14 @@ import {
   previewEmailTemplate,
   retryEmailDelivery,
   sendCommunicationsTestEmail,
+  testSendEmailTemplate,
   transitionEmailTemplate,
   uploadEmailTemplateImage,
 } from "./communications-admin";
-import type { EmailTemplateWritePayload } from "./communications-admin";
+import type {
+  EmailTemplatePreview,
+  EmailTemplateWritePayload,
+} from "./communications-admin";
 
 const templateVariablePattern = /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)*$/;
 const emailTemplateTransitions = ["activate", "deactivate", "archive"] as const;
@@ -100,6 +104,32 @@ function parseTemplatePreviewData(value: FormDataEntryValue | null): FormResult<
   } catch {
     return { ok: false, error: "Los datos de preview deben ser JSON válido." };
   }
+}
+
+function isEmailTemplatePreview(value: unknown): value is EmailTemplatePreview {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const preview = value as Partial<EmailTemplatePreview>;
+  const rendered = preview.rendered;
+  const readiness = preview.readiness;
+
+  return (
+    typeof preview.templateId === "string" &&
+    typeof preview.templateKey === "string" &&
+    typeof preview.locale === "string" &&
+    typeof preview.status === "string" &&
+    Array.isArray(preview.usedVariables) &&
+    rendered !== undefined &&
+    typeof rendered.subject === "string" &&
+    typeof rendered.html === "string" &&
+    typeof rendered.text === "string" &&
+    readiness !== undefined &&
+    typeof readiness.previewStatus === "string" &&
+    Array.isArray(readiness.variables) &&
+    Array.isArray(readiness.issues)
+  );
 }
 
 function templatePayload(formData: FormData, options: { includeKey: true }): FormResult<EmailTemplateCreatePayload>;
@@ -294,6 +324,46 @@ export async function previewEmailTemplateAction(formData: FormData) {
     return {
       ok: false as const,
       error: result.status === 403 ? "Falta permiso communications.manage." : result.error,
+    };
+  }
+
+  if (!isEmailTemplatePreview(result.data)) {
+    return {
+      ok: false as const,
+      error: "No se pudo generar el preview. Comprueba las variables de la plantilla e inténtalo de nuevo.",
+    };
+  }
+
+  return { ok: true as const, data: result.data };
+}
+
+export async function testSendEmailTemplateAction(formData: FormData) {
+  const context = await getAdminContext();
+  const templateId = safeFilterValue(formData.get("templateId"));
+  const recipientEmail = asString(formData.get("recipientEmail"));
+  if (!templateId) {
+    return { ok: false as const, error: "Guarda la plantilla antes de probarla." };
+  }
+  if (!recipientEmail) {
+    return { ok: false as const, error: "Indica el email que recibirá la prueba." };
+  }
+  const previewData = parseTemplatePreviewData(formData.get("previewData"));
+  if (!previewData.ok) {
+    return { ok: false as const, error: previewData.error };
+  }
+
+  const result = await testSendEmailTemplate(context, templateId, {
+    recipientEmail,
+    data: previewData.value,
+  });
+  if (!result.ok) {
+    return {
+      ok: false as const,
+      error: result.status === 403
+        ? "Falta permiso communications.manage."
+        : result.status === 503
+          ? "El servicio de comunicaciones no está disponible. No se ha enviado la prueba."
+          : result.error,
     };
   }
 

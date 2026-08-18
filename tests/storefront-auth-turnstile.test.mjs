@@ -26,6 +26,7 @@ test("storefront signup keeps passive signals and forwards Turnstile token when 
   assert.match(actionsSource, /token: turnstileToken/);
   assert.match(actionsSource, /action: storefrontSignupHumanVerificationAction/);
   assert.match(actionsSource, /activationMode: "email"/);
+  assert.match(actionsSource, /No hemos creado tu cuenta ni guardado tus datos/);
   assert.match(authTypesSource, /verificationResetKey\?: string/);
   assert.match(verificationSource, /storefrontSignupHumanVerificationAction = "customer_signup"/);
   assert.match(verificationSource, /NEXT_PUBLIC_ECOMMIUM_SIGNUP_HUMAN_VERIFICATION/);
