@@ -37,12 +37,15 @@ import {
 } from "./storefront-auth-actions";
 import { StorefrontSignupSubmitGate } from "./storefront-signup-submit-gate";
 import {
+  cancelStorefrontPendingPaymentTransaction,
+  clearStorefrontPaymentReceipt,
   createStorefrontPaymentAttempt,
   createStorefrontPaymentCorrelationId,
   createStorefrontPaymentReceipt,
   createStorefrontPaymentTransaction,
   decideStorefrontPaymentAction,
   installedStorefrontPaymentMethods,
+  getStorefrontPaymentTransaction,
   normalizeStorefrontPaymentMethods,
   readStorefrontPaymentAttempt,
   readStorefrontPaymentReceipt,
@@ -50,6 +53,7 @@ import {
   saveStorefrontPaymentReceipt,
   validateStorefrontPaymentRedirectUrl,
   type StorefrontPaymentMethod,
+  type StorefrontPaymentTransaction,
 } from "./payments";
 
 const guestSessionStorageKey = "ecommium_storefront_guest_session_id";
@@ -61,6 +65,13 @@ type CheckoutStep = "profile" | "shipping" | "payment" | "review";
 type CheckoutValidationErrors = Partial<Record<CheckoutStep, string[]>>;
 type GuestCheckoutMode = "guest" | "login" | "signup";
 type PaymentSystemsStatus = "idle" | "loading" | "ready" | "error";
+
+type CheckoutPaymentVerification = {
+  status?: string;
+  transaction?: StorefrontPaymentTransaction;
+  transactionId?: string;
+  verification: "idle" | "loading" | "verified" | "unavailable";
+};
 
 type ShippingSla = {
   id: string;
@@ -133,6 +144,7 @@ export function StorefrontCheckoutClient() {
   const [paymentSystems, setPaymentSystems] = useState<StorefrontPaymentMethod[]>([]);
   const [paymentSystemsStatus, setPaymentSystemsStatus] = useState<PaymentSystemsStatus>("idle");
   const [paymentSystemsMessage, setPaymentSystemsMessage] = useState("");
+  const [paymentVerification, setPaymentVerification] = useState<CheckoutPaymentVerification>({ verification: "idle" });
   const [installments, setInstallments] = useState(1);
   const [shippingOptions, setShippingOptions] = useState<ShippingOptions | null>(null);
   const [selectedSlas, setSelectedSlas] = useState<Record<number, string>>({});
@@ -161,11 +173,64 @@ export function StorefrontCheckoutClient() {
       .catch(() => setStatus("error"));
   }, []);
 
+  useEffect(() => {
+    const reference = paymentReferenceForOrderform(orderform);
+    if (!reference) {
+      setPaymentVerification({ verification: "idle" });
+      return;
+    }
+
+    let active = true;
+    setPaymentVerification((current) => ({
+      status: current.transactionId === reference.transactionId ? current.status : undefined,
+      transaction: current.transactionId === reference.transactionId ? current.transaction : undefined,
+      transactionId: reference.transactionId,
+      verification: "loading",
+    }));
+    getStorefrontPaymentTransaction({
+      correlationId: reference.correlationId,
+      guestSessionId: reference.guestSessionId,
+      transactionId: reference.transactionId,
+    })
+      .then((transaction) => {
+        if (active) {
+          setPaymentVerification({
+            status: transaction.status,
+            transaction,
+            transactionId: transaction.transactionId || reference.transactionId,
+            verification: "verified",
+          });
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setPaymentVerification({
+            transactionId: reference.transactionId,
+            verification: "unavailable",
+          });
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [orderform?.orderFormId, orderform?.totals.grandTotalMinor]);
+
   const completion = useMemo(() => ({
     profile: hasProfile(orderform),
     shipping: cartHasShippingData(orderform),
-    payment: hasPayment(orderform),
-  }), [orderform]);
+    payment: paymentStatusAllowsOrder(paymentVerification.status),
+  }), [orderform, paymentVerification.status]);
+
+  useEffect(() => {
+    if (!completion.profile || !completion.shipping || !completion.payment) {
+      return;
+    }
+
+    setValidationErrors((current) => (
+      current.review ? { ...current, review: undefined } : current
+    ));
+  }, [completion.payment, completion.profile, completion.shipping]);
 
   const totals = useMemo(() => ({
     items: cartTotalItems(orderform),
@@ -530,6 +595,69 @@ export function StorefrontCheckoutClient() {
     }
   }
 
+  async function closePreviousPaymentAttemptForRetry(currentOrderform: StorefrontOrderform | null) {
+    const reference = paymentReferenceForOrderform(currentOrderform);
+    if (!reference) {
+      return;
+    }
+
+    const transaction = await getStorefrontPaymentTransaction({
+      correlationId: reference.correlationId,
+      guestSessionId: reference.guestSessionId,
+      transactionId: reference.transactionId,
+    });
+    const currentStatus = transaction.status?.toUpperCase();
+
+    if (currentStatus === "SETTLED") {
+      setPaymentVerification({
+        status: transaction.status,
+        transactionId: transaction.transactionId || reference.transactionId,
+        verification: "verified",
+      });
+      throw new Error("El pago anterior ya fue confirmado. Revisa el pedido antes de iniciar otro pago.");
+    }
+
+    if (currentStatus === "CANCELLED" || currentStatus === "DENIED") {
+      clearStorefrontPaymentReceipt();
+      const attempt = readStorefrontPaymentAttempt();
+      if (attempt?.transactionId === reference.transactionId) {
+        saveStorefrontPaymentAttempt({ ...attempt, status: "CANCELLED" });
+      }
+      setPaymentVerification({
+        status: transaction.status,
+        transactionId: transaction.transactionId || reference.transactionId,
+        verification: "verified",
+      });
+      return;
+    }
+
+    if (currentStatus !== "PAYMENT_DATA_RECEIVED") {
+      throw new Error("El pago anterior sigue en proceso. Espera su confirmación antes de intentarlo de nuevo.");
+    }
+
+    const cancelled = await cancelStorefrontPendingPaymentTransaction({
+      body: { reason: "REPLACED_BY_NEW_CHECKOUT_ATTEMPT" },
+      correlationId: reference.correlationId,
+      guestSessionId: reference.guestSessionId,
+      transactionId: reference.transactionId,
+    });
+
+    if (cancelled.status?.toUpperCase() !== "CANCELLED") {
+      throw new Error("No pudimos cerrar el intento de pago anterior. Intenta de nuevo en unos instantes.");
+    }
+
+    clearStorefrontPaymentReceipt();
+    const attempt = readStorefrontPaymentAttempt();
+    if (attempt?.transactionId === reference.transactionId) {
+      saveStorefrontPaymentAttempt({ ...attempt, status: "CANCELLED" });
+    }
+    setPaymentVerification({
+      status: cancelled.status,
+      transactionId: cancelled.transactionId || reference.transactionId,
+      verification: "verified",
+    });
+  }
+
   async function savePayment() {
     setPendingAction("payment");
     setMessage("");
@@ -546,6 +674,7 @@ export function StorefrontCheckoutClient() {
       return;
     }
     try {
+      await closePreviousPaymentAttemptForRetry(orderform);
       const nextOrderform = await applyOrderformAction("payment-data", {
         payments: [{
           paymentSystem: selectedMethod.paymentSystemId,
@@ -573,6 +702,12 @@ export function StorefrontCheckoutClient() {
         }),
         correlationId,
         guestSessionId: getOrCreateGuestSessionId(),
+      });
+      setPaymentVerification({
+        status: transaction.status,
+        transaction,
+        transactionId: transaction.transactionId || transactionId,
+        verification: "verified",
       });
       const decision = decideStorefrontPaymentAction(selectedMethod, transaction);
 
@@ -626,6 +761,12 @@ export function StorefrontCheckoutClient() {
           status: transaction.status,
           transaction,
         }));
+        setPaymentVerification({
+          status: transaction.status,
+          transaction,
+          transactionId: transaction.transactionId || transactionId,
+          verification: "verified",
+        });
         setMessage("Pago pendiente de confirmación.");
       } else {
         const allowsOrder = paymentStatusAllowsOrder(transaction.status);
@@ -650,9 +791,15 @@ export function StorefrontCheckoutClient() {
           status: transaction.status,
           transaction,
         }));
+        setPaymentVerification({
+          status: transaction.status,
+          transaction,
+          transactionId: transaction.transactionId || transactionId,
+          verification: "verified",
+        });
         if (allowsOrder) {
           setActiveStep("review");
-          setMessage("Método de pago guardado.");
+          setMessage("Pago confirmado.");
         } else {
           setMessage("Pago pendiente de confirmación.");
         }
@@ -683,7 +830,12 @@ export function StorefrontCheckoutClient() {
     setMessage("");
     try {
       const guestSessionId = getOrCreateGuestSessionId();
-      const paymentReference = confirmedCheckoutPaymentReference(orderform, totals.grandTotal);
+      const paymentReference = confirmedCheckoutPaymentReference(
+        orderform,
+        totals.grandTotal,
+        paymentVerification,
+        selectedPaymentMethod,
+      );
       if (!paymentReference) {
         setValidationErrors((next) => ({
           ...next,
@@ -777,6 +929,7 @@ export function StorefrontCheckoutClient() {
   const contactAction = contactMutationAction(checkoutContext);
   const nextStep = checkoutNextStep(completion);
   const canReview = nextStep === "review";
+  const paymentSectionStatus = checkoutPaymentSectionStatus(hasPayment(orderform), paymentVerification);
   const addressBook = checkoutContext?.sections?.shipping?.addressBook ?? null;
   const addressBookWarning = checkoutContext?.warnings?.some((warning) => warning.section === "addresses");
 
@@ -878,12 +1031,12 @@ export function StorefrontCheckoutClient() {
             </CheckoutActions>
           </CheckoutSectionCard>
           <CheckoutSectionCard
-            actionLabel={completion.payment ? "Editar" : "Completar"}
+            actionLabel={completion.payment ? "Editar" : "Continuar"}
             active={activeStep === "payment"}
             icon={<CreditCard aria-hidden="true" size={20} />}
             onEdit={() => setActiveStep("payment")}
-            status={completion.payment ? "Completo" : "Pendiente"}
-            summary={<PaymentSectionSummary orderform={orderform} paymentMethod={selectedPaymentMethod} paymentSystem={paymentSystem} />}
+            status={paymentSectionStatus}
+            summary={<PaymentSectionSummary orderform={orderform} paymentMethod={selectedPaymentMethod} paymentStatus={paymentSectionStatus} paymentSystem={paymentSystem} />}
             subtitle="Selecciona uno de los métodos activos configurados en Payments."
             title="Pago"
           >
@@ -940,7 +1093,7 @@ export function StorefrontCheckoutClient() {
             title="Revisión"
           >
             <CheckoutValidationList messages={validationErrors.review} />
-            <CheckoutStateGrid orderform={orderform} />
+            <CheckoutStateGrid orderform={orderform} paymentConfirmed={completion.payment} />
             <CheckoutActions>
               <button
                 disabled={!completion.profile || !completion.shipping || !completion.payment || pendingAction === "create-order"}
@@ -1033,7 +1186,7 @@ function CheckoutSectionCard({
           <h1>{title}</h1>
           <p>{subtitle}</p>
         </div>
-        <strong className={status === "Completo" || status === "Listo" ? "storefrontCheckoutSectionStatus storefrontCheckoutSectionStatusOk" : "storefrontCheckoutSectionStatus"}>
+        <strong className={isCheckoutCompleteStatus(status) ? "storefrontCheckoutSectionStatus storefrontCheckoutSectionStatusOk" : "storefrontCheckoutSectionStatus"}>
           {status}
         </strong>
         {!active ? (
@@ -1145,17 +1298,19 @@ function ShippingSectionSummary({
 function PaymentSectionSummary({
   orderform,
   paymentMethod,
+  paymentStatus,
   paymentSystem,
 }: {
   orderform: StorefrontOrderform;
   paymentMethod: StorefrontPaymentMethod | null;
+  paymentStatus: string;
   paymentSystem: string;
 }) {
   return (
     <dl className="storefrontCheckoutMiniSummary">
       <div>
         <dt>Estado</dt>
-        <dd>{hasPayment(orderform) ? "Pago guardado" : "Pendiente"}</dd>
+        <dd>{paymentStatus}</dd>
       </div>
       <div>
         <dt>Método</dt>
@@ -1186,7 +1341,7 @@ function ReviewSectionSummary({
       </div>
       <div>
         <dt>Pago</dt>
-        <dd>{completion.payment ? "Completo" : "Pendiente"}</dd>
+        <dd>{completion.payment ? "Confirmado" : "Pendiente"}</dd>
       </div>
     </dl>
   );
@@ -1566,7 +1721,13 @@ function ShippingOptionsList({
   );
 }
 
-function CheckoutStateGrid({ orderform }: { orderform: StorefrontOrderform }) {
+function CheckoutStateGrid({
+  orderform,
+  paymentConfirmed,
+}: {
+  orderform: StorefrontOrderform;
+  paymentConfirmed: boolean;
+}) {
   return (
     <dl className="storefrontCheckoutStateGrid">
       <div>
@@ -1579,7 +1740,7 @@ function CheckoutStateGrid({ orderform }: { orderform: StorefrontOrderform }) {
       </div>
       <div>
         <dt>Pago</dt>
-        <dd>{hasPayment(orderform) ? "Seleccionado" : "Pendiente"}</dd>
+        <dd>{paymentConfirmed ? "Confirmado" : hasPayment(orderform) ? "Seleccionado" : "Pendiente"}</dd>
       </div>
       <div>
         <dt>Promoción</dt>
@@ -2315,6 +2476,56 @@ function hasPayment(orderform: StorefrontOrderform | null) {
   return Boolean(orderform?.paymentData && Object.keys(orderform.paymentData).length > 0);
 }
 
+function checkoutPaymentSectionStatus(
+  paymentSelected: boolean,
+  verification: CheckoutPaymentVerification,
+) {
+  const status = verification.status?.toUpperCase();
+  if (status === "SETTLED") {
+    return "Confirmado";
+  }
+  if (status === "CANCELLED" || status === "DENIED" || status === "FAILED") {
+    return "Cancelado";
+  }
+  if (verification.verification === "loading") {
+    return "Verificando";
+  }
+  if (paymentSelected) {
+    return "Pendiente de confirmación";
+  }
+  return "Pendiente";
+}
+
+function isCheckoutCompleteStatus(status: string) {
+  return status === "Completo" || status === "Confirmado" || status === "Listo";
+}
+
+function paymentReferenceForOrderform(orderform: StorefrontOrderform | null) {
+  if (!orderform?.orderFormId) {
+    return null;
+  }
+
+  const attempt = readStorefrontPaymentAttempt();
+  if (attempt && paymentReferenceMatchesOrderform(attempt.orderFormId, orderform.orderFormId)) {
+    return {
+      correlationId: attempt.correlationId,
+      guestSessionId: attempt.guestSessionId,
+      transactionId: attempt.transactionId,
+    };
+  }
+
+  const receipt = readStorefrontPaymentReceipt();
+  if (receipt && paymentReferenceMatchesOrderform(receipt.orderFormId, orderform.orderFormId)) {
+    return {
+      correlationId: receipt.correlationId,
+      guestSessionId: readGuestSessionId() ?? undefined,
+      transactionId: receipt.transactionId,
+    };
+  }
+
+  return null;
+}
+
 type ConfirmedCheckoutPaymentReference = {
   amountMinor?: number;
   correlationId?: string;
@@ -2328,41 +2539,28 @@ type ConfirmedCheckoutPaymentReference = {
 function confirmedCheckoutPaymentReference(
   orderform: StorefrontOrderform,
   amountMinor: number,
+  verification: CheckoutPaymentVerification,
+  selectedMethod: StorefrontPaymentMethod | null,
 ): ConfirmedCheckoutPaymentReference | null {
-  const receipt = readStorefrontPaymentReceipt();
+  const transaction = verification.transaction;
   if (
-    receipt &&
-    receipt.transactionId &&
-    paymentStatusAllowsOrder(receipt.status) &&
-    paymentReferenceMatchesOrderform(receipt.orderFormId, orderform.orderFormId) &&
-    paymentAmountMatchesOrderform(receipt.amountMinor, amountMinor)
+    transaction &&
+    transaction.transactionId &&
+    paymentStatusAllowsOrder(transaction.status) &&
+    paymentAmountMatchesOrderform(transaction.amountMinor, amountMinor)
   ) {
-    return {
-      amountMinor: receipt.amountMinor,
-      correlationId: receipt.correlationId,
-      currency: receipt.currency,
-      provider: receipt.provider,
-      status: receipt.status,
-      supportReference: receipt.supportReference,
-      transactionId: receipt.transactionId,
-    };
-  }
+    const provider = selectedMethod?.provider;
+    if (provider !== "paypal" && provider !== "stripe") {
+      return null;
+    }
 
-  const attempt = readStorefrontPaymentAttempt();
-  if (
-    attempt &&
-    attempt.status === "SETTLED" &&
-    paymentReferenceMatchesOrderform(attempt.orderFormId, orderform.orderFormId) &&
-    paymentAmountMatchesOrderform(attempt.amountMinor, amountMinor)
-  ) {
     return {
-      amountMinor: attempt.amountMinor,
-      correlationId: attempt.correlationId,
-      currency: attempt.currency,
-      provider: attempt.provider,
-      status: attempt.status,
-      supportReference: [attempt.transactionId, attempt.correlationId].filter(Boolean).join(":"),
-      transactionId: attempt.transactionId,
+      amountMinor: transaction.amountMinor,
+      currency: transaction.currency ?? orderform.currency,
+      provider,
+      status: transaction.status ?? "",
+      supportReference: transaction.transactionId,
+      transactionId: transaction.transactionId,
     };
   }
 
@@ -2371,26 +2569,13 @@ function confirmedCheckoutPaymentReference(
 
 function paymentStatusAllowsOrder(status: string | undefined) {
   const normalized = status?.toUpperCase();
-  return normalized === "SETTLED" ||
-    normalized === "CAPTURED" ||
-    normalized === "PAID" ||
-    normalized === "SUCCEEDED" ||
-    normalized === "COMPLETED";
+  return normalized === "SETTLED";
 }
 
 function orderStatusForPaymentStatus(status: string | undefined) {
   const normalized = status?.toUpperCase();
-  if (
-    normalized === "SETTLED" ||
-    normalized === "CAPTURED" ||
-    normalized === "PAID" ||
-    normalized === "SUCCEEDED" ||
-    normalized === "COMPLETED"
-  ) {
+  if (normalized === "SETTLED") {
     return "PAYMENT_SETTLED";
-  }
-  if (normalized === "AUTHORIZED" || normalized === "APPROVED" || normalized === "REQUIRES_CAPTURE") {
-    return "PAYMENT_AUTHORIZED";
   }
   return "PAYMENT_PENDING";
 }
@@ -2451,12 +2636,31 @@ async function clearCheckoutCart(orderform: StorefrontOrderform, guestSessionId:
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    return;
+    throw new Error(`El pedido se creó, pero no pudimos vaciar el carrito: ${errorMessage(payload)}`);
   }
 
   const clearedOrderform = normalizeOrderformPayload(payload);
+  if (clearedOrderform.items.length > 0) {
+    throw new Error("El pedido se creó, pero el carrito no quedó vacío. Actualiza la página antes de continuar.");
+  }
+
+  const params = new URLSearchParams({ forceNewCart: "true", guestSessionId });
+  const nextResponse = await fetch(`/api/storefront/cart?${params.toString()}`, {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  const nextPayload = await nextResponse.json().catch(() => ({}));
+  if (!nextResponse.ok) {
+    throw new Error(`El pedido se creó, pero no pudimos preparar un carrito nuevo: ${errorMessage(nextPayload)}`);
+  }
+
+  const nextOrderform = normalizeOrderformPayload(nextPayload);
+  if (nextOrderform.items.length > 0) {
+    throw new Error("El pedido se creó, pero el nuevo carrito contiene artículos. Actualiza la página antes de continuar.");
+  }
+
   window.localStorage.removeItem(orderFormStorageKey);
-  window.dispatchEvent(new CustomEvent(cartUpdatedEventName, { detail: clearedOrderform }));
+  window.dispatchEvent(new CustomEvent(cartUpdatedEventName, { detail: nextOrderform }));
 }
 
 function errorMessage(payload: unknown) {

@@ -6,7 +6,6 @@ import {
   clearStorefrontPaymentAttempt,
   createStorefrontPaymentReceipt,
   getStorefrontPaymentTransaction,
-  readStorefrontPaymentReceipt,
   readStorefrontPaymentAttempt,
   saveStorefrontPaymentReceipt,
   updateStorefrontPaymentAttemptStatus,
@@ -25,14 +24,20 @@ type PaymentConfirmationState = {
 };
 
 type StorefrontPaymentConfirmationClientProps = {
+  currency?: string;
   guestSessionId?: string;
   orderId?: string;
+  quantity?: string;
+  revenueMinor?: string;
   transactionId?: string;
 };
 
 export function StorefrontPaymentConfirmationClient({
+  currency,
   guestSessionId,
   orderId,
+  quantity,
+  revenueMinor,
   transactionId,
 }: StorefrontPaymentConfirmationClientProps) {
   const [state, setState] = useState<PaymentConfirmationState>({
@@ -43,20 +48,7 @@ export function StorefrontPaymentConfirmationClient({
   });
 
   useEffect(() => {
-    if (!transactionId) {
-      const timeoutId = window.setTimeout(() => {
-        const receipt = readStorefrontPaymentReceipt();
-        if (receipt) {
-          setState({
-            message: paymentConfirmationMessage(paymentConfirmationStatus(receipt.status), Boolean(orderId)),
-            receipt,
-            status: paymentConfirmationStatus(receipt.status),
-          });
-        }
-      }, 0);
-
-      return () => window.clearTimeout(timeoutId);
-    }
+    if (!transactionId) return;
 
     let cancelled = false;
     const setSafeState = (nextState: PaymentConfirmationState) => {
@@ -119,12 +111,23 @@ export function StorefrontPaymentConfirmationClient({
       <span>{view.label}</span>
       <h1>{view.title}</h1>
       <p>{state.message}</p>
+      <PaymentConfirmationSummary
+        currency={state.transaction?.currency ?? currency}
+        orderId={orderId}
+        quantity={quantity}
+        revenueMinor={String(state.transaction?.amountMinor ?? revenueMinor ?? "")}
+        transactionId={state.transaction?.transactionId || transactionId}
+      />
       <div className="storefrontCheckoutActions">
         {state.status === "completed" && orderId ? (
           <>
             {state.trackingPath ? <Link href={state.trackingPath}>Ver seguimiento del pedido</Link> : null}
             <Link href="/">Seguir comprando</Link>
           </>
+        ) : state.status === "completed" ? (
+          <Link href="/">Seguir comprando</Link>
+        ) : state.status === "pending" ? (
+          <Link href="/">Seguir comprando</Link>
         ) : (
           <Link href="/checkout">Volver al checkout</Link>
         )}
@@ -146,11 +149,7 @@ async function resolveTrackingPath(orderId: string, guestSessionId?: string) {
 function paymentConfirmationStatus(status: string | undefined): PaymentConfirmationStatus {
   const normalized = status?.toUpperCase();
   if (
-    normalized === "SETTLED" ||
-    normalized === "AUTHORIZED" ||
-    normalized === "SUCCEEDED" ||
-    normalized === "APPROVED" ||
-    normalized === "COMPLETED"
+    normalized === "SETTLED"
   ) {
     return "completed";
   }
@@ -163,7 +162,7 @@ function paymentConfirmationStatus(status: string | undefined): PaymentConfirmat
 function paymentConfirmationMessage(status: PaymentConfirmationStatus, hasOrder: boolean) {
   if (status === "completed") {
     if (!hasOrder) {
-      return "Pago confirmado. Estamos preparando tu pedido.";
+      return "Tu pago quedó confirmado. Te mostraremos el seguimiento cuando el pedido esté disponible en tu cuenta.";
     }
     return "Gracias. Tu pago se registró correctamente.";
   }
@@ -173,12 +172,86 @@ function paymentConfirmationMessage(status: PaymentConfirmationStatus, hasOrder:
   return "El pago aún está en proceso. Revisa de nuevo en unos segundos.";
 }
 
+function PaymentConfirmationSummary({
+  currency,
+  orderId,
+  quantity,
+  revenueMinor,
+  transactionId,
+}: {
+  currency?: string;
+  orderId?: string;
+  quantity?: string;
+  revenueMinor?: string;
+  transactionId?: string;
+}) {
+  const amount = parseAmountMinor(revenueMinor);
+  const items = parseQuantity(quantity);
+  const hasSummary = orderId || transactionId || amount !== null || items !== null;
+
+  if (!hasSummary) {
+    return null;
+  }
+
+  return (
+    <dl className="storefrontPaymentConfirmationSummary" aria-label="Resumen de la compra">
+      {amount !== null ? (
+        <div>
+          <dt>Total pagado</dt>
+          <dd>{formatPaymentAmount(amount, currency ?? "EUR")}</dd>
+        </div>
+      ) : null}
+      {items !== null ? (
+        <div>
+          <dt>Artículos</dt>
+          <dd>{items}</dd>
+        </div>
+      ) : null}
+      {orderId ? (
+        <div>
+          <dt>Pedido</dt>
+          <dd>{orderId}</dd>
+        </div>
+      ) : null}
+      {transactionId ? (
+        <div>
+          <dt>Pago</dt>
+          <dd>{transactionId}</dd>
+        </div>
+      ) : null}
+    </dl>
+  );
+}
+
+function parseAmountMinor(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function parseQuantity(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function formatPaymentAmount(amountMinor: number, currency: string) {
+  return new Intl.NumberFormat("es-ES", {
+    currency,
+    style: "currency",
+  }).format(amountMinor / 100);
+}
+
 function paymentConfirmationView(status: PaymentConfirmationStatus, hasOrder: boolean) {
   if (status === "completed") {
     if (!hasOrder) {
       return {
         label: "Pago confirmado",
-        title: "Confirmando pedido",
+        title: "Compra recibida",
       };
     }
     return {

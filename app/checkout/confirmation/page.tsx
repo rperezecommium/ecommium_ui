@@ -10,12 +10,22 @@ export default async function CheckoutConfirmationPage({ searchParams }: Confirm
   const orderId = first(query?.orderId);
   const transactionId = first(query?.transactionId) ?? orderId;
   const guestSessionId = first(query?.guestSessionId);
+  const revenueMinor = first(query?.revenueMinor);
+  const currency = first(query?.currency);
+  const quantity = first(query?.quantity);
 
   return (
     <main className="storefrontPage">
       <StorefrontHeader />
       <div className="storefrontShell">
-        <StorefrontPaymentConfirmationClient guestSessionId={guestSessionId} orderId={orderId} transactionId={transactionId} />
+        <StorefrontPaymentConfirmationClient
+          currency={currency}
+          guestSessionId={guestSessionId}
+          orderId={orderId}
+          quantity={quantity}
+          revenueMinor={revenueMinor}
+          transactionId={transactionId}
+        />
       </div>
     </main>
   );

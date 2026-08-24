@@ -109,6 +109,12 @@ export type StorefrontPaymentReturnInput = StorefrontPaymentsRequestInput & {
   transactionId: string;
 };
 
+export type StorefrontPaymentCancelInput = StorefrontPaymentsRequestInput & {
+  body?: Record<string, unknown>;
+  correlationId?: string;
+  transactionId: string;
+};
+
 export type StorefrontPaymentTransactionDetailInput = StorefrontPaymentsRequestInput & {
   correlationId?: string;
   transactionId: string;
@@ -390,6 +396,11 @@ export function buildStorefrontPaymentCompleteReturnPath(
   return `/api/storefront/payments/transactions/${encodeURIComponent(input.transactionId)}/${provider}/complete-return?${params.toString()}`;
 }
 
+export function buildStorefrontPaymentCancelPath(input: StorefrontPaymentCancelInput) {
+  const params = buildStorefrontPaymentParams(input);
+  return `/api/storefront/payments/transactions/${encodeURIComponent(input.transactionId)}/cancel?${params.toString()}`;
+}
+
 export async function listStorefrontPaymentSystems(
   input: StorefrontPaymentsRequestInput,
   paymentsFetch: StorefrontPaymentsFetch = defaultPaymentsFetch,
@@ -431,7 +442,22 @@ export async function completeStorefrontPaymentReturn(
     buildStorefrontPaymentCompleteReturnPath(provider, input),
     paymentRequestInit("POST", input.body, input.correlationId),
     paymentsFetch,
-  );
+  ).catch((error) => {
+    if (error instanceof StorefrontPaymentsApiError && error.status === 409 && input.transactionId) {
+      return getStorefrontPaymentTransaction({
+        correlationId: input.correlationId,
+        currency: input.currency,
+        country: input.country,
+        guestSessionId: input.guestSessionId,
+        locale: input.locale,
+        organizationId: input.organizationId,
+        shopAlias: input.shopAlias,
+        shopId: input.shopId,
+        transactionId: input.transactionId,
+      }, paymentsFetch);
+    }
+    throw error;
+  });
   const transaction = normalizeStorefrontPaymentTransaction(data);
 
   if (!transaction.status && input.transactionId) {
@@ -449,6 +475,18 @@ export async function completeStorefrontPaymentReturn(
   }
 
   return transaction;
+}
+
+export async function cancelStorefrontPendingPaymentTransaction(
+  input: StorefrontPaymentCancelInput,
+  paymentsFetch: StorefrontPaymentsFetch = defaultPaymentsFetch,
+) {
+  const data = await requestStorefrontPaymentJson(
+    buildStorefrontPaymentCancelPath(input),
+    paymentRequestInit("POST", input.body ?? {}, input.correlationId),
+    paymentsFetch,
+  );
+  return normalizeStorefrontPaymentTransaction(data);
 }
 
 export function createStorefrontPaymentAttempt(input: Omit<StorefrontPaymentAttempt, "createdAtIso" | "expiresAtIso" | "status"> & {
