@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useActionState, useRef, useState } from "react";
-import type { ReactNode } from "react";
-import { Download, Eye, EyeOff, FileText, LifeBuoy, LogOut, MapPin, MonitorSmartphone, PackageCheck, ShieldCheck, Star, Trash2, UserRound, X } from "lucide-react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { ChevronLeft, ChevronRight, CloudUpload, Download, Eye, EyeOff, FileText, Headphones, LifeBuoy, LogOut, MapPin, MonitorSmartphone, PackageCheck, ShieldCheck, Star, Trash2, UserRound, X } from "lucide-react";
 import type {
   StorefrontAccountData,
   StorefrontAvatarOption,
@@ -15,11 +15,14 @@ import type {
   StorefrontPurchase,
   StorefrontPurchaseLine,
 } from "./storefront-account";
+import { AdminInfoTooltip } from "../../shared/ui/admin-info-tooltip";
 import {
   closeStorefrontAccountSessions,
+  confirmStorefrontAfterSalesCompletionAction,
   logoutStorefrontCustomer,
   submitStorefrontAfterSalesCase,
   replyToStorefrontAfterSalesCaseAction,
+  respondToStorefrontAfterSalesSolutionProposalAction,
   uploadStorefrontAfterSalesEvidenceAction,
   submitStorefrontAccountAddress,
   updateStorefrontAccountCredentials,
@@ -31,6 +34,10 @@ const initialState: StorefrontAccountActionState = {
   status: "idle",
   message: "",
 };
+
+const maximumOpeningEvidenceFiles = 15;
+const maximumOpeningEvidenceFileBytes = 10 * 1024 * 1024;
+const allowedOpeningEvidenceMimeTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export type AccountDrawer = "profile" | "credentials" | "sessions" | "addresses" | "afterSales" | "invoices" | null;
 
@@ -54,14 +61,16 @@ export function StorefrontAccountClient({
 }: {
   data: StorefrontAccountData;
   initialDrawer?: Exclude<AccountDrawer, null>;
-  initialAfterSalesView?: "cases";
+  initialAfterSalesView?: "cases" | "new";
 }) {
   const [profileState, profileAction, profilePending] = useActionState(updateStorefrontAccountProfile, initialState);
   const [credentialsState, credentialsAction, credentialsPending] = useActionState(updateStorefrontAccountCredentials, initialState);
   const [addressState, addressAction, addressPending] = useActionState(submitStorefrontAccountAddress, initialState);
   const [afterSalesState, afterSalesAction, afterSalesPending] = useActionState(submitStorefrontAfterSalesCase, initialState);
   const [afterSalesReplyState, afterSalesReplyAction, afterSalesReplyPending] = useActionState(replyToStorefrontAfterSalesCaseAction, initialState);
+  const [afterSalesProposalState, afterSalesProposalAction, afterSalesProposalPending] = useActionState(respondToStorefrontAfterSalesSolutionProposalAction, initialState);
   const [afterSalesEvidenceState, afterSalesEvidenceAction, afterSalesEvidencePending] = useActionState(uploadStorefrontAfterSalesEvidenceAction, initialState);
+  const [afterSalesCompletionState, afterSalesCompletionAction, afterSalesCompletionPending] = useActionState(confirmStorefrontAfterSalesCompletionAction, initialState);
   const [sessionsState, sessionsAction, sessionsPending] = useActionState(closeStorefrontAccountSessions, initialState);
   const [drawer, setDrawer] = useState<AccountDrawer>(initialDrawer ?? null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -210,13 +219,17 @@ export function StorefrontAccountClient({
                   <p>Abre un caso de devolucion, cambio o garantia vinculado a una compra.</p>
                 </div>
               </div>
-              <ActionNotice state={afterSalesState} />
+              {afterSalesState.caseId ? null : <ActionNotice state={afterSalesState} />}
               <ActionNotice state={afterSalesReplyState} />
+              <ActionNotice state={afterSalesProposalState} />
               <ActionNotice state={afterSalesEvidenceState} />
+              <ActionNotice state={afterSalesCompletionState} />
               <AfterSalesPanel
                 action={afterSalesAction}
                 caseDetail={data.selectedAfterSalesCase?.ok ? data.selectedAfterSalesCase.data : null}
                 cases={data.afterSales}
+                completionAction={afterSalesCompletionAction}
+                completionPending={afterSalesCompletionPending}
                 evidenceAction={afterSalesEvidenceAction}
                 evidencePending={afterSalesEvidencePending}
                 initialView={initialAfterSalesView}
@@ -224,6 +237,9 @@ export function StorefrontAccountClient({
                 purchases={data.purchases}
                 replyAction={afterSalesReplyAction}
                 replyPending={afterSalesReplyPending}
+                proposalAction={afterSalesProposalAction}
+                proposalPending={afterSalesProposalPending}
+                state={afterSalesState}
               />
             </>
           ) : null}
@@ -616,10 +632,23 @@ function addressRoleLabel(value: string | undefined) {
   return "Ambas";
 }
 
+function storefrontAfterSalesReasonLabel(value: string) {
+  const labels: Record<string, string> = {
+    RETURN: "Devolución",
+    EXCHANGE: "Cambio",
+    WARRANTY: "Garantía",
+    DAMAGED: "Producto dañado",
+    OTHER: "Otro motivo",
+  };
+  return labels[value] ?? value;
+}
+
 function AfterSalesPanel({
   action,
   caseDetail,
   cases,
+  completionAction,
+  completionPending,
   evidenceAction,
   evidencePending,
   initialView,
@@ -627,31 +656,140 @@ function AfterSalesPanel({
   purchases,
   replyAction,
   replyPending,
+  proposalAction,
+  proposalPending,
+  state,
 }: {
   action: (payload: FormData) => void;
   caseDetail: StorefrontAfterSalesCaseDetail | null;
   cases: StorefrontAccountData["afterSales"];
+  completionAction: (payload: FormData) => void;
+  completionPending: boolean;
   evidenceAction: (payload: FormData) => void;
   evidencePending: boolean;
-  initialView?: "cases";
+  initialView?: "cases" | "new";
   pending: boolean;
   purchases: StorefrontAccountData["purchases"];
   replyAction: (payload: FormData) => void;
   replyPending: boolean;
+  proposalAction: (payload: FormData) => void;
+  proposalPending: boolean;
+  state: StorefrontAccountActionState;
 }) {
+  const [selectedOrderId, setSelectedOrderId] = useState("");
+  const [selectedLineIds, setSelectedLineIds] = useState<string[]>([]);
+  const [selectedLineQuantities, setSelectedLineQuantities] = useState<Record<string, number>>({});
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const [wizardDirection, setWizardDirection] = useState<"forward" | "backward">("forward");
+  const [reasonCode, setReasonCode] = useState("");
+  const [requestedResolution, setRequestedResolution] = useState("");
+  const [customerMessage, setCustomerMessage] = useState("");
+  const [selectedEvidenceFiles, setSelectedEvidenceFiles] = useState<File[]>([]);
+  const [evidenceSelectionMessage, setEvidenceSelectionMessage] = useState("");
+  const selectedPurchase = purchases.ok
+    ? purchases.data.items.find((purchase) => purchase.orderId === selectedOrderId) ?? null
+    : null;
+  const selectedItems = selectedPurchase?.items.flatMap((item) => selectedLineIds.includes(item.lineId)
+    ? [{ orderLineId: item.lineId, quantityRequested: selectedLineQuantities[item.lineId] ?? 1 }]
+    : []) ?? [];
+  const selectedProductSummary = selectedPurchase?.items.flatMap((item) => {
+    if (!selectedLineIds.includes(item.lineId)) return [];
+    const quantityRequested = selectedLineQuantities[item.lineId] ?? 1;
+    return [`${item.name} · ${quantityRequested} ${quantityRequested === 1 ? "unidad" : "unidades"}`];
+  }) ?? [];
+  const canContinueFromPurchase = Boolean(selectedPurchase) && selectedItems.length > 0;
+  const canContinueFromDetails = Boolean(reasonCode && requestedResolution && customerMessage.trim().length >= 20);
+  const wizardPanelClassName = `storefrontAfterSalesWizardPanel${wizardDirection === "backward" ? " is-moving-backward" : ""}`;
+
+  const changeSelectedOrder = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setSelectedLineIds([]);
+    setSelectedLineQuantities({});
+  };
+
+  const toggleSelectedLine = (lineId: string) => {
+    setSelectedLineIds((current) => current.includes(lineId)
+      ? current.filter((currentLineId) => currentLineId !== lineId)
+      : [...current, lineId]);
+    setSelectedLineQuantities((current) => ({
+      ...current,
+      [lineId]: current[lineId] ?? 1,
+    }));
+  };
+
+  const changeSelectedLineQuantity = (lineId: string, quantity: number, maximum: number) => {
+    const normalizedQuantity = Number.isInteger(quantity)
+      ? Math.min(Math.max(quantity, 1), maximum)
+      : 1;
+    setSelectedLineQuantities((current) => ({
+      ...current,
+      [lineId]: normalizedQuantity,
+    }));
+  };
+
+  const moveWizardStep = (nextStep: 1 | 2 | 3) => {
+    setWizardDirection(nextStep > wizardStep ? "forward" : "backward");
+    setWizardStep(nextStep);
+  };
+
+  const addEvidenceFiles = (files: FileList | null) => {
+    if (!files?.length) return;
+
+    const remainingCapacity = maximumOpeningEvidenceFiles - selectedEvidenceFiles.length;
+    const validFiles = Array.from(files).filter((file) => (
+      allowedOpeningEvidenceMimeTypes.has(file.type) && file.size > 0 && file.size <= maximumOpeningEvidenceFileBytes
+    ));
+    const selectedFiles = validFiles.slice(0, Math.max(remainingCapacity, 0));
+    const rejectedCount = files.length - selectedFiles.length;
+
+    if (selectedFiles.length > 0) {
+      setSelectedEvidenceFiles((current) => [...current, ...selectedFiles]);
+    }
+
+    if (rejectedCount > 0) {
+      setEvidenceSelectionMessage(`No añadimos ${rejectedCount} ${rejectedCount === 1 ? "archivo" : "archivos"}. Usa JPG, PNG o WebP de hasta 10 MB y un máximo de 15 imágenes.`);
+    } else {
+      setEvidenceSelectionMessage("");
+    }
+  };
+
+  const removeEvidenceFile = (index: number) => {
+    setSelectedEvidenceFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
+    setEvidenceSelectionMessage("");
+  };
+
+  const submitCaseWithPreparedEvidence = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    selectedEvidenceFiles.forEach((file) => formData.append("evidences", file, file.name));
+    startTransition(() => action(formData));
+  };
+
   if (caseDetail) {
     return <AfterSalesCaseHistory
       backToCasesHref={afterSalesListHref(cases)}
       caseDetail={caseDetail}
+      completionAction={completionAction}
+      completionPending={completionPending}
       evidenceAction={evidenceAction}
       evidencePending={evidencePending}
       replyAction={replyAction}
       replyPending={replyPending}
+      proposalAction={proposalAction}
+      proposalPending={proposalPending}
     />;
   }
 
   if (initialView === "cases") {
     return <AfterSalesCaseList cases={cases} />;
+  }
+
+  if (initialView !== "new") {
+    return <AfterSalesHome cases={cases} />;
+  }
+
+  if (state.status === "success" && state.caseId) {
+    return <AfterSalesOpeningComplete caseId={state.caseId} message={state.message} />;
   }
 
   if (!purchases.ok) {
@@ -673,64 +811,294 @@ function AfterSalesPanel({
   }
 
   return (
-    <>
-      <div className="storefrontAfterSalesHomeActions">
-        <Link className="storefrontAccountGhostButton" href="/account?section=afterSales&afterSalesView=cases">
-          Mis casos{cases.ok ? ` (${cases.data.total})` : ""}
+    <section className="storefrontAfterSalesWizard" aria-labelledby="after-sales-wizard-heading">
+      <div className="storefrontAfterSalesWizardHeader">
+        <Link className="storefrontAccountGhostButton" href="/account?section=afterSales">
+          Volver a postventa
         </Link>
-        <p>Consulta el estado y los mensajes de tus solicitudes sin desplazar el formulario para abrir un caso nuevo.</p>
+        <div>
+          <h3 id="after-sales-wizard-heading">Abrir un nuevo caso</h3>
+          <p>Te guiaremos paso a paso. Solo necesitaremos la información imprescindible.</p>
+        </div>
       </div>
-      <h3>Abrir un nuevo caso</h3>
-      <form action={action} className="storefrontAccountForm storefrontAfterSalesForm">
-      <label className="storefrontAuthField">
-        <span>Compra</span>
-        <select name="orderId" required>
-          <option value="">Selecciona pedido</option>
-          {purchases.data.items.map((purchase) => (
-            <option key={purchase.purchaseId} value={purchase.orderId}>
-              {purchase.orderId} · {dateText(purchase.placedAt)} · {moneyText(purchase.totalAmountMinor, purchase.currency)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div className="storefrontAuthGrid">
-        <label className="storefrontAuthField">
-          <span>Motivo</span>
-          <select name="reasonCode" required>
-            <option value="">Selecciona motivo</option>
-            <option value="RETURN">Devolucion</option>
-            <option value="EXCHANGE">Cambio</option>
-            <option value="WARRANTY">Garantia</option>
-            <option value="DAMAGED">Producto danado</option>
-            <option value="OTHER">Otro</option>
-          </select>
-        </label>
-        <label className="storefrontAuthField">
-          <span>Solucion solicitada</span>
-          <select name="requestedResolution" required>
-            <option value="">Selecciona solucion</option>
-            <option value="REFUND">Reembolso</option>
-            <option value="REPLACEMENT">Reemplazo</option>
-            <option value="REPAIR">Reparacion</option>
-            <option value="STORE_CREDIT">Credito tienda</option>
-          </select>
-        </label>
-      </div>
-      <label className="storefrontAuthField">
-        <span>Detalle</span>
-        <textarea
-          minLength={20}
-          name="customerMessage"
-          placeholder="Describe que ocurrio, productos afectados y condicion del paquete."
-          required
-          rows={4}
-        />
-      </label>
-      <button className="storefrontAuthSubmit" disabled={pending} type="submit">
-        {pending ? "Enviando..." : "Abrir caso"}
-      </button>
+
+      <ol aria-label="Proceso para abrir un caso" className="storefrontAfterSalesWizardProgress">
+        {[
+          [1, "Compra y productos"],
+          [2, "Cuéntanos"],
+          [3, "Evidencias y revisión"],
+        ].map(([step, label]) => {
+          const stepNumber = step as 1 | 2 | 3;
+          const isCurrent = wizardStep === stepNumber;
+          const isComplete = wizardStep > stepNumber;
+
+          return (
+            <li className={isCurrent ? "is-current" : isComplete ? "is-complete" : ""} key={stepNumber}>
+              <button
+                aria-current={isCurrent ? "step" : undefined}
+                disabled={pending || !isComplete}
+                onClick={() => moveWizardStep(stepNumber)}
+                type="button"
+              >
+                <span aria-hidden="true">{isComplete ? "✓" : stepNumber}</span>
+                <strong>{label}</strong>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+
+      <form aria-busy={pending} className="storefrontAccountForm storefrontAfterSalesForm storefrontAfterSalesWizardForm" onSubmit={submitCaseWithPreparedEvidence}>
+        <input name="orderId" type="hidden" value={selectedOrderId} />
+        <input name="items" type="hidden" value={JSON.stringify(selectedItems)} />
+        {wizardStep !== 2 ? (
+          <>
+            <input name="reasonCode" type="hidden" value={reasonCode} />
+            <input name="requestedResolution" type="hidden" value={requestedResolution} />
+            <input name="customerMessage" type="hidden" value={customerMessage} />
+          </>
+        ) : null}
+
+        {wizardStep === 1 ? (
+          <section className={wizardPanelClassName} key="purchase" aria-labelledby="after-sales-wizard-purchase-heading">
+            <div className="storefrontAfterSalesWizardPanelHeading">
+              <span>Paso 1 de 3</span>
+              <h4 id="after-sales-wizard-purchase-heading">¿En qué compra ocurrió?</h4>
+              <p>Elige el pedido y los productos afectados para que el equipo revise exactamente lo necesario.</p>
+            </div>
+            <label className="storefrontAuthField">
+              <span>Compra</span>
+              <select onChange={(event) => changeSelectedOrder(event.target.value)} required value={selectedOrderId}>
+                <option value="">Selecciona una compra</option>
+                {purchases.data.items.map((purchase) => (
+                  <option key={purchase.purchaseId} value={purchase.orderId}>
+                    {purchase.orderId} · {dateText(purchase.placedAt)} · {moneyText(purchase.totalAmountMinor, purchase.currency)}
+                  </option>
+                ))}
+              </select>
+              <small>
+                {selectedPurchase
+                  ? `Pedido elegido: ${selectedPurchase.itemsCount} ${selectedPurchase.itemsCount === 1 ? "producto" : "productos"}.`
+                  : "Elige primero la compra para identificar los productos afectados."}
+              </small>
+            </label>
+            {selectedPurchase ? (
+              <fieldset className="storefrontAfterSalesItemSelector">
+                <legend>¿Qué productos tienen el problema?</legend>
+                <p>Selecciona uno o varios productos afectados.</p>
+                <div className="storefrontAfterSalesItemChoices">
+                  {selectedPurchase.items.map((item) => {
+                    const itemId = `after-sales-${selectedPurchase.purchaseId}-${item.lineId}`;
+                    const selected = selectedLineIds.includes(item.lineId);
+
+                    return (
+                      <div className="storefrontAfterSalesItemChoice" key={item.lineId}>
+                        <label htmlFor={itemId}>
+                          <input
+                            checked={selected}
+                            id={itemId}
+                            onChange={() => toggleSelectedLine(item.lineId)}
+                            type="checkbox"
+                          />
+                          <span>
+                            <strong>{item.name}</strong>
+                            <small>Cantidad comprada: {item.quantity}</small>
+                          </span>
+                        </label>
+                        {selected ? (
+                          <label className="storefrontAfterSalesItemQuantity">
+                            <span>Cantidad afectada</span>
+                            <input
+                              max={item.quantity}
+                              min={1}
+                              onChange={(event) => changeSelectedLineQuantity(item.lineId, Number(event.target.value), item.quantity)}
+                              type="number"
+                              value={selectedLineQuantities[item.lineId] ?? 1}
+                            />
+                          </label>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+                <small className="storefrontAfterSalesItemSelection">
+                  {selectedLineIds.length === 0
+                    ? "Aún no has seleccionado ningún producto."
+                    : `${selectedLineIds.length} ${selectedLineIds.length === 1 ? "producto seleccionado" : "productos seleccionados"}.`}
+                </small>
+              </fieldset>
+            ) : null}
+            <div className="storefrontAfterSalesWizardActions storefrontAfterSalesWizardActionsEnd">
+              <button className="storefrontAuthSubmit" disabled={!canContinueFromPurchase} onClick={() => moveWizardStep(2)} type="button">
+                Siguiente
+              </button>
+            </div>
+          </section>
+        ) : null}
+
+        {wizardStep === 2 ? (
+          <section className={wizardPanelClassName} key="details" aria-labelledby="after-sales-wizard-details-heading">
+            <div className="storefrontAfterSalesWizardPanelHeading">
+              <span>Paso 2 de 3</span>
+              <h4 id="after-sales-wizard-details-heading">Cuéntanos qué ha ocurrido</h4>
+              <p>Esta información será el mensaje inicial que verá el equipo de Postventa.</p>
+            </div>
+            <div className="storefrontAuthGrid">
+              <label className="storefrontAuthField">
+                <span>Motivo</span>
+                <select name="reasonCode" onChange={(event) => setReasonCode(event.target.value)} required value={reasonCode}>
+                  <option value="">Selecciona motivo</option>
+                  <option value="RETURN">Devolucion</option>
+                  <option value="EXCHANGE">Cambio</option>
+                  <option value="WARRANTY">Garantia</option>
+                  <option value="DAMAGED">Producto danado</option>
+                  <option value="OTHER">Otro</option>
+                </select>
+              </label>
+              <label className="storefrontAuthField">
+                <span>Solucion solicitada</span>
+                <select name="requestedResolution" onChange={(event) => setRequestedResolution(event.target.value)} required value={requestedResolution}>
+                  <option value="">Selecciona solucion</option>
+                  <option value="REFUND">Reembolso</option>
+                  <option value="REPLACEMENT">Reemplazo</option>
+                  <option value="REPAIR">Reparacion</option>
+                  <option value="STORE_CREDIT">Credito tienda</option>
+                </select>
+              </label>
+            </div>
+            <label className="storefrontAuthField">
+              <span>Cuéntanos qué ha ocurrido</span>
+              <textarea
+                minLength={20}
+                name="customerMessage"
+                onChange={(event) => setCustomerMessage(event.target.value)}
+                placeholder="Es obligatorio. Describe el problema, los productos afectados y el estado del paquete."
+                required
+                rows={4}
+                value={customerMessage}
+              />
+              <small>Necesitamos al menos 20 caracteres para dar contexto a la solicitud.</small>
+            </label>
+            <div className="storefrontAfterSalesWizardActions">
+              <button className="storefrontAccountGhostButton" onClick={() => moveWizardStep(1)} type="button">Atrás</button>
+              <button className="storefrontAuthSubmit" disabled={!canContinueFromDetails} onClick={() => moveWizardStep(3)} type="button">Siguiente</button>
+            </div>
+          </section>
+        ) : null}
+
+        {wizardStep === 3 ? (
+          <section className={wizardPanelClassName} key="review" aria-labelledby="after-sales-wizard-review-heading">
+            <div className="storefrontAfterSalesWizardPanelHeading">
+              <span>Paso 3 de 3</span>
+              <h4 id="after-sales-wizard-review-heading">¿Deseas aportar evidencias?</h4>
+              <p>Es opcional. Las fotos se preparan ahora y solo se analizan después de crear el caso.</p>
+            </div>
+            <label className="storefrontAfterSalesEvidencePicker">
+              <span>Añadir fotos</span>
+              <span className="storefrontAfterSalesFileTrigger"><CloudUpload aria-hidden="true" size={17} />Seleccionar imágenes</span>
+              <input
+                accept="image/png,image/jpeg,image/webp"
+                className="storefrontAfterSalesFileInput"
+                disabled={pending}
+                multiple
+                onChange={(event) => {
+                  addEvidenceFiles(event.target.files);
+                  event.target.value = "";
+                }}
+                type="file"
+              />
+              <small>PNG, JPG o WebP, hasta 10 MB por imagen. Puedes continuar sin adjuntar ninguna.</small>
+            </label>
+            {evidenceSelectionMessage ? <p aria-live="polite" className="storefrontAfterSalesEvidenceSelectionMessage">{evidenceSelectionMessage}</p> : null}
+            {selectedEvidenceFiles.length > 0 ? (
+              <ul aria-label="Imágenes preparadas" className="storefrontAfterSalesPreparedEvidence">
+                {selectedEvidenceFiles.map((file, index) => (
+                  <li key={`${file.name}-${file.lastModified}-${index}`}>
+                    <span><strong>{file.name}</strong><small>{Math.ceil(file.size / 1024)} KB</small></span>
+                    <button aria-label={`Quitar ${file.name}`} className="storefrontAccountGhostButton" disabled={pending} onClick={() => removeEvidenceFile(index)} type="button">Quitar</button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="storefrontAfterSalesWizardReviewHeading">
+              <h5>Revisa antes de abrir el caso</h5>
+              <p>{selectedEvidenceFiles.length === 0 ? "No añadirás evidencias ahora." : `${selectedEvidenceFiles.length} ${selectedEvidenceFiles.length === 1 ? "imagen preparada" : "imágenes preparadas"} para su análisis.`}</p>
+            </div>
+            <ul className="storefrontAfterSalesWizardSummary">
+              <li><span>Compra</span><strong>{selectedPurchase ? `${selectedPurchase.orderId} · ${dateText(selectedPurchase.placedAt)}` : selectedOrderId}</strong></li>
+              <li><span>Productos afectados</span><strong>{selectedProductSummary.join(", ")}</strong></li>
+              <li><span>Motivo</span><strong>{storefrontAfterSalesReasonLabel(reasonCode)}</strong></li>
+              <li><span>Solución solicitada</span><strong>{storefrontResolutionOutcomeLabel(requestedResolution)}</strong></li>
+            </ul>
+            {pending ? (
+              <p aria-live="polite" className="storefrontAfterSalesWizardSubmitting" role="status">
+                {selectedEvidenceFiles.length > 0
+                  ? "Estamos abriendo el caso y preparando las imágenes. No cierres esta ventana."
+                  : "Estamos abriendo el caso. No cierres esta ventana."}
+              </p>
+            ) : null}
+            <div className="storefrontAfterSalesWizardActions">
+              <button className="storefrontAccountGhostButton" disabled={pending} onClick={() => moveWizardStep(2)} type="button">Atrás</button>
+              <button className="storefrontAuthSubmit" disabled={pending} type="submit">
+                {pending ? selectedEvidenceFiles.length > 0 ? "Abriendo caso y preparando imágenes..." : "Abriendo caso..." : "Abrir caso"}
+              </button>
+            </div>
+          </section>
+        ) : null}
       </form>
-    </>
+    </section>
+  );
+}
+
+function AfterSalesOpeningComplete({ caseId, message }: { caseId: string; message: string }) {
+  const caseHref = `/account?section=afterSales&afterSalesView=cases&caseId=${encodeURIComponent(caseId)}`;
+
+  return (
+    <section aria-labelledby="after-sales-opening-complete-heading" className="storefrontAfterSalesOpeningComplete">
+      <div>
+        <span aria-hidden="true">✓</span>
+        <h3 id="after-sales-opening-complete-heading">Tu caso ya está abierto</h3>
+      </div>
+      <p>{message}</p>
+      <p>El equipo recibirá la solicitud para revisarla. Podrás seguir cualquier respuesta desde el historial del caso.</p>
+      <div className="storefrontAfterSalesWizardActions">
+        <Link className="storefrontAccountGhostButton" href="/account?section=afterSales&afterSalesView=cases">Mis casos</Link>
+        <Link className="storefrontAuthSubmit storefrontAfterSalesOpeningCompleteLink" href={caseHref}>Ver caso</Link>
+      </div>
+    </section>
+  );
+}
+
+function AfterSalesHome({ cases }: { cases: StorefrontAccountData["afterSales"] }) {
+  const caseCount = cases.ok ? cases.data.total : null;
+
+  return (
+    <section className="storefrontAfterSalesHome" aria-labelledby="after-sales-home-heading">
+      <div>
+        <h3 id="after-sales-home-heading">¿Qué necesitas hacer?</h3>
+        <p>Consulta una solicitud que ya has abierto o inicia una nueva cuando la necesites.</p>
+      </div>
+      <div className="storefrontAfterSalesHomeChoices">
+        <div className="storefrontAfterSalesHomeChoice">
+          <Link className="storefrontAfterSalesHomeChoiceLink" href="/account?section=afterSales&afterSalesView=cases">
+            <strong>Mis casos{caseCount === null ? "" : ` (${caseCount})`}</strong>
+          </Link>
+          <AdminInfoTooltip
+            description="Revisa el estado, los mensajes y las propuestas de solución de los casos que ya has abierto."
+            label="Más información sobre Mis casos"
+          />
+        </div>
+        <div className="storefrontAfterSalesHomeChoice">
+          <Link className="storefrontAfterSalesHomeChoiceLink" href="/account?section=afterSales&afterSalesView=new">
+            <strong>Abrir un caso nuevo</strong>
+          </Link>
+          <AdminInfoTooltip
+            description="Inicia una solicitud por un problema con uno o varios productos de una compra. Te guiaremos paso a paso."
+            label="Más información sobre Abrir un caso nuevo"
+          />
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -768,7 +1136,6 @@ function AfterSalesCaseList({ cases }: { cases: StorefrontAccountData["afterSale
           <h3 id="my-cases-heading">Mis casos</h3>
           <p>{total === 1 ? "1 caso registrado" : `${total} casos registrados`}</p>
         </div>
-        <Link className="storefrontAccountGhostButton" href="/account?section=afterSales">Volver a postventa</Link>
       </div>
       {items.length === 0 ? (
         <div className="storefrontAccountEmpty">
@@ -784,7 +1151,8 @@ function AfterSalesCaseList({ cases }: { cases: StorefrontAccountData["afterSale
               key={caseItem.caseId}
             >
               <span className="storefrontAfterSalesCaseLinkTitle">{caseItem.caseType}</span>
-              <span className="storefrontPurchaseBadge">{caseItem.status}</span>
+              <span className="storefrontPurchaseBadge">{storefrontLifecycleLabel(caseItem.lifecycleStatus)}</span>
+              {caseItem.lifecycleStatus === "RESOLVED" && caseItem.autoCloseAt ? <small>Confirmación abierta hasta {dateText(caseItem.autoCloseAt)}</small> : null}
               <small>{caseItem.lastMessagePreview ?? "Sin mensajes todavía"}</small>
               <time dateTime={caseItem.lastActivityAt ?? caseItem.updatedAt}>Actualizado {dateText(caseItem.lastActivityAt ?? caseItem.updatedAt)}</time>
             </Link>
@@ -810,6 +1178,10 @@ function AfterSalesCaseList({ cases }: { cases: StorefrontAccountData["afterSale
           </Link>
         </nav>
       ) : null}
+      <div className="storefrontAfterSalesCaseListActions">
+        <Link className="storefrontAccountGhostButton" href="/account?section=afterSales&afterSalesView=new">Abrir un caso nuevo</Link>
+        <Link className="storefrontAccountGhostButton" href="/account?section=afterSales">Volver a postventa</Link>
+      </div>
     </section>
   );
 }
@@ -817,57 +1189,204 @@ function AfterSalesCaseList({ cases }: { cases: StorefrontAccountData["afterSale
 function AfterSalesCaseHistory({
   backToCasesHref,
   caseDetail,
+  completionAction,
+  completionPending,
   evidenceAction,
   evidencePending,
   replyAction,
   replyPending,
+  proposalAction,
+  proposalPending,
 }: {
   backToCasesHref: string;
   caseDetail: StorefrontAfterSalesCaseDetail;
+  completionAction: (payload: FormData) => void;
+  completionPending: boolean;
   evidenceAction: (payload: FormData) => void;
   evidencePending: boolean;
   replyAction: (payload: FormData) => void;
   replyPending: boolean;
+  proposalAction: (payload: FormData) => void;
+  proposalPending: boolean;
 }) {
+  const evidenceCount = caseDetail.attachments.length;
+  const evidenceQuotaReached = evidenceCount >= 15;
+  const isResolved = caseDetail.lifecycleStatus === "RESOLVED";
+  const isClosed = caseDetail.lifecycleStatus === "CLOSED";
+  const canConfirmCompletion = isResolved && ["REFUND", "STORE_CREDIT", "EXCHANGE", "REPAIR", "REPLACEMENT"].includes(caseDetail.resolutionOutcome ?? "");
+  const [activeEvidenceIndex, setActiveEvidenceIndex] = useState<number | null>(null);
+  const [selectedEvidenceName, setSelectedEvidenceName] = useState("");
+  const [isReportingSolutionProblem, setIsReportingSolutionProblem] = useState(false);
+  const requiresExplicitSolutionProblem = canConfirmCompletion;
+  const canContinueCase = caseDetail.canReply && (!requiresExplicitSolutionProblem || isReportingSolutionProblem);
+  const conversationRef = useRef<HTMLDivElement>(null);
+  const activeEvidence = activeEvidenceIndex === null ? null : caseDetail.attachments[activeEvidenceIndex];
+  const solutionProposals = caseDetail.solutionProposals ?? [];
+  const pendingProposal = solutionProposals.find((proposal) => proposal.status === "PENDING_CUSTOMER") ?? null;
+  const hibernatingProposal = solutionProposals.find((proposal) => proposal.status === "EXPIRED") ?? null;
+
+  useEffect(() => {
+    if (activeEvidenceIndex === null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveEvidenceIndex(null);
+      if (event.key === "ArrowLeft") setActiveEvidenceIndex((current) => current === null ? null : (current - 1 + evidenceCount) % evidenceCount);
+      if (event.key === "ArrowRight") setActiveEvidenceIndex((current) => current === null ? null : (current + 1) % evidenceCount);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeEvidenceIndex, evidenceCount]);
+
+  useEffect(() => {
+    const conversation = conversationRef.current;
+    if (conversation) {
+      conversation.scrollTop = conversation.scrollHeight;
+    }
+  }, [caseDetail.caseId, caseDetail.messages.length]);
+
+  const evidenceGallery = evidenceCount ? (
+    <section aria-label="Imágenes aportadas" className="storefrontAfterSalesEvidenceSection">
+      <div><strong>Imágenes aportadas</strong><span>{evidenceCount} de 15</span></div>
+      <div className="storefrontAfterSalesEvidenceGrid">
+        {caseDetail.attachments.map((attachment, index) => {
+          const source = `/account/after-sales/cases/${encodeURIComponent(caseDetail.caseId)}/evidences/${encodeURIComponent(attachment.privateEvidenceId)}/content`;
+          return (
+            <button aria-label={`Abrir imagen ${index + 1} de ${evidenceCount}`} className="storefrontAfterSalesEvidenceThumbnail" key={attachment.privateEvidenceId} onClick={() => setActiveEvidenceIndex(index)} type="button">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img alt={`Evidencia aportada ${index + 1}`} loading="lazy" src={source} />
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  ) : null;
+
   return (
     <div className="storefrontAfterSalesHistory">
       <Link className="storefrontAccountGhostButton" href={backToCasesHref}>Volver a mis casos</Link>
       <div className="storefrontAfterSalesCaseHeader">
         <strong>{caseDetail.caseType}</strong>
-        <span className="storefrontPurchaseBadge">{caseDetail.status}</span>
+        <span className="storefrontPurchaseBadge">{storefrontLifecycleLabel(caseDetail.lifecycleStatus)}</span>
       </div>
-      <div className="storefrontAfterSalesTimeline">
-        {caseDetail.messages.map((message) => (
-          <article className={`storefrontAfterSalesMessage storefrontAfterSalesMessage${message.author === "CUSTOMER" ? "Customer" : "Store"}`} key={message.messageId}>
-            <span>{message.author === "CUSTOMER" ? "Tú" : "Ecommium"} · {dateText(message.createdAt)}</span>
-            <p>{message.body}</p>
-            {caseDetail.attachments.filter((attachment) => attachment.messageId === message.messageId).map((attachment) => (
-              <small key={attachment.privateEvidenceId}>📎 {attachment.name}</small>
-            ))}
-          </article>
-        ))}
+      {canConfirmCompletion ? (
+        <section aria-label="Confirmación de la solución" className="storefrontAfterSalesCompletionCard">
+          <div>
+            <span>Solución finalizada</span>
+            <h3>¿Has recibido la solución?</h3>
+          </div>
+          <dl>
+            <div><dt>Resultado</dt><dd>{storefrontResolutionOutcomeLabel(caseDetail.resolutionOutcome ?? "NO_ACTION")}</dd></div>
+            {caseDetail.autoCloseAt ? <div><dt>Confirmación hasta</dt><dd>{dateTimeText(caseDetail.autoCloseAt)}</dd></div> : null}
+          </dl>
+          {caseDetail.resolutionReason ? <p>{caseDetail.resolutionReason}</p> : null}
+          <p className="storefrontAfterSalesCompletionHint">Confirma solo cuando hayas recibido el reembolso, producto o servicio acordado. Si no respondes, el caso se cerrará automáticamente{caseDetail.autoCloseAt ? ` el ${dateTimeText(caseDetail.autoCloseAt)}` : " cuando finalice el plazo informado por el equipo"}.</p>
+          <div className="storefrontAfterSalesCompletionActions">
+            <form action={completionAction}>
+              <input name="caseId" type="hidden" value={caseDetail.caseId} />
+              <button className="storefrontAuthSubmit" disabled={completionPending} type="submit">{completionPending ? "Confirmando cierre..." : "Confirmar que he recibido la solución y cerrar caso"}</button>
+            </form>
+            {caseDetail.canReply && !isReportingSolutionProblem ? (
+              <button className="storefrontAccountGhostButton" onClick={() => setIsReportingSolutionProblem(true)} type="button">
+                Tengo un problema con la solución
+              </button>
+            ) : null}
+          </div>
+          {isReportingSolutionProblem ? (
+            <div className="storefrontAfterSalesCompletionProblem">
+              <p className="storefrontAfterSalesCompletionHint">
+                Cuéntanos qué ha fallado o adjunta una prueba. Retomaremos la revisión del caso.
+              </p>
+              <button className="storefrontAccountGhostButton" onClick={() => setIsReportingSolutionProblem(false)} type="button">
+                Cancelar
+              </button>
+            </div>
+          ) : null}
+        </section>
+      ) : (
+        <section className="storefrontAccountEmpty storefrontAfterSalesResolutionSummary">
+          <strong>{isClosed ? "Caso cerrado" : isResolved ? "Caso resuelto" : "Caso en gestión"}</strong>
+          {caseDetail.resolutionOutcome ? <p>Resultado: {storefrontResolutionOutcomeLabel(caseDetail.resolutionOutcome)}.</p> : null}
+          {caseDetail.resolutionReason ? <p>{caseDetail.resolutionReason}</p> : null}
+          {isResolved ? <p>Puedes responder o aportar una imagen hasta {dateText(caseDetail.autoCloseAt ?? "")}. Si aportas información nueva, volveremos a revisarlo.</p> : null}
+          {isClosed ? <p>El expediente, sus mensajes y sus imágenes permanecen disponibles como historial, pero ya no admite cambios.</p> : null}
+        </section>
+      )}
+      {pendingProposal ? (
+        <section className="storefrontAccountEmpty storefrontAfterSalesResolutionSummary" aria-label="Propuesta de solución">
+          <strong>Propuesta de solución</strong>
+          <p>{pendingProposal.customerMessage}</p>
+          <p>{storefrontResolutionOutcomeLabel(pendingProposal.solutionType)}{pendingProposal.amountMinor !== null && pendingProposal.currency ? ` · ${moneyText(pendingProposal.amountMinor, pendingProposal.currency)}` : ""}.</p>
+          <p>{pendingProposal.returnRequired ? `Devolución requerida${pendingProposal.returnShippingPaidBy === "STORE" ? "; el transporte lo asume la tienda." : "."}` : "No requiere devolución."} Responde antes del {dateText(pendingProposal.expiresAt)}.</p>
+          <div className="storefrontAfterSalesHomeActions">
+            <form action={proposalAction}><input name="caseId" type="hidden" value={caseDetail.caseId} /><input name="proposalId" type="hidden" value={pendingProposal.proposalId} /><input name="decision" type="hidden" value="ACCEPT" /><button className="storefrontAuthSubmit" disabled={proposalPending} type="submit">{proposalPending ? "Guardando..." : "Aceptar propuesta"}</button></form>
+            <form action={proposalAction}><input name="caseId" type="hidden" value={caseDetail.caseId} /><input name="proposalId" type="hidden" value={pendingProposal.proposalId} /><input name="decision" type="hidden" value="REJECT" /><button className="storefrontAccountGhostButton" disabled={proposalPending} type="submit">Rechazar</button></form>
+          </div>
+        </section>
+      ) : hibernatingProposal ? (
+        <section className="storefrontAccountEmpty storefrontAfterSalesResolutionSummary" aria-label="Propuesta invernando"><strong>Propuesta en espera</strong><p>La propuesta anterior venció sin respuesta. Puedes escribirnos para retomar la revisión.</p></section>
+      ) : null}
+      <div className="afterSalesConversationThread storefrontAfterSalesConversationThread" aria-label="Historial de conversación" ref={conversationRef}>
+        {[...caseDetail.messages].sort((left, right) => left.createdAt.localeCompare(right.createdAt)).map((message) => {
+          const isCustomer = message.author === "CUSTOMER";
+
+          return (
+            <article className={`afterSalesConversationMessage ${isCustomer ? "afterSalesConversationMessageCustomer" : "afterSalesConversationMessageTeam"}`} key={message.messageId}>
+              <div className="afterSalesConversationMeta">
+                <span aria-hidden="true" className="afterSalesConversationAvatar">
+                  {isCustomer ? <UserRound size={12} /> : <Headphones size={12} />}
+                </span>
+                <div className="afterSalesConversationIdentity">
+                  <strong>{isCustomer ? "Cliente" : "Equipo"}</strong>
+                  {message.kind === "OPENING" ? <span>Mensaje inicial</span> : null}
+                </div>
+                <time dateTime={message.createdAt}>{dateTimeText(message.createdAt)}</time>
+              </div>
+              <p className="afterSalesConversationBubble">{message.body}</p>
+            </article>
+          );
+        })}
       </div>
-      {caseDetail.canReply ? (
+      {evidenceGallery}
+      {canContinueCase ? (
         <>
           <form action={replyAction} className="storefrontAccountForm">
             <input name="caseId" type="hidden" value={caseDetail.caseId} />
             <label className="storefrontAuthField">
-              <span>Continuar el caso</span>
-              <textarea minLength={2} name="body" placeholder="Añade una respuesta o información adicional." required rows={3} />
+              <span>{requiresExplicitSolutionProblem ? "Cuéntanos qué ha fallado" : "Continuar el caso"}</span>
+              <textarea minLength={2} name="body" placeholder={requiresExplicitSolutionProblem ? "Describe el problema para que podamos revisarlo." : "Añade una respuesta o información adicional."} required rows={3} />
             </label>
-            <button className="storefrontAuthSubmit" disabled={replyPending} type="submit">{replyPending ? "Enviando..." : "Enviar mensaje"}</button>
+            <button className="storefrontAuthSubmit" disabled={replyPending} type="submit">{replyPending ? "Enviando..." : requiresExplicitSolutionProblem ? "Enviar problema" : "Enviar mensaje"}</button>
           </form>
           <form action={evidenceAction} className="storefrontAccountForm">
             <input name="caseId" type="hidden" value={caseDetail.caseId} />
-            <label className="storefrontAuthField">
-              <span>Aportar imagen</span>
-              <input accept="image/png,image/jpeg,image/webp" name="evidence" required type="file" />
-              <small>PNG, JPG o WebP. Máximo 10 MB; la imagen se sanea antes de guardarla.</small>
+            <label className="storefrontAuthField storefrontAfterSalesEvidenceUpload">
+              <span>{requiresExplicitSolutionProblem ? "Adjuntar prueba del problema" : "Aportar imagen"}</span>
+              <span className="storefrontAfterSalesFileTrigger"><CloudUpload aria-hidden="true" size={17} />{requiresExplicitSolutionProblem ? "Seleccionar prueba" : "Seleccionar imagen"}</span>
+              <input
+                accept="image/png,image/jpeg,image/webp"
+                className="storefrontAfterSalesFileInput"
+                disabled={evidenceQuotaReached}
+                name="evidence"
+                onChange={(event) => setSelectedEvidenceName(event.target.files?.[0]?.name ?? "")}
+                required
+                type="file"
+              />
+              {selectedEvidenceName ? <span className="storefrontAfterSalesSelectedFile">{selectedEvidenceName}</span> : null}
+              <small>{evidenceCount} de 15 imágenes adjuntas al caso. PNG, JPG o WebP, máximo 10 MB; el servidor valida formato, cuota y seguridad antes de guardarla.</small>
             </label>
-            <button className="storefrontAccountGhostButton" disabled={evidencePending} type="submit">{evidencePending ? "Adjuntando..." : "Adjuntar imagen"}</button>
+            <button className="storefrontAccountGhostButton" disabled={evidencePending || evidenceQuotaReached} type="submit">{evidenceQuotaReached ? "Límite de caso alcanzado" : evidencePending ? "Analizando imagen..." : "Adjuntar imagen"}</button>
           </form>
         </>
-      ) : <p className="storefrontAccountEmpty">Este caso ya no admite más mensajes.</p>}
+      ) : !caseDetail.canReply ? <p className="storefrontAccountEmpty">{isClosed ? "Este caso está cerrado y ya no admite mensajes ni evidencias." : "Este caso ya no admite más mensajes."}</p> : null}
+      {activeEvidence ? (
+        <div aria-label="Visor de imágenes aportadas" aria-modal="true" className="storefrontAfterSalesEvidenceLightbox" role="dialog">
+          <button aria-label="Cerrar visor" className="storefrontAfterSalesEvidenceClose" onClick={() => setActiveEvidenceIndex(null)} type="button"><X aria-hidden="true" size={24} /></button>
+          {evidenceCount > 1 ? <button aria-label="Ver imagen anterior" className="storefrontAfterSalesEvidencePrevious" onClick={() => setActiveEvidenceIndex((current) => current === null ? null : (current - 1 + evidenceCount) % evidenceCount)} type="button"><ChevronLeft aria-hidden="true" size={32} /></button> : null}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img alt={`Evidencia aportada ${(activeEvidenceIndex ?? 0) + 1} de ${evidenceCount}`} className="storefrontAfterSalesEvidenceLightboxImage" src={`/account/after-sales/cases/${encodeURIComponent(caseDetail.caseId)}/evidences/${encodeURIComponent(activeEvidence.privateEvidenceId)}/content`} />
+          {evidenceCount > 1 ? <button aria-label="Ver imagen siguiente" className="storefrontAfterSalesEvidenceNext" onClick={() => setActiveEvidenceIndex((current) => current === null ? null : (current + 1) % evidenceCount)} type="button"><ChevronRight aria-hidden="true" size={32} /></button> : null}
+          <p>{(activeEvidenceIndex ?? 0) + 1} de {evidenceCount}</p>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1115,6 +1634,27 @@ function dateText(value: string) {
     month: "short",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function storefrontLifecycleLabel(status: StorefrontAfterSalesCaseDetail["lifecycleStatus"]) {
+  if (status === "OPEN") return "Abierto";
+  if (status === "IN_PROGRESS") return "En curso";
+  if (status === "RESOLVED") return "Resuelto";
+  return "Cerrado";
+}
+
+function storefrontResolutionOutcomeLabel(value: string) {
+  const labels: Record<string, string> = {
+    REFUND: "Reembolso",
+    EXCHANGE: "Cambio",
+    REPAIR: "Reparación",
+    REPLACEMENT: "Reemplazo",
+    STORE_CREDIT: "Crédito en tienda",
+    REJECTED: "Solicitud rechazada",
+    NO_ACTION: "Sin acción adicional",
+    MIXED: "Resolución mixta",
+  };
+  return labels[value] ?? value;
 }
 
 function AccountField({

@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 
 type AdminInfoTooltipProps = {
   label: string;
-  title: string;
+  title?: string;
   description: string;
   example?: string;
 };
@@ -124,7 +124,7 @@ export function AdminInfoTooltip({ label, title, description, example }: AdminIn
           role="tooltip"
           style={position}
         >
-          <strong>{title}</strong>
+          {title ? <strong>{title}</strong> : null}
           <span>{description}</span>
           {example ? <span><b>Ejemplo:</b> {example}</span> : null}
         </span>,

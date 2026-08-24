@@ -176,6 +176,8 @@ export type StorefrontAfterSalesCaseResponse = {
   caseId: string;
   caseType: string;
   status: string;
+  lifecycleStatus: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+  autoCloseAt: string | null;
   reasonCode: string | null;
   submittedAt: string | null;
   updatedAt: string;
@@ -185,6 +187,10 @@ export type StorefrontAfterSalesCaseResponse = {
 };
 
 export type StorefrontAfterSalesCaseDetail = StorefrontAfterSalesCaseResponse & {
+  operationalStage: string | null;
+  resolutionOutcome: string | null;
+  resolutionReason: string | null;
+  closureReason: string | null;
   reviewedAt: string | null;
   resolvedAt: string | null;
   closedAt: string | null;
@@ -192,6 +198,20 @@ export type StorefrontAfterSalesCaseDetail = StorefrontAfterSalesCaseResponse & 
   items: Array<{ name: string; quantityRequested: number; quantityApproved: number | null; status: string }>;
   messages: Array<{ messageId: string; author: "CUSTOMER" | "STORE"; kind: "OPENING" | "MESSAGE" | "STATUS"; body: string; createdAt: string }>;
   attachments: Array<{ privateEvidenceId: string; messageId: string | null; mimeType: "image/jpeg"; name: string; createdAt: string }>;
+  solutionProposals: Array<{
+    proposalId: string;
+    version: number;
+    status: "PENDING_CUSTOMER" | "SUPERSEDED" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+    solutionType: "REFUND" | "EXCHANGE" | "REPAIR" | "REPLACEMENT" | "STORE_CREDIT" | "NO_ACTION";
+    customerMessage: string;
+    amountMinor: number | null;
+    currency: string | null;
+    returnRequired: boolean;
+    returnShippingPaidBy: "STORE" | "CUSTOMER" | "NOT_REQUIRED";
+    createdAt: string;
+    expiresAt: string;
+    respondedAt: string | null;
+  }>;
 };
 
 export type StorefrontAfterSalesCasesData = {
@@ -440,22 +460,71 @@ export async function replyToStorefrontAfterSalesCase(
   });
 }
 
+export async function respondToStorefrontAfterSalesSolutionProposal(
+  caseId: string,
+  proposalId: string,
+  decision: "ACCEPT" | "REJECT",
+): Promise<BffResult<StorefrontAfterSalesCaseDetail>> {
+  return afterSalesJsonMutation(
+    `/storefront/me/after-sales/cases/${encodeURIComponent(caseId)}/solution-proposals/${encodeURIComponent(proposalId)}/response`,
+    { decision },
+    "PATCH",
+  );
+}
+
+/**
+ * El cliente confirma una solución ya recibida. La resolución que se cierra
+ * se deriva íntegramente en After Sales; Storefront no recibe ni envía IDs
+ * internos, evidencias privadas ni motivos de cierre.
+ */
+export async function confirmStorefrontAfterSalesCompletion(
+  caseId: string,
+  note?: string,
+): Promise<BffResult<StorefrontAfterSalesCaseDetail>> {
+  return afterSalesJsonMutation(
+    `/storefront/me/after-sales/cases/${encodeURIComponent(caseId)}/confirm-completion`,
+    note ? { note } : {},
+  );
+}
+
 export async function uploadStorefrontAfterSalesEvidence(
   input: {
     caseId: string;
-    originalFileName: string;
-    mimeType: string;
-    contentBase64: string;
+    file: File;
     messageId?: string | null;
     idempotencyKey: string;
   },
 ): Promise<BffResult<StorefrontAfterSalesCaseDetail>> {
-  return afterSalesJsonMutation(`/storefront/me/after-sales/cases/${encodeURIComponent(input.caseId)}/evidences`, input);
+  const headers = await storefrontAuthHeaders();
+  if (!headers) {
+    return { ok: false, status: 401, error: "Cliente no autenticado.", correlationId: "storefront-after-sales-local" };
+  }
+  const context = await getStorefrontContext();
+  const body = new FormData();
+  body.set("file", input.file, input.file.name);
+  if (input.messageId) {
+    body.set("messageId", input.messageId);
+  }
+  body.set("idempotencyKey", input.idempotencyKey);
+
+  return requestStorefrontBff<StorefrontAfterSalesCaseDetail>(
+    accountPath(context, `/storefront/me/after-sales/cases/${encodeURIComponent(input.caseId)}/evidences`),
+    {
+      withAuth: false,
+      context: { locale: context.locale },
+      init: {
+        method: "POST",
+        headers,
+        body,
+      },
+    },
+  );
 }
 
 async function afterSalesJsonMutation(
   path: string,
   payload: Record<string, unknown>,
+  method: "POST" | "PATCH" = "POST",
 ): Promise<BffResult<StorefrontAfterSalesCaseDetail>> {
   const headers = await storefrontAuthHeaders();
   if (!headers) {
@@ -466,7 +535,7 @@ async function afterSalesJsonMutation(
     withAuth: false,
     context: { locale: context.locale },
     init: {
-      method: "POST",
+        method,
       headers: { ...headers, "content-type": "application/json" },
       body: JSON.stringify(payload),
     },

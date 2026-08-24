@@ -15,3 +15,9 @@ test("development server uses explicit Webpack HMR on the local UI port", () => 
   assert.match(packageJson.scripts.dev, /--webpack\b/);
   assert.match(packageJson.scripts.dev, /(?:-p|--port)\s+5173\b/);
 });
+
+test("development allows the shared local loopback origin for Next resources", () => {
+  const nextConfig = readFileSync(resolve(repoRoot, "next.config.ts"), "utf8");
+
+  assert.match(nextConfig, /allowedDevOrigins:\s*isDevelopment\s*\?\s*\["127\.0\.0\.1"\]/);
+});

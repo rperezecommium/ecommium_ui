@@ -236,13 +236,50 @@ test("storefront account UI opens after-sales cases from authenticated purchases
   assert.match(clientSource, /name="customerMessage"/);
   assert.match(clientSource, /minLength=\{20\}/);
   assert.match(clientSource, /afterSalesView=cases/);
+  assert.match(clientSource, /afterSalesView=new/);
   assert.match(clientSource, /AfterSalesCaseList/);
+  assert.match(clientSource, /\{total > limit \? \([\s\S]*<\/nav>\s*\) : null\}\s*<div className="storefrontAfterSalesCaseListActions">/);
+  assert.match(clientSource, /AfterSalesHome/);
+  assert.match(clientSource, /AdminInfoTooltip/);
+  assert.match(clientSource, /Más información sobre Mis casos/);
+  assert.match(clientSource, /Más información sobre Abrir un caso nuevo/);
+  assert.doesNotMatch(clientSource, /title="Mis casos"|title="Abrir un caso nuevo"/);
+  assert.match(clientSource, /if \(initialView !== "new"\) \{\s+return <AfterSalesHome cases=\{cases\} \/>;/);
+  assert.match(clientSource, /¿Qué necesitas hacer\?/);
+  assert.match(clientSource, /Abrir un caso nuevo/);
+  assert.match(clientSource, /moveWizardStep/);
+  assert.match(clientSource, /setWizardDirection/);
+  assert.match(clientSource, /disabled=\{pending \|\| !isComplete\}/);
+  assert.match(clientSource, /Paso 1 de 3/);
+  assert.match(clientSource, /Paso 2 de 3/);
+  assert.match(clientSource, /Paso 3 de 3/);
+  assert.match(clientSource, /Revisa antes de abrir el caso/);
+  assert.match(clientSource, /storefrontAfterSalesReasonLabel/);
+  assert.match(clientSource, /storefrontResolutionOutcomeLabel\(requestedResolution\)/);
+  assert.match(clientSource, /selectedProductSummary\.join/);
+  assert.match(clientSource, /No cierres esta ventana/);
+  assert.match(clientSource, /¿Deseas aportar evidencias\?/);
+  assert.match(clientSource, /selectedEvidenceFiles/);
+  assert.match(cssSource, /\.storefrontAfterSalesHomeChoices \{\s+display: grid;\s+grid-template-columns: repeat\(2, max-content\);\s+align-items: start;/);
+  assert.doesNotMatch(cssSource, /\.storefrontAfterSalesHomeChoice \{\s+position: relative;\s+min-height:/);
+  assert.match(cssSource, /\.storefrontAfterSalesHomeChoiceLink strong \{\s+color: var\(--storefront-text, #363a41\);\s+font-size: 16px;\s+white-space: nowrap;/);
+  assert.match(cssSource, /\.storefrontAfterSalesCaseListActions \{\s+display: grid;\s+grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+  assert.match(cssSource, /\.storefrontAfterSalesWizardActions \{\s+display: grid;\s+grid-template-columns: minmax\(0, 1fr\) minmax\(0, 2fr\);/);
+  assert.match(clientSource, /formData\.append\("evidences", file, file\.name\)/);
+  assert.match(clientSource, /multiple/);
+  assert.match(clientSource, /AfterSalesOpeningComplete/);
+  assert.match(clientSource, /Tu caso ya está abierto/);
+  assert.match(clientSource, /Ver caso/);
+  assert.match(actionsSource, /formData\.getAll\("evidences"\)/);
+  assert.match(actionsSource, /ui-opening-evidence-/);
+  assert.match(actionsSource, /caseId: result\.data\.caseId/);
   assert.match(clientSource, /Volver a postventa/);
   assert.match(clientSource, /Volver a mis casos/);
   assert.match(clientSource, /Paginación de casos/);
   assert.match(accountSource, /afterSalesLimit/);
   assert.match(accountSource, /afterSalesOffset/);
   assert.match(routeSource, /afterSalesView/);
+  assert.match(routeSource, /value === "cases" \|\| value === "new"/);
   assert.match(routeSource, /afterSalesLimit/);
   assert.match(routeSource, /afterSalesOffset/);
   assert.match(actionsSource, /customerMessage\.length < 20/);
@@ -250,9 +287,134 @@ test("storefront account UI opens after-sales cases from authenticated purchases
   assert.match(accountSource, /method: "POST"/);
   assert.match(accountSource, /content-type": "application\/json"/);
   assert.match(cssSource, /\.storefrontAfterSalesPanel/);
+  assert.match(cssSource, /\.storefrontAfterSalesHomeChoices/);
+  assert.match(cssSource, /\.storefrontAfterSalesHomeChoice/);
+  assert.match(cssSource, /\.storefrontAfterSalesHomeChoiceLink/);
+  assert.match(cssSource, /\.storefrontAfterSalesWizardProgress/);
+  assert.match(cssSource, /storefrontAfterSalesWizardPanelEnterForward/);
+  assert.match(cssSource, /storefrontAfterSalesWizardPanelEnterBackward/);
+  assert.match(cssSource, /prefers-reduced-motion: reduce/);
+  assert.match(cssSource, /\.storefrontAfterSalesEvidencePicker/);
+  assert.match(cssSource, /\.storefrontAfterSalesPreparedEvidence/);
+  assert.match(cssSource, /\.storefrontAfterSalesOpeningComplete/);
+  assert.match(cssSource, /\.storefrontAfterSalesWizardSubmitting/);
   assert.match(cssSource, /\.storefrontAfterSalesCaseList/);
   assert.match(cssSource, /\.storefrontAfterSalesCaseLink/);
   assert.doesNotMatch(clientSource + actionsSource + accountSource, /app\/api\/storefront\/me\/after-sales/);
+});
+
+test("storefront after-sales lets the customer accept or reject a pending solution proposal", () => {
+  const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
+  const actionsSource = source("src/modules/storefront/storefront-account-actions.ts");
+  const accountSource = source("src/modules/storefront/storefront-account.ts");
+  const cssSource = source("app/globals.css");
+
+  assert.match(accountSource, /solutionProposals/);
+  assert.match(accountSource, /solution-proposals\/\$\{encodeURIComponent\(proposalId\)\}\/response/);
+  assert.match(accountSource, /"PATCH"/);
+  assert.match(actionsSource, /respondToStorefrontAfterSalesSolutionProposal/);
+  assert.match(actionsSource, /decision !== "ACCEPT" && decision !== "REJECT"/);
+  assert.match(clientSource, /PENDING_CUSTOMER/);
+  assert.match(clientSource, /Aceptar propuesta/);
+  assert.match(clientSource, />Rechazar</);
+  assert.match(clientSource, /afterSalesConversationThread/);
+  assert.match(clientSource, /storefrontAfterSalesConversationThread/);
+  assert.match(clientSource, /conversation\.scrollTop = conversation\.scrollHeight/);
+  assert.match(clientSource, /afterSalesConversationMessageTeam/);
+  assert.match(clientSource, /Mensaje inicial/);
+  assert.match(clientSource, /dateTimeText\(message\.createdAt\)/);
+  assert.match(cssSource, /\.storefrontAfterSalesConversationThread \{\s+gap: 10px;\s+max-height: 420px;\s+overflow-y: auto;/);
+  assert.doesNotMatch(clientSource + actionsSource + accountSource, /admin\/after-sales/);
+});
+
+test("storefront after-sales exposes a customer-scoped completion confirmation action", () => {
+  const actionsSource = source("src/modules/storefront/storefront-account-actions.ts");
+  const accountSource = source("src/modules/storefront/storefront-account.ts");
+
+  assert.match(accountSource, /confirmStorefrontAfterSalesCompletion/);
+  assert.match(accountSource, /\/storefront\/me\/after-sales\/cases\/\$\{encodeURIComponent\(caseId\)\}\/confirm-completion/);
+  assert.match(accountSource, /note \? \{ note \} : \{\}/);
+  assert.match(actionsSource, /confirmStorefrontAfterSalesCompletionAction/);
+  assert.match(actionsSource, /confirmStorefrontAfterSalesCompletion\(caseId, note \|\| undefined\)/);
+  assert.match(actionsSource, /revalidatePath\("\/account"\)/);
+  assert.match(actionsSource, /El caso queda cerrado/);
+  assert.doesNotMatch(accountSource + actionsSource, /resolutionId.*confirm-completion|privateEvidence.*confirm-completion/);
+});
+
+test("storefront after-sales shows a clear resolution confirmation card", () => {
+  const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
+  const cssSource = source("app/globals.css");
+
+  assert.match(clientSource, /confirmStorefrontAfterSalesCompletionAction/);
+  assert.match(clientSource, /Solución finalizada/);
+  assert.match(clientSource, /¿Has recibido la solución\?/);
+  assert.match(clientSource, /Confirmar que he recibido la solución y cerrar caso/);
+  assert.match(clientSource, /Confirmando cierre/);
+  assert.match(clientSource, /dateTimeText\(caseDetail\.autoCloseAt\)/);
+  assert.match(clientSource, /name="caseId" type="hidden" value=\{caseDetail\.caseId\}/);
+  assert.match(clientSource, /\["REFUND", "STORE_CREDIT", "EXCHANGE", "REPAIR", "REPLACEMENT"\]/);
+  assert.match(cssSource, /\.storefrontAfterSalesCompletionCard \{/);
+  assert.match(cssSource, /\.storefrontAfterSalesCompletionHint \{/);
+});
+
+test("storefront after-sales makes a problem with a completed solution an explicit action", () => {
+  const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
+  const cssSource = source("app/globals.css");
+
+  assert.match(clientSource, /Tengo un problema con la solución/);
+  assert.match(clientSource, /setIsReportingSolutionProblem\(true\)/);
+  assert.match(clientSource, /canContinueCase/);
+  assert.match(clientSource, /Cuéntanos qué ha fallado/);
+  assert.match(clientSource, /Adjuntar prueba del problema/);
+  assert.match(clientSource, /Enviar problema/);
+  assert.match(clientSource, /setIsReportingSolutionProblem\(false\)/);
+  assert.match(cssSource, /\.storefrontAfterSalesCompletionActions \{/);
+});
+
+test("storefront after-sales evidence uses a bounded multipart upload through BFF", () => {
+  const clientSource = source("src/modules/storefront/storefront-account-client.tsx");
+  const actionsSource = source("src/modules/storefront/storefront-account-actions.ts");
+  const accountSource = source("src/modules/storefront/storefront-account.ts");
+  const configSource = source("next.config.ts");
+  const evidenceRouteSource = source("app/account/after-sales/cases/[caseId]/evidences/[privateEvidenceId]/content/route.ts");
+  const cssSource = source("app/globals.css");
+
+  assert.match(accountSource, /new FormData\(\)/);
+  assert.match(accountSource, /body\.set\("file", input\.file, input\.file\.name\)/);
+  assert.match(accountSource, /body\.set\("idempotencyKey", input\.idempotencyKey\)/);
+  assert.match(accountSource, /\/storefront\/me\/after-sales\/cases\/\$\{encodeURIComponent\(input\.caseId\)\}\/evidences/);
+  assert.doesNotMatch(accountSource, /contentBase64|originalFileName: input|mimeType: input/);
+  assert.match(actionsSource, /allowedEvidenceMimeTypes/);
+  assert.match(actionsSource, /validateStorefrontEvidenceFile/);
+  assert.match(actionsSource, /hasJpegSignature/);
+  assert.match(actionsSource, /hasPngSignature/);
+  assert.match(actionsSource, /hasWebpSignature/);
+  assert.match(actionsSource, /evidenceUploadFailureMessage/);
+  assert.doesNotMatch(actionsSource, /Buffer\.from\(await file\.arrayBuffer\(\)\)\.toString\("base64"\)/);
+  assert.match(clientSource, /image\/png,image\/jpeg,image\/webp/);
+  assert.match(clientSource, /evidenceCount >= 15/);
+  assert.match(clientSource, /de 15 imágenes adjuntas al caso/);
+  assert.match(clientSource, /Analizando imagen/);
+  assert.match(clientSource, /\/account\/after-sales\/cases\/\$\{encodeURIComponent\(caseDetail\.caseId\)\}\/evidences\//);
+  assert.match(clientSource, /Imágenes aportadas/);
+  assert.match(clientSource, /CloudUpload/);
+  assert.match(clientSource, /storefrontAfterSalesFileTrigger/);
+  assert.match(clientSource, /selectedEvidenceName/);
+  assert.match(clientSource, /storefrontAfterSalesEvidenceLightbox/);
+  assert.match(clientSource, /Ver imagen siguiente/);
+  assert.match(clientSource, /lifecycleStatus/);
+  assert.match(clientSource, /Caso cerrado/);
+  assert.match(cssSource, /\.storefrontAfterSalesFileTrigger \{\s+display: inline-flex;/);
+  assert.match(clientSource, /Confirmación abierta hasta/);
+  assert.match(accountSource, /resolutionOutcome/);
+  assert.match(accountSource, /autoCloseAt/);
+  assert.match(evidenceRouteSource, /getStorefrontCustomerAuthorizationHeader/);
+  assert.match(evidenceRouteSource, /\/storefront\/me\/after-sales\/cases\/\$\{encodeURIComponent\(normalizedCaseId\)\}\/evidences\//);
+  assert.match(evidenceRouteSource, /cache-control": "private, no-store"/);
+  assert.match(evidenceRouteSource, /x-content-type-options": "nosniff"/);
+  assert.match(evidenceRouteSource, /referrer-policy": "no-referrer"/);
+  assert.doesNotMatch(evidenceRouteSource, /localStorage|NEXT_PUBLIC|bucket|storage/i);
+  assert.match(configSource, /10 \* 1024 \* 1024 \+ 64 \* 1024/);
 });
 
 test("storefront header switches authenticated customers to account entry", () => {

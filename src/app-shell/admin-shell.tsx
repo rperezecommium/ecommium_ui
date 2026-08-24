@@ -18,6 +18,7 @@ import { logoutAdminEmployee } from "../modules/auth/admin-session-actions";
 import { filterAllowedNavigation } from "../shared/permissions/permissions";
 import { AdminContextSelector } from "./admin-context-selector";
 import { AdminNavigation, type AdminNavigationItem } from "./admin-navigation";
+import { getAfterSalesAdminCapabilities, getAfterSalesTaskSummary } from "../modules/postventa/after-sales-admin";
 
 const navItems = [
   { href: "/admin", label: "Inicio", description: "Health y contexto", permission: "admin:view" as const, icon: Home },
@@ -72,11 +73,16 @@ function toNavigationItems<T extends AdminNavigationItem>(items: T[]): AdminNavi
   return items.map(({ description, href, label }) => ({ description, href, label }));
 }
 
-export function AdminShell({ children, context, directory, session }: AdminShellProps) {
+export async function AdminShell({ children, context, directory, session }: AdminShellProps) {
   const allowedNavItems = filterAllowedNavigation(session, navItems);
   const allowedConfigurationNavItems = filterAllowedNavigation(session, configurationNavItems);
   const allowedCatalogNavItems = filterAllowedNavigation(session, catalogNavItems);
   const allowedCmsNavItems = filterAllowedNavigation(session, cmsNavItems);
+  const afterSalesCapabilities = getAfterSalesAdminCapabilities(session);
+  const afterSalesTaskSummary = await getAfterSalesTaskSummary(context, afterSalesCapabilities);
+  const pendingAfterSalesTasks = afterSalesTaskSummary.ok
+    ? afterSalesTaskSummary.data?.pendingCount
+    : undefined;
 
   return (
     <div className="adminShell">
@@ -94,6 +100,7 @@ export function AdminShell({ children, context, directory, session }: AdminShell
           cmsItems={toNavigationItems(allowedCmsNavItems)}
           configurationItems={toNavigationItems(allowedConfigurationNavItems)}
           items={toNavigationItems(allowedNavItems)}
+          pendingAfterSalesTasks={pendingAfterSalesTasks}
         />
 
         <div className="adminSidebarMeta">

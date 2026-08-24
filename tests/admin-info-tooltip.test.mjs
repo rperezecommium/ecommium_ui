@@ -16,6 +16,8 @@ test("admin informative tooltips use the shared accessible component for the Pri
   assert.match(component, /pointerdown/);
   assert.match(component, /createPortal/);
   assert.match(component, /aria-describedby/);
+  assert.match(component, /title\?: string/);
+  assert.match(component, /title \? <strong>\{title\}<\/strong> : null/);
   assert.match(pricingPage, /AdminInfoTooltip/);
   assert.match(pricingPage, /Más información sobre precios fijados/);
   assert.match(pricingPage, /Más información sobre el pipeline de precios/);

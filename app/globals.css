@@ -670,6 +670,28 @@ p {
   min-width: 0;
 }
 
+.adminNavLabel:has(.adminNavTaskBadge) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.adminNavTaskBadge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--admin-warning);
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .adminNavGroup {
   display: grid;
   gap: 0;
@@ -1546,6 +1568,11 @@ p {
   border-left: solid 3px #e7c96d;
   border-radius: 0;
   background: color-mix(in srgb, #fbbb22 12%, var(--admin-surface));
+}
+
+.afterSalesCustomerReasonCell {
+  color: var(--admin-primary);
+  white-space: pre-wrap;
 }
 
 .adminBannerSuccess {
@@ -4006,7 +4033,7 @@ p {
 
 .adminInfoTooltipContent {
   position: fixed;
-  z-index: 60;
+  z-index: 100;
   display: grid;
   gap: 6px;
   padding: 12px;
@@ -4221,6 +4248,40 @@ p {
 
 .afterSalesCasesCard {
   overflow: auto;
+}
+
+.afterSalesTasksCard {
+  display: grid;
+  gap: 14px;
+  overflow: auto;
+}
+
+.afterSalesTaskFilters {
+  margin: 0;
+}
+
+.afterSalesTaskAssignment,
+.afterSalesTaskActions,
+.afterSalesTaskPagination {
+  align-items: center;
+  margin: 0;
+}
+
+.afterSalesTaskAssignment {
+  display: flex;
+  gap: 6px;
+  min-width: 210px;
+}
+
+.afterSalesTaskAssignment select {
+  min-width: 0;
+  max-width: 220px;
+}
+
+.afterSalesTaskFocus {
+  border-radius: 6px;
+  outline: 2px solid var(--admin-focus-ring);
+  outline-offset: 2px;
 }
 
 .communicationsCollapsible {
@@ -4636,6 +4697,358 @@ p {
   min-width: 0;
 }
 
+.afterSalesClosureProofCapture {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+}
+
+.afterSalesClosureProofCapture legend {
+  padding: 0 4px;
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.afterSalesClosureProofCapture p {
+  margin: 0;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.afterSalesHistoryTimeline {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.afterSalesHistoryEvent {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  padding: 0 0 16px;
+}
+
+.afterSalesHistoryEvent:not(:last-child)::before {
+  position: absolute;
+  top: 28px;
+  bottom: 0;
+  left: 13px;
+  width: 1px;
+  background: var(--admin-border);
+  content: "";
+}
+
+.afterSalesHistoryEventIcon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid color-mix(in srgb, var(--admin-primary) 26%, var(--admin-border));
+  border-radius: 50%;
+  background: var(--admin-surface);
+  color: var(--admin-primary);
+}
+
+.afterSalesHistoryEventT .afterSalesHistoryEventIcon {
+  background: var(--admin-primary);
+  color: var(--admin-surface);
+}
+
+.afterSalesHistoryEventS .afterSalesHistoryEventIcon {
+  color: var(--admin-text-muted);
+}
+
+.afterSalesHistoryEventBody {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding-top: 3px;
+}
+
+.afterSalesHistoryEventMeta,
+.afterSalesHistoryEventLabels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.afterSalesHistoryEventMeta strong {
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.afterSalesHistoryEventMeta time,
+.afterSalesHistoryEventLabels {
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.afterSalesHistoryEventLabels {
+  justify-content: flex-start;
+}
+
+.afterSalesHistoryEventLabels .adminBadge {
+  font-size: 10px;
+}
+
+.afterSalesHistoryEvent blockquote {
+  margin: 2px 0 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--admin-primary);
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+  font-style: italic;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.afterSalesHistoryEventInternal blockquote {
+  border-left-color: var(--admin-warning);
+}
+
+.afterSalesHistoryProposalSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 2px 0 0;
+}
+
+.afterSalesHistoryProposalSummary div {
+  display: flex;
+  gap: 4px;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.afterSalesHistoryProposalSummary dt::after {
+  content: ":";
+}
+
+.afterSalesHistoryProposalSummary dd {
+  margin: 0;
+  color: var(--admin-text);
+  font-weight: 700;
+}
+
+.afterSalesHistoryExecutionSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 2px 0 0;
+}
+
+.afterSalesHistoryExecutionSummary div {
+  display: flex;
+  gap: 4px;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+}
+
+.afterSalesHistoryExecutionSummary dt::after {
+  content: ":";
+}
+
+.afterSalesHistoryExecutionSummary dd {
+  margin: 0;
+  color: var(--admin-text);
+  font-weight: 700;
+}
+
+.afterSalesEvidenceInline {
+  margin-top: 3px;
+}
+
+.afterSalesEvidenceInlineGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.afterSalesEvidenceInline .afterSalesEvidenceThumbnail {
+  width: 72px;
+  height: 72px;
+}
+
+.afterSalesConversationThread {
+  display: grid;
+  gap: 16px;
+}
+
+.afterSalesConversationMessage {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.afterSalesConversationMessage:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.afterSalesConversationMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.afterSalesConversationAvatar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid color-mix(in srgb, var(--admin-primary) 18%, var(--admin-border));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--admin-primary) 8%, var(--admin-surface));
+  color: var(--admin-primary);
+}
+
+.afterSalesConversationIdentity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.afterSalesConversationIdentity strong {
+  color: var(--admin-text);
+}
+
+.afterSalesConversationIdentity span {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--admin-primary) 9%, var(--admin-surface));
+  color: var(--admin-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.afterSalesConversationMeta time {
+  margin-left: auto;
+  color: var(--admin-text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.afterSalesConversationBubble {
+  width: 85%;
+  max-width: none;
+  margin: 0 0 0 54px;
+  padding: 14px 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.afterSalesConversationMessageTeam .afterSalesConversationAvatar {
+  background: var(--admin-primary);
+  color: var(--admin-surface);
+}
+
+.afterSalesConversationMessageTeam .afterSalesConversationBubble {
+  margin-right: 0;
+  margin-left: auto;
+  border-color: color-mix(in srgb, var(--admin-primary) 22%, var(--admin-border));
+  background: color-mix(in srgb, var(--admin-primary) 7%, var(--admin-surface));
+}
+
+.storefrontAfterSalesConversationThread {
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.storefrontAfterSalesConversationThread .afterSalesConversationMessage {
+  gap: 6px;
+  padding-bottom: 10px;
+}
+
+.storefrontAfterSalesConversationThread .afterSalesConversationAvatar {
+  width: 36px;
+  height: 36px;
+}
+
+.storefrontAfterSalesConversationThread .afterSalesConversationMessageCustomer .afterSalesConversationBubble {
+  margin-left: 44px;
+}
+
+.storefrontAfterSalesConversationThread .afterSalesConversationBubble {
+  padding: 5px 8px;
+}
+
+.afterSalesConversationComposer {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-surface);
+}
+
+.afterSalesConversationComposer .adminField textarea {
+  min-height: 112px;
+}
+
+.afterSalesConversationComposer .adminButton {
+  justify-self: start;
+}
+
+.afterSalesProposalCustomerMessage {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.afterSalesProposalCustomerMessage strong {
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.afterSalesProposalCustomerMessage p {
+  margin: 0;
+  color: var(--admin-primary);
+  font-style: italic;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+  .afterSalesConversationBubble,
+  .afterSalesConversationMessageTeam .afterSalesConversationBubble {
+    width: 100%;
+    max-width: 100%;
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .afterSalesConversationIdentity {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+}
+
 .afterSalesOperationForms {
   display: grid;
   gap: 12px;
@@ -4652,6 +5065,75 @@ p {
 
 .afterSalesCollectionPanel .adminCardHeader {
   align-items: center;
+}
+
+.afterSalesEvidenceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.afterSalesEvidenceThumbnail {
+  aspect-ratio: 1;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface-muted);
+  cursor: pointer;
+}
+
+.afterSalesEvidenceThumbnail:focus-visible,
+.afterSalesEvidenceLightbox button:focus-visible {
+  outline: 2px solid var(--admin-focus-ring);
+  outline-offset: 2px;
+}
+
+.afterSalesEvidenceThumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.afterSalesEvidenceLightbox {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 32px 72px;
+  background: rgb(0 15 68 / 88%);
+}
+
+.afterSalesEvidenceLightboxImage {
+  max-width: 100%;
+  max-height: calc(100vh - 64px);
+  object-fit: contain;
+}
+
+.afterSalesEvidenceLightbox button {
+  position: absolute;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  color: var(--admin-text);
+  background: var(--admin-surface);
+  cursor: pointer;
+}
+
+.afterSalesEvidenceLightboxClose { top: 18px; right: 18px; }
+.afterSalesEvidenceLightboxPrevious { left: 18px; top: calc(50% - 22px); }
+.afterSalesEvidenceLightboxNext { right: 18px; top: calc(50% - 22px); }
+.afterSalesEvidenceLightboxCounter { position: absolute; bottom: 16px; margin: 0; color: var(--admin-surface); }
+
+@media (max-width: 640px) {
+  .afterSalesEvidenceLightbox { padding: 56px 12px; }
+  .afterSalesEvidenceLightboxPrevious { left: 8px; }
+  .afterSalesEvidenceLightboxNext { right: 8px; }
 }
 
 .ordersSideDrawer {
@@ -8532,6 +9014,108 @@ p {
   resize: vertical;
 }
 
+.storefrontAfterSalesForm .storefrontAuthField > small {
+  color: #6e7f86;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.storefrontAfterSalesItemSelector {
+  display: grid;
+  gap: 8px;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.storefrontAfterSalesItemSelector legend {
+  padding: 0;
+  color: #232323;
+  font-weight: 700;
+}
+
+.storefrontAfterSalesItemSelector > p,
+.storefrontAfterSalesItemSelection {
+  margin: 0;
+  color: #6e7f86;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.storefrontAfterSalesItemChoices {
+  display: grid;
+  border-top: 1px solid #e6e8ec;
+}
+
+.storefrontAfterSalesItemChoice {
+  display: grid;
+  gap: 8px;
+  padding: 10px 2px;
+  border-bottom: 1px solid #e6e8ec;
+}
+
+.storefrontAfterSalesItemChoice > label:first-child {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 32px;
+  color: #232323;
+  cursor: pointer;
+}
+
+.storefrontAfterSalesItemChoice > label:first-child input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #1688a3;
+}
+
+.storefrontAfterSalesItemChoice > span {
+  display: grid;
+  gap: 2px;
+}
+
+.storefrontAfterSalesItemChoice strong {
+  font-size: 14px;
+}
+
+.storefrontAfterSalesItemChoice small {
+  color: #6e7f86;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.storefrontAfterSalesItemChoice:focus-within {
+  outline: 2px solid #1688a3;
+  outline-offset: 2px;
+}
+
+.storefrontAfterSalesItemQuantity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  gap: 10px;
+  align-items: center;
+  padding-left: 28px;
+  color: #6e7f86;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.storefrontAfterSalesItemQuantity input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #d9dde3;
+  border-radius: 4px;
+  background: #ffffff;
+  padding: 0 8px;
+  color: #232323;
+  font: inherit;
+}
+
 .storefrontAuthPasswordControl {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 42px;
@@ -9090,13 +9674,592 @@ p {
   color: #7a7a7a;
 }
 
+.storefrontAfterSalesCompletionCard {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--storefront-primary, #25abc4);
+  border-radius: 6px;
+  background: #f3fbfd;
+}
+
+.storefrontAfterSalesCompletionCard > div {
+  display: grid;
+  gap: 3px;
+}
+
+.storefrontAfterSalesCompletionCard > div > span {
+  color: var(--storefront-primary, #25abc4);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.storefrontAfterSalesCompletionCard h3,
+.storefrontAfterSalesCompletionCard p {
+  margin: 0;
+}
+
+.storefrontAfterSalesCompletionCard h3 {
+  color: var(--storefront-text, #363a41);
+  font-size: 18px;
+}
+
+.storefrontAfterSalesCompletionCard dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.storefrontAfterSalesCompletionCard dl > div {
+  display: grid;
+  gap: 2px;
+}
+
+.storefrontAfterSalesCompletionCard dt {
+  color: var(--storefront-text-muted, #6c868e);
+  font-size: 12px;
+}
+
+.storefrontAfterSalesCompletionCard dd {
+  margin: 0;
+  color: var(--storefront-text, #363a41);
+  font-weight: 700;
+}
+
+.storefrontAfterSalesCompletionHint {
+  color: var(--storefront-text-muted, #6c868e);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.storefrontAfterSalesCompletionCard form {
+  display: flex;
+}
+
+.storefrontAfterSalesCompletionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.storefrontAfterSalesCompletionProblem {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.storefrontAfterSalesCompletionCard .storefrontAuthSubmit {
+  max-width: 100%;
+}
+
 .storefrontAfterSalesHomeActions,
+.storefrontAfterSalesHome,
 .storefrontAfterSalesCaseList,
 .storefrontAfterSalesCaseItems,
 .storefrontAfterSalesHistory {
   display: grid;
   gap: 12px;
 }
+
+.storefrontAfterSalesHome > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.storefrontAfterSalesHome h3 {
+  margin: 0;
+  color: #232323;
+  font-size: 18px;
+}
+
+.storefrontAfterSalesHome > div:first-child > p {
+  margin: 0;
+  color: #7a7a7a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.storefrontAfterSalesHomeChoices {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  align-items: start;
+  gap: 12px;
+}
+
+.storefrontAfterSalesHomeChoice {
+  position: relative;
+  border: 1px solid var(--storefront-border, #d9e1e7);
+  border-radius: 8px;
+  background: var(--storefront-surface, #ffffff);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.storefrontAfterSalesHomeChoice:hover {
+  border-color: var(--storefront-primary, #25abc4);
+  box-shadow: 0 2px 10px rgb(22 136 163 / 12%);
+}
+
+.storefrontAfterSalesHomeChoice:focus-within {
+  outline: 2px solid var(--storefront-primary, #25abc4);
+  outline-offset: 3px;
+}
+
+.storefrontAfterSalesHomeChoiceLink {
+  display: grid;
+  align-content: start;
+  padding: 18px 52px 18px 18px;
+  color: var(--storefront-text, #363a41);
+  text-decoration: none;
+}
+
+.storefrontAfterSalesHomeChoiceLink strong {
+  color: var(--storefront-text, #363a41);
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.storefrontAfterSalesHomeChoice .adminInfoTooltip {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+}
+
+.storefrontAfterSalesHomeChoice .adminInfoTooltipTrigger {
+  width: 36px;
+  min-height: 36px;
+  height: 36px;
+  color: var(--storefront-primary, #25abc4);
+}
+
+.storefrontAfterSalesHomeChoice .adminInfoTooltipTrigger:hover,
+.storefrontAfterSalesHomeChoice .adminInfoTooltipTrigger[aria-expanded="true"] {
+  color: var(--storefront-primary, #25abc4);
+}
+
+.storefrontAfterSalesWizard {
+  display: grid;
+  gap: 20px;
+}
+
+.storefrontAfterSalesOpeningComplete {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--storefront-border, #d9e1e7);
+  border-radius: 8px;
+  background: var(--storefront-surface, #ffffff);
+}
+
+.storefrontAfterSalesOpeningComplete > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.storefrontAfterSalesOpeningComplete > div:first-child > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--storefront-primary, #25abc4);
+  font-weight: 800;
+}
+
+.storefrontAfterSalesOpeningComplete h3,
+.storefrontAfterSalesOpeningComplete p {
+  margin: 0;
+}
+
+.storefrontAfterSalesOpeningComplete h3 {
+  color: #232323;
+  font-size: 18px;
+}
+
+.storefrontAfterSalesOpeningComplete p {
+  color: #6e7f86;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.storefrontAfterSalesOpeningCompleteLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.storefrontAfterSalesWizardHeader {
+  display: grid;
+  gap: 12px;
+}
+
+.storefrontAfterSalesWizardHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.storefrontAfterSalesWizardHeader h3,
+.storefrontAfterSalesWizardPanelHeading h4 {
+  margin: 0;
+  color: #232323;
+}
+
+.storefrontAfterSalesWizardHeader h3 {
+  font-size: 18px;
+}
+
+.storefrontAfterSalesWizardHeader p,
+.storefrontAfterSalesWizardPanelHeading p {
+  margin: 0;
+  color: #6e7f86;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.storefrontAfterSalesWizardProgress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storefrontAfterSalesWizardProgress li > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  color: #6e7f86;
+  background: transparent;
+  font-size: 12px;
+  text-align: left;
+}
+
+.storefrontAfterSalesWizardProgress li.is-complete > button {
+  cursor: pointer;
+}
+
+.storefrontAfterSalesWizardProgress li.is-complete > button:focus-visible {
+  outline: 2px solid var(--storefront-primary, #25abc4);
+  outline-offset: 3px;
+}
+
+.storefrontAfterSalesWizardProgress li > button > span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--storefront-border, #d9e1e7);
+  border-radius: 999px;
+  color: #6e7f86;
+  background: var(--storefront-surface, #ffffff);
+  font-size: 12px;
+}
+
+.storefrontAfterSalesWizardProgress li > button > strong {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storefrontAfterSalesWizardProgress li.is-current,
+.storefrontAfterSalesWizardProgress li.is-complete {
+  color: var(--storefront-primary, #25abc4);
+}
+
+.storefrontAfterSalesWizardProgress li.is-current > button > span,
+.storefrontAfterSalesWizardProgress li.is-complete > button > span {
+  border-color: var(--storefront-primary, #25abc4);
+  color: #ffffff;
+  background: var(--storefront-primary, #25abc4);
+}
+
+.storefrontAfterSalesWizardForm {
+  min-width: 0;
+}
+
+.storefrontAfterSalesWizardPanel {
+  display: grid;
+  gap: 16px;
+  animation: storefrontAfterSalesWizardPanelEnterForward 180ms ease-out;
+}
+
+.storefrontAfterSalesWizardPanel.is-moving-backward {
+  animation-name: storefrontAfterSalesWizardPanelEnterBackward;
+}
+
+.storefrontAfterSalesWizardPanelHeading {
+  display: grid;
+  gap: 4px;
+}
+
+.storefrontAfterSalesWizardPanelHeading > span {
+  color: var(--storefront-primary, #25abc4);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.storefrontAfterSalesWizardPanelHeading h4 {
+  font-size: 17px;
+}
+
+.storefrontAfterSalesWizardActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 10px;
+}
+
+.storefrontAfterSalesWizardActionsEnd {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.storefrontAfterSalesWizardActions > .storefrontAuthSubmit {
+  width: 100%;
+}
+
+.storefrontAfterSalesWizardSummary {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storefrontAfterSalesWizardSummary li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--storefront-border, #d9e1e7);
+  color: #6e7f86;
+  font-size: 13px;
+}
+
+.storefrontAfterSalesWizardSummary strong {
+  color: var(--storefront-text, #363a41);
+  text-align: right;
+}
+
+.storefrontAfterSalesWizardSubmitting {
+  margin: 0;
+  color: var(--storefront-primary, #25abc4);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.storefrontAfterSalesEvidencePicker {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px dashed var(--storefront-border, #d9e1e7);
+  border-radius: 8px;
+  color: var(--storefront-text, #363a41);
+  cursor: pointer;
+}
+
+.storefrontAfterSalesEvidencePicker > span {
+  font-weight: 750;
+}
+
+.storefrontAfterSalesFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.storefrontAfterSalesFileTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: fit-content;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 4px;
+  background: var(--storefront-primary, #25abc4);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.storefrontAfterSalesEvidencePicker:focus-within .storefrontAfterSalesFileTrigger {
+  outline: 2px solid var(--storefront-primary, #25abc4);
+  outline-offset: 3px;
+}
+
+.storefrontAfterSalesSelectedFile {
+  color: #6e7f86;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.storefrontAfterSalesEvidencePicker > small,
+.storefrontAfterSalesEvidenceSelectionMessage,
+.storefrontAfterSalesWizardReviewHeading p {
+  margin: 0;
+  color: #6e7f86;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.storefrontAfterSalesEvidenceSelectionMessage {
+  color: #a85b00;
+}
+
+.storefrontAfterSalesPreparedEvidence {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storefrontAfterSalesPreparedEvidence li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--storefront-border, #d9e1e7);
+}
+
+.storefrontAfterSalesPreparedEvidence li > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.storefrontAfterSalesPreparedEvidence strong {
+  overflow: hidden;
+  color: var(--storefront-text, #363a41);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storefrontAfterSalesPreparedEvidence small {
+  color: #6e7f86;
+  font-size: 12px;
+}
+
+.storefrontAfterSalesWizardReviewHeading {
+  display: grid;
+  gap: 4px;
+}
+
+.storefrontAfterSalesWizardReviewHeading h5 {
+  margin: 0;
+  color: #232323;
+  font-size: 14px;
+}
+
+@keyframes storefrontAfterSalesWizardPanelEnterForward {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes storefrontAfterSalesWizardPanelEnterBackward {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefrontAfterSalesWizardPanel,
+  .storefrontAfterSalesWizardPanel.is-moving-backward {
+    animation: none;
+  }
+}
+
+.storefrontAfterSalesEvidenceSection {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--storefront-border, #d9e1e7);
+  border-radius: 8px;
+}
+
+.storefrontAfterSalesEvidenceSection > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.storefrontAfterSalesEvidenceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px;
+}
+
+.storefrontAfterSalesEvidenceThumbnail {
+  aspect-ratio: 1;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--storefront-border, #d9e1e7);
+  border-radius: 6px;
+  background: var(--storefront-surface-muted, #eef3f6);
+  cursor: pointer;
+}
+
+.storefrontAfterSalesEvidenceThumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.storefrontAfterSalesEvidenceLightbox {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 32px 72px;
+  background: rgb(0 15 68 / 88%);
+}
+
+.storefrontAfterSalesEvidenceLightboxImage {
+  max-width: 100%;
+  max-height: calc(100vh - 64px);
+  object-fit: contain;
+}
+
+.storefrontAfterSalesEvidenceLightbox button {
+  position: absolute;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--storefront-border, #d9e1e7);
+  border-radius: 6px;
+  color: var(--storefront-text, #363a41);
+  background: var(--storefront-surface, #ffffff);
+  cursor: pointer;
+}
+
+.storefrontAfterSalesEvidenceClose { top: 18px; right: 18px; }
+.storefrontAfterSalesEvidencePrevious { left: 18px; top: calc(50% - 22px); }
+.storefrontAfterSalesEvidenceNext { right: 18px; top: calc(50% - 22px); }
+.storefrontAfterSalesEvidenceLightbox p { position: absolute; bottom: 16px; margin: 0; color: #ffffff; }
 
 .storefrontAfterSalesHomeActions > p,
 .storefrontAfterSalesCaseListHeader p {
@@ -9108,9 +10271,12 @@ p {
 
 .storefrontAfterSalesCaseListHeader {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 150px;
-  align-items: end;
-  gap: 12px;
+}
+
+.storefrontAfterSalesCaseListActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .storefrontAfterSalesCaseListHeader h3 {
@@ -9160,9 +10326,32 @@ p {
 }
 
 @media (max-width: 560px) {
-  .storefrontAfterSalesCaseListHeader {
+  .storefrontAfterSalesHomeChoices {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .storefrontAfterSalesWizardProgress {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .storefrontAfterSalesWizardProgress li > button {
+    grid-template-columns: 26px minmax(0, 1fr);
+  }
+
+  .storefrontAfterSalesPreparedEvidence li {
+    align-items: flex-start;
+  }
+
+  .storefrontAfterSalesWizardSummary li {
+    display: grid;
+    gap: 4px;
+  }
+
+  .storefrontAfterSalesWizardSummary strong {
+    text-align: left;
+  }
+
 }
 
 .storefrontSessionsPanel {

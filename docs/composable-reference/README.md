@@ -122,6 +122,11 @@ Estos endpoints son orientativos para construir UI. Si alguno no responde, regis
 - `GET /api/v1/storefront/me/invoices/:invoiceId/document`
 - `POST /api/v1/storefront/me/after-sales/cases?organizationId=:org&shopId=:shop`
 
+Al abrir un caso, `customerMessage` es obligatorio: describe lo ocurrido y se
+conserva como el primer mensaje del historial. El motivo seleccionado es solo
+una categoría; no sustituye ese contexto. El BFF rechaza solicitudes sin texto
+con `400 customerMessage is required`.
+
 Reglas para pedidos guest:
 
 - La recuperación recibe únicamente `{ orderReference, email }`, responde siempre
@@ -476,16 +481,124 @@ son cupones. Viven en `Admin > Configuracion > Precios`, consumen
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/review?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/approve?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/assignment?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/after-sales/cases/:caseId/solution-proposals?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/after-sales/cases/:caseId/solution-execution?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/after-sales/cases/:caseId/solution-completion?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/after-sales/cases/:caseId/solution-finalization?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/after-sales/cases/:caseId/closure-proofs?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/after-sales/cases/:caseId/return-authorizations?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/after-sales/cases/:caseId/refund-requests?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/after-sales/cases/:caseId/inventory-dispositions?organizationId=:org&shopId=:shop`
 - `POST /api/v1/admin/after-sales/cases/:caseId/document-adjustments?organizationId=:org&shopId=:shop`
 - `PATCH /api/v1/admin/after-sales/cases/:caseId/resolve?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/after-sales/tasks/summary?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/after-sales/tasks?organizationId=:org&shopId=:shop&caseId=:optional&taskType=:optional&status=:optional&assignedEmployeeId=:optional&limit=:limit&offset=:offset`
+- `DELETE /api/v1/admin/after-sales/tasks/:taskId?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/after-sales/tasks/:taskId/attend?organizationId=:org&shopId=:shop`
+
+Actualización de contrato 2026-08-21: una propuesta no es una resolución
+técnica. El detalle de caso puede incluir `solutionProposals[]` con versión,
+estado (`PENDING_CUSTOMER|SUPERSEDED|ACCEPTED|REJECTED|EXPIRED`), tipo de
+solución, mensaje customer-facing, importe/moneda opcionales, devolución y
+vencimiento. La UI no manda un estado libre: inicia revisión, emite propuesta,
+inicia ejecución, finaliza solución o cierra mediante las acciones explícitas
+anteriores. La primera transición Admin de un caso sin responsable lo asigna
+en servidor al empleado de la sesión; «Atender» retira la tarea concreta junto
+con esa asignación y la revisión cuando procede. El primer rechazo de una
+propuesta crea la alerta de prioridad alta «Propuesta rechazada» y devuelve el
+caso a revisión. Una propuesta vencida queda en espera («Invernando») y no
+equivale a aceptación.
+
+Al aceptar una propuesta pendiente, el caso entra en resolución y crea la
+alerta de prioridad alta «Propuesta aceptada». «Atender» conserva la misma
+autoasignación atómica, retira solo ese aviso y abre Ejecución para que el
+equipo procese el acuerdo.
+
+Al rechazar una propuesta, su versión y el motivo comunicado por el cliente se
+mantienen en el historial. El mismo panel de Propuesta vuelve a mostrar el
+formulario para emitir una alternativa como una versión nueva; nunca modifica
+ni elimina la oferta rechazada.
+
+La proyección Admin de ejecución muestra únicamente hechos devueltos por el
+BFF: propuesta aceptada, resolución interna, recepción de devolución y refund
+completado. No calcula en el navegador si los importes, moneda o requisitos son
+suficientes para finalizar; el botón posterior delega toda la validación a
+`solution-finalization`.
+
+La emisión de propuesta desde Admin envía solo `solutionType`, mensaje para el
+cliente, importe/moneda opcionales, condiciones de devolución, vigencia e
+idempotencia. Una vez el cliente acepta, «Procesar solución» no incluye
+importes, inventario ni decisiones de cierre; «Finalizar solución» añade la
+explicación customer-facing, nota interna obligatoria e imagen opcional. Sus
+comandos `solution-execution` y `solution-finalization` localizan el acuerdo y
+validan el estado completo dentro de After Sales.
+
+La finalización ordinaria usa un solo comando `solution-finalization`: exige
+`resolutionReason`, `closureProof.note` e `idempotencyKey`, y admite una imagen
+privada opcional `contentBase64` JPEG/PNG/WebP con su idempotencia. No incluye
+`resolutionId` del navegador. El BFF deriva el empleado de su sesión, almacena
+la imagen en Media privado y After Sales registra solución, prueba y plazo en
+la misma operación. `closure-proofs` queda solo para recuperar expedientes
+históricos ya resueltos. La respuesta incluye `autoCloseAt`; hasta que la
+prueba activa exista, la UI no ofrece cerrar el caso como completado.
+
+Actualización de contrato 2026-08-23: el owner autenticado puede confirmar la
+solución recibida mediante `POST /storefront/me/after-sales/cases/:caseId/confirm-completion`.
+El body admite solo `{ note?: string }`; BFF y After Sales derivan la resolución
+vigente y el cierre `CUSTOMER_CONFIRMED`. La UI no recibe ni envía
+`resolutionId`, pruebas internas, evidencias internas ni un motivo de cierre.
+Si el caso sigue sin confirmación cuando vence `autoCloseAt`, el worker
+controlado de After Sales puede cerrarlo como `AUTO_TIMEOUT`.
+
+La asignación del responsable se ejecuta desde la bandeja de casos y desde la
+acción explícita de atención. La cola solo contiene novedades pendientes:
+«Atender» usa `POST /admin/after-sales/tasks/:taskId/attend`, deriva el actor
+de sesión en BFF, retira esa alerta y asigna el caso libre; si el caso estaba
+pendiente, también lo inicia en revisión. El expediente conserva mensajes y
+evidencias.
 
 La bandeja Admin abre el detalle y las acciones de un caso en un drawer lateral controlado por
 `caseId` en la URL. La UI no navega ni llama directamente a Shipping, Inventory o Invoice: las
 mutaciones se realizan únicamente por los endpoints de After Sales. En Storefront, Mi cuenta abre
 otro drawer limitado a la solicitud inicial.
+
+El drawer Admin prioriza el recorrido humano en cuatro secciones: **Caso**,
+**Propuesta**, **Ejecución** e **Historial**. Los enlaces antiguos de `operacion`,
+`devolucion`, `resolucion` y `auditoria` se traducen a la sección equivalente para no
+romper accesos guardados. La cola operativa y sus alertas se mantienen sin cambios;
+las operaciones técnicas de expedientes históricos solo aparecen agrupadas durante su
+ejecución.
+
+La cola operativa de Postventa se consume solo mediante StoreAdmin BFF. El
+resumen devuelve `{ pendingCount, openCount, assignedCount }` para el badge
+del shell Admin. Las tareas solo exponen referencias técnicas, tipo, estado,
+prioridad, responsable y fechas; nunca texto de cliente, URLs privadas ni
+binarios. La bandeja permite filtrar y abrir el mismo drawer URL-driven con
+`caseId`; `CUSTOMER_MESSAGE` y `EVIDENCE_REVIEW` añaden
+respectivamente `caseFocus=message|evidence` como estado de presentación, no
+como autorización. El BFF deriva el actor de la sesión Employee y no acepta
+esos campos desde la UI. `SOLUTION_PROPOSAL_REJECTED` abre el caso en la
+sección Propuesta para revisar y emitir una alternativa.
+
+La interfaz presenta estos avisos como «Caso nuevo», «Mensaje del cliente» y
+«Evidencia pendiente». «Atender» reconoce únicamente la alerta seleccionada,
+abre su mismo caso y conserva el foco de conversación o evidencia. En
+Storefront, el detalle muestra la propuesta activa y permite al owner elegir
+«Aceptar propuesta» o «Rechazar» por
+`PATCH /storefront/me/after-sales/cases/:caseId/solution-proposals/:proposalId/response`.
+Una propuesta vencida se presenta como «Propuesta en espera», sin aceptar por
+silencio ni exponer controles técnicos.
+Tras cualquier mutación de Postventa se revalida también el layout Admin para
+actualizar el contador lateral sin una navegación adicional.
+
+El permiso `admin:after-sales:view` permite consultar casos, cola e historial
+en modo lectura. Solo `after-sales.manage` habilita asignación, atención de
+alertas, mensajes y acciones de propuesta/ejecución. Los errores del BFF se
+vuelven a la URL como aviso público de error; la UI no muestra detalles internos
+ni los presenta como una confirmación satisfactoria.
+
+El flujo completo de validación manual, automatizada, despliegue y reversión
+está en [after-sales-admin-workflow.md](./after-sales-admin-workflow.md).
 
 `Admin > Transporte` consume la configuracion global de Shipping/Logistics por
 BFF con `GET /admin/shipping/configuration` y edita zonas, transportistas,

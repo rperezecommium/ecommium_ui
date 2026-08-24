@@ -9,6 +9,10 @@ const scriptSrc = [
 ].join(" ");
 
 const nextConfig: NextConfig = {
+  // La UI se sirve localmente por `localhost`, pero las sesiones compartidas
+  // de desarrollo pueden cargarla por `127.0.0.1`. Sin esta allowlist Next
+  // bloquea HMR y puede impedir la hidratación de controles client-side.
+  allowedDevOrigins: isDevelopment ? ["127.0.0.1"] : undefined,
   poweredByHeader: false,
   async headers() {
     return [
@@ -27,7 +31,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      // 10 MiB de fichero + una envoltura multipart acotada; BFF conserva el
+      // límite definitivo de 10 MiB para el binario.
+      bodySizeLimit: 10 * 1024 * 1024 + 64 * 1024,
     },
   },
 };

@@ -69,5 +69,5 @@ function accountSection(value: string | undefined) {
 }
 
 function afterSalesView(value: string | undefined) {
-  return value === "cases" ? value : undefined;
+  return value === "cases" || value === "new" ? value : undefined;
 }

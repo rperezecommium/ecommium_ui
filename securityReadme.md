@@ -362,6 +362,35 @@ Resolución parcial de UI:
   - `src/modules/storefront/storefront-auth-actions.ts:59-65`: redirect local no rechaza barras inversas y controles como lo hace `public-path.ts`.
 - Correccion requerida: helper unico para URLs externas e internas; HTTPS y allowlist cuando exista un conjunto de proveedores conocido; origen exacto para redirects locales.
 
+### SEC-017 — Evidencia Storefront serializada como Base64
+
+- Severidad: **ALTA** antes del cierre de ADR-0157; el binario ampliaba el
+  payload JSON, confiaba en metadatos controlables por el navegador y no era
+  compatible con el contrato de cuarentena multipart.
+- Estado: **EN PROGRESO**.
+- Evidencia previa: `src/modules/storefront/storefront-account-actions.ts`
+  convertía el `File` a `contentBase64` y `src/modules/storefront/storefront-account.ts`
+  lo reenviaba como JSON.
+
+Resolución parcial de UI:
+
+- Fecha: 2026-08-19.
+- Cambio: la Server Action valida nombre, tipo exacto, tamaño máximo de 10 MiB
+  y firma JPEG/PNG/WebP antes de construir un `FormData` con solo `file`,
+  `idempotencyKey` y `messageId` opcional. No fija `Content-Type`, por lo que
+  `fetch` genera el boundary multipart; no se crea Route Handler bajo `app/api`
+  ni se accede a Media/bucket. La lectura es una ruta técnica autenticada de Mi
+  cuenta que solo reenvía el binario del BFF y entrega JPEG con `private,
+  no-store`, `nosniff` y `no-referrer`. La UI informa el límite de 15 imágenes
+  por caso y usa estados públicos para rechazo, cuota o indisponibilidad. El
+  límite de Server Actions deja 64 KiB de envoltura sobre los 10 MiB de binario,
+  mientras BFF sigue imponiendo el máximo definitivo.
+- Pruebas: `node --test tests/storefront-account.test.mjs`, `npm run lint` y
+  `npm run build` en verde; lint conserva tres warnings preexistentes ajenos.
+- Pendiente para cierre: pruebas de abuso/IDOR de contrato en 6/8 y certificación
+  Playwright visible contra BFF/Media/ClamAV reales en 7/8. El rollout BFF
+  permanece `DISABLED` hasta entonces.
+
 ## Supply chain y proceso pendientes
 
 - `packageManager` fija npm `10.9.2` y `engines` acota Node/npm; el workflow `supply-chain` ejecuta `npm ci`, audit de producción y lint en cada PR y push a `main`.

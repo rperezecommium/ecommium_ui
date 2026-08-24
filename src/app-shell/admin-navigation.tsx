@@ -26,6 +26,7 @@ type AdminNavigationProps = {
   configurationItems: AdminNavigationItem[];
   catalogItems: AdminNavigationItem[];
   cmsItems: AdminNavigationItem[];
+  pendingAfterSalesTasks?: number;
 };
 
 const iconsByHref = {
@@ -49,7 +50,7 @@ function isRouteActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function NavigationLink({ item }: { item: AdminNavigationItem }) {
+function NavigationLink({ item, pendingAfterSalesTasks }: { item: AdminNavigationItem; pendingAfterSalesTasks?: number }) {
   const pathname = usePathname();
   const active = isRouteActive(pathname, item.href);
   const Icon = iconsByHref[item.href as keyof typeof iconsByHref];
@@ -63,6 +64,7 @@ function NavigationLink({ item }: { item: AdminNavigationItem }) {
       {Icon ? <Icon className="adminNavIcon" aria-hidden="true" size={18} /> : null}
       <span className="adminNavLabel">
         <strong>{item.label}</strong>
+        {item.href === "/admin/postventa" && pendingAfterSalesTasks ? <span aria-label={`${pendingAfterSalesTasks} alertas de postventa pendientes`} className="adminNavTaskBadge">{pendingAfterSalesTasks}</span> : null}
       </span>
     </Link>
   );
@@ -117,7 +119,7 @@ function NavigationSubLink({ exact = false, item }: { exact?: boolean; item: Adm
   );
 }
 
-export function AdminNavigation({ catalogItems, cmsItems, configurationItems, items }: AdminNavigationProps) {
+export function AdminNavigation({ catalogItems, cmsItems, configurationItems, items, pendingAfterSalesTasks }: AdminNavigationProps) {
   return (
     <nav className="adminNav">
       <div className="adminNavSectionLabel">Vender</div>
@@ -132,7 +134,7 @@ export function AdminNavigation({ catalogItems, cmsItems, configurationItems, it
           return <NavigationGroup childItems={cmsItems} item={item} key={item.href} />;
         }
 
-        return <NavigationLink item={item} key={item.href} />;
+        return <NavigationLink item={item} key={item.href} pendingAfterSalesTasks={pendingAfterSalesTasks} />;
       })}
     </nav>
   );
