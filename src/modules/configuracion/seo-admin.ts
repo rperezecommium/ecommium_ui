@@ -92,8 +92,20 @@ export type SeoAdminResult<T> = {
   message?: string;
   failedEndpoint?: string;
   status?: number;
+  failure?: SeoAdminFailure;
   permission?: "routing-seo.routes.write";
 };
+
+export type SeoAdminFailure =
+  | "bff-unreachable"
+  | "session-expired"
+  | "permission-denied"
+  | "invalid-request"
+  | "conflict"
+  | "routing-seo-failed"
+  | "routing-seo-unavailable"
+  | "routing-seo-timeout"
+  | "unexpected";
 
 export type SeoAdminFilters = {
   tab: SeoAdminTab;
@@ -287,14 +299,51 @@ function unavailable<T>(
   fallback: T,
   result: Extract<BffResult<T>, { ok: false }>,
 ): SeoAdminResult<T> {
+  const failure = classifySeoFailure(result.status);
   return {
     source: "unavailable",
     data: fallback,
-    message: result.status === 403 ? "Falta permiso routing-seo.routes.write." : result.error,
+    message: seoFailureMessage(failure),
     failedEndpoint: endpoint,
     status: result.status,
+    failure,
     permission: result.status === 403 ? "routing-seo.routes.write" : undefined,
   };
+}
+
+function classifySeoFailure(status?: number): SeoAdminFailure {
+  if (typeof status === "undefined") return "bff-unreachable";
+  if (status === 401) return "session-expired";
+  if (status === 403) return "permission-denied";
+  if (status === 400 || status === 422) return "invalid-request";
+  if (status === 409) return "conflict";
+  if (status === 502) return "routing-seo-failed";
+  if (status === 503) return "routing-seo-unavailable";
+  if (status === 504) return "routing-seo-timeout";
+  return "unexpected";
+}
+
+function seoFailureMessage(failure: SeoAdminFailure): string {
+  switch (failure) {
+    case "bff-unreachable":
+      return "No se pudo conectar con el BFF Admin.";
+    case "session-expired":
+      return "Tu sesión ha caducado. Inicia sesión de nuevo.";
+    case "permission-denied":
+      return "Falta permiso routing-seo.routes.write.";
+    case "invalid-request":
+      return "Los filtros o datos enviados a Routing/SEO no son válidos.";
+    case "conflict":
+      return "La operación SEO entra en conflicto con una ruta o redirect existente.";
+    case "routing-seo-failed":
+      return "Routing/SEO devolvió un error interno. El BFF Admin sigue disponible.";
+    case "routing-seo-unavailable":
+      return "Routing/SEO no está disponible temporalmente. Inténtalo de nuevo en unos minutos.";
+    case "routing-seo-timeout":
+      return "Routing/SEO ha tardado demasiado en responder. Inténtalo de nuevo.";
+    default:
+      return "No se pudo completar la operación SEO.";
+  }
 }
 
 function sanitizeRoutePayload(payload: Record<string, unknown>): Record<string, unknown> {

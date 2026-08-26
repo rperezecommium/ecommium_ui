@@ -315,15 +315,15 @@ async function mutateTask(
 
 export async function applyAfterSalesFiltersAction(formData: FormData): Promise<never> {
   const params = new URLSearchParams();
-  const caseId = asString(formData.get("caseId"));
+  const caseReference = asString(formData.get("caseReference"));
   const status = asString(formData.get("status"));
   const customerId = asString(formData.get("customerId"));
   const orderId = asString(formData.get("orderId"));
   const assignedEmployeeId = asString(formData.get("assignedEmployeeId"));
   const limit = asString(formData.get("limit"));
 
-  if (caseId) {
-    params.set("caseId", caseId);
+  if (caseReference) {
+    params.set("caseReference", caseReference);
   }
   if (status) {
     params.set("status", status);

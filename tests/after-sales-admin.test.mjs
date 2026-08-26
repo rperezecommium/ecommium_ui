@@ -492,8 +492,11 @@ test("after-sales admin loads health list and selected case through BFF", async 
       : pathValue.includes("/admin/after-sales/cases/case-1?")
         ? {
             caseId: "case-1",
+            caseReference: "ASC-7H2K9Q4M8R",
             orderId: "order-1",
+            orderReference: "#4D2B764",
             customerId: "customer-1",
+            customerReference: "C-SRWE...",
             caseType: "RETURN",
             status: "UNDER_REVIEW",
             lifecycleStatus: "IN_PROGRESS",
@@ -518,7 +521,15 @@ test("after-sales admin loads health list and selected case through BFF", async 
               invoice: { items: [] },
             }
         : {
-            items: [{ caseId: "case-1", orderId: "order-1", customerId: "customer-1", status: "SUBMITTED" }],
+            items: [{
+              caseId: "case-1",
+              caseReference: "ASC-7H2K9Q4M8R",
+              orderId: "order-1",
+              orderReference: "#4D2B764",
+              customerId: "customer-1",
+              customerReference: "C-SRWE...",
+              status: "SUBMITTED",
+            }],
             total: 1,
             limit: 25,
             offset: 0,
@@ -530,11 +541,14 @@ test("after-sales admin loads health list and selected case through BFF", async 
   const { buildAfterSalesCaseHistory } = loadAfterSalesAdminModule(requestAdminBff);
   const capabilities = { canViewAfterSales: true, canManageAfterSales: true };
 
-  const data = await getAfterSalesAdminData(context, { caseId: "case-1", status: "SUBMITTED", customerId: "customer-1", orderId: "order-1", assignedEmployeeId: "employee-1" }, capabilities);
+  const data = await getAfterSalesAdminData(context, { caseId: "case-1", caseReference: "ASC-7H2K9Q4M8R", status: "SUBMITTED", customerId: "customer-1", orderId: "order-1", assignedEmployeeId: "employee-1" }, capabilities);
   const timeline = buildAfterSalesCaseHistory(data.selectedCase.data);
 
   assert.equal(data.health.data.databaseReachable, true);
   assert.equal(data.cases.data.items[0].caseId, "case-1");
+  assert.equal(data.cases.data.items[0].caseReference, "ASC-7H2K9Q4M8R");
+  assert.equal(data.cases.data.items[0].orderReference, "#4D2B764");
+  assert.equal(data.cases.data.items[0].customerReference, "C-SRWE...");
   assert.equal(data.taskSummary.data.pendingCount, 2);
   assert.equal(data.tasks.data.items[0].taskType, "CUSTOMER_MESSAGE");
   assert.equal(data.selectedCase.data.items[0].name, "Producto");
@@ -543,13 +557,13 @@ test("after-sales admin loads health list and selected case through BFF", async 
   assert.equal(data.selectedCase.data.refundRequests.length, 1);
   assert.equal(data.orderReferences.data.transactions[0].id, "transaction-1");
   assert.equal(data.orderReferences.data.transactions[0].label, "PAY-0001");
-  assert.equal(data.selectedCustomerReference, "C-CLIENTE");
+  assert.equal(data.selectedCustomerReference, "C-SRWE...");
   assert.equal(timeline[0].kind, "CASE_OPENED");
   assert.equal(timeline.some((event) => event.kind === "CASE_ASSIGNED" && event.actor === "TEAM"), true);
   assert.equal(timeline.some((event) => event.kind === "REFUND_COMPLETED"), false);
   assert.deepEqual(calls.map((call) => call.path), [
     "/admin/after-sales/health",
-    "/admin/after-sales/cases?organizationId=org-1&shopId=shop-1&status=SUBMITTED&customerId=customer-1&orderId=order-1&assignedEmployeeId=employee-1&limit=25&offset=0",
+    "/admin/after-sales/cases?organizationId=org-1&shopId=shop-1&caseReference=ASC-7H2K9Q4M8R&status=SUBMITTED&customerId=customer-1&orderId=order-1&assignedEmployeeId=employee-1&limit=25&offset=0",
     "/admin/after-sales/tasks/summary?organizationId=org-1&shopId=shop-1",
     "/admin/after-sales/tasks?organizationId=org-1&shopId=shop-1&limit=20&offset=0",
     "/admin/after-sales/cases/case-1?organizationId=org-1&shopId=shop-1",

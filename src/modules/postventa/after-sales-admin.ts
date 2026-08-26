@@ -3,7 +3,6 @@ import type { BffResult } from "../../shared/bff/types";
 import type { AdminSession } from "../../shared/auth/session";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
-import { getCustomerDetail } from "../clientes/customers-admin";
 
 export type AfterSalesAdminDrawerTab = "caso" | "propuesta" | "ejecucion" | "historial";
 export type AfterSalesAdminLegacyDrawerTab = "operacion" | "devolucion" | "resolucion" | "auditoria";
@@ -72,6 +71,7 @@ export type AfterSalesAdminWorkflowPresentation = {
 
 export type AfterSalesAdminFilters = {
   caseId?: string;
+  caseReference?: string;
   /** Acepta tabs antiguas solo para redirigir su presentación de forma segura. */
   caseTab?: AfterSalesAdminDrawerTab | AfterSalesAdminLegacyDrawerTab;
   caseFocus?: "message" | "evidence";
@@ -196,8 +196,11 @@ export type AfterSalesAdminOperationalImpact = {
 
 export type AfterSalesAdminCase = {
   caseId: string;
+  caseReference?: string | null;
   orderId: string;
+  orderReference?: string | null;
   customerId?: string | null;
+  customerReference?: string | null;
   caseType?: string;
   status?: string;
   lifecycleStatus?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
@@ -591,8 +594,11 @@ export function normalizeAfterSalesCase(value: unknown): AfterSalesAdminCase {
 
   return {
     caseId: asString(record.caseId) ?? asString(record.id) ?? "",
+    caseReference: asNullableString(record.caseReference),
     orderId: asString(record.orderId) ?? "",
+    orderReference: asNullableString(record.orderReference),
     customerId: asNullableString(record.customerId),
+    customerReference: asNullableString(record.customerReference),
     caseType: asString(record.caseType),
     status: asString(record.status),
     lifecycleStatus: asString(record.lifecycleStatus) as AfterSalesAdminCase["lifecycleStatus"],
@@ -1251,6 +1257,7 @@ export async function getAfterSalesAdminData(
   const limit = filters.limit?.trim() || "25";
   const offset = filters.offset?.trim() || "0";
   const listPath = scopedPath("/admin/after-sales/cases", context, {
+    caseReference: filters.caseReference,
     status: filters.status,
     customerId: filters.customerId,
     orderId: filters.orderId,
@@ -1295,9 +1302,6 @@ export async function getAfterSalesAdminData(
       parse: normalizeEmployees,
     }),
   ]);
-  const selectedCustomer = selectedCase.ok && selectedCase.data?.customerId
-    ? await getCustomerDetail(context, selectedCase.data.customerId)
-    : null;
   const selectedOrderId = selectedCase.ok ? selectedCase.data?.orderId : undefined;
   const orderReferences = selectedOrderId
     ? await requestAdminBff<AfterSalesAdminOrderReferences>(
@@ -1315,6 +1319,8 @@ export async function getAfterSalesAdminData(
     selectedCase,
     employees,
     orderReferences,
-    selectedCustomerReference: selectedCustomer?.data?.customerReference ?? null,
+    selectedCustomerReference: selectedCase.ok
+      ? selectedCase.data?.customerReference ?? null
+      : null,
   };
 }

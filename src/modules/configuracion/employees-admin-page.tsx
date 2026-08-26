@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import type {
   EmployeePermissionRecord,
@@ -114,6 +114,7 @@ export function EmployeesAdminPage({
 }: EmployeesAdminPageProps) {
   const [tab, setTab] = useState<EmployeesTab>(initialTab);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(employeeIdOf(data.employees[0] ?? {}));
+  const [isEmployeeEditorOpen, setIsEmployeeEditorOpen] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState(profileIdOf(data.profiles[0] ?? {}));
   const [permissionsText, setPermissionsText] = useState(profilePermissionsText(data.profiles[0]));
   const canUseTenant = Boolean(context.organizationId && context.shopId);
@@ -131,6 +132,26 @@ export function EmployeesAdminPage({
     setSelectedProfileId(profileId);
     setPermissionsText(profilePermissionsText(data.profiles.find((profile) => profileIdOf(profile) === profileId)));
   }
+
+  function openEmployeeEditor(employeeId: string) {
+    setSelectedEmployeeId(employeeId);
+    setIsEmployeeEditorOpen(true);
+  }
+
+  useEffect(() => {
+    if (!isEmployeeEditorOpen) {
+      return;
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsEmployeeEditorOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [isEmployeeEditorOpen]);
 
   return (
     <main className="adminPage">
@@ -215,7 +236,7 @@ export function EmployeesAdminPage({
 
         {tab === "employees" ? (
           <div className="adminTabPanel">
-            <section className="adminSplit">
+            <section>
               <article>
                 <div className="adminCardHeader">
                   <div>
@@ -258,7 +279,7 @@ export function EmployeesAdminPage({
                                 <div className="adminButtonRow">
                                   <button
                                     className="adminButton"
-                                    onClick={() => setSelectedEmployeeId(employeeId)}
+                                    onClick={() => openEmployeeEditor(employeeId)}
                                     type="button"
                                   >
                                     Editar
@@ -281,9 +302,32 @@ export function EmployeesAdminPage({
                 </div>
               </article>
 
-              <aside className="adminPanelStack">
+            </section>
+
+            {isEmployeeEditorOpen ? (
+              <div
+                className="adminDrawerBackdrop"
+                onClick={() => setIsEmployeeEditorOpen(false)}
+                role="presentation"
+              >
+                <aside
+                  aria-labelledby="employee-editor-title"
+                  aria-modal="true"
+                  className="adminSideDrawer"
+                  onClick={(event) => event.stopPropagation()}
+                  role="dialog"
+                >
+                  <div className="adminSideDrawerHeader">
+                    <div>
+                      <h2 id="employee-editor-title">Editar empleado</h2>
+                      <p>Actualiza su cuenta, perfiles y acceso a tiendas.</p>
+                    </div>
+                    <button className="adminButton adminButtonTiny" onClick={() => setIsEmployeeEditorOpen(false)} type="button">
+                      Cerrar
+                    </button>
+                  </div>
+                  <div className="adminPanelStack">
                 <form action={updateEmployeeAction} className="adminForm" key={selectedEmployeeId || "empty"}>
-                  <h3>Editar empleado</h3>
                   {selectedEmployee ? (
                     <>
                       <input name="employeeId" type="hidden" value={selectedEmployeeId} />
@@ -412,8 +456,10 @@ export function EmployeesAdminPage({
                     </button>
                   </form>
                 ) : null}
-              </aside>
-            </section>
+                  </div>
+                </aside>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

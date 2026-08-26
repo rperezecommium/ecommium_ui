@@ -127,6 +127,39 @@ test("seo admin reads routes and redirects through scoped Admin BFF", async () =
   assert.match(calls[0].path, /[?&]status=ACTIVE(?:&|$)/);
 });
 
+test("seo admin distinguishes BFF connectivity from Routing/SEO failures", async () => {
+  const scenarios = [
+    [undefined, "bff-unreachable", "No se pudo conectar con el BFF Admin."],
+    [401, "session-expired", "Tu sesión ha caducado. Inicia sesión de nuevo."],
+    [403, "permission-denied", "Falta permiso routing-seo.routes.write."],
+    [400, "invalid-request", "Los filtros o datos enviados a Routing/SEO no son válidos."],
+    [409, "conflict", "La operación SEO entra en conflicto con una ruta o redirect existente."],
+    [502, "routing-seo-failed", "Routing/SEO devolvió un error interno. El BFF Admin sigue disponible."],
+    [503, "routing-seo-unavailable", "Routing/SEO no está disponible temporalmente. Inténtalo de nuevo en unos minutos."],
+    [504, "routing-seo-timeout", "Routing/SEO ha tardado demasiado en responder. Inténtalo de nuevo."],
+  ];
+
+  for (const [status, failure, message] of scenarios) {
+    const requestAdminBff = async (pathValue, options = {}) => {
+      if (pathValue.startsWith("/admin/routing-seo/routes?")) {
+        return { ok: false, status, error: "fallback", correlationId: "corr-test" };
+      }
+      if (pathValue.startsWith("/admin/routing-seo/redirects?")) {
+        return ok({ total: 1, limit: 50, offset: 0, items: [] }, options);
+      }
+      throw new Error(`Unexpected BFF path: ${pathValue}`);
+    };
+    const { getSeoAdminData } = loadSeoAdminModule(requestAdminBff);
+
+    const data = await getSeoAdminData(context, { tab: "summary", locale: "es-ES" });
+
+    assert.equal(data.routes.source, "unavailable");
+    assert.equal(data.routes.failure, failure);
+    assert.equal(data.routes.message, message);
+    assert.equal(data.redirects.source, "bff");
+  }
+});
+
 test("seo admin resolve posts no browser direct calls and normalizes route response", async () => {
   const calls = [];
   const requestAdminBff = async (pathValue, options = {}) => {

@@ -699,7 +699,7 @@ function ControlsPanel({ data, filters }: { data: SearchAdminData; filters: Sear
       <div className="searchActionBar">
         <Link className="adminButton adminButtonPrimary" href={searchHref(filters, { tab: "controls", drawer: "control-create", controlId: undefined })}>Crear control</Link>
       </div>
-      <div className="pricingGridTwo">
+      <div className="pricingGridTwo searchControlsGrid">
         <ControlsTable data={data.controls} servingConfigs={data.servingConfigs.data} filters={filters} />
         <ServingConfigsTable data={data.servingConfigs} />
       </div>

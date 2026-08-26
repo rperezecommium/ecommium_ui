@@ -249,7 +249,7 @@ function FiltersPanel({ filters, employees }: { filters: AfterSalesAdminFilters;
       <form action={applyAfterSalesFiltersAction} className="pricingDenseForm">
         <label className="adminField">
           <span>Caso</span>
-          <input name="caseId" placeholder="caseId" defaultValue={filters.caseId ?? ""} />
+          <input name="caseReference" placeholder="ASC-7H2K9Q4M8R (cuando esté habilitada)" defaultValue={filters.caseReference ?? ""} />
         </label>
         <label className="adminField">
           <span>Pedido</span>
@@ -344,15 +344,18 @@ function CasesTable({ capabilities, data, filters }: Pick<Props, "capabilities" 
           {data.cases.data.items.map((item) => {
             const activeEmployees = data.employees.ok ? data.employees.data.filter((employee) => employee.active) : [];
             const editable = lifecycleStatus(item) !== "CLOSED";
+            const caseReference = item.caseReference ?? item.caseId;
+            const orderReference = item.orderReference ?? item.orderId;
+            const customerReference = item.customerReference ?? item.customerId;
 
             return (
             <tr key={item.caseId}>
               <td>
-                <strong>{item.caseId}</strong>
+                <strong>{caseReference}</strong>
                 <div className="adminMuted">{dateText(item.submittedAt ?? item.createdAt)}</div>
               </td>
-              <td>{valueText(item.orderId)}</td>
-              <td>{valueText(item.customerId)}</td>
+              <td>{valueText(orderReference)}</td>
+              <td>{valueText(customerReference)}</td>
               <td>{valueText(item.caseType)}</td>
               <td><span className={statusBadgeClass(lifecycleStatus(item))}>{lifecycleLabel(item)}</span><div className="adminMuted">{valueText(item.operationalStage ?? item.status)}</div></td>
               <td>{capabilities.canManageAfterSales && editable && activeEmployees.length ? (
@@ -1204,11 +1207,11 @@ function AfterSalesCaseDrawer({
   return (
     <div className="adminDrawerBackdrop afterSalesDrawerBackdrop">
       <Link aria-label="Cerrar detalle de postventa" className="afterSalesDrawerBackdropLink" href={closeHref} />
-      <aside aria-label={`Atender caso ${selectedCase.caseId}`} aria-modal="true" className="adminSideDrawer afterSalesSideDrawer" role="dialog">
+      <aside aria-label={`Atender caso ${selectedCase.caseReference ?? selectedCase.caseId}`} aria-modal="true" className="adminSideDrawer afterSalesSideDrawer" role="dialog">
         <div className="adminSideDrawerHeader">
           <div>
             <h2>Atencion del caso</h2>
-            <p>{selectedCase.caseId}</p>
+            <p>{selectedCase.caseReference ?? selectedCase.caseId}</p>
           </div>
           <Link aria-label="Cerrar" className="adminButton adminButtonTiny" href={closeHref}>
             <X aria-hidden="true" size={16} />

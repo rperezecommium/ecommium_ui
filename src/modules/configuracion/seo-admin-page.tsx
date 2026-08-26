@@ -112,6 +112,19 @@ function ResultBanner<T>({ result }: { result: SeoAdminResult<T> }) {
   );
 }
 
+function seoConnectionSummary(data: SeoAdminData) {
+  const routesAvailable = data.routes.source === "bff";
+  const redirectsAvailable = data.redirects.source === "bff";
+
+  if (routesAvailable && redirectsAvailable) {
+    return "BFF y Routing/SEO conectados";
+  }
+  if (!routesAvailable && !redirectsAvailable) {
+    return "No se pudo consultar Routing/SEO";
+  }
+  return "Disponibilidad parcial de Routing/SEO";
+}
+
 function SeoDrawer({
   title,
   description,
@@ -614,11 +627,11 @@ export function SeoAdminPage({ context, data, filters }: SeoAdminPageProps) {
       <SeoFilters filters={filters} context={context} />
 
       {activeTab === "summary" ? (
-        <div className="pricingGridTwo">
+        <div className="pricingGridTwo seoAdminSummaryGrid">
           <section className="pricingPanel">
             <div className="pricingPanelHeader">
               <h2>Resumen</h2>
-              <p>{data.routes.source === "bff" && data.redirects.source === "bff" ? "BFF conectado" : "BFF no disponible"}</p>
+              <p>{seoConnectionSummary(data)}</p>
             </div>
             <ResultBanner result={data.routes} />
             <ResultBanner result={data.redirects} />
@@ -633,7 +646,7 @@ export function SeoAdminPage({ context, data, filters }: SeoAdminPageProps) {
               <span>Estado</span>
             </div>
           </section>
-          <section className="pricingPanel">
+          <section className="pricingPanel seoAdminOperationsPanel">
             <div className="pricingPanelHeader">
               <h2>Operaciones</h2>
             </div>

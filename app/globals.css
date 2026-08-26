@@ -4073,6 +4073,18 @@ p {
   min-width: 0;
 }
 
+.seoAdminSummaryGrid {
+  grid-template-columns: minmax(0, 1fr) max-content;
+}
+
+.seoAdminOperationsPanel {
+  width: max-content;
+}
+
+.seoAdminOperationsPanel .adminButtonRow {
+  flex-wrap: nowrap;
+}
+
 .pricingPanel {
   display: grid;
   gap: 12px;
@@ -6650,6 +6662,14 @@ p {
 
 .searchOperationGrid {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.searchControlsGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.searchControlsGrid .adminInlineActions {
+  flex-wrap: nowrap;
 }
 
 .searchCompactGrid {
