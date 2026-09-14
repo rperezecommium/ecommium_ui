@@ -49,6 +49,9 @@ Reglas derivadas:
 - `Invoice`: facturas, numeracion fiscal, documentos y snapshot fiscal.
 - `After Sales`: devoluciones, cambios, garantias, evidencias, resoluciones y postventa.
 - `Log`: logs de negocio estructurados.
+- `Consent`: configuración publicada y recibos mínimos de consentimiento para
+  cookies, almacenamiento de dispositivo y terceros. No sustituye el
+  consentimiento comercial de Customers.
 
 ## ADRs resumidos para UI
 
@@ -121,6 +124,56 @@ Estos endpoints son orientativos para construir UI. Si alguno no responde, regis
 - `GET /api/v1/storefront/me/invoices`
 - `GET /api/v1/storefront/me/invoices/:invoiceId/document`
 - `POST /api/v1/storefront/me/after-sales/cases?organizationId=:org&shopId=:shop`
+- `GET /api/v1/storefront/consent/policy?organizationId=:org&shopId=:shop`
+- `POST /api/v1/storefront/consent/decisions?organizationId=:org&shopId=:shop`
+
+### Consent de tecnologías de dispositivo
+
+El banner se comunica con el BFF por la misma origin pública mediante
+`/api/v1`. La UI implementa exclusivamente los Route Handlers técnicos
+`GET /api/v1/storefront/consent/policy` y
+`POST /api/v1/storefront/consent/decisions`: validan contexto/origen, reenvían
+solo al Storefront BFF y no contienen lógica de Consent ni llaman a
+`services/consent`. Esta terminación same-origin es necesaria para que el BFF
+emita y reciba la cookie host-only `ec_consent_subject` sin exponer su valor a
+JavaScript.
+
+El proxy reenvía únicamente esa cookie opaca y solo acepta una respuesta
+`Set-Cookie` con el mismo nombre, sin atributo `Domain`, `HttpOnly`,
+`SameSite=Lax` y, fuera de desarrollo, `Secure`. En producción
+`NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL` debe ser una URL HTTPS sin path ni
+credenciales y coincidir exactamente con el host que llega a la UI; no se debe
+usar un rewrite genérico, un BFF alterno ni una URL de Consent expuesta al
+navegador. Si el proxy, BFF o cookie fallan, la UI mantiene las tecnologías
+opcionales bloqueadas.
+
+`GET /storefront/consent/policy` devuelve `AVAILABLE|NOT_CONFIGURED`, el
+snapshot publicado localizado, `effectiveLocale`, `localeFallback` y la
+decisión vigente solo si corresponde a esa huella. `renewalRequired=true`
+significa que el browser debe solicitar una nueva elección para la versión
+publicada; `NOT_CONFIGURED` no autoriza recursos opcionales. La UI debe
+bloquear servicios opcionales durante carga, error o configuración ausente; la
+decisión se registra con `POST /storefront/consent/decisions`. Una versión
+obsoleta o selección inválida exige volver a leer la política y mantener el
+bloqueo.
+
+El Storefront presenta la primera capa y el centro de preferencias desde ese
+snapshot: muestra la acción de rechazo de primera capa solo cuando
+`firstLayerRejectAction` lo exige, mantiene bloqueadas las finalidades
+necesarias y nunca interpreta cerrar el diálogo como consentimiento. El
+contrato actual localiza las finalidades, pero todavía no publica textos ni
+apariencia del banner; la UI usa un catálogo de respaldo limitado y no inventa
+un esquema de configuración visual. Esa ampliación, si se necesita, debe
+partir de Consent/BFF y no de CSS o JSON arbitrario en el navegador.
+
+Para cualquier tercero, Storefront ofrece `StorefrontConsentGate`,
+`StorefrontConsentScriptGate`, `StorefrontConsentEmbedGate` y un registry de
+adaptadores. Todos niegan por defecto y consumen un `serviceKey` existente del
+snapshot publicado. El registry no recibe código, HTML ni URLs desde Admin:
+cada proveedor se implementa, revisa y registra en la UI. Un nuevo origen debe
+añadirse también de forma explícita a CSP. El registro incluye Google Analytics
+y Meta Pixel; Turnstile sigue su flujo propio y al revocarlo se retiran el
+widget, script y token.
 
 Al abrir un caso, `customerMessage` es obligatorio: describe lo ocurrido y se
 conserva como el primer mensaje del historial. El motivo seleccionado es solo
@@ -324,6 +377,98 @@ Reglas UI Routing/SEO vigentes para Admin SEO global:
 - `GET /api/v1/admin/analytics/health`
 - `GET /api/v1/admin/analytics/events?organizationId=:org&shopId=:shop&eventType=:type&from=:iso&to=:iso&limit=:limit&offset=:offset`
 - `GET /api/v1/admin/analytics/reports/summary?organizationId=:org&shopId=:shop&from=:iso&to=:iso`
+
+### Admin: Consentimiento de tecnologías
+
+- `GET /api/v1/admin/consent/integrations?organizationId=:org&shopId=:shop`
+- `GET /api/v1/admin/consent/configurations?organizationId=:org&shopId=:shop&scopeType=:scope`
+- `POST /api/v1/admin/consent/drafts?organizationId=:org&shopId=:shop`
+- `PUT /api/v1/admin/consent/drafts/:configurationVersionId?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/consent/drafts/:configurationVersionId/validate?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/consent/drafts/:configurationVersionId/publish?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/consent/configurations/:configurationId/drafts?organizationId=:org&shopId=:shop`
+- `POST /api/v1/admin/consent/configurations/:configurationId/deactivate?organizationId=:org&shopId=:shop`
+- `DELETE /api/v1/admin/consent/versions/:configurationVersionId?organizationId=:org&shopId=:shop`
+
+La lectura de una configuración devuelve su borrador y publicación propios,
+`selectedScope` y `effective`. `effective` indica la versión publicada que se
+aplica realmente y su origen: Shop tiene prioridad sobre Grupo de tiendas y
+este sobre Organization. Por tanto, que un nivel no tenga publicación propia
+no es un error si hereda una configuración efectiva de un nivel superior.
+
+La respuesta incorpora `history` del scope solicitado. Admin presenta las
+secciones `Shop`, `Organization` e `Historial`; el historial consulta ambos
+scopes. `DELETE /admin/consent/versions/:configurationVersionId` exige
+`expectedUpdatedAt` y `consent.configuration.write`, y solo elimina una
+versión `SUPERSEDED` sin recibos. La vigente, el borrador y cualquier versión
+que respalde evidencia quedan protegidos.
+
+La UI puede crear un nuevo borrador en un nivel sin configuración propia
+partiendo de los datos efectivos heredados. Esa copia solo es el punto de
+partida del borrador: no modifica el origen ni activa cambios hasta que se
+publique en el nivel seleccionado.
+
+Para volver a heredar, la UI envía la confirmación `HEREDAR` a
+`POST /admin/consent/configurations/:configurationId/deactivate` con la fecha
+de la versión publicada. Solo aparece para una sobrescritura propia activa de
+Shop o Grupo: conserva su historial, no modifica el nivel superior y deja que
+se aplique la configuración efectiva heredada. Organization no puede heredar.
+
+Certificación UI de la jerarquía: `node --test
+tests/consent-configuration-admin.test.mjs` comprueba que la UI acepta una
+configuración efectiva cuyo origen sea Organization, Grupo o Shop, y rechaza
+una respuesta incompleta en vez de asumir una herencia.
+
+El catálogo de integraciones requiere `consent.configuration.read` y es cerrado:
+puede devolver `google-analytics` y `meta-pixel`. Cada entrada define el
+proveedor, versión contractual, nombre, descripción, finalidad obligatoria,
+tipo de recursos y los campos públicos tipados con ayuda y formato. Google
+Analytics exige la finalidad opcional `analytics`, un recurso `SCRIPT` y un
+`measurementId` con formato `G-...`; Meta Pixel exige `marketing`, sus recursos
+de script/solicitud/píxel/cookie y un `pixelId` numérico de 15 dígitos.
+
+Un borrador declara una integración únicamente dentro de su servicio:
+`{ providerKey, contractVersion, enabled, publicConfig }`. `publicConfig`
+contiene solo los campos declarados por el catálogo y nunca secretos. La UI
+usa siempre las rutas Admin BFF, no llama a Consent directamente, no acepta
+scripts/HTML/URLs ni controla header/footer. El BFF y Consent validan de nuevo
+el catálogo, finalidad y recursos al guardar/publicar; un proveedor nuevo
+requiere adapter Storefront, CSP explícita y revisión de producto, no un campo
+de texto adicional en Admin. La pantalla presenta las integraciones como flujo
+principal y deja los servicios o recursos manuales en un inventario técnico
+avanzado: esos registros no cargan código ni crean o limpian datos del
+navegador por sí solos.
+
+Al retirar consentimiento, Storefront mantiene los gates cerrados y ejecuta
+solo limpiadores registrados en código. Para Google Analytics la lista es
+cerrada: `_ga` y `_ga_<Measurement ID>` con un `Measurement ID` publicado y
+validado; Meta Pixel elimina `_fbp` y `_fbc`. Se expiran para el host y dominios
+padre explícitos. La UI no borra todo `localStorage`, no enumera cookies, no
+recibe claves de limpieza desde Admin y no intenta eliminar datos que el
+navegador no puede controlar.
+
+Google Analytics v1 tiene adapter revisado y autorizado: puede cargar una vez
+`https://www.googletagmanager.com/gtag/js?id=<Measurement ID>` solo después de
+una decisión válida para su servicio Analítica. La CSP admite exclusivamente
+ese origen de script y `https://www.google-analytics.com` para sus solicitudes.
+El adapter emite solo la configuración y `page_view` estándar, sin User-ID,
+eventos ecommerce ni Google Consent Mode. Toda URL genérica, proveedor, versión
+o configuración no reconocida falla cerrada antes de crear un nodo `script`.
+
+Meta Pixel v1 tiene adapter revisado: carga
+`https://connect.facebook.net/en_US/fbevents.js` solo después de una decisión
+vigente de Marketing y emite únicamente `PageView`. No envía compras, emails,
+identificadores de cliente, advanced matching ni eventos personalizados. La CSP
+permite solo `connect.facebook.net` para el script y `www.facebook.com` para
+la solicitud del píxel.
+
+Certificación Consent: las pruebas de navegador interceptan cualquier origen
+de proveedor y demuestran cero solicitudes antes de una decisión válida, una
+sola carga de Google Analytics y Meta Pixel tras aceptar, y retirada de
+scripts/datos propios al retirar el consentimiento. Usa BFF y scripts locales:
+no se simula ni se emite tráfico real a terceros. La certificación también
+cubre jerarquía, contrato BFF same-origin, rechazo, renovación de versión y
+caída de Consent.
 
 ### Admin: Automation y Communications
 
@@ -718,3 +863,18 @@ Cuando el usuario levante el backend por separado, el stack canonico se arranca 
 ```
 
 La IA de `ecommium_ui` no debe ejecutar ese script por defecto ni cambiar archivos del backend. Solo debe indicar que el backend debe estar arriba para pruebas integradas.
+
+## Bloque 4 — contrato PLP compacto experimental
+
+Opt-in server-side `ECOMMIUM_STOREFRONT_PLP_CARDS_ENABLED=true` añade `view=cards`
+a la petición PLP. El BFF debe habilitar el scope y contexto exactos. Sin flag
+se mantiene v1; no hay fallback automático si falla cards. Respuesta mínima
+validada: producto/variante, nombre, marca, imagen, precio actual/anterior, stock,
+enlace, total/página y CMS. Categoría desconocida o sin productos accesibles
+devuelve 200 vacío en cards; v1 conserva su contrato.
+
+Backend: ADR-0189, **BLOQUE 4 PERFORMANCE: PASS por aceptación explícita del usuario**
+(2026-09-09). 500 VU caliente: ReadIndex p95 55,1 ms, OLD 46,8 ms; margen
+aceptado +10 ms y límite 56,8 ms. El FAIL automático original de 51,8 ms se
+conserva en la evidencia backend. Cobertura real 12/40; restantes sin ejecutar.
+Sin despliegue en esta aceptación. El flag sigue desactivado por defecto. No cambia PDP, búsqueda, Admin ni Checkout.

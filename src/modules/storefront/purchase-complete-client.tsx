@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { sendStorefrontSearchEvent } from "./search-events-client";
+import { useStorefrontAnalytics } from "./search-events-client";
 
 export type StorefrontPurchaseCompleteEvent = {
   organizationId: string;
@@ -18,12 +18,14 @@ export type StorefrontPurchaseCompleteEvent = {
 };
 
 export function StorefrontPurchaseCompleteClient({ event }: { event: StorefrontPurchaseCompleteEvent | null }) {
+  const recordAnalyticsEvent = useStorefrontAnalytics();
+
   useEffect(() => {
     if (!event) {
       return;
     }
 
-    sendStorefrontSearchEvent({
+    recordAnalyticsEvent({
       organizationId: event.organizationId,
       shopId: event.shopId,
       eventType: "purchase-complete",
@@ -43,7 +45,7 @@ export function StorefrontPurchaseCompleteClient({ event }: { event: StorefrontP
       uri: window.location.href,
       occurredAt: new Date().toISOString(),
     });
-  }, [event]);
+  }, [event, recordAnalyticsEvent]);
 
   return null;
 }

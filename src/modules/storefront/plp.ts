@@ -1,3 +1,4 @@
+import { parsePlpCardsPayload } from "./plp-cards-contract";
 import { requestStorefrontBff } from "../../shared/bff/storefront-client";
 import { getStorefrontContext, type StorefrontContext } from "./storefront-context";
 
@@ -133,12 +134,15 @@ export async function getStorefrontPlp(
   params.set("limit", String(limit));
   params.set("offset", String(offset));
   params.set("routePath", routePath);
+  const cards = process.env.ECOMMIUM_STOREFRONT_PLP_CARDS_ENABLED === "true";
+  if (cards) params.set("view", "cards");
 
   const categoriesPromise = getStorefrontCategories(context, categorySlug);
   const requestedPath = `/storefront/plp/${encodeURIComponent(categorySlug)}?${params.toString()}`;
   const result = await requestStorefrontBff<unknown>(requestedPath, {
     context: { locale: context.locale },
     withAuth: false,
+    ...(cards ? { parse: (value: unknown) => parsePlpCardsPayload(value, { categorySlug, limit, offset, currency: context.currency }) } : {}),
   });
   const categories = await categoriesPromise;
 

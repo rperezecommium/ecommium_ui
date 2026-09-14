@@ -5,7 +5,7 @@ import type { StorefrontCategoryLink, StorefrontPlpBlock, StorefrontPlpData, Sto
 import { StorefrontAddToCartButton } from "./cart-client";
 import { StorefrontSearchEventsClient } from "./search-events-client";
 import { StorefrontCmsBlockRenderer } from "./storefront-cms-page";
-import { StorefrontHeader } from "./storefront-header";
+import { StorefrontPageShell } from "./storefront-header";
 
 export { StorefrontHeader } from "./storefront-header";
 
@@ -36,33 +36,34 @@ export function StorefrontPlpPage({ result, categorySlug, searchQuery, openCusto
 
   return (
     <main className="storefrontPage">
-      <StorefrontHeader initialQuery={activeSearchQuery} openCustomerLogin={openCustomerLogin} />
-      <div className="storefrontShell">
-        <nav className="storefrontBreadcrumb">
-          <Link href="/">Inicio</Link>
-          <span>/</span>
-          <span>{activeSearchQuery ? "Busqueda" : title}</span>
-        </nav>
-        <div className="storefrontPlpLayout">
-          <StorefrontFacets
-            categories={result.data?.categories ?? []}
-            currentCategorySlug={result.data?.categorySlug ?? categorySlug}
-          />
-          {result.ok && result.data ? (
-            <StorefrontListing data={result.data} title={title} />
-          ) : (
-            <section className="storefrontListing">
-              <CategoryIntro description={description} title={title} />
-              <div className="storefrontUnavailable">
-                <span>PLP</span>
-                <h1>No se pudo cargar el listado</h1>
-                <p>{result.error ?? "BFF no disponible para Storefront."}</p>
-                <code>{categorySlug === "bike-brakes" ? "/" : `/plp/${categorySlug}`}</code>
-              </div>
-            </section>
-          )}
+      <StorefrontPageShell initialQuery={activeSearchQuery} openCustomerLogin={openCustomerLogin}>
+        <div className="storefrontShell">
+          <nav className="storefrontBreadcrumb">
+            <Link href="/">Inicio</Link>
+            <span>/</span>
+            <span>{activeSearchQuery ? "Busqueda" : title}</span>
+          </nav>
+          <div className="storefrontPlpLayout">
+            <StorefrontFacets
+              categories={result.data?.categories ?? []}
+              currentCategorySlug={result.data?.categorySlug ?? categorySlug}
+            />
+            {result.ok && result.data ? (
+              <StorefrontListing data={result.data} title={title} />
+            ) : (
+              <section className="storefrontListing">
+                <CategoryIntro description={description} title={title} />
+                <div className="storefrontUnavailable">
+                  <span>PLP</span>
+                  <h1>No se pudo cargar el listado</h1>
+                  <p>{result.error ?? "BFF no disponible para Storefront."}</p>
+                  <code>{categorySlug === "bike-brakes" ? "/" : `/plp/${categorySlug}`}</code>
+                </div>
+              </section>
+            )}
+          </div>
         </div>
-      </div>
+      </StorefrontPageShell>
     </main>
   );
 }

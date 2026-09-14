@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { StorefrontSearchEventData } from "./plp";
+import { useStorefrontConsentService } from "./storefront-consent-runtime";
 import { fallbackStorefrontVisitorId, normalizeStorefrontVisitorId, storefrontVisitorCookieName } from "./visitor";
 
 type SearchEventsClientProps = {
@@ -11,6 +12,50 @@ type SearchEventsClientProps = {
     variantId?: string;
   }>;
 };
+
+const storefrontAnalyticsServiceKey = "analytics";
+const analyticsConsentStoreKey = Symbol.for("ecommium.storefront.analytics-consent");
+
+type AnalyticsConsentStore = {
+  allowed: boolean;
+  listeners: Set<() => void>;
+};
+
+function analyticsConsentStore(): AnalyticsConsentStore | null {
+  if (typeof window === "undefined") return null;
+  const browserWindow = window as typeof window & {
+    [analyticsConsentStoreKey]?: AnalyticsConsentStore;
+  };
+  const current = browserWindow[analyticsConsentStoreKey];
+  if (current) return current;
+
+  const store: AnalyticsConsentStore = { allowed: false, listeners: new Set() };
+  Object.defineProperty(browserWindow, analyticsConsentStoreKey, {
+    configurable: false,
+    enumerable: false,
+    value: store,
+    writable: false,
+  });
+  return store;
+}
+
+function setAnalyticsConsentAllowed(allowed: boolean) {
+  const store = analyticsConsentStore();
+  if (!store || store.allowed === allowed) return;
+  store.allowed = allowed;
+  store.listeners.forEach((listener) => listener());
+}
+
+function subscribeAnalyticsConsent(listener: () => void) {
+  const store = analyticsConsentStore();
+  if (!store) return () => undefined;
+  store.listeners.add(listener);
+  return () => store.listeners.delete(listener);
+}
+
+function analyticsConsentSnapshot() {
+  return analyticsConsentStore()?.allowed ?? false;
+}
 
 function cookieVisitorId() {
   const encoded = document.cookie
@@ -49,7 +94,11 @@ function ensureStorefrontVisitorId() {
   return visitorId;
 }
 
-export function sendStorefrontSearchEvent(payload: Record<string, unknown>) {
+function clearStorefrontVisitorId() {
+  document.cookie = `${storefrontVisitorCookieName}=; Path=/; Max-Age=0; SameSite=Lax`;
+}
+
+function sendAuthorizedStorefrontSearchEvent(payload: Record<string, unknown>) {
   const visitorId = ensureStorefrontVisitorId();
   const payloadVisitorId = normalizeStorefrontVisitorId(
     typeof payload.visitorId === "string" ? payload.visitorId : undefined,
@@ -61,8 +110,9 @@ export function sendStorefrontSearchEvent(payload: Record<string, unknown>) {
 
   if (navigator.sendBeacon) {
     const blob = new Blob([body], { type: "application/json" });
-    navigator.sendBeacon("/api/storefront/search/events", blob);
-    return;
+    if (navigator.sendBeacon("/api/storefront/search/events", blob)) {
+      return;
+    }
   }
 
   void fetch("/api/storefront/search/events", {
@@ -73,13 +123,53 @@ export function sendStorefrontSearchEvent(payload: Record<string, unknown>) {
   }).catch(() => undefined);
 }
 
+/**
+ * La única entrada de analítica para Storefront. La política publicada decide
+ * si puede emitir; sin autorización el callback descarta el payload y la
+ * cookie de visitante se retira. No hay cola previa al consentimiento.
+ */
+export function useStorefrontAnalytics() {
+  const allowed = useSyncExternalStore(
+    subscribeAnalyticsConsent,
+    analyticsConsentSnapshot,
+    () => false,
+  );
+
+  useEffect(() => {
+    if (!allowed) {
+      clearStorefrontVisitorId();
+    }
+  }, [allowed]);
+
+  return useCallback((payload: Record<string, unknown>) => {
+    if (allowed) {
+      sendAuthorizedStorefrontSearchEvent(payload);
+    }
+  }, [allowed]);
+}
+
+export function StorefrontConsentAnalyticsLifecycle() {
+  const allowed = useStorefrontConsentService(storefrontAnalyticsServiceKey);
+
+  useEffect(() => {
+    setAnalyticsConsentAllowed(allowed);
+    if (!allowed) {
+      clearStorefrontVisitorId();
+    }
+  }, [allowed]);
+
+  return null;
+}
+
 export function StorefrontSearchEventsClient({ event, products }: SearchEventsClientProps) {
+  const recordAnalyticsEvent = useStorefrontAnalytics();
+
   useEffect(() => {
     if (!event.query || products.length === 0) {
       return;
     }
 
-    sendStorefrontSearchEvent({
+    recordAnalyticsEvent({
       organizationId: event.organizationId,
       shopId: event.shopId,
       eventType: "search",
@@ -94,7 +184,7 @@ export function StorefrontSearchEventsClient({ event, products }: SearchEventsCl
       uri: window.location.href,
       occurredAt: new Date().toISOString(),
     });
-  }, [event, products]);
+  }, [event, products, recordAnalyticsEvent]);
 
   useEffect(() => {
     if (!event.query || products.length === 0) {
@@ -108,7 +198,7 @@ export function StorefrontSearchEventsClient({ event, products }: SearchEventsCl
         return;
       }
 
-      sendStorefrontSearchEvent({
+      recordAnalyticsEvent({
         organizationId: event.organizationId,
         shopId: event.shopId,
         eventType: "detail-page-view",
@@ -127,7 +217,7 @@ export function StorefrontSearchEventsClient({ event, products }: SearchEventsCl
 
     document.addEventListener("click", onClick, { capture: true });
     return () => document.removeEventListener("click", onClick, { capture: true });
-  }, [event, products]);
+  }, [event, products, recordAnalyticsEvent]);
 
   return null;
 }

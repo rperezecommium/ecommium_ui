@@ -19,7 +19,10 @@ export type AdminPermission =
   | "admin:shipping:view"
   | "admin:automation:view"
   | "admin:communications:view"
-  | "admin:checkout:view";
+  | "admin:checkout:view"
+  | "admin:consent:view"
+  | "admin:consent:write"
+  | "admin:consent:publish";
 
 const permissionAliases: Record<AdminPermission, string[]> = {
   "admin:view": ["admin:view"],
@@ -54,6 +57,9 @@ const permissionAliases: Record<AdminPermission, string[]> = {
   "admin:automation:view": ["admin:automation:view", "automation.manage"],
   "admin:communications:view": ["admin:communications:view", "communications.manage"],
   "admin:checkout:view": ["admin:checkout:view", "checkout.configuration.write"],
+  "admin:consent:view": ["admin:consent:view", "consent.configuration.read", "consent.configuration.write", "consent.configuration.publish"],
+  "admin:consent:write": ["consent.configuration.write"],
+  "admin:consent:publish": ["consent.configuration.publish"],
 };
 
 export function can(session: AdminSession, permission: AdminPermission) {

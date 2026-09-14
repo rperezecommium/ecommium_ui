@@ -176,17 +176,22 @@ export function StorefrontCheckoutClient() {
   useEffect(() => {
     const reference = paymentReferenceForOrderform(orderform);
     if (!reference) {
-      setPaymentVerification({ verification: "idle" });
-      return;
+      const idleTimer = window.setTimeout(() => {
+        setPaymentVerification({ verification: "idle" });
+      }, 0);
+      return () => window.clearTimeout(idleTimer);
     }
 
     let active = true;
-    setPaymentVerification((current) => ({
-      status: current.transactionId === reference.transactionId ? current.status : undefined,
-      transaction: current.transactionId === reference.transactionId ? current.transaction : undefined,
-      transactionId: reference.transactionId,
-      verification: "loading",
-    }));
+    const loadingTimer = window.setTimeout(() => {
+      if (!active) return;
+      setPaymentVerification((current) => ({
+        status: current.transactionId === reference.transactionId ? current.status : undefined,
+        transaction: current.transactionId === reference.transactionId ? current.transaction : undefined,
+        transactionId: reference.transactionId,
+        verification: "loading",
+      }));
+    }, 0);
     getStorefrontPaymentTransaction({
       correlationId: reference.correlationId,
       guestSessionId: reference.guestSessionId,
@@ -213,8 +218,9 @@ export function StorefrontCheckoutClient() {
 
     return () => {
       active = false;
+      window.clearTimeout(loadingTimer);
     };
-  }, [orderform?.orderFormId, orderform?.totals.grandTotalMinor]);
+  }, [orderform]);
 
   const completion = useMemo(() => ({
     profile: hasProfile(orderform),
@@ -227,9 +233,12 @@ export function StorefrontCheckoutClient() {
       return;
     }
 
-    setValidationErrors((current) => (
-      current.review ? { ...current, review: undefined } : current
-    ));
+    const timer = window.setTimeout(() => {
+      setValidationErrors((current) => (
+        current.review ? { ...current, review: undefined } : current
+      ));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [completion.payment, completion.profile, completion.shipping]);
 
   const totals = useMemo(() => ({
@@ -877,17 +886,11 @@ export function StorefrontCheckoutClient() {
       }
       const order = asRecord((payload as Record<string, unknown>).order);
       const orderId = typeof order.orderId === "string" ? order.orderId : orderform.orderFormId;
-      const firstItem = orderform.items[0];
       await clearCheckoutCart(orderform, guestSessionId);
       window.location.href = `/checkout/confirmation?${new URLSearchParams({
         guestSessionId,
         orderId,
         transactionId: paymentReference.transactionId,
-        revenueMinor: String(cartGrandTotalMinor(orderform)),
-        currency: orderform.currency,
-        productId: firstItem?.productId ?? firstItem?.productSlug ?? "cart",
-        variantId: firstItem?.variantId ?? "",
-        quantity: String(cartTotalItems(orderform)),
       }).toString()}`;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No se pudo crear el pedido.");

@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Check, Copy, Mail, Minus, Plus, RotateCcw, Search, Share2, ShieldCheck, Truck, X } from "lucide-react";
 import { StorefrontAddToCartButton } from "./cart-client";
 import type { StorefrontPdpData } from "./pdp";
-import { sendStorefrontSearchEvent } from "./search-events-client";
+import { useStorefrontAnalytics } from "./search-events-client";
 import { sanitizeRichTextHtml } from "../../shared/security/rich-text";
 
 type Props = {
@@ -15,6 +15,7 @@ type Props = {
 };
 
 export function StorefrontPdpContentClient({ data }: Props) {
+  const recordAnalyticsEvent = useStorefrontAnalytics();
   const initialVariantId =
     data.variants.find((variant) => variant.isDefault)?.variantId ??
     data.variants[0]?.variantId ??
@@ -127,7 +128,7 @@ export function StorefrontPdpContentClient({ data }: Props) {
   }
 
   function recordAddToCartEvent() {
-    sendStorefrontSearchEvent({
+    recordAnalyticsEvent({
       organizationId: data.eventContext.organizationId,
       shopId: data.eventContext.shopId,
       eventType: "add-to-cart",

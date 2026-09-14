@@ -136,22 +136,38 @@ test("storefront checkout confirmation never reports purchase data from query pa
   assert.match(cssSource, /\.storefrontConfirmation/);
 });
 
-test("storefront search events client records search and detail page events", () => {
+test("storefront search events client gates analytics behind Consent and records search and detail page events", () => {
   const eventsClientSource = readFileSync(path.resolve(root, "src/modules/storefront/search-events-client.tsx"), "utf8");
+  const headerSource = readFileSync(path.resolve(root, "src/modules/storefront/storefront-header.tsx"), "utf8");
 
   assert.match(eventsClientSource, /navigator\.sendBeacon/);
+  assert.match(eventsClientSource, /useStorefrontConsentService\(storefrontAnalyticsServiceKey\)/);
+  assert.match(eventsClientSource, /useSyncExternalStore/);
+  assert.match(eventsClientSource, /if \(allowed\) \{\s*sendAuthorizedStorefrontSearchEvent\(payload\);/);
   assert.match(eventsClientSource, /ensureStorefrontVisitorId/);
   assert.match(eventsClientSource, /document\.cookie = `\$\{storefrontVisitorCookieName\}=/);
+  assert.match(eventsClientSource, /Max-Age=0/);
   assert.match(eventsClientSource, /\/api\/storefront\/search\/events/);
+  assert.match(headerSource, /<StorefrontConsentAnalyticsLifecycle \/>/);
+  assert.match(headerSource, /export async function StorefrontPageShell/);
   assert.match(eventsClientSource, /eventType: "search"/);
   assert.match(eventsClientSource, /eventType: "detail-page-view"/);
   assert.match(eventsClientSource, /closest<HTMLAnchorElement>\("\[data-search-product-id\]"\)/);
 });
 
+test("storefront purchase completion uses the same Consent-gated analytics hook", () => {
+  const purchaseClientSource = readFileSync(path.resolve(root, "src/modules/storefront/purchase-complete-client.tsx"), "utf8");
+
+  assert.match(purchaseClientSource, /useStorefrontAnalytics/);
+  assert.match(purchaseClientSource, /recordAnalyticsEvent\(/);
+  assert.match(purchaseClientSource, /eventType: "purchase-complete"/);
+});
+
 test("storefront PDP add to cart records search add-to-cart event", () => {
   const pdpPageSource = readFileSync(path.resolve(root, "src/modules/storefront/pdp-content-client.tsx"), "utf8");
 
-  assert.match(pdpPageSource, /sendStorefrontSearchEvent/);
+  assert.match(pdpPageSource, /useStorefrontAnalytics/);
+  assert.match(pdpPageSource, /recordAnalyticsEvent\(/);
   assert.match(pdpPageSource, /eventType: "add-to-cart"/);
   assert.match(pdpPageSource, /productDetails: \[\{/);
   assert.match(pdpPageSource, /variantId: selectedVariant\?\.variantId/);
@@ -353,7 +369,7 @@ test("storefront checkout persists orderform checkout data through BFF actions",
   assert.match(checkoutClientSource, /selectedSla/);
   assert.match(checkoutClientSource, /Confirmar pedido/);
   assert.match(checkoutClientSource, /checkout\/confirmation/);
-  assert.match(checkoutClientSource, /confirmedCheckoutPaymentReference\(orderform, totals\.grandTotal\)/);
+  assert.match(checkoutClientSource, /confirmedCheckoutPaymentReference\(\s*orderform,\s*totals\.grandTotal,/);
   assert.match(checkoutClientSource, /readStorefrontPaymentReceipt/);
   assert.match(checkoutClientSource, /paymentStatusAllowsOrder/);
   assert.match(checkoutClientSource, /orderStatusForPaymentStatus\(paymentReference\.status\)/);
@@ -418,8 +434,8 @@ test("storefront cart normalizes offering totals without merging them into base 
 test("storefront PDP reuses the operative storefront search header", () => {
   const pdpPageSource = readFileSync(path.resolve(root, "src/modules/storefront/pdp-page.tsx"), "utf8");
 
-  assert.match(pdpPageSource, /import \{ StorefrontHeader \} from "\.\/plp-page"/);
-  assert.match(pdpPageSource, /<StorefrontHeader \/>/);
+  assert.match(pdpPageSource, /import \{ StorefrontPageShell \} from "\.\/storefront-header"/);
+  assert.match(pdpPageSource, /<StorefrontPageShell>/);
   assert.doesNotMatch(pdpPageSource, /<input placeholder="Buscar en nuestra tienda" \/>/);
 });
 

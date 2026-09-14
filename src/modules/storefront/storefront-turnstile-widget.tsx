@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useStorefrontConsentService } from "./storefront-consent-runtime";
 
 type StorefrontTurnstileStatus =
   | "idle"
@@ -91,6 +92,13 @@ function loadTurnstileScript(): Promise<TurnstileApi> {
   return turnstileWindow.__ecommiumTurnstileScriptPromise;
 }
 
+function unloadTurnstileScript() {
+  document.querySelector<HTMLScriptElement>(`script[src="${turnstileScriptUrl}"]`)?.remove();
+  const turnstileWindow = getTurnstileWindow();
+  delete turnstileWindow.__ecommiumTurnstileScriptPromise;
+  delete turnstileWindow.turnstile;
+}
+
 export function StorefrontTurnstileWidget({
   action,
   enabled,
@@ -98,6 +106,7 @@ export function StorefrontTurnstileWidget({
   onVerificationChange,
   siteKey,
 }: StorefrontTurnstileWidgetProps) {
+  const consented = useStorefrontConsentService("turnstile");
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [verification, setVerification] = useState<StorefrontTurnstileState>({
@@ -108,7 +117,24 @@ export function StorefrontTurnstileWidget({
   });
 
   useEffect(() => {
-    if (!enabled || !siteKey) {
+    if (!consented) {
+      unloadTurnstileScript();
+      onVerificationChange?.(false);
+      const timer = window.setTimeout(() => {
+        setVerification({
+          action: "",
+          siteKey: "",
+          status: "idle",
+          token: "",
+        });
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [consented, onVerificationChange]);
+
+  useEffect(() => {
+    if (!enabled || !siteKey || !consented) {
       return undefined;
     }
 
@@ -177,10 +203,12 @@ export function StorefrontTurnstileWidget({
         turnstile.remove(widgetId);
       }
       widgetIdRef.current = null;
+      onVerificationChange?.(false);
+      unloadTurnstileScript();
     };
-  }, [action, enabled, onVerificationChange, siteKey]);
+  }, [action, consented, enabled, onVerificationChange, siteKey]);
 
-  if (!enabled) {
+  if (!enabled || !consented) {
     return null;
   }
 
