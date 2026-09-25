@@ -343,6 +343,7 @@ export type ProductSummary = {
   priceTaxIncludedDisplay?: string;
   currency?: string;
   quantity?: number;
+  readIndexPrepared?: boolean;
   shortDescription?: string;
   description?: string;
   keywords?: string;

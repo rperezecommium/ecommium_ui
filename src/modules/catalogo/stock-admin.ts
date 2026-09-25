@@ -105,7 +105,7 @@ export async function getStockAdminProducts(
 ): Promise<ProductListResult> {
   return getAdminProducts(context, {
     q: filters.q,
-    isActive: filters.status === "all" ? undefined : true,
+    isActive: filters.status === "active" ? true : undefined,
     limit: filters.limit ?? 25,
     offset: filters.offset ?? 0,
   });

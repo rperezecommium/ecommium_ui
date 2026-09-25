@@ -24,11 +24,44 @@ Open http://localhost:5173 to view the app.
 - `npm run build` creates a production build.
 - `npm run start` runs the production server after building.
 - `npm run lint` runs the Next.js ESLint configuration.
+- `npm run perf:readindex-ui` measures selected UI routes with Playwright and writes JSON evidence under `.tmp/read-index-ui-performance/`.
 
 ## Admin
 
 The Admin foundation starts at `/admin` and expects all business data to come
 from the Ecommium BFF.
+
+### Commerce ReadIndex para lecturas
+
+La UI no llama directamente a `commerce-read-index`; siempre consume `apps/bff`.
+Para PLP Storefront, la UI puede solicitar el contrato compacto de tarjetas
+activando cualquiera de estas variables de servidor:
+
+```bash
+ECOMMIUM_STOREFRONT_PLP_CARDS_ENABLED=true
+ECOMMIUM_STOREFRONT_READ_INDEX_ENABLED=true
+ECOMMIUM_STOREFRONT_PLP_READ_INDEX_ENABLED=true
+```
+
+Las dos variables `READ_INDEX` son alias explícitos para el rollout de
+ReadIndex; la flag histórica de `PLP_CARDS` se conserva para rollback. El BFF
+sigue decidiendo si responde desde ReadIndex o desde el camino legacy.
+
+El listado Admin de productos mantiene el mismo contrato `/admin/products`. Si
+el BFF devuelve filas compactas desde ReadIndex, la UI acepta `price.currentAmountMinor`,
+`price.currency` y `selectedVariantId` sin realizar llamadas directas a Pricing,
+Inventory, Catalog o Media.
+
+Medición local de UI:
+
+```bash
+ECOMMIUM_UI_PERF_BASE_URL=http://127.0.0.1:5173 ECOMMIUM_UI_PERF_ROUTES=/,/plp/bike-brakes,/admin/products npm run perf:readindex-ui
+```
+
+La medición captura tiempos de navegador, peticiones fallidas y peticiones BFF
+visibles desde el cliente. Las llamadas SSR de Next no aparecen como peticiones
+del navegador; para p50/p95/p99 del endpoint ReadIndex sigue siendo la fuente
+canónica el benchmark del monorepo backend.
 
 ### Instalación segura de Admin 0
 

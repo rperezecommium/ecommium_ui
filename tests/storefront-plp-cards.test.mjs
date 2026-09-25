@@ -40,7 +40,12 @@ for (const [name, change] of [
 ]) test('compact contract rejects ' + name, () => {
   const p = payload(); change(p); assert.throws(() => contract.parsePlpCardsPayload(p, expected), /PLP_CARDS_INVALID_RESPONSE/);
 });
-for (const enabled of [false, true]) test('PLP consumer flag=' + enabled + ' preserves cards, CTA and CMS through BFF', async () => {
+for (const [name, env, enabled] of [
+  ['disabled', {}, false],
+  ['legacy cards flag', { ECOMMIUM_STOREFRONT_PLP_CARDS_ENABLED: 'true' }, true],
+  ['read index global flag', { ECOMMIUM_STOREFRONT_READ_INDEX_ENABLED: 'true' }, true],
+  ['read index PLP flag', { ECOMMIUM_STOREFRONT_PLP_READ_INDEX_ENABLED: 'true' }, true],
+]) test('PLP consumer ' + name + ' preserves cards, CTA and CMS through BFF', async () => {
   const calls = [], context = { organizationId: 'oa', shopId: 'sa', locale: 'es-ES', currency: 'EUR', country: 'ES', channel: 'web' };
   const plpModule = load('src/modules/storefront/plp.ts', specifier => {
     if (specifier === './plp-cards-contract') return contract;
@@ -51,7 +56,7 @@ for (const enabled of [false, true]) test('PLP consumer flag=' + enabled + ' pre
       return { ok: true, status: 200, correlationId: 'test', data: options.parse ? options.parse(p) : p };
     } };
     return {};
-  }, enabled ? { ECOMMIUM_STOREFRONT_PLP_CARDS_ENABLED: 'true' } : {});
+  }, env);
   const result = await plpModule.getStorefrontPlp('clothes'); assert.equal(result.ok, true);
   const request = calls.find(x => x.url.startsWith('/storefront/plp/'));
   assert.equal(request.url.includes('view=cards'), enabled);

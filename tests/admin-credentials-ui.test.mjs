@@ -63,3 +63,16 @@ test("Team lets a security administrator select only an already permitted defaul
   assert.match(employeesPage, /Solo puedes elegir tiendas ya permitidas para este empleado/);
   assert.match(employeesPage, /Guardar tienda predeterminada/);
 });
+
+test("Admin login password can be revealed with an accessible eye toggle", () => {
+  const loginPage = source("app/auth/login/page.tsx");
+  const passwordField = source("src/modules/auth/admin-password-visibility-field.tsx");
+  const styles = source("app/globals.css");
+
+  assert.match(loginPage, /AdminPasswordVisibilityField/);
+  assert.match(passwordField, /Eye/);
+  assert.match(passwordField, /EyeOff/);
+  assert.match(passwordField, /type=\{visible \? "text" : "password"\}/);
+  assert.match(passwordField, /aria-pressed=\{visible\}/);
+  assert.match(styles, /\.adminPasswordControl/);
+});

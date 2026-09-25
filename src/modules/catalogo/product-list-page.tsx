@@ -14,6 +14,7 @@ import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 import { bulkDeactivateProductsAction, deactivateProductAction } from "./product-actions";
 import type { ProductListFilters, ProductListResult, ProductLookupOption, ProductSummary } from "./product-editor-types";
+import { CatalogCsvImportClient } from "./catalog-csv-import-client";
 
 type ProductListColumnKey =
   | "id"
@@ -211,6 +212,8 @@ export function ProductListPage({ context, products, categories, productMessage 
           <p>{productMessage}</p>
         </div>
       ) : null}
+
+      {hasContext ? <CatalogCsvImportClient context={context} /> : null}
 
       <section className="adminCard productListGrid">
         <div className="adminCardHeader productListGridHeader">

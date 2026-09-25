@@ -3,6 +3,7 @@ import { Save } from "lucide-react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import type { ProductListResult } from "./product-editor-types";
 import type { StockAdminFilters, StockAdminProductDetail, StockAdminRow } from "./stock-admin";
+import { StockBulkImportClient } from "./stock-bulk-import-client";
 
 type Action = (formData: FormData) => Promise<void>;
 
@@ -19,7 +20,7 @@ function stockHref(filters: StockAdminFilters, overrides: Partial<StockAdminFilt
   const next = { ...filters, ...overrides };
   const params = new URLSearchParams();
   if (next.q) params.set("q", next.q);
-  if (next.status && next.status !== "active") params.set("status", next.status);
+  if (next.status && next.status !== "all") params.set("status", next.status);
   if (next.productId) params.set("productId", next.productId);
   if (next.limit && next.limit !== 25) params.set("limit", String(next.limit));
   if (next.offset) params.set("offset", String(next.offset));
@@ -257,9 +258,9 @@ export function StockAdminPage({
         </label>
         <label className="adminField">
           <span>Estado</span>
-          <select name="status" defaultValue={filters.status ?? "active"}>
-            <option value="active">Activos</option>
+          <select name="status" defaultValue={filters.status ?? "all"}>
             <option value="all">Todos</option>
+            <option value="active">Activos</option>
           </select>
         </label>
         <label className="adminField">
@@ -275,6 +276,8 @@ export function StockAdminPage({
       </form>
 
       <ResultBanner result={products} />
+
+      <StockBulkImportClient context={context} />
 
       <div className="stockAdminLayout">
         <section className="pricingPanel">

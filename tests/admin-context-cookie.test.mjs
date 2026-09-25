@@ -103,3 +103,33 @@ test("admin context cookie is scoped by principal", async () => {
   await clearAdminContext();
   assert.equal(cookieJar.has(contextCookieName), false);
 });
+
+test("admin context cookie supports url-encoded values from the browser", async () => {
+  cookieJar.clear();
+  currentSession = { employeeId: "employee-1", email: "one@example.com" };
+  const encodedValue = encodeURIComponent(JSON.stringify({
+    version: 1,
+    activePrincipalId: "employee-1",
+    contextsByPrincipal: {
+      "employee-1": {
+        organizationId: "org-encoded",
+        shopId: "shop-encoded",
+        shopAlias: "tienda-encoded",
+        shopName: "Tienda Encoded",
+        primaryDomain: "",
+        shopStatus: "ACTIVE",
+        locale: "es-ES",
+        currency: "EUR",
+        country: "ES",
+        channel: "admin",
+      },
+    },
+  }));
+  cookieJar.set(contextCookieName, encodedValue);
+
+  const context = await getAdminContext();
+
+  assert.equal(context.organizationId, "org-encoded");
+  assert.equal(context.shopId, "shop-encoded");
+  assert.equal(context.shopAlias, "tienda-encoded");
+});

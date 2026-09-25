@@ -16,9 +16,14 @@ type AdminProductsPageProps = {
   }>;
 };
 
-function numberParam(value: string | undefined, fallback: number) {
+function limitParam(value: string | undefined, fallback: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.round(parsed), 200) : fallback;
+}
+
+function offsetParam(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.min(Math.round(parsed), 10_000_000) : fallback;
 }
 
 export default async function AdminProductsPage({ searchParams }: AdminProductsPageProps) {
@@ -27,8 +32,8 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
   const filters: ProductListFilters = {
     q: params?.q,
     categoryId: params?.categoryId,
-    limit: numberParam(params?.limit, 20),
-    offset: numberParam(params?.offset, 0),
+    limit: limitParam(params?.limit, 20),
+    offset: offsetParam(params?.offset, 0),
     isActive: params?.isActive === "true" ? true : undefined,
     columns: params?.columns?.split(",").map((column) => column.trim()).filter(Boolean),
   };

@@ -282,6 +282,8 @@ function parseProduct(value: unknown): ProductSummary {
   const defaultVariant = asRecord(record.defaultVariant);
   const productPrice = productListPrice(record);
   const quantity = productListQuantity(record);
+  const readIndexPrice = asRecord(record.price);
+  const readIndexCurrentAmountMinor = asOptionalNumber(readIndexPrice.currentAmountMinor);
   const priceTaxExcludedMinor =
     asOptionalNumber(record.priceTaxExcludedMinor) ??
     asOptionalNumber(record.priceExcludingTaxMinor) ??
@@ -292,7 +294,8 @@ function parseProduct(value: unknown): ProductSummary {
     nestedAmountMinor(record.priceExclTax) ??
     nestedAmountMinor(record.taxExcludedPrice) ??
     (!productPrice?.taxIncluded ? productPrice?.basePriceMinor : undefined) ??
-    asOptionalNumber(record.basePriceMinor);
+    asOptionalNumber(record.basePriceMinor) ??
+    readIndexCurrentAmountMinor;
   const priceTaxIncludedMinor =
     asOptionalNumber(record.priceTaxIncludedMinor) ??
     asOptionalNumber(record.priceIncludingTaxMinor) ??
@@ -302,7 +305,8 @@ function parseProduct(value: unknown): ProductSummary {
     nestedAmountMinor(record.priceIncludingTax) ??
     nestedAmountMinor(record.priceInclTax) ??
     nestedAmountMinor(record.taxIncludedPrice) ??
-    (productPrice?.taxIncluded ? productPrice.basePriceMinor : undefined);
+    (productPrice?.taxIncluded ? productPrice.basePriceMinor : undefined) ??
+    readIndexCurrentAmountMinor;
   const priceTaxExcludedDisplay = displayPriceText(
     record.priceTaxExcludedDisplay,
     record.priceTaxExcludedFormatted,
@@ -334,6 +338,12 @@ function parseProduct(value: unknown): ProductSummary {
     record.priceInclTax,
     record.taxIncludedPrice,
     record.price,
+    typeof readIndexCurrentAmountMinor === "number"
+      ? formatMinorForDisplay(
+          readIndexCurrentAmountMinor,
+          asString(readIndexPrice.currency) ?? asString(record.currency) ?? "EUR",
+        )
+      : undefined,
   );
   const thumbnailUrl =
     normalizeAdminImageUrl(asString(record.thumbnailUrl)) ??
@@ -355,6 +365,7 @@ function parseProduct(value: unknown): ProductSummary {
     mediaCount: asNumber(record.mediaCount, images.length),
     defaultVariantId:
       asString(record.defaultVariantId) ??
+      asString(record.selectedVariantId) ??
       asString(defaultVariant.variantId) ??
       asString(defaultVariant.id),
     thumbnailUrl,
@@ -376,8 +387,9 @@ function parseProduct(value: unknown): ProductSummary {
     priceTaxIncludedMinor,
     priceTaxExcludedDisplay,
     priceTaxIncludedDisplay,
-    currency: asString(record.currency) ?? productPrice?.currency,
+    currency: asString(record.currency) ?? asString(readIndexPrice.currency) ?? productPrice?.currency,
     quantity,
+    readIndexPrepared: asBoolean(record.readIndexPrepared, false),
     shortDescription: localizedRichText(record.shortDescription ?? description.summary),
     description: localizedRichText(description.body ?? record.description),
     keywords: localizedText(record.keywords),
@@ -400,23 +412,6 @@ function parseProductList(value: unknown): { items: ProductSummary[]; total: num
   };
 }
 
-function parseFirstProductPrice(value: unknown): PriceDraft | undefined {
-  const record = asRecord(value);
-  const direct =
-    parsePrice(record.product ?? record.productPrice ?? value) ??
-    firstActivePrice(record.productPrices);
-
-  if (direct) {
-    return direct;
-  }
-
-  const rawItems = listItems(record.items ?? record.prices ?? record.data ?? value);
-  return rawItems
-    .map((item) => ({ item, price: parsePrice(item) }))
-    .find(({ item, price }) => Boolean(price && (priceTargetType(item) === "PRODUCT" || !priceVariantId(item))))
-    ?.price;
-}
-
 function parsePrice(value: unknown): PriceDraft | undefined {
   const record = asRecord(value);
   const tax = parseTax(record.tax);
@@ -426,6 +421,7 @@ function parsePrice(value: unknown): PriceDraft | undefined {
     asNullableNumber(record.priceMinor) ??
     asNullableNumber(record.unitPriceMinor) ??
     asNullableNumber(record.amountMinor) ??
+    asNullableNumber(record.currentAmountMinor) ??
     nestedAmountMinor(record.basePrice) ??
     nestedAmountMinor(record.fixedPrice) ??
     nestedAmountMinor(record.price) ??
@@ -471,6 +467,7 @@ function parseSpecificPrice(value: unknown): SpecificPriceDraft | undefined {
     asNullableNumber(record.fixedPriceMinor) ??
     nestedAmountMinor(record.fixedPrice) ??
     asNullableNumber(record.basePriceMinor) ??
+    asNullableNumber(record.currentAmountMinor) ??
     nestedAmountMinor(record.basePrice);
   const minQuantity = asNullableNumber(record.minQuantity);
   const impactType = asString(record.impactType)?.toUpperCase();
@@ -584,6 +581,13 @@ function productListPrice(record: Record<string, unknown>) {
 
 function displayPriceText(...values: unknown[]) {
   return values.map(asText).find(Boolean);
+}
+
+function formatMinorForDisplay(amountMinor: number, currency: string) {
+  return new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency,
+  }).format(amountMinor / 100);
 }
 
 function quantityFromRecord(value: unknown): number | undefined {
@@ -814,14 +818,6 @@ function parseVariantList(value: unknown): ProductVariantRecord[] {
   return listItems(value)
     .map(parseVariant)
     .filter((variant) => variant.variantId);
-}
-
-function parseDefaultVariantId(value: unknown): string | undefined {
-  const variants = parseVariantList(value);
-  return (
-    variants.find((variant) => variant.isDefault)?.variantId ??
-    variants[0]?.variantId
-  );
 }
 
 function parseOffering(value: unknown): ProductOfferingRecord {
@@ -1105,179 +1101,6 @@ function makeScopedParams(context: AdminContext, extra?: Record<string, string>)
   return params;
 }
 
-function productHasDisplayablePrice(product: ProductSummary) {
-  return Boolean(
-    typeof product.priceTaxExcludedMinor === "number" ||
-      typeof product.priceTaxIncludedMinor === "number" ||
-      product.priceTaxExcludedDisplay ||
-      product.priceTaxIncludedDisplay,
-  );
-}
-
-function applyProductPrice(product: ProductSummary, price: PriceDraft | undefined): ProductSummary {
-  if (!price) {
-    return product;
-  }
-
-  return {
-    ...product,
-    priceTaxExcludedMinor:
-      product.priceTaxExcludedMinor ??
-      (!price.taxIncluded ? price.basePriceMinor : undefined),
-    priceTaxIncludedMinor:
-      product.priceTaxIncludedMinor ??
-      (price.taxIncluded ? price.basePriceMinor : undefined),
-    currency: product.currency ?? price.currency,
-  };
-}
-
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  mapper: (item: T, index: number) => Promise<R>,
-) {
-  const results = new Array<R>(items.length);
-  let nextIndex = 0;
-
-  async function worker() {
-    while (nextIndex < items.length) {
-      const index = nextIndex;
-      nextIndex += 1;
-      results[index] = await mapper(items[index], index);
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return results;
-}
-
-async function getProductListPrice(context: AdminContext, productId: string): Promise<PriceDraft | undefined> {
-  const params = makeScopedParams(context, {
-    targetType: "PRODUCT",
-    productId,
-    active: "true",
-    currency: context.currency ?? "EUR",
-  });
-  const result = await requestAdminBff(`/admin/prices?${params.toString()}`, {
-    context,
-    parse: parseFirstProductPrice,
-  });
-
-  return result.ok ? result.data : undefined;
-}
-
-async function enrichProductsWithPricing(context: AdminContext, products: ProductSummary[]) {
-  return mapWithConcurrency(
-    products,
-    8,
-    async (product) => {
-      if (productHasDisplayablePrice(product)) {
-        return product;
-      }
-
-      return applyProductPrice(product, await getProductListPrice(context, product.productId));
-    },
-  );
-}
-
-function parseAvailabilityBatch(value: unknown): Record<string, StockDraft> {
-  const record = asRecord(value);
-  const items = listItems(record.items ?? record.availability ?? record.results ?? value);
-  const byVariant: Record<string, StockDraft> = {};
-
-  for (const item of items) {
-    const itemRecord = asRecord(item);
-    const variantId = asString(itemRecord.variantId) ?? asString(itemRecord.productVariantId);
-    if (variantId) {
-      byVariant[variantId] = parseStock(itemRecord);
-    }
-  }
-
-  return byVariant;
-}
-
-function productHasQuantity(product: ProductSummary) {
-  return typeof product.quantity === "number";
-}
-
-async function getProductListAvailabilityBatch(context: AdminContext, variantIds: string[]) {
-  if (variantIds.length === 0) {
-    return {};
-  }
-
-  const params = makeScopedParams(context);
-  const result = await requestAdminBff(`/admin/inventory/availability/resolve-batch?${params.toString()}`, {
-    context,
-    init: {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        organizationId: context.organizationId,
-        shopId: context.shopId,
-        items: variantIds.map((variantId) => ({
-          variantId,
-          warehouseId: "main-warehouse",
-        })),
-      }),
-    },
-    parse: parseAvailabilityBatch,
-  });
-
-  return result.ok ? result.data : {};
-}
-
-async function getProductListDefaultVariantId(context: AdminContext, productId: string) {
-  const params = makeScopedParams(context);
-  const result = await requestAdminBff(`/admin/products/${encodeURIComponent(productId)}/variants?${params.toString()}`, {
-    context,
-    parse: parseDefaultVariantId,
-  });
-
-  return result.ok ? result.data : undefined;
-}
-
-async function enrichProductsWithDefaultVariantIds(context: AdminContext, products: ProductSummary[]) {
-  return mapWithConcurrency(
-    products,
-    8,
-    async (product) => {
-      if (productHasQuantity(product) || product.defaultVariantId) {
-        return product;
-      }
-
-      return {
-        ...product,
-        defaultVariantId: await getProductListDefaultVariantId(context, product.productId),
-      };
-    },
-  );
-}
-
-async function enrichProductsWithAvailability(context: AdminContext, products: ProductSummary[]) {
-  const productsWithVariants = await enrichProductsWithDefaultVariantIds(context, products);
-  const variantIds = Array.from(new Set(
-    productsWithVariants
-      .filter((product) => !productHasQuantity(product))
-      .map((product) => product.defaultVariantId)
-      .filter((variantId): variantId is string => Boolean(variantId)),
-  ));
-  const stockByVariant = await getProductListAvailabilityBatch(context, variantIds);
-
-  return productsWithVariants.map((product) => {
-    if (productHasQuantity(product) || !product.defaultVariantId) {
-      return product;
-    }
-
-    const stock = stockByVariant[product.defaultVariantId];
-    return {
-      ...product,
-      quantity: stock?.availableQuantity,
-    };
-  });
-}
-
 export async function getAdminProducts(
   context: AdminContext,
   options: ProductListFilters = {},
@@ -1319,12 +1142,9 @@ export async function getAdminProducts(
     };
   }
 
-  const pricedItems = await enrichProductsWithPricing(context, result.data.items);
-  const items = await enrichProductsWithAvailability(context, pricedItems);
-
   return {
     ...result.data,
-    items,
+    items: result.data.items,
     limit,
     offset,
     filters: { ...options, limit, offset },

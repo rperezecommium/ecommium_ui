@@ -104,40 +104,29 @@ test("media admin lists collections through scoped Admin BFF endpoint", async ()
   assertScoped(calls[0].path);
 });
 
-test("media admin hydrates listed collections so thumbnails are available", async () => {
+test("media admin consumes projected collection thumbnails without per-row hydration", async () => {
   const calls = [];
   const requestAdminBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, method: options.init?.method ?? "GET" });
-    if (pathValue.startsWith("/admin/media/collections/collection-with-preview?")) {
-      return ok({
-        collection: {
-          mediaCollectionId: "collection-with-preview",
-          productId: "product-preview",
-          title: "Galeria con preview",
-          itemCount: 1,
-          items: [{
-            mediaAssetId: "asset-preview",
-            mimeType: "image/jpeg",
-            bytes: 4096,
-            isActive: true,
-            isMain: true,
-            metadata: {
-              alt: { "es-ES": "Imagen hidratada" },
-              title: { "es-ES": "Preview hidratado" },
-            },
-          }],
-        },
-      }, options);
-    }
-
     return ok({
       total: 1,
       items: [{
         mediaCollectionId: "collection-with-preview",
         productId: "product-preview",
-        title: "Resumen sin items",
+        title: "Galeria con preview",
         itemCount: 1,
         mediaAssetIds: ["asset-preview"],
+        items: [{
+          mediaAssetId: "asset-preview",
+          mimeType: "image/jpeg",
+          bytes: 4096,
+          isActive: true,
+          isMain: true,
+          metadata: {
+            alt: { "es-ES": "Imagen proyectada" },
+            title: { "es-ES": "Preview proyectado" },
+          },
+        }],
       }],
     }, options);
   };
@@ -148,10 +137,9 @@ test("media admin hydrates listed collections so thumbnails are available", asyn
   assert.equal(result.items[0].items.length, 1);
   assert.equal(result.items[0].items[0].mediaAssetId, "asset-preview");
   assert.equal(result.items[0].items[0].fileSize, 4096);
-  assert.equal(result.items[0].items[0].alt["es-ES"], "Imagen hidratada");
-  assert.equal(calls.length, 2);
+  assert.equal(result.items[0].items[0].alt["es-ES"], "Imagen proyectada");
+  assert.equal(calls.length, 1);
   assert.match(calls[0].path, /^\/admin\/media\/collections\?/);
-  assert.match(calls[1].path, /^\/admin\/media\/collections\/collection-with-preview\?/);
   calls.forEach((call) => assertScoped(call.path));
 });
 

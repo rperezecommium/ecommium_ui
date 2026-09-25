@@ -115,15 +115,15 @@ test("product list and editor-state use Admin BFF endpoints scoped by active sho
           isActive: false,
           isVisible: true,
           defaultVariantId: "variant-1",
+          price: {
+            currentAmountMinor: 1299,
+            currency: "EUR",
+          },
+          quantity: 7,
+          readIndexPrepared: true,
         }],
         total: 1,
       }, options);
-    }
-    if (pathValue.startsWith("/admin/prices?")) {
-      return ok({ items: [{ pricingId: "price-1", basePriceMinor: 1299, currency: "EUR", taxIncluded: true }] }, options);
-    }
-    if (pathValue.startsWith("/admin/inventory/availability/resolve-batch?")) {
-      return ok({ items: [{ variantId: "variant-1", onHandQuantity: 7, reservedQuantity: 0, safetyStockQuantity: 1 }] }, options);
     }
     if (pathValue.startsWith("/admin/products/product-1/editor-state?")) {
       return ok({
@@ -158,7 +158,10 @@ test("product list and editor-state use Admin BFF endpoints scoped by active sho
   const editorData = await getAdminProductEditorData(context, "product-1");
 
   assert.equal(calls.some((call) => call.path.startsWith("/inventory/")), false);
-  assert.ok(calls.some((call) => call.path.startsWith("/admin/inventory/availability/resolve-batch?")));
+  assert.ok(calls.some((call) => call.path.startsWith("/admin/products?")));
+  assert.equal(calls.some((call) => call.path.startsWith("/admin/prices?")), false);
+  assert.equal(calls.some((call) => call.path.startsWith("/admin/inventory/availability/resolve-batch?")), false);
+  assert.equal(calls.some((call) => /\/admin\/products\/[^/]+\/variants\?/.test(call.path)), false);
   assert.ok(calls.some((call) => call.path.startsWith("/admin/products/product-1/editor-state?")));
   assert.equal(editorData.ok, true);
   assert.equal(editorData.data.specificPrices[0].pricingId, "specific-product-1");

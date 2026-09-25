@@ -6,6 +6,7 @@ export type MediaAdminAsset = {
   mediaAssetId: string;
   fileName: string;
   mimeType: string;
+  previewUrl?: string;
   fileSize?: number;
   position?: number;
   active: boolean;
@@ -109,6 +110,18 @@ function mediaAssetId(value: unknown) {
   return asString(record.mediaAssetId) ?? asString(record.idImage) ?? asString(record.assetId) ?? asString(record.id);
 }
 
+function generatedThumbnailUrl(value: unknown, type = "small_default") {
+  const record = asRecord(value);
+  const variations = asRecord(record.variations);
+  const generated = variations.generatedThumbnails;
+  if (!Array.isArray(generated)) {
+    return undefined;
+  }
+
+  const selected = generated.find((item) => asString(asRecord(item).type) === type) ?? generated[0];
+  return asString(asRecord(selected).publicUrl);
+}
+
 function parseAsset(value: unknown, locale: string): MediaAdminAsset | null {
   const root = asRecord(value);
   const record = asRecord(root.item ?? root.asset ?? root.mediaAsset ?? value);
@@ -128,6 +141,7 @@ function parseAsset(value: unknown, locale: string): MediaAdminAsset | null {
       asString(record.publicPath)?.split("/").filter(Boolean).at(-1) ??
       id,
     mimeType: asString(record.mimeType) ?? asString(record.contentType) ?? "application/octet-stream",
+    previewUrl: generatedThumbnailUrl(record) ?? asString(record.publicUrl) ?? asString(record.public),
     fileSize: asNumber(record.fileSize ?? record.size ?? record.bytes, 0),
     position: asNumber(record.position, 0),
     active: asBoolean(record.active ?? record.isActive, true),
@@ -204,49 +218,11 @@ function parseCollectionList(value: unknown, locale: string) {
   };
 }
 
-function shouldHydrateCollection(collection: MediaAdminCollection) {
-  return collection.items.length === 0 && (collection.itemCount > 0 || collection.mediaAssetIds.length > 0);
-}
-
-async function hydrateCollectionPreview(
-  context: AdminContext,
-  collection: MediaAdminCollection,
-): Promise<MediaAdminCollection> {
-  if (!shouldHydrateCollection(collection)) {
-    return collection;
-  }
-
-  const params = makeScopedParams(context);
-  const result = await requestAdminBff(
-    `/admin/media/collections/${encodeURIComponent(collection.mediaCollectionId)}?${params.toString()}`,
-    {
-      context,
-      parse: (value) => parseCollection(value, context.locale),
-    },
-  );
-
-  if (!result.ok || !result.data) {
-    return collection;
-  }
-
-  return {
-    ...collection,
-    ...result.data,
-    title: result.data.title || collection.title,
-    productId: result.data.productId ?? collection.productId,
-    defaultLocale: result.data.defaultLocale ?? collection.defaultLocale,
-    status: result.data.status ?? collection.status,
-    itemCount: result.data.itemCount || collection.itemCount,
-    mediaAssetIds: result.data.mediaAssetIds.length ? result.data.mediaAssetIds : collection.mediaAssetIds,
-    items: result.data.items.length ? result.data.items : collection.items,
-  };
-}
-
 export async function listMediaCollections(
   context: AdminContext,
   options: MediaAdminListOptions = {},
 ): Promise<MediaAdminListResult> {
-  const limit = options.limit ?? 50;
+  const limit = options.limit ?? 20;
   const offset = options.offset ?? 0;
   const params = makeScopedParams(context, {
     limit: String(limit),
@@ -279,13 +255,9 @@ export async function listMediaCollections(
     };
   }
 
-  const items = await Promise.all(
-    result.data.items.map((collection) => hydrateCollectionPreview(context, collection)),
-  );
-
   return {
     ...result.data,
-    items,
+    items: result.data.items,
     limit,
     offset,
     source: "bff",

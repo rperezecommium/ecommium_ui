@@ -32,6 +32,7 @@ const pricingTabs = new Set<PricingAdminTab>([
   "computed",
   "computed-auto",
   "pipeline",
+  "bulk-import",
 ]);
 
 function tabParam(value: string | undefined): PricingAdminTab {

@@ -20,7 +20,8 @@
     "pw:close": "echo 'Close the Playwright window to stop the session'",
     "pw:snapshot": "playwright-cli snapshot",
     "pw:codegen": "playwright codegen http://localhost:5173",
-    "pw:report": "playwright show-report"
+    "pw:report": "playwright show-report",
+    "perf:readindex-ui": "node scripts/read-index-ui-performance.mjs"
   },
   "dependencies": {
     "@tiptap/extension-image": "^3.27.1",

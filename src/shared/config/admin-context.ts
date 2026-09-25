@@ -51,7 +51,7 @@ function parseCookieContext(value: string | undefined, principalId?: string): Pa
   }
 
   try {
-    const parsed = JSON.parse(value) as Partial<AdminContext> & AdminContextCookie;
+    const parsed = JSON.parse(decodeURIComponent(value)) as Partial<AdminContext> & AdminContextCookie;
     const scopedContext = principalId ? parsed.contextsByPrincipal?.[principalId] : undefined;
 
     if (scopedContext) {
@@ -78,7 +78,7 @@ function parseContextCookieEnvelope(value: string | undefined): AdminContextCook
   }
 
   try {
-    const parsed = JSON.parse(value) as AdminContextCookie;
+    const parsed = JSON.parse(decodeURIComponent(value)) as AdminContextCookie;
     return typeof parsed === "object" && parsed !== null ? parsed : {};
   } catch {
     return {};

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { loginAdminEmployee } from "../../../src/modules/auth/admin-session-actions";
 import { getAdminPasswordRecoveryAvailability } from "../../../src/modules/auth/admin-password-recovery-availability";
 import { getAdminInstallationStatus } from "../../../src/modules/configuracion/admin-installation";
+import { AdminPasswordVisibilityField } from "../../../src/modules/auth/admin-password-visibility-field";
 
 type LoginPageProps = {
   searchParams?: Promise<{
@@ -42,10 +43,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <span>Email</span>
             <input type="email" name="email" autoComplete="email" required />
           </label>
-          <label className="adminField">
-            <span>Password</span>
-            <input type="password" name="password" autoComplete="current-password" required />
-          </label>
+          <AdminPasswordVisibilityField autoComplete="current-password" name="password" required />
           <button className="adminButton adminButtonPrimary" type="submit">
             Entrar con BFF Auth
           </button>

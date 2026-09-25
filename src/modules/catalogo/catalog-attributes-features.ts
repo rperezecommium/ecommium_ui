@@ -252,7 +252,7 @@ export function filterAttributeFeatureFields(
 export async function listCatalogAttributeFeatureData(
   context: AdminContext,
 ): Promise<CatalogAttributeFeatureData> {
-  const params = makeScopedParams(context, { limit: "100", offset: "0" });
+  const params = makeScopedParams(context, { limit: "100", offset: "0", includeFields: "true" });
   const endpoint = `/admin/specifications/groups?${params.toString()}`;
   const result = await requestAdminBff(endpoint, {
     context,
@@ -271,7 +271,11 @@ export async function listCatalogAttributeFeatureData(
   }
 
   const summaries = result.data.map(asRecord);
-  const detailResults = await Promise.all(summaries.map((summary) => {
+  const detailedGroups = summaries
+    .filter((summary) => Array.isArray(summary.fields))
+    .map((summary) => parseGroup(summary, context.locale));
+  const missingDetails = summaries.filter((summary) => !Array.isArray(summary.fields));
+  const detailResults = await Promise.all(missingDetails.map((summary) => {
     const groupId = asString(summary.specificationGroupId);
     if (!groupId) {
       return Promise.resolve(null);
@@ -282,9 +286,12 @@ export async function listCatalogAttributeFeatureData(
       parse: (value) => parseGroup(value, context.locale),
     });
   }));
-  const groups = detailResults
+  const groups = [
+    ...detailedGroups,
+    ...detailResults
     .filter((detail): detail is BffSuccess<CatalogSpecificationGroup> => Boolean(detail && detail.ok))
-    .map((detail) => detail.data);
+    .map((detail) => detail.data),
+  ];
 
   return {
     groups,

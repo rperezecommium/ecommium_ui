@@ -34,7 +34,7 @@ export default async function CatalogoMediaPage({ searchParams }: CatalogoMediaP
     status: params?.status === "all" ? "all" as const : "active" as const,
     collectionId: params?.collectionId ?? "",
     mediaMessage: params?.mediaMessage ?? "",
-    limit: numberParam(params?.limit, 50),
+    limit: numberParam(params?.limit, 20),
     offset: numberParam(params?.offset, 0),
   };
   const collections = await listMediaCollections(context, {

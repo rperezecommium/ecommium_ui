@@ -54,6 +54,8 @@ function appendOperationalDiagnostic(message: string, input: { status?: number; 
   return details.length > 0 ? `${message} (${details.join(", ")}).` : message;
 }
 
+const serverSessionValidationLeadMs = 60_000;
+
 function genericOperationalAccessError(input: { status?: number; correlationId?: string }) {
   const { status } = input;
 
@@ -153,6 +155,19 @@ async function refreshStoredAdminSession(current: AdminSession) {
   const nextSession = mergeAuthSessions(refreshedSession, meResult.data);
   await saveAdminSession(nextSession);
   return nextSession;
+}
+
+function hasFreshServerSession(current: AdminSession) {
+  if (!hasUsableAdminBearer(current)) {
+    return false;
+  }
+
+  if (!current.expiresAt) {
+    return true;
+  }
+
+  const expiresAt = new Date(current.expiresAt).getTime();
+  return Number.isFinite(expiresAt) && expiresAt - Date.now() > serverSessionValidationLeadMs;
 }
 
 async function loginAdminWithCredentials({
@@ -292,6 +307,10 @@ export async function refreshAdminEmployeeSession() {
 
   if (!hasUsableAdminBearer(current)) {
     return null;
+  }
+
+  if (hasFreshServerSession(current)) {
+    return current;
   }
 
   if (!current.accessToken) {

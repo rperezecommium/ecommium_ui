@@ -12,7 +12,8 @@ export type PricingAdminTab =
   | "fixed"
   | "computed"
   | "computed-auto"
-  | "pipeline";
+  | "pipeline"
+  | "bulk-import";
 
 export type PricingRecord = Record<string, string | number | boolean | null | undefined>;
 

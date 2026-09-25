@@ -134,7 +134,7 @@ export async function getStorefrontPlp(
   params.set("limit", String(limit));
   params.set("offset", String(offset));
   params.set("routePath", routePath);
-  const cards = process.env.ECOMMIUM_STOREFRONT_PLP_CARDS_ENABLED === "true";
+  const cards = storefrontPlpCardsEnabled();
   if (cards) params.set("view", "cards");
 
   const categoriesPromise = getStorefrontCategories(context, categorySlug);
@@ -221,6 +221,15 @@ export async function getStorefrontSearch(
     correlationId: result.correlationId,
     data: mapSearchPayload(result.data, searchQuery, currentPage, contextParams.toString(), publicPath, categories, context, visitorId),
   };
+}
+
+
+function storefrontPlpCardsEnabled() {
+  return [
+    process.env.ECOMMIUM_STOREFRONT_PLP_CARDS_ENABLED,
+    process.env.ECOMMIUM_STOREFRONT_READ_INDEX_ENABLED,
+    process.env.ECOMMIUM_STOREFRONT_PLP_READ_INDEX_ENABLED,
+  ].some((value) => value === "true");
 }
 
 function compactContext<T extends Record<string, string | undefined>>(value: T): Partial<T> {

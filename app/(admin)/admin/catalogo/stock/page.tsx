@@ -24,7 +24,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
   const context = await getAdminContext();
   const filters = {
     q: params?.q ?? "",
-    status: params?.status === "all" ? "all" as const : "active" as const,
+    status: params?.status === "active" ? "active" as const : "all" as const,
     productId: params?.productId ?? "",
     stockMessage: params?.stockMessage ?? "",
     limit: numberParam(params?.limit, 25),

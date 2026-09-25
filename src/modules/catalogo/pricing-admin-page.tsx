@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { AdminInfoTooltip } from "../../shared/ui/admin-info-tooltip";
+import { PricingBulkImportClient } from "./pricing-bulk-import-client";
 import type { PricingAdminResult, PricingAdminTab, PricingGovernanceData, PricingRecord } from "./pricing-admin";
 import {
   deleteFixedPriceAction,
@@ -50,6 +51,7 @@ const tabs: Array<{ id: PricingAdminTab; label: string }> = [
   { id: "computed", label: "Computed" },
   { id: "computed-auto", label: "Computed auto" },
   { id: "pipeline", label: "Pipeline catalog" },
+  { id: "bulk-import", label: "Importar CSV" },
 ];
 
 const pricingTabTooltips: Partial<Record<PricingAdminTab, {
@@ -926,6 +928,9 @@ export function PricingAdminPage({ context, data, filters }: PricingAdminPagePro
           />
           <RecordDetails title="Pipeline tabla seleccionada" result={data.pipelineTable} />
         </>
+      ) : null}
+      {activeTab === "bulk-import" ? (
+        <PricingBulkImportClient context={context} />
       ) : null}
       <TaxDefinitionDrawer context={context} filters={filters} />
       <PriceTableReferenceDrawer context={context} filters={filters} />

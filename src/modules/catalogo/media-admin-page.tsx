@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ExternalLink, ImageIcon, Trash2, Upload } from "lucide-react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { safeMediaInputAccept } from "../../shared/security/media-upload";
-import type { MediaAdminCollection, MediaAdminListResult } from "./media-admin";
+import type { MediaAdminAsset, MediaAdminCollection, MediaAdminListResult } from "./media-admin";
 
 type Action = (formData: FormData) => Promise<void>;
 
@@ -64,6 +64,10 @@ function fileSize(value: number | undefined) {
 
 function assetContentUrl(mediaAssetId: string, variant = "small_default") {
   return `/api/admin/media-assets/${encodeURIComponent(mediaAssetId)}/content?variant=${encodeURIComponent(variant)}`;
+}
+
+function assetPreviewUrl(asset: MediaAdminAsset) {
+  return asset.previewUrl ?? assetContentUrl(asset.mediaAssetId);
 }
 
 function detailReturnPath(closeHref: string, mediaCollectionId: string) {
@@ -144,7 +148,7 @@ function CollectionPreview({
         return (
           <div className="mediaAdminCollectionThumb" key={asset.mediaAssetId}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={assetContentUrl(asset.mediaAssetId)} alt={alt} />
+            <img src={assetPreviewUrl(asset)} alt={alt} decoding="async" loading="lazy" />
           </div>
         );
       })}
@@ -182,7 +186,7 @@ function AssetGrid({
           <article className="mediaAdminAssetCard" key={asset.mediaAssetId}>
             <div className="mediaAdminAssetPreview">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={assetContentUrl(asset.mediaAssetId)} alt={alt} />
+              <img src={assetPreviewUrl(asset)} alt={alt} decoding="async" loading="lazy" />
             </div>
             <div className="mediaAdminAssetBody">
               <h3>{asset.fileName}</h3>

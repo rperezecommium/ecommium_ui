@@ -1937,6 +1937,37 @@ p {
   resize: vertical;
 }
 
+.adminPasswordControl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+}
+
+.adminPasswordControl input {
+  border-radius: 4px 0 0 4px;
+}
+
+.adminPasswordToggle {
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  border: 1px solid var(--admin-border);
+  border-left: 0;
+  border-radius: 0 4px 4px 0;
+  background: var(--admin-surface);
+  color: var(--admin-primary);
+  cursor: pointer;
+}
+
+.adminPasswordToggle:hover,
+.adminPasswordToggle:focus-visible {
+  color: var(--admin-primary-pressed);
+}
+
+.adminPasswordToggle:focus-visible {
+  outline: 2px solid var(--admin-focus-ring);
+  outline-offset: 2px;
+}
+
 .adminCheckbox {
   display: flex;
   align-items: center;
@@ -16726,4 +16757,67 @@ p {
   .storefrontPdpGallery {
     padding: 20px;
   }
+}
+
+.pricingBulkImportCard {
+  display: grid;
+  gap: 16px;
+}
+
+.pricingBulkImportDropzone {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px dashed var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-surface-muted);
+}
+
+.pricingBulkImportFileField input[type="file"] {
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
+}
+
+.pricingBulkImportProgress {
+  display: grid;
+  gap: 10px;
+}
+
+.pricingBulkImportProgressHeader,
+.pricingBulkImportMetrics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 14px;
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}
+
+.pricingBulkImportProgressHeader strong {
+  color: var(--admin-text);
+}
+
+.pricingBulkImportProgressTrack {
+  overflow: hidden;
+  height: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  background: var(--admin-surface-muted);
+}
+
+.pricingBulkImportProgressTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-primary);
+  transition: width 180ms ease;
+}
+
+.pricingBulkImportErrors {
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
 }
