@@ -213,7 +213,7 @@ export function ProductListPage({ context, products, categories, productMessage 
         </div>
       ) : null}
 
-      {hasContext ? <CatalogCsvImportClient context={context} /> : null}
+      {hasContext ? <CatalogCsvImportClient context={context} categories={categories} /> : null}
 
       <section className="adminCard productListGrid">
         <div className="adminCardHeader productListGridHeader">

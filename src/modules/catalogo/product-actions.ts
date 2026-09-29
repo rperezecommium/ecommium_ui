@@ -539,21 +539,28 @@ type LookupActionResult = {
   options: ProductLookupOption[];
   option?: ProductLookupOption;
   message?: string;
+  total?: number;
+  offset?: number;
+  limit?: number;
 };
 
-async function searchCatalogEntityOptions(kind: CatalogEntityKind, q: string): Promise<LookupActionResult> {
+async function searchCatalogEntityOptions(kind: CatalogEntityKind, q: string, offset = 0, includeInactive = false): Promise<LookupActionResult> {
+  if (!Number.isSafeInteger(offset) || offset < 0 || typeof q !== "string" || q.length > 200) return { ok: false, options: [], message: "Búsqueda de categorías no válida." };
   const context = await getAdminContext();
   const result = await listCatalogEntities(context, kind, {
     q,
-    isActive: true,
+    isActive: includeInactive ? undefined : true,
     limit: 100,
-    offset: 0,
+    offset,
   });
 
   return {
     ok: result.source === "bff",
     options: toLookupOptions(result),
     message: result.message,
+    total: result.total,
+    offset: result.offset,
+    limit: result.limit,
   };
 }
 
@@ -591,8 +598,8 @@ async function createCatalogEntityOption(kind: CatalogEntityKind, name: string):
   };
 }
 
-export async function searchProductCategoriesAction(q: string) {
-  return searchCatalogEntityOptions("categories", q);
+export async function searchProductCategoriesAction(q: string, offset = 0, includeInactive = false) {
+  return searchCatalogEntityOptions("categories", q, offset, includeInactive === true);
 }
 
 export async function searchProductBrandsAction(q: string) {

@@ -2746,7 +2746,7 @@ async function startNext() {
 async function loginAdmin(page: Page) {
   await page.goto(`http://127.0.0.1:${nextPort}/auth/login`);
   await page.getByLabel("Email").fill("admin@example.com");
-  await page.getByLabel("Password").fill("secret123");
+  await page.locator('input[name="password"]').fill("secret123");
   await page.getByRole("button", { name: "Entrar con BFF Auth" }).click();
   await page.waitForURL(`http://127.0.0.1:${nextPort}/admin`);
 }
@@ -2763,6 +2763,153 @@ test.beforeEach(() => {
 test.afterAll(async () => {
   nextProcess?.kill();
   bffServer?.close();
+});
+
+const admissionCsv = { name: "admission.csv", mimeType: "text/csv", buffer: Buffer.from("Product ID;Name\n1;Admission test\n") };
+const admissionReady = { ready: true, checks: [{ component: "catalog-import-parser", ready: true }] };
+
+async function openCsvAdmission(page: Page) {
+  await loginAdmin(page);
+  await page.goto(`http://127.0.0.1:${nextPort}/admin/products`);
+  return page.locator("section.pricingBulkImportCard").filter({ has: page.getByRole("heading", { name: "Importar productos por CSV", exact: true }) });
+}
+
+for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
+  test(`CSV admission ${viewport.width}: ready waits for explicit click before a single upload`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    let uploads = 0;
+    let uploadedBody = "";
+    await page.route("**/api/admin/catalog-import-jobs/readiness?*", route => route.fulfill({ json: admissionReady }));
+    await page.route("**/api/admin/catalog-import-jobs/csv", async route => {
+      uploads++;
+      uploadedBody = route.request().postData() ?? "";
+      await route.fulfill({ json: { importJobId: "admission-job", state: "STAGED" } });
+    });
+    const form = await openCsvAdmission(page);
+    await form.getByLabel("CSV de productos", { exact: true }).setInputFiles(admissionCsv);
+    await expect(form.getByRole("status")).toHaveText("Sugerencia: sistema listo para la importación");
+    const start = form.getByRole("button", { name: "Iniciar importación", exact: true });
+    await expect(start).toBeEnabled();
+    expect(uploads).toBe(0);
+    const screenshot = test.info().outputPath("csv-infrastructure-ready.png");
+    await form.screenshot({ path: screenshot });
+    await test.info().attach("csv-infrastructure-ready", { path: screenshot, contentType: "image/png" });
+    expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith("catalog-import:")))).toEqual([]);
+    const box = await start.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
+    // Two clicks in one turn must not create two jobs before React renders.
+    await start.evaluate(button => { (button as HTMLButtonElement).click(); (button as HTMLButtonElement).click(); });
+    await expect(form.getByRole("button", { name: "Aplicar importación", exact: true })).toBeVisible();
+    expect(uploads).toBe(1);
+    expect(uploadedBody).toContain('filename="admission.csv"');
+    expect(uploadedBody).toContain('name="categoryAssignment"');
+    expect(uploadedBody).toContain('{"mode":"csv"}');
+  });
+}
+
+test("CSV admission blocks failures and malformed responses, then retries the same file", async ({ page }) => {
+  let uploads = 0;
+  let attempt = 0;
+  const results = [
+    { status: 503, json: { ready: false, checks: [{ component: "inventory-import-bulk", ready: false }] } },
+    { status: 401, json: { error: "Unauthorized" } },
+    { status: 200, json: { ready: true, checks: [] } },
+    { status: 200, json: { ready: true, checks: [null] } },
+    { status: 200, json: admissionReady },
+  ];
+  await page.route("**/api/admin/catalog-import-jobs/readiness?*", route => route.fulfill(results[attempt++]));
+  await page.route("**/api/admin/catalog-import-jobs/csv", route => { uploads++; return route.abort(); });
+  const form = await openCsvAdmission(page);
+  await form.getByLabel("CSV de productos", { exact: true }).setInputFiles(admissionCsv);
+  await expect(form.getByRole("status")).toContainText("inventory-import-bulk");
+  for (let index = 0; index < 4; index++) {
+    await expect(form.getByRole("button", { name: "Iniciar importación", exact: true })).toBeDisabled();
+    const response = page.waitForResponse(response => response.url().includes("/readiness?"));
+    await form.getByRole("button", { name: "Comprobar infraestructura", exact: true }).click();
+    await response;
+    await expect(form.getByRole("button", { name: "Comprobar infraestructura", exact: true })).toBeEnabled();
+  }
+  await expect(form.getByRole("status")).toContainText("Sugerencia: sistema listo");
+  expect(await form.getByLabel("CSV de productos", { exact: true }).evaluate(input => (input as HTMLInputElement).files?.[0]?.name)).toBe("admission.csv");
+  expect(uploads).toBe(0);
+});
+
+test("CSV admission invalidates commercial and category changes and ignores a cancelled response", async ({ page }) => {
+  let uploads = 0;
+  let release!: () => void;
+  let firstFinished!: () => void;
+  const delayed = new Promise<void>(resolve => { release = resolve; });
+  const finished = new Promise<void>(resolve => { firstFinished = resolve; });
+  const queries: URLSearchParams[] = [];
+  await page.route("**/api/admin/catalog-import-jobs/readiness?*", async route => {
+    queries.push(new URL(route.request().url()).searchParams);
+    if (queries.length === 1) {
+      await delayed;
+      try { await route.fulfill({ json: admissionReady }); } finally { firstFinished(); }
+    } else await route.fulfill({ json: admissionReady });
+  });
+  await page.route("**/api/admin/catalog-import-jobs/csv", route => { uploads++; return route.abort(); });
+  const form = await openCsvAdmission(page);
+  const start = form.getByRole("button", { name: "Iniciar importación", exact: true });
+  const check = form.getByRole("button", { name: "Comprobar infraestructura", exact: true });
+  await form.getByLabel("CSV de productos", { exact: true }).setInputFiles(admissionCsv);
+  await expect(form.getByRole("status")).toHaveText("Comprobando infraestructura…");
+  await expect.poll(() => queries.length).toBe(1);
+  await form.getByLabel("Canal de venta", { exact: true }).fill("outlet");
+  release();
+  await finished;
+  await expect(start).toBeDisabled();
+  await expect(form.getByRole("status")).toContainText("Es necesario comprobar");
+  await check.click();
+  await expect(start).toBeEnabled();
+  expect(queries.at(-1)?.get("channel")).toBe("outlet");
+  for (const [label, value] of [["Warehouse", "another-warehouse"], ["Moneda", "USD"], ["País", "US"]]) {
+    await form.getByLabel(label, { exact: true }).fill(value);
+    await expect(start).toBeDisabled();
+    await check.click();
+    await expect(start).toBeEnabled();
+  }
+  for (const label of ["Publicar productos", "Disponibles para venta", "Gestionar inventario", "Permitir venta sin stock"]) {
+    await form.getByLabel(label, { exact: true }).click();
+    await expect(start).toBeDisabled();
+    await check.click();
+    await expect(start).toBeEnabled();
+  }
+  await form.getByRole("radio", { name: "Nueva categoría", exact: true }).check();
+  await expect(start).toBeDisabled();
+  await form.getByLabel("Nombre de la nueva categoría").fill("Nutrition test");
+  await check.click();
+  await expect(start).toBeEnabled();
+  await form.getByLabel("Nombre de la nueva categoría").fill("Changed category");
+  await expect(start).toBeDisabled();
+  expect(uploads).toBe(0);
+});
+
+test("CSV admission rechecks a replacement file and respects BFF rejection at submission", async ({ page }) => {
+  let checks = 0;
+  let uploads = 0;
+  await page.route("**/api/admin/catalog-import-jobs/readiness?*", route => { checks++; return route.fulfill({ json: admissionReady }); });
+  await page.route("**/api/admin/catalog-import-jobs/csv", route => {
+    uploads++;
+    expect(route.request().postData()).toContain('filename="replacement.csv"');
+    return route.fulfill({ status: 503, json: { error: "No se ha iniciado: Inventory no disponible." } });
+  });
+  const form = await openCsvAdmission(page);
+  const file = form.getByLabel("CSV de productos", { exact: true });
+  const start = form.getByRole("button", { name: "Iniciar importación", exact: true });
+  await file.setInputFiles(admissionCsv);
+  await expect(start).toBeEnabled();
+  await file.setInputFiles({ ...admissionCsv, name: "replacement.csv" });
+  await expect.poll(() => checks).toBe(2);
+  await expect(start).toBeEnabled();
+  expect(uploads).toBe(0);
+  await start.click();
+  await expect(form.getByText("No se ha iniciado: Inventory no disponible.", { exact: true })).toBeVisible();
+  await expect(start).toBeDisabled();
+  expect(uploads).toBe(1);
+  expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith("catalog-import:")))).toEqual([]);
 });
 
 test("admin login authenticates without tenant fields and loads context afterwards", async ({ page }) => {

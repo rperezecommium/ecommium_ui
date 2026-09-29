@@ -1,5 +1,27 @@
 # Ecommium UI
 
+## Importacion CSV: infraestructura y resultado parcial
+
+Al seleccionar el CSV, Admin consulta readiness mediante su BFF sin enviar ni
+procesar el archivo. Si todo responde, muestra "Sugerencia: sistema listo para
+la importación" y habilita "Iniciar importación". Solo ese clic envia el archivo.
+Si falta un componente, muestra la causa sin POST CSV y permite comprobar de nuevo
+conservando el fichero. Cambiar los datos o el archivo invalida la comprobacion;
+las respuestas de comprobaciones canceladas no habilitan el inicio. El BFF
+repite el control antes de persistir. El resultado distingue publicados, guardados sin publicar, rechazados
+y pendientes, con motivos paginados; las filas no identificables se muestran aparte.
+La UI no decide publicacion ni accede directamente a owners/ReadIndex. Verificacion
+local: `node --test tests/catalog-csv-import.test.mjs` y `npx tsc --noEmit`.
+Prueba de navegador aislada (sin importaciones reales): `npm run build` y
+`ECOMMIUM_STOREFRONT_BFF_BASE_URL=https://storefront.example.test npx playwright test tests/e2e/admin-login.spec.ts -g "CSV admission" --workers=1`.
+La URL HTTPS es solo del entorno aislado de pruebas; estas pruebas Admin no llaman a Storefront.
+La comprobacion acredita disponibilidad en ese momento, no disponibilidad futura.
+
+Validacion manual reportada por el usuario el 2026-09-29: dos importaciones
+consecutivas de 10 productos exitosas, la segunda seleccionando una categoria
+nueva desde Admin. Tambien confirmo anadir productos del primer test al carrito.
+Este punto de control no certifica checkout/pago ni cargas mayores.
+
 Next.js application for the Ecommium ecommerce operations interface.
 
 ## Getting Started
@@ -30,6 +52,30 @@ Open http://localhost:5173 to view the app.
 
 The Admin foundation starts at `/admin` and expects all business data to come
 from the Ecommium BFF.
+
+### Seguimiento de importación CSV
+
+Antes de seleccionar el fichero se elige entre las categorias del CSV (por
+defecto), una categoria existente o una nueva. El selector existente utiliza la
+busqueda paginada del BFF, incluidas categorias inactivas; elegir una no cambia
+su estado. La opcion nueva requiere nombre y Catalog la crea al aplicar el
+import. La eleccion queda fijada con la subida y se recupera tras recargar.
+`Nueva importación` prepara otro fichero sin borrar los datos del import anterior.
+El transporte UI envia `categoryAssignment` al proxy autenticado, que lo valida
+y lo incluye en `profile` del endpoint CSV BFF; no modifica el contenido del CSV.
+
+En `/admin/products`, `UPLOADED` muestra preparación y no habilita aplicar hasta
+`STAGED`. El BFF conserva y continúa el plan por owner; la UI sólo solicita aplicar,
+consulta progreso y permite reanudar. Publicación aceptada no equivale a finalización:
+el BFF comprueba ACK y convergencia ReadIndex antes de comunicar `COMPLETED`.
+Se conservan las referencias de jobs incluso ante errores parciales. La recarga
+recupera importJobId, operationId y contexto comercial desde almacenamiento local
+por tenant, sin guardar tokens. Un reinicio del BFF o autorización caducada muestra
+la importación pausada y requiere reanudar con la sesión actual.
+
+Verificación aislada: `node --test tests/catalog-csv-import.test.mjs`. El contrato
+canónico permanece en `.docs/06-interfaces/00-frontend-bff-contracts.md` del backend;
+la UI y su ruta de reanudación sólo llaman al BFF.
 
 ### Commerce ReadIndex para lecturas
 
