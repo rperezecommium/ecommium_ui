@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, RefreshCw, Search, Upload } from "lucide-react";
 import type { AdminContext } from "../../shared/config/admin-context";
-import { importPhase, statusProgress, type ImportPhase as Phase, type ImportResponse, type ImportOutcomes, type OwnerJob } from "./catalog-csv-import-state";
+import { importPhase, shouldPollImport, statusProgress, type ImportPhase as Phase, type ImportResponse, type ImportOutcomes, type OwnerJob } from "./catalog-csv-import-state";
 import { parseImportCategoryAssignment, type ImportCategoryAssignment } from "./catalog-csv-import-category";
 import { searchProductCategoriesAction } from "./product-actions";
 import type { ProductLookupOption } from "./product-editor-types";
@@ -97,9 +97,9 @@ function CatalogCsvImportForm({ context, categories }: { context: AdminContext; 
     setError(body.errors?.length ? body.errors.map(entry => `${entry.owner}: ${entry.message}`).join(" · ") : null);
     setMessage(next === "completed" ? (body.state === "COMPLETED_WITH_WARNINGS" ? "Importación finalizada con advertencias." : "Importación finalizada.") :
       next === "staged" ? "CSV preparado." : next === "preparing" ? "Preparando CSV..." :
-      next === "paused" ? "Importación pausada. Reanuda con tu sesión actual." : next === "failed" ? "Importación detenida por un error." :
+      next === "paused" ? (body.authorizationRefreshPending ? "Validando la sesión renovada..." : "Importación pausada. Reanuda con tu sesión actual.") : next === "failed" ? "Importación detenida por un error." :
       body.phase === "projection" ? "Comprobando publicación..." : "Importación en curso...");
-    if (["completed", "staged", "failed", "paused"].includes(next)) setWatching(false);
+    if (!shouldPollImport(body)) setWatching(false);
   }
 
   useEffect(() => {
@@ -144,7 +144,7 @@ function CatalogCsvImportForm({ context, categories }: { context: AdminContext; 
         const body = await response.json() as ImportResponse;
         if (abort.signal.aborted) return;
         accept(body);
-        if (["preparing", "polling"].includes(importPhase(body))) timer = setTimeout(() => void poll(), 1000);
+        if (shouldPollImport(body)) timer = setTimeout(() => void poll(), 1000);
       } catch (error) {
         if (abort.signal.aborted) return;
         setWatching(false);

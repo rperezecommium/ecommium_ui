@@ -10,11 +10,17 @@ export type ImportResponse = {
   importJobId?: string;
   state?: string;
   managed?: boolean;
+  authorizationRefreshPending?: boolean;
   phase?: string;
   jobs?: OwnerJob[];
   errors?: Array<{ owner: string; message: string }>;
   outcomes?: ImportOutcomes;
 };
+
+export function shouldPollImport(body: ImportResponse): boolean {
+  return ["preparing", "polling"].includes(importPhase(body)) ||
+    (body.state === "AWAITING_AUTHORIZATION" && body.authorizationRefreshPending === true);
+}
 
 export function importPhase(body: ImportResponse): ImportPhase {
   if (["PAUSED", "AWAITING_AUTHORIZATION"].includes(body.state ?? "")) return "paused";

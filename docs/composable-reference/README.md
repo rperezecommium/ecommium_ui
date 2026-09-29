@@ -2,6 +2,12 @@
 
 ## Objetivo
 
+Contrato import Admin, actualizado 2026-09-29: status puede incluir
+`authorizationRefreshPending: true` solo en AWAITING_AUTHORIZATION tras recibir
+un token renovado y validado de la misma sesion/tenant. La UI sigue observando sin
+reenviar el CSV ni reanudar por su cuenta; BFF verifica permisos en el tick. Un
+403, reinicio o cambio de sesion sigue requiriendo resume explicito.
+
 Este documento es el snapshot local que debe leer la IA cuando trabaje en `ecommium_ui`. Evita depender de rutas absolutas hacia el repo backend y conserva las reglas necesarias para construir la UI sin consultar `/Users/ricardoperez/Documents/ecommium/composable_ecommerce`.
 
 Si este snapshot queda desactualizado frente al BFF real, la IA debe documentar el gap en el cambio de UI y pedir sincronizacion explicita. No debe navegar ni modificar el repo backend por iniciativa propia.

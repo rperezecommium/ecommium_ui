@@ -9,6 +9,18 @@ const exports = {};
 vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports });
 const { importPhase, statusProgress } = exports;
 
+test('continues observing only an authorization renewal already accepted by BFF', () => {
+  assert.equal(exports.shouldPollImport({ state: 'AWAITING_AUTHORIZATION', authorizationRefreshPending: true }), true);
+  assert.equal(importPhase({ state: 'AWAITING_AUTHORIZATION', authorizationRefreshPending: true }), 'paused');
+  for (const state of ['AWAITING_AUTHORIZATION', 'PAUSED', 'FAILED', 'COMPLETED']) {
+    assert.equal(exports.shouldPollImport({ state, managed: true }), false);
+  }
+  assert.equal(exports.shouldPollImport({ state: 'PAUSED', authorizationRefreshPending: true }), false);
+  const ui = readFileSync(new URL('../src/modules/catalogo/catalog-csv-import-client.tsx', import.meta.url), 'utf8');
+  assert.match(ui, /if \(!shouldPollImport\(body\)\) setWatching\(false\)/);
+  assert.match(ui, /if \(shouldPollImport\(body\)\) timer/);
+});
+
 test('UPLOADED and intermediate preparation states do not enable Apply', () => {
   for (const state of ['UPLOADED', 'PARSING', 'NORMALIZED', 'DEPENDENCIES_RESOLVED']) assert.equal(importPhase({ state }), 'preparing');
   assert.equal(importPhase({ state: 'STAGED' }), 'staged');

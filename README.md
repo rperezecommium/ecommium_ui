@@ -2,6 +2,11 @@
 
 ## Importacion CSV: infraestructura y resultado parcial
 
+El seguimiento conserva la observacion cuando BFF indica
+`authorizationRefreshPending: true`: el mismo usuario/sesion ha renovado la
+credencial y el workflow aun debe comprobarla. No se oculta la pausa ni se envia
+resume desde GET. Sin esa indicacion, una pausa requiere accion explicita.
+
 Al seleccionar el CSV, Admin consulta readiness mediante su BFF sin enviar ni
 procesar el archivo. Si todo responde, muestra "Sugerencia: sistema listo para
 la importación" y habilita "Iniciar importación". Solo ese clic envia el archivo.
