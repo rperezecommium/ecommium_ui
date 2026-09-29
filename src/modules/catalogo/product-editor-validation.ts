@@ -4,7 +4,7 @@ import type {
   ProductDraft,
   ProductShippingDraft,
 } from "./product-editor-types";
-import { createEmptyProductShippingDraft, makeRefIdFromName, plainProductText, slugifyProductValue } from "./product-editor-draft";
+import { createEmptyProductShippingDraft, editorBasePrice, makeRefIdFromName, plainProductText, slugifyProductValue } from "./product-editor-draft";
 
 export type ProductDraftValidation = {
   ok: boolean;
@@ -32,10 +32,9 @@ function hasPublishableMainMedia(draft: ProductDraft) {
 }
 
 function hasPublishableBasePrice(draft: ProductDraft) {
+  const price = editorBasePrice(draft);
   return Boolean(
-    draft.pricing.productPrice &&
-      draft.pricing.productPrice.basePriceMinor > 0 &&
-      !draft.pricing.productPrice.markedForDeletion,
+    price && price.basePriceMinor > 0 && !price.markedForDeletion,
   );
 }
 

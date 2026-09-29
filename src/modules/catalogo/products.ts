@@ -1157,7 +1157,6 @@ export async function getAdminProductEditorData(context: AdminContext, productId
   const params = makeScopedParams(context, {
     locale: context.locale,
     currency: context.currency,
-    warehouseId: "main-warehouse",
   });
   const endpoint = `/admin/products/${encodeURIComponent(productId)}/editor-state?${params.toString()}`;
   const editorState = await requestAdminBff(endpoint, {

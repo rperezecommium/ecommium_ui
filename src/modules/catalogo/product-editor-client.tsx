@@ -21,12 +21,15 @@ import {
 } from "./product-actions";
 import {
   canonicalPathFromSlug,
+  editorBasePrice,
+  editorBasePriceVariantKey,
   ensureSingleMainImage,
   makeProductMediaItem,
   makeRefIdFromName,
   mergeStoredProductDraft,
   sanitizeDraftForStorage,
   slugifyProductValue,
+  withEditorBasePrice,
 } from "./product-editor-draft";
 import type {
   ProductAppliedPricePreview,
@@ -1139,11 +1142,11 @@ function ProductEditorClientInner({
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(draft.media.items[0]?.localId ?? null);
   const [selectedVariantKey, setSelectedVariantKey] = useState<string>("default");
   const [specificPriceForm, setSpecificPriceForm] = useState<SpecificPriceFormState>(() =>
-    defaultSpecificPriceForm(initialDraft.pricing.productPrice, "__product__"),
+    defaultSpecificPriceForm(editorBasePrice(initialDraft), "__product__"),
   );
   const [specificPriceEditIndex, setSpecificPriceEditIndex] = useState<number | null>(null);
   const [pricingPreviewForm, setPricingPreviewForm] = useState<PricingPreviewFormState>(() =>
-    defaultPricingPreviewForm(initialDraft.pricing.productPrice, "__product__"),
+    defaultPricingPreviewForm(editorBasePrice(initialDraft), "__product__"),
   );
   const [pricingPreviewResult, setPricingPreviewResult] = useState<ProductAppliedPricePreview | null>(null);
   const [pricingPreviewBusy, setPricingPreviewBusy] = useState(false);
@@ -1296,7 +1299,11 @@ function ProductEditorClientInner({
   const variantAttributePickerField = variantAttributePickerFieldId
     ? lookups.variantAttributeFields.find((field) => field.fieldId === variantAttributePickerFieldId)
     : undefined;
-  const productPrice = draft.pricing.productPrice;
+  const productPrice = editorBasePrice(draft);
+  const basePriceVariantKey = editorBasePriceVariantKey(draft);
+  const basePriceTaxErrorKey = basePriceVariantKey
+    ? `pricing.variantPrices:${basePriceVariantKey}:tax`
+    : "pricing.productPrice.tax";
   const selectedTax =
     productPrice?.tax ??
     lookups.taxes.find((tax) => tax.id === productPrice?.taxCode || tax.taxCode === productPrice?.taxCode);
@@ -2372,9 +2379,9 @@ function ProductEditorClientInner({
     });
   }
 
-  function updateProductPriceField(updater: (current: NonNullable<ProductDraft["pricing"]["productPrice"]>) => ProductDraft["pricing"]["productPrice"]) {
+  function updateProductPriceField(updater: (current: NonNullable<ProductDraft["pricing"]["productPrice"]>) => NonNullable<ProductDraft["pricing"]["productPrice"]>) {
     updateDraft((current) => {
-      const existing = current.pricing.productPrice ?? {
+      const existing = editorBasePrice(current) ?? {
         basePriceMinor: 0,
         listPriceMinor: null,
         costPriceMinor: null,
@@ -2389,13 +2396,7 @@ function ProductEditorClientInner({
         country: "ES",
       };
 
-      return {
-        ...current,
-        pricing: {
-          ...current.pricing,
-          productPrice: updater(existing),
-        },
-      };
+      return withEditorBasePrice(current, updater(existing));
     });
   }
 
@@ -3575,8 +3576,8 @@ function ProductEditorClientInner({
                           <option key={tax.id} value={tax.id}>{tax.label}</option>
                         ))}
                       </select>
-                      {report?.fieldErrors["pricing.productPrice.tax"] ? (
-                        <small>{report.fieldErrors["pricing.productPrice.tax"]}</small>
+                      {report?.fieldErrors[basePriceTaxErrorKey] ? (
+                        <small>{report.fieldErrors[basePriceTaxErrorKey]}</small>
                       ) : null}
                     </label>
                     <label className="adminField">
@@ -4393,8 +4394,8 @@ function ProductEditorClientInner({
                       <option key={tax.id} value={tax.id}>{tax.label}</option>
                     ))}
                   </select>
-                  {report?.fieldErrors["pricing.productPrice.tax"] ? (
-                    <small>{report.fieldErrors["pricing.productPrice.tax"]}</small>
+                  {report?.fieldErrors[basePriceTaxErrorKey] ? (
+                    <small>{report.fieldErrors[basePriceTaxErrorKey]}</small>
                   ) : null}
                   {taxOptions.length === 0 ? (
                     <small>{pricingTaxWarning ?? "No hay reglas fiscales disponibles para este contexto."}</small>
@@ -5791,7 +5792,7 @@ function ProductEditorClientInner({
             </div>
             <dl className="productMetaList">
               <div><dt>Tipo</dt><dd>{draft.mode === "simple" ? "Producto simple" : "Con variantes"}</dd></div>
-              <div><dt>Precio base</dt><dd>{formatMoney(draft.pricing.productPrice?.basePriceMinor, currency)}</dd></div>
+              <div><dt>Precio base</dt><dd>{formatMoney(productPrice?.basePriceMinor, currency)}</dd></div>
               <div><dt>Variantes</dt><dd>{draft.variants.length}</dd></div>
               <div><dt>Imagenes</dt><dd>{draft.media.items.length}</dd></div>
             </dl>

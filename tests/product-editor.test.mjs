@@ -54,6 +54,73 @@ const productStatusModule = loadTsModule("src/modules/catalogo/product-status.ts
 const validationModule = loadTsModule("src/modules/catalogo/product-editor-validation.ts");
 const orchestratorModule = loadTsModule("src/modules/catalogo/product-save-orchestrator.ts");
 
+function importedSimpleProduct() {
+  return draftModule.draftFromEditorData({
+    product: { productId: "imported-product", name: "Imported bike", slug: "imported-bike", isActive: true, isVisible: true },
+    variants: [{ variantId: "imported-default", refId: "IMPORTED-1", name: "Imported bike", isDefault: true, isActive: true, isVisible: true, options: [] }],
+    mediaItems: [{ localId: "image-1", mediaAssetId: "asset-1", active: true, isMain: true, persisted: true }],
+    mediaAssignments: {}, mediaMainByVariant: {}, offeringsByVariant: {},
+    variantPrices: { "imported-default": { pricingId: "price-existing", basePriceMinor: 381465, currency: "EUR", channel: "web", country: "ES", taxIncluded: false, tax: null } },
+    specificPrices: [],
+    stockByVariant: { "imported-default": { warehouseId: "warehouse-commercial", onHandQuantity: 35, reservedQuantity: 4, safetyStockQuantity: 2, availableQuantity: 29 } },
+    warnings: [], correlationIds: [],
+  });
+}
+
+test("imported simple product displays its default variant price without converting it into a product price", () => {
+  const draft = importedSimpleProduct();
+  assert.equal(draftModule.editorBasePrice(draft).basePriceMinor, 381465);
+  assert.equal(draftModule.editorBasePrice(draft).pricingId, "price-existing");
+  assert.equal(draft.pricing.productPrice.basePriceMinor, 0);
+  assert.equal(draft.pricing.productPrice.pricingId, undefined);
+  assert.equal(draft.variants.length, 0);
+  assert.equal(draft.inventory.stockByVariant.default.warehouseId, "warehouse-commercial");
+  assert.equal(draft.inventory.stockByVariant.default.onHandQuantity, 35);
+  assert.equal(draft.inventory.stockByVariant.default.reservedQuantity, 4);
+  assert.equal(draft.inventory.stockByVariant.default.safetyStockQuantity, 2);
+  assert.equal(draft.inventory.stockByVariant.default.availableQuantity, 29);
+  assert.equal(draft.inventory.stockByVariant["imported-default"], undefined);
+  assert.equal(validationModule.validateProductPublicationReadiness(draft).ok, true);
+});
+
+test("editing the displayed price preserves its variant target and persisted ID in the save payload", () => {
+  const original = importedSimpleProduct();
+  const edited = draftModule.withEditorBasePrice(original, { ...draftModule.editorBasePrice(original), basePriceMinor: 400000 });
+  const payload = draftModule.sanitizeDraftForStorage(edited);
+  assert.equal(payload.pricing.variantPrices["imported-default"].pricingId, "price-existing");
+  assert.equal(payload.pricing.variantPrices["imported-default"].basePriceMinor, 400000);
+  assert.equal(payload.pricing.productPrice.basePriceMinor, 0);
+  assert.equal(Object.keys(payload.pricing.variantPrices).length, 1);
+  assert.equal(Object.keys(payload.inventory.stockByVariant).length, 1);
+  assert.equal(draftModule.editorBasePrice(original).basePriceMinor, 381465);
+});
+
+test("product-level prices and additional variant overrides retain their existing editing semantics", () => {
+  const draft = importedSimpleProduct();
+  draft.pricing.productPrice = { pricingId: "product-price", basePriceMinor: 10000, currency: "EUR" };
+  assert.equal(draftModule.editorBasePrice(draft).pricingId, "price-existing");
+  draft.mode = "variants";
+  assert.equal(draftModule.editorBasePrice(draft).pricingId, "product-price");
+  const edited = draftModule.withEditorBasePrice(draft, { ...draft.pricing.productPrice, basePriceMinor: 12000 });
+  assert.equal(edited.pricing.productPrice.basePriceMinor, 12000);
+  assert.equal(edited.pricing.variantPrices["imported-default"].basePriceMinor, 381465);
+  draft.mode = "simple";
+  draft.pricing.variantPrices["imported-default"].markedForDeletion = true;
+  assert.equal(draftModule.editorBasePrice(draft).pricingId, "product-price");
+  delete draft.pricing.variantPrices["imported-default"];
+  assert.equal(draftModule.editorBasePrice(draft).pricingId, "product-price");
+});
+
+test("default price at zero or missing stock does not pass publication checks", () => {
+  const draft = importedSimpleProduct();
+  draft.pricing.variantPrices["imported-default"].basePriceMinor = 0;
+  draft.inventory.stockByVariant.default.availableQuantity = 0;
+  const validation = validationModule.validateProductPublicationReadiness(draft);
+  assert.equal(validation.ok, false);
+  assert.ok(validation.fieldErrors["publication:price"]);
+  assert.ok(validation.fieldErrors["publication:stock"]);
+});
+
 function validTax() {
   return {
     id: "tax-bike-standard",

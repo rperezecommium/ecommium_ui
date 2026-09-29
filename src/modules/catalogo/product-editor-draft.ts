@@ -347,6 +347,12 @@ export function draftFromEditorData(
     data.variants.find((variant) => variant.variantId === data.product.defaultVariantId) ??
     data.variants[0];
   const defaultVariantId = data.product.defaultVariantId ?? defaultVariant?.variantId;
+  const stockByVariant = { ...data.stockByVariant };
+  // The editor uses `default` for the simple product; keep only one writable entry.
+  if (defaultVariantId && stockByVariant[defaultVariantId]) {
+    stockByVariant.default = stockByVariant[defaultVariantId];
+    delete stockByVariant[defaultVariantId];
+  }
   const offeringsByVariant = { ...data.offeringsByVariant };
   if (defaultVariantId && offeringsByVariant[defaultVariantId]) {
     offeringsByVariant.default = offeringsByVariant[defaultVariantId];
@@ -386,11 +392,35 @@ export function draftFromEditorData(
     inventory: {
       stockByVariant: {
         ...draft.inventory.stockByVariant,
-        ...data.stockByVariant,
+        ...stockByVariant,
       },
     },
     shipping: data.shipping ?? draft.shipping,
     routingSeo: routingSeoDraftFromEditorData(data),
+  };
+}
+
+export function editorBasePriceVariantKey(draft: ProductDraft): string | undefined {
+  const key = draft.defaultVariantId;
+  const price = key ? draft.pricing.variantPrices[key] : undefined;
+  return draft.mode === "simple" && key && price && !price.markedForDeletion ? key : undefined;
+}
+
+export function editorBasePrice(draft: ProductDraft) {
+  const key = editorBasePriceVariantKey(draft);
+  return key ? draft.pricing.variantPrices[key] : draft.pricing.productPrice;
+}
+
+export function withEditorBasePrice(draft: ProductDraft, price: NonNullable<ProductDraft["pricing"]["productPrice"]>): ProductDraft {
+  const key = editorBasePriceVariantKey(draft);
+  return {
+    ...draft,
+    pricing: {
+      ...draft.pricing,
+      ...(key
+        ? { variantPrices: { ...draft.pricing.variantPrices, [key]: price } }
+        : { productPrice: price }),
+    },
   };
 }
 

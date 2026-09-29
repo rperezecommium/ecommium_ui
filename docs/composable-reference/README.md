@@ -2,6 +2,13 @@
 
 ## Objetivo
 
+Editor de productos, 2026-09-29: `editor-state` sin `warehouseId` resuelve el
+almacen del contexto comercial del listado Admin. La UI no fija un almacén
+alternativo. `prices.product` y `prices.variants` siguen separados: para el
+producto simple, el precio de la variante predeterminada se edita manteniendo
+su identidad VARIANT. El stock de esa variante se representa una sola vez
+en `draft.inventory.stockByVariant.default`.
+
 Contrato import Admin, actualizado 2026-09-29: status puede incluir
 `authorizationRefreshPending: true` solo en AWAITING_AUTHORIZATION tras recibir
 un token renovado y validado de la misma sesion/tenant. La UI sigue observando sin

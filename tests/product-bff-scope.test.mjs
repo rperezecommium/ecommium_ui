@@ -163,6 +163,8 @@ test("product list and editor-state use Admin BFF endpoints scoped by active sho
   assert.equal(calls.some((call) => call.path.startsWith("/admin/inventory/availability/resolve-batch?")), false);
   assert.equal(calls.some((call) => /\/admin\/products\/[^/]+\/variants\?/.test(call.path)), false);
   assert.ok(calls.some((call) => call.path.startsWith("/admin/products/product-1/editor-state?")));
+  const editorRequest = calls.find((call) => call.path.startsWith("/admin/products/product-1/editor-state?"));
+  assert.equal(new URLSearchParams(editorRequest.path.split("?")[1]).has("warehouseId"), false);
   assert.equal(editorData.ok, true);
   assert.equal(editorData.data.specificPrices[0].pricingId, "specific-product-1");
   assert.equal(editorData.data.specificPrices[0].fixedPriceMinor, 899);

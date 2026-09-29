@@ -1,5 +1,15 @@
 # Ecommium UI
 
+## Editor de productos importados
+
+El precio basico de un producto simple muestra el precio de su variante
+predeterminada cuando existe. Editarlo conserva su `pricingId` y su destino
+VARIANT, sin crear un precio PRODUCT duplicado. El stock predeterminado tiene
+una sola entrada editable; se conservan almacen, reservas y stock de seguridad
+cuando el BFF los devuelve. La carga omite `warehouseId` para que el BFF resuelva
+el mismo contexto comercial del listado, sin imponer `main-warehouse`.
+Validacion: `node --test tests/product-editor.test.mjs tests/product-bff-scope.test.mjs tests/product-save-operation-action.test.mjs`.
+
 ## Importacion CSV: infraestructura y resultado parcial
 
 El seguimiento conserva la observacion cuando BFF indica
