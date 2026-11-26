@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, CopyPlus, Plus, Trash2 } from "lucide-react";
 import type {
   CmsArea,
@@ -13,6 +13,8 @@ import type {
 
 type CmsLayoutAreaEditorClientProps = {
   initialLayout: CmsLayout;
+  preserveEmptyRegions?:boolean;
+  onChange?:(layout:CmsLayout)=>void;
   maxWidth: string;
   name?: string;
 };
@@ -117,7 +119,7 @@ function defaultArea(region: RegionMeta, maxWidth: string): CmsArea {
   };
 }
 
-function normalizeArea(area: CmsArea, region: RegionMeta, maxWidth: string, index: number): CmsArea {
+function normalizeArea(area: CmsArea, region: RegionMeta, maxWidth: string, index: number, preserveSlots=false): CmsArea {
   const columns = normalizeColumns(area.columns);
   const containerMode: CmsContainerMode = area.containerMode === "full-width" ? "full-width" : "container";
   return {
@@ -127,7 +129,7 @@ function normalizeArea(area: CmsArea, region: RegionMeta, maxWidth: string, inde
     containerMode,
     maxWidth: containerMode === "container" ? area.maxWidth ?? maxWidth : null,
     columns,
-    columnSlots: columnSlots(columns),
+    columnSlots: preserveSlots&&area.columnSlots?.length?area.columnSlots:columnSlots(columns),
     columnGap: area.columnGap ?? "24px",
     rowGap: area.rowGap ?? "24px",
     spacing: area.spacing ?? {},
@@ -135,16 +137,17 @@ function normalizeArea(area: CmsArea, region: RegionMeta, maxWidth: string, inde
   };
 }
 
-function normalizeLayout(layout: CmsLayout, maxWidth: string): CmsLayout {
-  const next: CmsLayout = { regions: {} };
+function normalizeLayout(layout: CmsLayout, maxWidth: string,preserveEmpty=false): CmsLayout {
+  const next: CmsLayout = {...layout, regions: {} };
 
   for (const region of regions) {
+    if(preserveEmpty&&!layout.regions[region.code])continue;
     const areas = layout.regions[region.code]?.areas ?? [];
     next.regions[region.code] = {
-      source: "global",
+      source: preserveEmpty?layout.regions[region.code]?.source:"global",
       areas: areas.length
-        ? areas.map((area, index) => normalizeArea(area, region, maxWidth, index))
-        : [defaultArea(region, maxWidth)],
+        ? areas.map((area, index) => normalizeArea(area, region, maxWidth, index,preserveEmpty))
+        : preserveEmpty?[]:[defaultArea(region, maxWidth)],
     };
   }
 
@@ -154,6 +157,7 @@ function normalizeLayout(layout: CmsLayout, maxWidth: string): CmsLayout {
 function updateAreaAt(layout: CmsLayout, region: CmsRegionCode, areaId: string, updater: (area: CmsArea) => CmsArea): CmsLayout {
   const currentRegion = layout.regions[region] ?? { source: "global" as const, areas: [] };
   return {
+    ...layout,
     regions: {
       ...layout.regions,
       [region]: {
@@ -176,6 +180,7 @@ function moveAreaInRegion(layout: CmsLayout, region: CmsRegionCode, areaId: stri
   const [area] = areas.splice(index, 1);
   areas.splice(nextIndex, 0, area);
   return {
+    ...layout,
     regions: {
       ...layout.regions,
       [region]: { ...currentRegion, source: "global", areas },
@@ -183,17 +188,21 @@ function moveAreaInRegion(layout: CmsLayout, region: CmsRegionCode, areaId: stri
   };
 }
 
-export function CmsLayoutAreaEditorClient({ initialLayout, maxWidth, name = "layoutJson" }: CmsLayoutAreaEditorClientProps) {
-  const [layout, setLayout] = useState<CmsLayout>(() => normalizeLayout(initialLayout, maxWidth));
-  const serialized = useMemo(() => JSON.stringify(normalizeLayout(layout, maxWidth)), [layout, maxWidth]);
+export function CmsLayoutAreaEditorClient({ initialLayout, maxWidth, name = "layoutJson",preserveEmptyRegions=false,onChange }: CmsLayoutAreaEditorClientProps) {
+  const normalize=(value:CmsLayout,width:string)=>normalizeLayout(value,width,preserveEmptyRegions);
+  const [layout, setLayout] = useState<CmsLayout>(() => normalize(initialLayout, maxWidth));
+  const serialized = useMemo(() => JSON.stringify(normalizeLayout(layout, maxWidth,preserveEmptyRegions)), [layout, maxWidth,preserveEmptyRegions]);
+
+  const sent=useRef(serialized);
+  useEffect(()=>{if(sent.current===serialized)return;sent.current=serialized;onChange?.(JSON.parse(serialized));},[serialized,onChange]);
 
   function setArea(region: CmsRegionCode, areaId: string, updater: (area: CmsArea) => CmsArea) {
-    setLayout((current) => normalizeLayout(updateAreaAt(current, region, areaId, updater), maxWidth));
+    setLayout((current) => normalize(updateAreaAt(current, region, areaId, updater), maxWidth));
   }
 
   function addArea(region: RegionMeta) {
     setLayout((current) => {
-      const normalized = normalizeLayout(current, maxWidth);
+      const normalized = normalize(current, maxWidth);
       const currentRegion = normalized.regions[region.code] ?? { source: "global" as const, areas: [] };
       const nextArea = {
         ...defaultArea(region, maxWidth),
@@ -201,6 +210,7 @@ export function CmsLayoutAreaEditorClient({ initialLayout, maxWidth, name = "lay
         name: `${region.label} area ${currentRegion.areas.length + 1}`,
       };
       return {
+        ...normalized,
         regions: {
           ...normalized.regions,
           [region.code]: {
@@ -221,7 +231,8 @@ export function CmsLayoutAreaEditorClient({ initialLayout, maxWidth, name = "lay
         areaId: uid(`${region}-area`),
         name: `${area.name ?? "Area"} copia`,
       };
-      return normalizeLayout({
+      return normalize({
+        ...current,
         regions: {
           ...current.regions,
           [region]: {
@@ -238,7 +249,8 @@ export function CmsLayoutAreaEditorClient({ initialLayout, maxWidth, name = "lay
     setLayout((current) => {
       const currentRegion = current.regions[region] ?? { source: "global" as const, areas: [] };
       const areas = currentRegion.areas.filter((area) => area.areaId !== areaId);
-      return normalizeLayout({
+      return normalize({
+        ...current,
         regions: {
           ...current.regions,
           [region]: { ...currentRegion, source: "global", areas },
@@ -248,7 +260,7 @@ export function CmsLayoutAreaEditorClient({ initialLayout, maxWidth, name = "lay
   }
 
   function moveArea(region: CmsRegionCode, areaId: string, direction: -1 | 1) {
-    setLayout((current) => normalizeLayout(moveAreaInRegion(current, region, areaId, direction), maxWidth));
+    setLayout((current) => normalize(moveAreaInRegion(current, region, areaId, direction), maxWidth));
   }
 
   return (

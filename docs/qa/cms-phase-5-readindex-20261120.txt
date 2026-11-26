@@ -1,0 +1,14 @@
+
+> commerce-read-index@0.0.1 test
+> jest --runInBand prisma-admin-cms-composition-templates.spec.ts
+
+PASS src/infrastructure/repositories/prisma-admin-cms-composition-templates.spec.ts
+  ✓ reads sections in exact scope and locale without mixing modules (2 ms)
+  ✓ rejects old projection rather than claiming an empty library (5 ms)
+  ✓ excludes archived templates by default but permits their scoped detail (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        1.057 s
+Ran all test suites matching /prisma-admin-cms-composition-templates.spec.ts/i.

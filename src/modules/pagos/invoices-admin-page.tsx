@@ -1,5 +1,6 @@
+import { AdminResourceDrawer } from "../../shared/ui/admin-resource-drawer";
 import Link from "next/link";
-import { CreditCard, Download, Search } from "lucide-react";
+import { Download, Search } from "lucide-react";
 import type {
   InvoiceAdminCapabilities,
   InvoiceAdminData,
@@ -108,15 +109,7 @@ function ResultBanner({ result }: { result: { ok: boolean; error?: string } }) {
 
 function FiltersPanel({ filters }: { filters: InvoiceAdminFilters }) {
   return (
-    <section className="adminCard">
-      <div className="adminCardHeader">
-        <div>
-          <h2>Busqueda fiscal</h2>
-          <p>Filtra por factura, pedido o estado fiscal.</p>
-        </div>
-        <Search aria-hidden="true" size={18} />
-      </div>
-      <form action={applyInvoiceFiltersAction} className="pricingDenseForm">
+    <form aria-label="Buscar facturas" action={applyInvoiceFiltersAction} className="productListSearchPanel invoicesSearchPanel">
         <label className="adminField">
           <span>Factura</span>
           <input name="invoiceId" placeholder="invoiceId" defaultValue={filters.invoiceId ?? ""} />
@@ -139,34 +132,23 @@ function FiltersPanel({ filters }: { filters: InvoiceAdminFilters }) {
           <span>Limite</span>
           <input name="limit" min="1" max="100" type="number" defaultValue={filters.limit ?? "25"} />
         </label>
-        <button className="adminButton adminButtonPrimary" type="submit">Buscar</button>
-      </form>
-    </section>
+        <button className="adminButton adminButtonPrimary" type="submit"><Search aria-hidden="true" size={16} />Buscar</button>
+        <Link className="employeesTextAction" href="/admin/pagos?tab=facturas">Limpiar filtros</Link>
+    </form>
   );
 }
 
-function OperationsPanel({ capabilities }: Pick<Props, "capabilities">) {
-  if (!capabilities.canManageInvoices) {
-    return null;
-  }
-
+function IssueInvoiceDrawer({ filters }: Pick<Props, "filters">) {
   return (
-    <section className="adminCard">
-      <div className="adminCardHeader">
-        <div>
-          <h2>Operacion fiscal</h2>
-          <p>Solicita la emision ordinaria cuando el pedido ya tiene snapshot fiscal completo.</p>
-        </div>
-        <CreditCard aria-hidden="true" size={18} />
-      </div>
+    <AdminResourceDrawer drawerId="invoices-admin-page-1" title="Emitir factura" description="Emite la factura de un pedido con los datos fiscales completos." closeHref={invoicesHref(filters, { issueInvoice: undefined })}>
       <form action={issueInvoiceFromFiscalConsoleAction} className="pricingDenseForm">
         <label className="adminField">
           <span>Pedido</span>
-          <input name="orderId" placeholder="orderId" required />
+          <input name="orderId" placeholder="Identificador del pedido" required />
         </label>
-        <button className="adminButton" type="submit">Emitir factura</button>
+        <button className="adminButton adminButtonPrimary" type="submit">Emitir factura</button>
       </form>
-    </section>
+    </AdminResourceDrawer>
   );
 }
 
@@ -181,7 +163,7 @@ function InvoicesTable({ data }: Pick<Props, "data">) {
 
   return (
     <div className="adminTableScroller">
-      <table className="adminTable pricingTable">
+      <table className="adminTable productListTable">
         <thead>
           <tr>
             <th>Factura</th>
@@ -222,39 +204,6 @@ function InvoicesTable({ data }: Pick<Props, "data">) {
         </tbody>
       </table>
     </div>
-  );
-}
-
-function InvoiceKpis({ data }: Pick<Props, "data">) {
-  const invoices = data.invoices.ok ? data.invoices.data : null;
-  const issued = invoices?.items.filter((invoice) => invoice.status === "ISSUED").length ?? 0;
-  const incidents = invoices?.items.filter((invoice) => invoice.status === "FAILED" || invoice.status === "VOIDED").length ?? 0;
-  const totalMinor = invoices?.items.reduce((sum, invoice) => sum + (invoice.totalMinor ?? 0), 0) ?? 0;
-  const currency = invoices?.items[0]?.currency ?? data.context.currency;
-
-  return (
-    <section className="adminKpiGrid">
-      <div className="adminKpi">
-        <span>Facturas</span>
-        <strong>{data.invoices.ok ? data.invoices.data.total : "-"}</strong>
-        <p>En el filtro actual</p>
-      </div>
-      <div className="adminKpi">
-        <span>Emitidas</span>
-        <strong>{issued}</strong>
-        <p>En la página actual</p>
-      </div>
-      <div className="adminKpi">
-        <span>Con incidencia</span>
-        <strong>{incidents}</strong>
-        <p>Fallidas o anuladas</p>
-      </div>
-      <div className="adminKpi">
-        <span>Importe listado</span>
-        <strong>{moneyText(totalMinor, currency)}</strong>
-        <p>De la página actual</p>
-      </div>
-    </section>
   );
 }
 
@@ -375,31 +324,20 @@ function InvoiceDetailPanel({ capabilities, data }: Pick<Props, "capabilities" |
 
 function InvoicesAdminContent({ capabilities, data, filters }: Props) {
   return (
-    <>
-      {filters.notice ? (
-        <div className="adminBanner adminBannerSuccess">
-          <p>{filters.notice}</p>
-        </div>
-      ) : null}
-      <InvoiceKpis data={data} />
-      <div className="adminGrid invoicesWorkspace">
-        <div className="adminStatusList">
-          <FiltersPanel filters={filters} />
-          <section className="adminCard">
-            <div className="adminCardHeader">
-              <div>
-                <h2>Facturas</h2>
-                <p>Consulta documentos fiscales y abre la ficha de cada factura.</p>
-              </div>
-            </div>
-            <InvoicesTable data={data} />
-          </section>
-        </div>
-        <div className="adminStatusList">
-          <OperationsPanel capabilities={capabilities} />
-        </div>
+    <div className="productListPage invoicesListPage">
+      {filters.notice ? <div className="adminBanner adminBannerSuccess"><p>{filters.notice}</p></div> : null}
+      <div className="paymentsConfigurationCreateAction">
+        {capabilities.canManageInvoices ? <Link className="employeesTextAction" href={invoicesHref(filters, { issueInvoice: "true", notice: undefined })}>Emitir factura</Link> : null}
       </div>
-    </>
+      <FiltersPanel filters={filters} />
+      <section className="productListGrid" aria-label="Listado de facturas">
+        <div className="adminCardHeader productListGridHeader">
+          <div><h2>Facturas ({data.invoices.ok ? data.invoices.data.total : "—"})</h2></div>
+        </div>
+        <InvoicesTable data={data} />
+      </section>
+      {capabilities.canManageInvoices && filters.issueInvoice === "true" ? <IssueInvoiceDrawer filters={filters} /> : null}
+    </div>
   );
 }
 

@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-04",
+  "scope": "UI E2E tests and harness only",
+  "e2e": {
+    "passed": 96,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 45.2,
+    "workers": 1,
+    "retries": 0
+  },
+  "unit": {
+    "passed": 557,
+    "failed": 0
+  },
+  "lint": {
+    "errors": 0,
+    "preexistingWarnings": 3
+  },
+  "build": "PASS",
+  "typescript": "PASS",
+  "backendBusinessArtifacts": [],
+  "temporaryArtifacts": [
+    "/private/tmp/import-ui-review/e2e-*",
+    "test-results/"
+  ],
+  "permanentFixtures": [
+    "tests/e2e/setup.ts",
+    "tests/e2e/fixtures/loopback.crt",
+    "tests/e2e/fixtures/loopback.key"
+  ]
+}

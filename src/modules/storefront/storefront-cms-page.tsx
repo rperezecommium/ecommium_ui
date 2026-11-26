@@ -1,14 +1,18 @@
 import Image from "next/image";
+import {cmsDesignFromTokens} from '../../../packages/cms-blocks/src/design-settings';
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { normalizeCmsBlockModulePlacement, type CmsBlock, type CmsBlockModulePlacement } from "../../../packages/cms-blocks/src";
-import { CmsBlockRenderer } from "../../../packages/cms-blocks/src/react";
+import { CmsBlockRenderer, CmsPageCompositionView, CmsIndependentModuleView } from "../../../packages/cms-blocks/src/react";
+import {parseCmsPublicModule} from './cms-public-module';
 import type {
   StorefrontCmsBlock,
   StorefrontCmsPublishedPage,
   StorefrontCmsResolvedArea,
 } from "./public-page-contract";
-import { StorefrontHeader } from "./storefront-header";
+import { StorefrontPageShell } from "./storefront-header";
+import { StorefrontCmsSlider } from "./storefront-cms-slider";
+import { NewsletterProvider } from "./newsletter-client";
 
 type StorefrontCmsRegionCode = CmsBlockModulePlacement["region"];
 type StorefrontCmsBlockPlacement = {
@@ -29,22 +33,28 @@ export function StorefrontCmsPage({
 }) {
   const blocks = page.blocks.filter(isFullPageBlock);
   const layout = storefrontCmsLayoutForPage(page, blocks);
+  const isHome = page.pageType === "HOME";
 
   return (
     <main className="storefrontPage">
-      <StorefrontHeader openCustomerLogin={openCustomerLogin} />
-      <div className="storefrontShell storefrontCmsPage">
-        <nav className="storefrontBreadcrumb">
-          <Link href="/">Inicio</Link>
-          <span>/</span>
-          <span>{page.title}</span>
-        </nav>
-        <header className="storefrontCmsPageHeader">
-          <span>{pageTypeLabel(page.pageType)}</span>
-          <h1>{page.title}</h1>
-        </header>
-        <StorefrontCmsPageBlocks blocks={blocks} layout={layout} page={page} />
+      <StorefrontPageShell openCustomerLogin={openCustomerLogin} pageId={page.pageId} surface={isHome ? "HOME" : "CMS"}>
+      <div className={`storefrontShell storefrontCmsPage${isHome ? " storefrontCmsPageHome" : ""}`}>
+        {isHome ? <h1 className="storefrontVisuallyHidden">{page.title}</h1> : (
+          <>
+            <nav className="storefrontBreadcrumb">
+              <Link href="/">Inicio</Link>
+              <span>/</span>
+              <span>{page.title}</span>
+            </nav>
+            <header className="storefrontCmsPageHeader">
+              <span>{pageTypeLabel(page.pageType)}</span>
+              <h1>{page.title}</h1>
+            </header>
+          </>
+        )}
+        <NewsletterProvider enabled={JSON.stringify(page.composition??blocks).includes("newsletterForm")}>{page.composition ? <CmsPageCompositionView document={page.composition} identity={page.pageId} renderRegistered={block=><StorefrontCmsBlockRenderer block={block}/>} inheritedDesign={cmsDesignFromTokens(page.layout?.tokens??page.resolvedPageSettings?.tokens)}/> : <StorefrontCmsPageBlocks blocks={blocks} layout={layout} page={page} />}</NewsletterProvider>
       </div>
+      </StorefrontPageShell>
     </main>
   );
 }
@@ -58,6 +68,8 @@ function StorefrontCmsPageBlocks({
   layout: StorefrontCmsAreaLayout[];
   page: StorefrontCmsPublishedPage;
 }) {
+  const layoutTokens = page.layout?.tokens ?? page.resolvedPageSettings?.tokens;
+
   if (layout.length === 0) {
     return (
       <div className="storefrontCmsPageBlocks">
@@ -80,8 +92,8 @@ function StorefrontCmsPageBlocks({
               <StorefrontCmsArea
                 area={area}
                 blocks={blocks}
-                defaultColumnGap={page.resolvedPageSettings?.tokens?.defaultColumnGap}
-                defaultModuleGap={page.resolvedPageSettings?.tokens?.defaultModuleGap}
+                defaultColumnGap={layoutTokens?.defaultColumnGap}
+                defaultModuleGap={layoutTokens?.defaultModuleGap}
                 key={`${area.region}-${area.areaId}`}
               />
             ))}
@@ -114,14 +126,24 @@ function StorefrontCmsArea({
   const areaStyle = storefrontCmsAreaStyle(area, defaultColumnGap, defaultModuleGap);
 
   return (
-    <section className="storefrontCmsPageArea" data-cms-area={area.areaId}>
+    <section
+      className="storefrontCmsPageArea"
+      data-cms-area={area.areaId}
+      data-container-mode={area.containerMode ?? "container"}
+      style={area.containerMode === "container" && area.maxWidth ? { maxWidth: area.maxWidth } : undefined}
+    >
       <div className="storefrontCmsPageColumns" style={areaStyle}>
         {columns.map((column) => {
           const modules = storefrontCmsBlocksForColumn(blocks, area.region, area.areaId, column.columnIndex);
           return (
             <section className="storefrontCmsPageColumn" data-cms-column={column.columnIndex} key={`${area.areaId}-${column.columnIndex}`}>
               {modules.map(({ block, placement }) => (
-                <div className="storefrontCmsPageModule" key={block.blockId} style={storefrontCmsModuleStyle(placement)}>
+                <div
+                  className="storefrontCmsPageModule"
+                  data-container-mode={placement.containerMode ?? "inherit"}
+                  key={block.blockId}
+                  style={storefrontCmsModuleStyle(placement)}
+                >
                   <StorefrontCmsBlockRenderer block={block} />
                 </div>
               ))}
@@ -140,6 +162,10 @@ export function StorefrontCmsBlockRenderer({
   block: StorefrontCmsBlock;
   depth?: number;
 }) {
+  if(block.type==='cms.module')return <CmsIndependentModuleView document={parseCmsPublicModule(block.props.document)} renderRegistered={registered=><StorefrontCmsBlockRenderer block={registered.type==='plp.categoryIntro'?{...registered,props:{...registered.props,headingLevel:1}}:registered}/>}/>;
+  if (block.type === "slider.fullWidth") {
+    return <StorefrontCmsSlider block={block} />;
+  }
   return (
     <CmsBlockRenderer
       block={block as CmsBlock}
@@ -148,7 +174,7 @@ export function StorefrontCmsBlockRenderer({
       renderImage={({ alt, className, sizes, src }) => (
         <CmsImage alt={alt} className={className} sizes={sizes} src={src} />
       )}
-      renderLink={({ className, href, label, rel, style, target, title }) => (
+      renderLink={({ children, className, href, label, rel, style, target, title }) => (
         <CmsActionLink
           className={className}
           href={href}
@@ -157,10 +183,18 @@ export function StorefrontCmsBlockRenderer({
           style={style}
           target={target}
           title={title}
-        />
+        >
+          {children}
+        </CmsActionLink>
       )}
     />
   );
+}
+
+export function storefrontCmsPublicBlockType(block:StorefrontCmsBlock):string {
+ if(block.type!=='cms.module')return block.type;
+ const doc=parseCmsPublicModule(block.props.document);
+ return doc.body.kind==='registered'?doc.body.type:'visual.module';
 }
 
 function CmsImage({ alt, className, sizes, src }: { alt: string; className: string; sizes: string; src: string }) {
@@ -172,6 +206,7 @@ function CmsImage({ alt, className, sizes, src }: { alt: string; className: stri
 }
 
 function CmsActionLink({
+  children,
   className,
   href,
   label,
@@ -180,6 +215,7 @@ function CmsActionLink({
   target,
   title,
 }: {
+  children?: ReactNode;
   className: string;
   href: string;
   label: string;
@@ -191,13 +227,13 @@ function CmsActionLink({
   if (href.startsWith("/")) {
     return (
       <Link className={className} href={href} rel={rel} style={style} target={target} title={title}>
-        {label}
+        {children ?? label}
       </Link>
     );
   }
   return (
     <a className={className} href={href} rel={rel ?? "noreferrer"} style={style} target={target} title={title}>
-      {label}
+      {children ?? label}
     </a>
   );
 }
@@ -236,7 +272,7 @@ function storefrontCmsLayoutForPage(
   page: StorefrontCmsPublishedPage,
   blocks: StorefrontCmsBlock[],
 ): StorefrontCmsAreaLayout[] {
-  const resolvedRegions = page.resolvedPageSettings?.layout?.regions;
+  const resolvedRegions = page.layout?.regions ?? page.resolvedPageSettings?.layout?.regions;
   const resolvedAreas = storefrontCmsRegionOrder.flatMap((region) =>
     (resolvedRegions?.[region]?.areas ?? []).map((area) => ({ ...area, region })),
   );

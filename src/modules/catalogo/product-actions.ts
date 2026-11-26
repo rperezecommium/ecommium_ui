@@ -1,5 +1,9 @@
 "use server";
 
+import { normalizeVariantMedia } from "./product-variant-media";
+import { getCurrentAdminSession as getAdminSession } from "../auth/current-admin-session";
+import type { CatalogCreateInput } from "./catalog-taxonomy-schema";
+import { formFailure } from "../../shared/validation/admin-form-state";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAdminContext } from "../../shared/config/admin-context";
@@ -154,6 +158,7 @@ function parseDraft(value: FormDataEntryValue | null): ProductDraft | null {
 }
 
 function sanitizeDraftForBff(draft: ProductDraft): ProductDraft {
+  draft = normalizeVariantMedia(draft);
   const routingSeo = draft.routingSeo;
   if (!routingSeo) {
     return draft;
@@ -175,6 +180,25 @@ function sanitizeDraftForBff(draft: ProductDraft): ProductDraft {
         markedForDeletion: alias.markedForDeletion,
       })),
     },
+  };
+}
+
+function parseProductSaveReport(value: unknown): ProductSaveReport {
+  if (!value || typeof value !== "object" || typeof (value as { ok?: unknown }).ok !== "boolean") {
+    throw new Error("Invalid product save report");
+  }
+  const report = value as ProductSaveReport;
+  return {
+    ...report,
+    recoveryActions: (report.recoveryActions ?? []).map((action) => {
+      const wire = action as typeof action & { actionId?: string; block?: string; kind?: string };
+      return {
+        code: wire.code ?? wire.actionId ?? "continue_editing",
+        label: wire.label,
+        targetBlock: wire.targetBlock ?? wire.block,
+        retryable: wire.retryable ?? wire.kind === "retry",
+      };
+    }),
   };
 }
 
@@ -328,10 +352,10 @@ export async function previewAppliedProductPriceAction(
         productId: input.productId ?? null,
         variantId: input.variantId ?? null,
         defaultVariantId: input.defaultVariantId ?? null,
-        currency: input.currency ?? context.currency ?? "EUR",
-        country: input.country ?? context.country ?? "ES",
-        tradePolicy: input.tradePolicy ?? "default",
-        channel: input.channel ?? context.channel ?? "web",
+        currency: input.currency || context.currency || null,
+        country: input.country || context.country || null,
+        tradePolicy: input.tradePolicy ?? null,
+        channel: input.channel || context.channel || null,
         customerGroup: input.customerGroup ?? null,
         priceTableId: input.priceTableId ?? null,
         quantity: Number(input.quantity ?? 1),
@@ -357,16 +381,16 @@ export async function previewAppliedProductPriceAction(
 
   return {
     ok: false,
-    status: "NOT_APPLIED",
+    status: "ERROR",
     reason: `No se pudo simular el precio. ${result.error}`,
     requested: {
       productId: input.productId ?? null,
       variantId: input.variantId ?? null,
       defaultVariantId: input.defaultVariantId ?? null,
-      currency: input.currency ?? context.currency ?? "EUR",
-      country: input.country ?? context.country ?? "ES",
-      tradePolicy: input.tradePolicy ?? "default",
-      channel: input.channel ?? context.channel ?? "web",
+      currency: input.currency || context.currency || null,
+      country: input.country || context.country || null,
+      tradePolicy: input.tradePolicy ?? null,
+      channel: input.channel || context.channel || null,
       customerGroup: input.customerGroup ?? null,
       priceTableId: input.priceTableId ?? null,
       quantity: Number(input.quantity ?? 1),
@@ -492,6 +516,7 @@ export async function saveProductDraftAction(formData: FormData): Promise<Produc
 
   const result = await requestAdminBff<ProductSaveReport>(`/admin/product-save-operations?${params.toString()}`, {
     context,
+    timeoutMs: 60_000,
     init: {
       method: "POST",
       headers: {
@@ -499,7 +524,7 @@ export async function saveProductDraftAction(formData: FormData): Promise<Produc
       },
       body: formData,
     },
-    parse: (value) => value as ProductSaveReport,
+    parse: parseProductSaveReport,
   });
 
   if (result.ok) {
@@ -509,27 +534,44 @@ export async function saveProductDraftAction(formData: FormData): Promise<Produc
         ...defaultProductSaveBlocks,
         ...result.data.blocks,
       },
-      recoveryActions: result.data.recoveryActions ?? [],
+      recoveryActions: parseProductSaveReport(result.data).recoveryActions,
+      draftPatch: result.data.draftPatch ? {
+        ...result.data.draftPatch,
+        specifications: result.data.draftPatch.specifications ? {
+          ...result.data.draftPatch.specifications,
+          selections: result.data.draftPatch.specifications.selections.map((selection) => {
+            const previous = draft.specifications.selections.find((item) =>
+              item.fieldId === selection.fieldId && item.fieldValueId === selection.fieldValueId);
+            return {
+              ...selection,
+              fieldName: selection.fieldName || previous?.fieldName,
+              valueName: selection.valueName || previous?.valueName,
+            };
+          }),
+        } : undefined,
+      } : undefined,
       correlationIds: Array.from(new Set([...(result.data.correlationIds ?? []), result.correlationId])),
     };
   }
 
+  const uncertain = !result.status || result.status < 400 || result.status === 408 || result.status === 429 || result.status >= 500;
   return {
     ok: false,
-    blocks: {
-      ...defaultProductSaveBlocks,
-      catalog: "failed",
-    },
-    messages: [`No se pudo guardar el producto. ${result.error}`],
+    retryable: uncertain,
+    status: uncertain ? "unconfirmed" : "rejected",
+    blocks: { ...defaultProductSaveBlocks },
+    messages: [uncertain
+      ? `No se pudo confirmar el resultado del guardado. ${result.error}`
+      : `El guardado fue rechazado. ${result.error}`],
     fieldErrors: {
       operation: result.error,
     },
-    recoveryActions: [{
+    recoveryActions: uncertain ? [{
       code: "retry_operation",
       label: "Reintentar guardado",
       targetBlock: "catalog",
       retryable: true,
-    }],
+    }] : [{ code: "continue_editing", label: "Revisar datos del guardado", targetBlock: "catalog", retryable: false }],
     correlationIds: [result.correlationId],
   };
 }
@@ -564,12 +606,13 @@ async function searchCatalogEntityOptions(kind: CatalogEntityKind, q: string, of
   };
 }
 
-async function createCatalogEntityOption(kind: CatalogEntityKind, name: string): Promise<LookupActionResult> {
+async function createCatalogEntityOption(kind: CatalogEntityKind, input: CatalogCreateInput): Promise<LookupActionResult> {
+  const session = await getAdminSession();
+  if (!session?.permissions.some(permission => ["*", "admin:*", "system.admin", `catalog.${kind}.write`].includes(permission))) {
+    return {ok: false, options: [], message: "No tienes permiso para crear este registro."};
+  }
   const context = await getAdminContext();
-  const created = await createCatalogEntity(context, kind, {
-    name,
-    isActive: true,
-  });
+  const created = await createCatalogEntity(context, kind, input);
 
   if (!created.ok) {
     return {
@@ -602,16 +645,19 @@ export async function searchProductCategoriesAction(q: string, offset = 0, inclu
   return searchCatalogEntityOptions("categories", q, offset, includeInactive === true);
 }
 
-export async function searchProductBrandsAction(q: string) {
-  return searchCatalogEntityOptions("brands", q);
+export async function searchProductBrandsAction(q: string, offset = 0) {
+  return searchCatalogEntityOptions("brands", q, offset);
 }
 
-export async function createProductCategoryInlineAction(name: string) {
-  return createCatalogEntityOption("categories", name);
+
+export async function createProductCategoryInlineAction(input: CatalogCreateInput) {
+  try { return await createCatalogEntityOption("categories", input); }
+  catch (error) { const failure = formFailure(error); return { ok: false, options: [], message: failure.error, fieldErrors: failure.fieldErrors }; }
 }
 
-export async function createProductBrandInlineAction(name: string) {
-  return createCatalogEntityOption("brands", name);
+export async function createProductBrandInlineAction(input: CatalogCreateInput) {
+  try { return await createCatalogEntityOption("brands", input); }
+  catch (error) { const failure = formFailure(error); return { ok: false, options: [], message: failure.error, fieldErrors: failure.fieldErrors }; }
 }
 
 export async function deleteProductVariantAction(variantId: string) {
@@ -676,12 +722,19 @@ export async function attachExistingOfferingToVariantAction(input: {
     };
   }
 
-  const refreshed = await gateway.listOfferingsByVariant(input.variantId);
+  if (attached.data.offerings?.some((offering) => offering.offeringId === input.offeringId)) {
+    return { ok: true, offerings: attached.data.offerings, message: "Servicio agregado.", correlationId: attached.correlationId };
+  }
+
+  const refreshed = await gateway.resolveOfferingsBatchByVariants([input.variantId]);
+
+  const offerings = refreshed.ok ? refreshed.data[input.variantId] ?? [] : [];
+  const confirmed = refreshed.ok && offerings.some((offering) => offering.offeringId === input.offeringId);
 
   return {
-    ok: refreshed.ok,
-    offerings: refreshed.ok ? refreshed.data : [],
-    message: refreshed.ok ? attached.data.message : refreshed.error,
+    ok: confirmed,
+    offerings,
+    message: confirmed ? "Servicio agregado." : refreshed.ok ? "El servicio se ha asociado, pero no se pudo confirmar en el listado. Recarga antes de volver a agregarlo." : refreshed.error,
     correlationId: refreshed.correlationId ?? attached.correlationId,
   };
 }
@@ -714,13 +767,13 @@ export async function detachOfferingFromVariantAction(input: {
     };
   }
 
-  const refreshed = await gateway.listOfferingsByVariant(input.variantId);
-
+  const offerings = detached.data.offerings;
+  const confirmed = Boolean(offerings && !offerings.some(item => item.offeringId === input.offeringId));
   return {
-    ok: refreshed.ok,
-    offerings: refreshed.ok ? refreshed.data : [],
-    message: refreshed.ok ? detached.data.message : refreshed.error,
-    correlationId: refreshed.correlationId ?? detached.correlationId,
+    ok: confirmed,
+    offerings: confirmed ? offerings! : [],
+    message: confirmed ? detached.data.message : "Retirada aceptada, pero falta confirmar el estado de los servicios. No repitas la operación.",
+    correlationId: detached.correlationId,
   };
 }
 
@@ -754,12 +807,12 @@ export async function setOfferingVariantActivationAction(input: {
     };
   }
 
-  const refreshed = await gateway.listOfferingsByVariant(input.variantId);
-
+  const offerings = updated.data.offerings;
+  const confirmed = updated.data.updated !== false && Boolean(offerings?.some(item => item.offeringId === input.offeringId && item.active === input.active));
   return {
-    ok: refreshed.ok,
-    offerings: refreshed.ok ? refreshed.data : [],
-    message: refreshed.ok ? updated.data.message : refreshed.error,
-    correlationId: refreshed.correlationId ?? updated.correlationId,
+    ok: confirmed,
+    offerings: confirmed ? offerings! : [],
+    message: confirmed ? updated.data.message : updated.data.updated === false ? "No existe la relación con este servicio." : "Cambio aceptado, pero falta confirmar el estado de los servicios. No repitas la operación.",
+    correlationId: updated.correlationId,
   };
 }

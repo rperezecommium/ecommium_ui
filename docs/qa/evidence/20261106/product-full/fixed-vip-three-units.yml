@@ -1,0 +1,383 @@
+- main [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - link "Admin" [ref=f2e3] [cursor=pointer]:
+      - /url: /admin
+    - text: /
+    - link "Catalogo" [ref=f2e4] [cursor=pointer]:
+      - /url: /admin/catalogo
+    - text: /
+    - link "Productos" [ref=f2e5] [cursor=pointer]:
+      - /url: /admin/products
+    - text: / Editar
+  - generic [ref=f2e6]:
+    - generic [ref=f2e7]:
+      - textbox "Nombre del producto" [ref=f2e8]:
+        - /placeholder: Nuevo producto
+        - text: Casco QA integral PW 20261106
+      - generic [ref=f2e9]:
+        - generic [ref=f2e10]: Sin publicar
+        - generic [ref=f2e11]: Producto con variantes
+        - generic [ref=f2e12]: es-ES / EUR
+    - generic [ref=f2e13]:
+      - link "Volver al catálogo" [ref=f2e14] [cursor=pointer]:
+        - /url: /admin/products
+      - generic "Tipo de producto" [ref=f2e15]:
+        - button "Producto simple" [ref=f2e16] [cursor=pointer]
+        - button "Producto con variantes" [ref=f2e17] [cursor=pointer]
+  - generic [ref=f2e18]:
+    - paragraph [ref=f2e19]: Hay un borrador local guardado para esta ficha.
+    - generic [ref=f2e20]:
+      - button "Restaurar borrador" [ref=f2e21] [cursor=pointer]
+      - button "Descartar borrador" [ref=f2e22] [cursor=pointer]
+  - navigation "Pestanas de producto" [ref=f2e23]:
+    - button "Ajustes basicos" [ref=f2e24] [cursor=pointer]
+    - button "Imagenes" [ref=f2e25] [cursor=pointer]
+    - button "Variantes" [ref=f2e26] [cursor=pointer]
+    - button "Precio" [ref=f2e27] [cursor=pointer]
+    - button "Inventario" [ref=f2e28] [cursor=pointer]
+    - button "Transporte" [ref=f2e29] [cursor=pointer]
+    - button "SEO" [ref=f2e30] [cursor=pointer]
+    - button "Auditoria" [ref=f2e31] [cursor=pointer]
+  - generic [ref=f2e32]:
+    - generic [ref=f2e34]:
+      - generic [ref=f2e36]:
+        - heading "Precio" [level=2] [ref=f2e37]
+        - paragraph [ref=f2e38]: Define el precio base del producto y anade excepciones solo cuando las necesites.
+      - generic [ref=f2e39]:
+        - generic [ref=f2e40]:
+          - text: "Currency:"
+          - strong [ref=f2e41]: EUR
+        - generic [ref=f2e42]:
+          - text: "Country:"
+          - strong [ref=f2e43]: ES
+        - generic [ref=f2e44]:
+          - text: "Precio base:"
+          - strong [ref=f2e45]: 121.00 EUR
+        - generic [ref=f2e46]:
+          - text: "Reglas especificas:"
+          - strong [ref=f2e47]: "1"
+      - generic [ref=f2e48]:
+        - generic [ref=f2e49]:
+          - generic [ref=f2e50]: Precio de venta (imp. excl.)
+          - spinbutton "Precio de venta sin impuestos" [ref=f2e51]: "100.00"
+        - generic [ref=f2e52]:
+          - generic [ref=f2e53]: Precio de venta (imp. incl.)
+          - spinbutton "Precio de venta con impuestos" [ref=f2e54]: "121.00"
+        - generic [ref=f2e55]:
+          - generic [ref=f2e56]: Impuesto
+          - combobox "Impuesto" [ref=f2e57]:
+            - option "Sin regla fiscal"
+            - option "IVA general España 21%" [selected]
+            - option "Default IVA (10%)"
+            - option "rpf-especial (1.5%)"
+            - option "IVA general España 21% (21%)"
+            - option "IVA (21%)"
+            - option "Bike VAT Included (21%)"
+        - generic [ref=f2e58]:
+          - generic [ref=f2e59]: Precio de coste
+          - spinbutton "Precio de coste" [ref=f2e60]: "60.00"
+        - generic [ref=f2e61]:
+          - generic [ref=f2e62]: Precio tachado
+          - spinbutton "Precio tachado" [ref=f2e63]: "150.00"
+      - generic [ref=f2e64]:
+        - checkbox "Impuestos incluidos" [checked] [ref=f2e65]
+        - text: Impuestos incluidos
+      - group [ref=f2e66]:
+        - generic "Contexto avanzado de precio base" [ref=f2e67] [cursor=pointer]
+        - option "Precio base" [selected]
+        - option "vip"
+        - option "vip_table"
+        - option "B2B España Retail"
+        - option "funcionarios"
+        - option "VIP table"
+        - option "cockpit-vip"
+        - option "B2B Standard"
+        - option "Default" [selected]
+        - option "Pc comvencional"
+        - option "Marketplace"
+        - option "Web" [selected]
+        - option "Espana" [selected]
+        - option "Portugal"
+        - option "Todos" [selected]
+        - option "B2B Profesional"
+        - option "VIP"
+      - generic [ref=f2e71]:
+        - generic [ref=f2e72]:
+          - strong [ref=f2e73]: 121.00 EUR
+          - generic [ref=f2e74]: Precio producto
+        - generic [ref=f2e75]:
+          - strong [ref=f2e76]: 150.00 EUR
+          - generic [ref=f2e77]: Precio tachado
+        - generic [ref=f2e78]:
+          - strong [ref=f2e79]: 100.00 EUR
+          - generic [ref=f2e80]: Neto preview
+        - generic [ref=f2e81]:
+          - strong [ref=f2e82]: 21.00 EUR
+          - generic [ref=f2e83]: Impuesto preview
+        - generic [ref=f2e84]:
+          - strong [ref=f2e85]: 121.00 EUR
+          - generic [ref=f2e86]: Bruto preview
+      - group [ref=f2e87]:
+        - generic "Precios especificos 1 regla(s)" [ref=f2e88] [cursor=pointer]:
+          - generic [ref=f2e89]: Precios especificos
+          - generic [ref=f2e93]: 1 regla(s)
+        - option "Producto completo · QA-PW-20261106-CASCO" [selected]
+        - option "Casco QA integral PW 20261106 / negro / L · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L"
+        - option "Casco QA integral PW 20261106 / negro / M · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M"
+        - option "Todos"
+        - option "Espana" [selected]
+        - option "Portugal"
+        - option "Todos" [selected]
+        - option "B2B Profesional"
+        - option "VIP"
+        - option "Pc comvencional"
+        - option "Marketplace"
+        - option "Web" [selected]
+        - option "B2B Standard"
+        - option "Default" [selected]
+        - option "Sin tabla" [selected]
+        - option "vip"
+        - option "vip_table"
+        - option "B2B España Retail"
+        - option "funcionarios"
+        - option "VIP table"
+        - option "cockpit-vip"
+      - group [ref=f2e94]:
+        - generic "Simulador de precio aplicado Precio de producto" [ref=f2e95] [cursor=pointer]:
+          - generic [ref=f2e96]: Simulador de precio aplicado
+          - generic [ref=f2e100]: Precio de producto
+        - paragraph [ref=f2e101]: Confirma el precio que Pricing devuelve para producto, variante y contexto.
+        - generic [ref=f2e102]:
+          - generic [ref=f2e103]:
+            - generic [ref=f2e104]: Aplicar sobre
+            - combobox "Aplicar sobre" [ref=f2e105]:
+              - option "Producto completo · QA-PW-20261106-CASCO" [selected]
+              - option "Casco QA integral PW 20261106 / negro / L · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L"
+              - option "Casco QA integral PW 20261106 / negro / M · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M"
+          - generic [ref=f2e106]:
+            - generic [ref=f2e107]: Cantidad
+            - spinbutton "Cantidad" [ref=f2e108]: "3"
+          - generic [ref=f2e109]:
+            - generic [ref=f2e110]: Pais
+            - combobox "Pais" [ref=f2e111]:
+              - option "Espana" [selected]
+              - option "Portugal"
+          - generic [ref=f2e112]:
+            - generic [ref=f2e113]: Canal
+            - combobox "Canal" [ref=f2e114]:
+              - option "Pc comvencional"
+              - option "Marketplace"
+              - option "Web" [selected]
+          - generic [ref=f2e115]:
+            - generic [ref=f2e116]: Politica comercial
+            - combobox "Politica comercial" [ref=f2e117]:
+              - option "B2B Standard"
+              - option "Default" [selected]
+          - generic [ref=f2e118]:
+            - generic [ref=f2e119]: Grupo cliente
+            - combobox "Grupo cliente" [ref=f2e120]:
+              - option "Todos"
+              - option "B2B Profesional"
+              - option "VIP" [selected]
+          - generic [ref=f2e121]:
+            - generic [ref=f2e122]: Price table
+            - combobox "Price table" [ref=f2e123]:
+              - option "Auto / base" [selected]
+              - option "vip"
+              - option "vip_table"
+              - option "B2B España Retail"
+              - option "funcionarios"
+              - option "VIP table"
+              - option "cockpit-vip"
+          - generic [ref=f2e124]:
+            - generic [ref=f2e125]: Fecha de simulacion
+            - textbox "Fecha de simulacion" [ref=f2e126]
+        - generic [ref=f2e127]:
+          - button "Simular precio" [ref=f2e128] [cursor=pointer]
+          - button "Reiniciar" [ref=f2e129] [cursor=pointer]
+        - generic [ref=f2e130]:
+          - generic [ref=f2e131]:
+            - generic [ref=f2e132]:
+              - strong [ref=f2e133]: 99.00 EUR
+              - generic [ref=f2e134]: Precio aplicado
+            - generic [ref=f2e135]:
+              - strong [ref=f2e136]: 121.00 EUR
+              - generic [ref=f2e137]: Precio base
+            - generic [ref=f2e138]:
+              - strong [ref=f2e139]: 99.00 EUR
+              - generic [ref=f2e140]: Precio especifico
+            - generic [ref=f2e141]:
+              - strong [ref=f2e142]: FIXED
+              - generic [ref=f2e143]: Fuente
+            - generic [ref=f2e144]:
+              - strong [ref=f2e145]: afeff14a-cc42-4a3c-b481-4e7370f98672
+              - generic [ref=f2e146]: pricingId
+          - generic [ref=f2e147]:
+            - generic [ref=f2e148]:
+              - text: "Target:"
+              - strong [ref=f2e149]: Producto - Casco QA integral PW 20261106
+            - generic [ref=f2e150]:
+              - text: "Resolucion:"
+              - strong [ref=f2e151]: Precio de producto
+            - generic [ref=f2e152]:
+              - text: "Fallback:"
+              - strong [ref=f2e153]: "No"
+            - generic [ref=f2e154]:
+              - text: "Tabla:"
+              - strong [ref=f2e155]: base
+          - table [ref=f2e157]:
+            - rowgroup [ref=f2e158]:
+              - row [ref=f2e159]:
+                - columnheader "Parametro" [ref=f2e160]
+                - columnheader "Solicitado" [ref=f2e161]
+                - columnheader "Regla aplicada" [ref=f2e162]
+                - columnheader "Estado" [ref=f2e163]
+            - rowgroup [ref=f2e164]:
+              - row [ref=f2e165]:
+                - cell "Moneda" [ref=f2e166]
+                - cell "EUR" [ref=f2e167]
+                - cell "EUR" [ref=f2e168]
+                - cell "Cumple" [ref=f2e169]
+              - row [ref=f2e171]:
+                - cell "Pais" [ref=f2e172]
+                - cell "ES" [ref=f2e173]
+                - cell "ES" [ref=f2e174]
+                - cell "Cumple" [ref=f2e175]
+              - row [ref=f2e177]:
+                - cell "Canal" [ref=f2e178]
+                - cell "web" [ref=f2e179]
+                - cell "web" [ref=f2e180]
+                - cell "Cumple" [ref=f2e181]
+              - row [ref=f2e183]:
+                - cell "Politica" [ref=f2e184]
+                - cell "default" [ref=f2e185]
+                - cell "default" [ref=f2e186]
+                - cell "Cumple" [ref=f2e187]
+              - row [ref=f2e189]:
+                - cell "Grupo cliente" [ref=f2e190]
+                - cell "vip" [ref=f2e191]
+                - cell "vip" [ref=f2e192]
+                - cell "Cumple" [ref=f2e193]
+              - row [ref=f2e195]:
+                - cell "Price table" [ref=f2e196]
+                - cell "Todos" [ref=f2e197]
+                - cell "Todos" [ref=f2e198]
+                - cell "Todos" [ref=f2e199]
+              - row [ref=f2e201]:
+                - cell "Cantidad minima" [ref=f2e202]
+                - cell "3" [ref=f2e203]
+                - cell "3" [ref=f2e204]
+                - cell "Cumple" [ref=f2e205]
+      - paragraph [ref=f2e208]: La productVariantDefault se gestiona con el precio superior. Las variantes listadas abajo solo necesitan cambios si requieren precio, impuesto o tabla propios.
+      - generic [ref=f2e209]:
+        - generic [ref=f2e210]:
+          - generic [ref=f2e211]:
+            - heading "Override de variante adicional" [level=3] [ref=f2e212]
+            - paragraph [ref=f2e213]: Casco QA integral PW 20261106 / negro / L
+          - generic [ref=f2e214]: Fallback producto
+        - generic [ref=f2e215]:
+          - generic [ref=f2e216]:
+            - generic [ref=f2e217]: Variante adicional a editar
+            - combobox "Variante adicional a editar" [ref=f2e218]:
+              - option "Casco QA integral PW 20261106 / negro / L · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L" [selected]
+              - option "Casco QA integral PW 20261106 / negro / M · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M"
+          - generic [ref=f2e219]:
+            - generic [ref=f2e220]: Precio propio
+            - spinbutton "Precio propio" [ref=f2e221]
+          - generic [ref=f2e222]:
+            - generic [ref=f2e223]: Impuesto de variante
+            - 'combobox "Impuesto de variante Usa el impuesto del producto: IVA general España 21%." [disabled] [ref=f2e224]':
+              - option "Heredar/sin regla"
+              - option "IVA general España 21%" [selected]
+              - option "Default IVA (10%)"
+              - option "rpf-especial (1.5%)"
+              - option "IVA general España 21% (21%)"
+              - option "IVA (21%)"
+              - option "Bike VAT Included (21%)"
+            - generic [ref=f2e225]: "Usa el impuesto del producto: IVA general España 21%."
+          - generic [ref=f2e226]:
+            - generic [ref=f2e227]: priceTableId de variante
+            - combobox "priceTableId de variante" [disabled] [ref=f2e228]:
+              - option "Precio base" [selected]
+              - option "vip"
+              - option "vip_table"
+              - option "B2B España Retail"
+              - option "funcionarios"
+              - option "VIP table"
+              - option "cockpit-vip"
+        - button "Quitar precio propio" [disabled] [ref=f2e230]
+      - table [ref=f2e232]:
+        - rowgroup [ref=f2e233]:
+          - row [ref=f2e234]:
+            - columnheader "Seleccion" [ref=f2e235]: Sel.
+            - columnheader "Variante" [ref=f2e236]
+            - columnheader "Modo" [ref=f2e237]
+            - columnheader "Precio" [ref=f2e238]
+            - columnheader "Especificos" [ref=f2e239]
+            - columnheader "Fiscalidad" [ref=f2e240]
+            - columnheader "Accion" [ref=f2e241]
+        - rowgroup [ref=f2e242]:
+          - row [ref=f2e243]:
+            - cell [ref=f2e244]:
+              - radio "Editar precio de CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L" [checked] [ref=f2e245]
+            - cell "Casco QA integral PW 20261106 / negro / L CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L" [ref=f2e246]:
+              - strong [ref=f2e247]: Casco QA integral PW 20261106 / negro / L
+              - generic [ref=f2e248]: CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L
+            - cell "Usa precio del producto Fallback activo" [ref=f2e249]:
+              - generic [ref=f2e250]: Usa precio del producto
+              - generic [ref=f2e251]: Fallback activo
+            - cell "121.00 EUR Producto" [ref=f2e252]:
+              - strong [ref=f2e253]: 121.00 EUR
+              - generic [ref=f2e254]: Producto
+            - cell "1 regla(s)" [ref=f2e255]
+            - cell "IVA general España 21% Precio base" [ref=f2e257]:
+              - generic [ref=f2e258]: IVA general España 21%
+              - generic [ref=f2e259]: Precio base
+            - cell [ref=f2e260]:
+              - generic [ref=f2e261]:
+                - button "Editar" [ref=f2e262] [cursor=pointer]
+                - button "Anadir especifico" [ref=f2e263] [cursor=pointer]
+          - row [ref=f2e264]:
+            - cell [ref=f2e265]:
+              - radio "Editar precio de CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M" [ref=f2e266]
+            - cell "Casco QA integral PW 20261106 / negro / M CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M" [ref=f2e267]:
+              - strong [ref=f2e268]: Casco QA integral PW 20261106 / negro / M
+              - generic [ref=f2e269]: CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M
+            - cell "Usa precio del producto Fallback activo" [ref=f2e270]:
+              - generic [ref=f2e271]: Usa precio del producto
+              - generic [ref=f2e272]: Fallback activo
+            - cell "121.00 EUR Producto" [ref=f2e273]:
+              - strong [ref=f2e274]: 121.00 EUR
+              - generic [ref=f2e275]: Producto
+            - cell "1 regla(s)" [ref=f2e276]
+            - cell "IVA general España 21% Precio base" [ref=f2e278]:
+              - generic [ref=f2e279]: IVA general España 21%
+              - generic [ref=f2e280]: Precio base
+            - cell [ref=f2e281]:
+              - generic [ref=f2e282]:
+                - button "Editar" [ref=f2e283] [cursor=pointer]
+                - button "Anadir especifico" [ref=f2e284] [cursor=pointer]
+    - complementary [ref=f2e285]:
+      - generic [ref=f2e286]:
+        - heading "Resumen" [level=2] [ref=f2e287]
+        - generic [ref=f2e289]:
+          - generic [ref=f2e290]:
+            - term [ref=f2e291]: Tipo
+            - definition [ref=f2e292]: Con variantes
+          - generic [ref=f2e293]:
+            - term [ref=f2e294]: Precio base
+            - definition [ref=f2e295]: 121.00 EUR
+          - generic [ref=f2e296]:
+            - term [ref=f2e297]: Variantes
+            - definition [ref=f2e298]: "2"
+          - generic [ref=f2e299]:
+            - term [ref=f2e300]: Imagenes
+            - definition [ref=f2e301]: "2"
+  - group "Acciones del producto" [ref=f2e302]:
+    - status [ref=f2e303]:
+      - generic [ref=f2e304]: Sin publicar
+      - generic [ref=f2e305]: Sin cambios
+    - generic [ref=f2e306]:
+      - button "Vista previa" [ref=f2e307] [cursor=pointer]
+      - button "Guardar" [ref=f2e311] [cursor=pointer]
+      - button "Más acciones del producto" [ref=f2e312] [cursor=pointer]: ⋯

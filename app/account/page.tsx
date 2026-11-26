@@ -3,7 +3,7 @@ import { StorefrontAccountClient } from "../../src/modules/storefront/storefront
 import { logoutStorefrontCustomer } from "../../src/modules/storefront/storefront-account-actions";
 import { getStorefrontAccountData } from "../../src/modules/storefront/storefront-account";
 import { getStorefrontCustomerSession } from "../../src/modules/storefront/storefront-customer-session";
-import { StorefrontHeader } from "../../src/modules/storefront/plp-page";
+import { StorefrontPageShell } from "../../src/modules/storefront/storefront-header";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -26,7 +26,7 @@ export default async function AccountPage({ searchParams }: PageProps) {
 
   return (
     <main className="storefrontPage">
-      <StorefrontHeader />
+      <StorefrontPageShell surface="ACCOUNT">
       <div className="storefrontAuthPage">
         {result.ok && result.data ? (
           <StorefrontAccountClient
@@ -56,6 +56,7 @@ export default async function AccountPage({ searchParams }: PageProps) {
           </section>
         )}
       </div>
+      </StorefrontPageShell>
     </main>
   );
 }

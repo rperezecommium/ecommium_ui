@@ -1,5 +1,7 @@
 "use client";
 
+import { rotatePurchasedCart } from "./rotate-purchased-cart";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -567,7 +569,7 @@ async function finalizePaidCheckout(input: {
     }),
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok && response.status !== 409) {
+  if (!response.ok) {
     throw new Error(paymentReturnApiMessage(payload));
   }
 
@@ -669,41 +671,7 @@ async function resetPaidCheckoutCart(orderform: StorefrontOrderform, guestSessio
     return;
   }
 
-  const deleteResponse = await fetch("/api/storefront/cart/items", {
-    method: "DELETE",
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      guestSessionId,
-      orderFormId: orderform.orderFormId,
-    }),
-  });
-  const deletePayload = await deleteResponse.json().catch(() => ({}));
-  if (!deleteResponse.ok) {
-    throw new Error(`El pago fue confirmado, pero no pudimos vaciar el carrito: ${paymentReturnApiMessage(deletePayload)}`);
-  }
-
-  const clearedOrderform = normalizeOrderformPayload(deletePayload);
-  if (clearedOrderform.items.length > 0) {
-    throw new Error("El pago fue confirmado, pero el carrito no quedó vacío.");
-  }
-
-  const params = new URLSearchParams({ forceNewCart: "true" });
-  if (guestSessionId) {
-    params.set("guestSessionId", guestSessionId);
-  }
-  const nextResponse = await fetch(`/api/storefront/cart?${params.toString()}`, {
-    cache: "no-store",
-    credentials: "same-origin",
-  });
-  const nextPayload = await nextResponse.json().catch(() => ({}));
-  if (!nextResponse.ok) {
-    throw new Error(`El pago fue confirmado, pero no pudimos preparar un carrito nuevo: ${paymentReturnApiMessage(nextPayload)}`);
-  }
-
+  const nextPayload = await rotatePurchasedCart(orderform.orderFormId, guestSessionId);
   const nextOrderform = normalizeOrderformPayload(nextPayload);
   if (nextOrderform.items.length > 0) {
     throw new Error("El pago fue confirmado, pero el nuevo carrito contiene artículos.");

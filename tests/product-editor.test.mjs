@@ -54,13 +54,47 @@ const productStatusModule = loadTsModule("src/modules/catalogo/product-status.ts
 const validationModule = loadTsModule("src/modules/catalogo/product-editor-validation.ts");
 const orchestratorModule = loadTsModule("src/modules/catalogo/product-save-orchestrator.ts");
 
+test("new variants copy the parent commercial price without sharing its persisted identity", () => {
+  const draft = draftModule.createEmptyProductDraft();
+  draft.pricing.productPrice = {
+    pricingId: "parent-price", basePriceMinor: 12900, currency: "EUR", taxIncluded: true,
+    tax: { id: "vat", label: "IVA", taxCode: "vat", calculationType: "PERCENTAGE", rate: 0.21 },
+    priceTableId: "retail", country: "ES",
+  };
+  const prices = draftModule.pricesForNewVariants(draft, [{ localId: "a" }, { localId: "b" }]);
+  assert.equal(prices.a.basePriceMinor, 12900);
+  assert.equal(prices.a.pricingId, undefined);
+  assert.equal(prices.a.priceTableId, "retail");
+  prices.a.basePriceMinor = 15000;
+  prices.a.tax.rate = 0.1;
+  assert.equal(prices.b.basePriceMinor, 12900);
+  assert.equal(prices.b.tax.rate, 0.21);
+  assert.equal(draft.pricing.productPrice.tax.rate, 0.21);
+});
+
+test("new variants fall back to default variant price even in variants mode", () => {
+  const draft = importedSimpleProduct();
+  draft.mode = "variants";
+  assert.equal(draftModule.editorBasePrice(draft).basePriceMinor, 381465);
+  assert.equal(validationModule.validateProductPublicationReadiness(draft).ok, true);
+  const prices = draftModule.pricesForNewVariants(draft, [{ localId: "new" }]);
+  assert.equal(prices.new.basePriceMinor, 381465);
+  assert.equal(prices.new.pricingId, undefined);
+  assert.equal(draft.pricing.variantPrices["imported-default"].pricingId, "price-existing");
+  draft.pricing.productPrice = { basePriceMinor: 500, currency: "EUR", taxIncluded: true };
+  assert.equal(draftModule.pricesForNewVariants(draft, [{ localId: "new" }]).new.basePriceMinor, 500);
+  draft.pricing.productPrice.markedForDeletion = true;
+  draft.pricing.variantPrices["imported-default"].markedForDeletion = true;
+  assert.equal(Object.keys(draftModule.pricesForNewVariants(draft, [{ localId: "new" }])).length, 0);
+});
+
 function importedSimpleProduct() {
   return draftModule.draftFromEditorData({
     product: { productId: "imported-product", name: "Imported bike", slug: "imported-bike", isActive: true, isVisible: true },
     variants: [{ variantId: "imported-default", refId: "IMPORTED-1", name: "Imported bike", isDefault: true, isActive: true, isVisible: true, options: [] }],
     mediaItems: [{ localId: "image-1", mediaAssetId: "asset-1", active: true, isMain: true, persisted: true }],
     mediaAssignments: {}, mediaMainByVariant: {}, offeringsByVariant: {},
-    variantPrices: { "imported-default": { pricingId: "price-existing", basePriceMinor: 381465, currency: "EUR", channel: "web", country: "ES", taxIncluded: false, tax: null } },
+    variantPrices: { "imported-default": { pricingId: "price-existing", priceKind: "REGULAR", source: "BASE", basePriceMinor: 381465, currency: "EUR", taxIncluded: false, tax: null } },
     specificPrices: [],
     stockByVariant: { "imported-default": { warehouseId: "warehouse-commercial", onHandQuantity: 35, reservedQuantity: 4, safetyStockQuantity: 2, availableQuantity: 29 } },
     warnings: [], correlationIds: [],
@@ -111,13 +145,13 @@ test("product-level prices and additional variant overrides retain their existin
   assert.equal(draftModule.editorBasePrice(draft).pricingId, "product-price");
 });
 
-test("default price at zero or missing stock does not pass publication checks", () => {
+test("missing stock prevents publication even when a normal zero price is configured", () => {
   const draft = importedSimpleProduct();
   draft.pricing.variantPrices["imported-default"].basePriceMinor = 0;
   draft.inventory.stockByVariant.default.availableQuantity = 0;
   const validation = validationModule.validateProductPublicationReadiness(draft);
   assert.equal(validation.ok, false);
-  assert.ok(validation.fieldErrors["publication:price"]);
+  assert.equal(validation.fieldErrors["publication:price"], undefined);
   assert.ok(validation.fieldErrors["publication:stock"]);
 });
 
@@ -596,7 +630,7 @@ test("variant price inherits product tax before validation and save", () => {
   assert.equal(normalized.pricing.variantPrices["variant-red"].priceTableId, "vip-table");
 });
 
-test("specific prices inherit product pricing context before validation and save", () => {
+test("specific prices keep optional selectors absent while reusing money and tax", () => {
   const draft = draftModule.createEmptyProductDraft("es-ES", "EUR");
   draft.basic.name = "Urban Runner";
   draft.basic.slug = "urban-runner";
@@ -639,7 +673,9 @@ test("specific prices inherit product pricing context before validation and save
   assert.equal(specificPrice.currency, "EUR");
   assert.equal(specificPrice.country, null);
   assert.equal(specificPrice.minQuantity, 1);
-  assert.equal(specificPrice.priceTableId, "vip-table");
+  assert.equal(specificPrice.priceTableId, null);
+  assert.equal(specificPrice.channel, null);
+  assert.equal(specificPrice.tradePolicy, null);
   assert.equal(specificPrice.basePriceMinor, 3999);
   assert.equal(specificPrice.tax.taxCode, "BIKE_STANDARD");
 });
@@ -2905,4 +2941,56 @@ test("save orchestrator does not materialize inherited default stock on variants
   assert.equal(JSON.stringify(calls.filter((call) => call[0] === "putStockLevel")), JSON.stringify([
     ["putStockLevel", "variant-default", 10],
   ]));
+});
+
+
+test("publication labels do not infer a draft or deactivation lifecycle for persisted inactive products", () => {
+  assert.equal(productStatusModule.productPublicationLabel(undefined, false), "Borrador");
+  assert.equal(productStatusModule.productPublicationLabel("existing-inactive", false), "Sin publicar");
+  assert.equal(productStatusModule.productPublicationLabel("existing-active", true), "Activo");
+});
+
+test("editing inherited variant cost or tax retains the inherited amount without sharing the parent's identity", () => {
+  const draft = draftModule.createEmptyProductDraft();
+  draft.pricing.productPrice = { pricingId: "parent-price", basePriceMinor: 12000, currency: "EUR", taxIncluded: true, taxCode: "vat21", costPriceMinor: 4000, listPriceMinor: 15000, priceTableId: "table-a" };
+  const price = draftModule.variantPriceForEdit(draft, "additional", "EUR");
+  const edited = { ...price, costPriceMinor: 5000, taxCode: "vat10" };
+  assert.equal(edited.basePriceMinor, 12000);
+  assert.equal(edited.listPriceMinor, 15000);
+  assert.equal(edited.priceTableId, "table-a");
+  assert.equal(edited.pricingId, undefined);
+  assert.equal(draft.pricing.productPrice.costPriceMinor, 4000);
+});
+
+test("restoring an edited tombstoned variant price uses current inherited values and preserves its own identity", () => {
+  const draft = draftModule.createEmptyProductDraft();
+  draft.pricing.productPrice = { pricingId: "parent", basePriceMinor: 23000, currency: "EUR", taxIncluded: false };
+  draft.pricing.variantPrices.additional = { pricingId: "own", basePriceMinor: 1000, currency: "EUR", taxIncluded: true, markedForDeletion: true };
+  const price = draftModule.variantPriceForEdit(draft, "additional", "EUR");
+  assert.equal(price.pricingId, "own");
+  assert.equal(price.basePriceMinor, 23000);
+  assert.equal(price.taxIncluded, false);
+  assert.equal(price.markedForDeletion, false);
+});
+
+ test("new normal price has no hidden market or policy and a legacy contextual price is not publication coverage",()=>{
+  const empty=draftModule.createEmptyProductDraft('es-ES','GBP');
+  const p=empty.pricing.productPrice;
+  assert.equal(p.currency,'GBP');
+  for(const key of ['tradePolicy','channel','country','customerGroup','priceTableId'])assert.ok(!p[key]);
+  assert.equal(validationModule.validateProductPublicationReadiness(empty).ok,false);
+  const draft=importedSimpleProduct();
+  draft.pricing.variantPrices['imported-default'].country='FR';
+  assert.ok(validationModule.validateProductPublicationReadiness(draft).fieldErrors['publication:price']);
+ });
+
+
+test("configured prices reject missing currency instead of inventing EUR", () => {
+  const draft = importedSimpleProduct();
+  draft.pricing.productPrice.currency = "";
+  draft.pricing.variantPrices["imported-default"].currency = "";
+  const normalized = validationModule.normalizeProductDraft(draft);
+  assert.equal(normalized.pricing.variantPrices["imported-default"].currency, "");
+  const report = validationModule.validateProductDraft(draft);
+  assert.ok(report.fieldErrors["pricing.variantPrices:imported-default:currency"]);
 });

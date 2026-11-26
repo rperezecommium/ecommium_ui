@@ -1,0 +1,493 @@
+- generic [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - complementary "Navegacion Admin" [ref=f7e3]:
+      - generic [ref=f7e4]:
+        - generic [ref=f7e5]: E
+        - generic [ref=f7e6]:
+          - strong [ref=f7e7]: Ecommium
+          - generic [ref=f7e8]: Admin backoffice
+      - navigation [ref=f7e9]:
+        - generic [ref=f7e10]: Vender
+        - link [ref=f7e11] [cursor=pointer]:
+          - /url: /admin
+          - strong [ref=f7e16]: Inicio
+        - group [ref=f7e17]:
+          - generic [ref=f7e18] [cursor=pointer]:
+            - strong [ref=f7e23]: Configuracion
+            - generic [aria-hidden] [ref=f7e24]: ⌄
+        - group [ref=f7e25]:
+          - generic [ref=f7e26] [cursor=pointer]:
+            - strong [ref=f7e34]: Catalogo
+            - generic [aria-hidden] [ref=f7e35]: ⌄
+          - generic [ref=f7e36]:
+            - link "Resumen" [ref=f7e37] [cursor=pointer]:
+              - /url: /admin/catalogo
+            - link "Productos" [ref=f7e39] [cursor=pointer]:
+              - /url: /admin/products
+            - link "Categorias" [ref=f7e41] [cursor=pointer]:
+              - /url: /admin/catalogo/categorias
+            - link "Caracteristicas" [ref=f7e43] [cursor=pointer]:
+              - /url: /admin/catalogo/atributos-caracteristicas
+            - link "Busqueda" [ref=f7e45] [cursor=pointer]:
+              - /url: /admin/catalogo/search
+            - link "Marcas / Proveedores" [ref=f7e47] [cursor=pointer]:
+              - /url: /admin/catalogo/marcas
+            - link "Media / Archivos" [ref=f7e49] [cursor=pointer]:
+              - /url: /admin/catalogo/media
+            - link "Offerings / Servicios adicionales" [ref=f7e51] [cursor=pointer]:
+              - /url: /admin/catalogo/offerings
+            - link "Stock" [ref=f7e53] [cursor=pointer]:
+              - /url: /admin/catalogo/stock
+            - link "Importar" [ref=f7e55] [cursor=pointer]:
+              - /url: /admin/catalogo/importar
+        - group [ref=f7e57]:
+          - generic [ref=f7e58] [cursor=pointer]:
+            - strong [ref=f7e63]: CMS
+            - generic [aria-hidden] [ref=f7e64]: ⌄
+        - link [ref=f7e65] [cursor=pointer]:
+          - /url: /admin/promociones
+          - strong [ref=f7e70]: Promociones
+        - link [ref=f7e71] [cursor=pointer]:
+          - /url: /admin/analitica
+          - strong [ref=f7e75]: Analitica
+        - link [ref=f7e76] [cursor=pointer]:
+          - /url: /admin/pedidos
+          - strong [ref=f7e88]: Pedidos
+        - link [ref=f7e89] [cursor=pointer]:
+          - /url: /admin/postventa
+          - strong [ref=f7e98]: Postventa
+        - link [ref=f7e99] [cursor=pointer]:
+          - /url: /admin/clientes
+          - strong [ref=f7e105]: Clientes
+        - link [ref=f7e106] [cursor=pointer]:
+          - /url: /admin/pagos
+          - strong [ref=f7e110]: Pagos
+      - generic [ref=f7e111]:
+        - strong [ref=f7e112]: Perfil
+        - paragraph [ref=f7e113]: Operator
+        - strong [ref=f7e114]: Contexto
+        - paragraph [ref=f7e115]: 11111111-1111-4111-8111-111111111111 / 22222222-2222-4222-8222-222222222222
+    - generic [ref=f7e116]:
+      - generic [ref=f7e117]:
+        - form "Selector de contexto Admin" [ref=f7e118]:
+          - combobox "Organization" [ref=f7e119]:
+            - option "Organization"
+            - option "READPREP-20261104 Organización"
+            - option "QA-20261104 Integracion UI"
+            - option "ReadIndex Live b"
+            - option "ReadIndex Live a"
+            - option "Read Path Baseline b"
+            - option "Read Path Baseline a"
+            - option "Ecommium Default Organization" [selected]
+            - option "Ecommium UI Smoke 1780565751104"
+          - combobox "Shop" [ref=f7e120]:
+            - option "Shop"
+            - option "READPREP-20261104 Interrupción"
+            - option "READPREP-20261104 Tienda existente"
+            - option "Tienda UI 1780565845946"
+            - option "Activa - Tienda Barcelona" [selected]
+          - textbox "Shop alias" [ref=f7e121]:
+            - /placeholder: shopAlias
+            - text: tienda-barcelona
+          - combobox "Locale" [ref=f7e122]:
+            - option "es-ES" [selected]
+            - option "en-US"
+            - option "pt-PT"
+          - button "Aplicar" [ref=f7e123] [cursor=pointer]
+        - generic [ref=f7e124]:
+          - generic [aria-hidden] [ref=f7e125]: r
+          - generic [ref=f7e126]:
+            - strong [ref=f7e127]: [employee-email-redacted]
+            - generic [ref=f7e128]: [employee-email-redacted]
+          - button "Salir" [ref=f7e130] [cursor=pointer]
+      - main [ref=f7e131]:
+        - generic [ref=f7e132]:
+          - link "Admin" [ref=f7e133] [cursor=pointer]:
+            - /url: /admin
+          - text: /
+          - link "Catalogo" [ref=f7e134] [cursor=pointer]:
+            - /url: /admin/catalogo
+          - text: /
+          - link "Productos" [ref=f7e135] [cursor=pointer]:
+            - /url: /admin/products
+          - text: / Editar
+        - generic [ref=f7e136]:
+          - generic [ref=f7e137]:
+            - textbox "Nombre del producto" [ref=f7e138]:
+              - /placeholder: Nuevo producto
+              - text: Casco QA integral PW 20261106
+            - generic [ref=f7e139]:
+              - generic [ref=f7e140]: Sin publicar
+              - generic [ref=f7e141]: Producto con variantes
+              - generic [ref=f7e142]: es-ES / EUR
+          - generic [ref=f7e143]:
+            - link "Volver al catálogo" [ref=f7e144] [cursor=pointer]:
+              - /url: /admin/products
+            - generic "Tipo de producto" [ref=f7e145]:
+              - button "Producto simple" [ref=f7e146] [cursor=pointer]
+              - button "Producto con variantes" [ref=f7e147] [cursor=pointer]
+        - generic [ref=f7e1302]:
+          - paragraph [ref=f7e1303]: Producto actualizado.
+          - paragraph [ref=f7e1304]: Variantes guardadas.
+          - paragraph [ref=f7e1305]: Caracteristicas guardadas.
+          - paragraph [ref=f7e1306]: Precios guardados.
+          - paragraph [ref=f7e1307]: Stock guardado.
+          - paragraph [ref=f7e1308]: SEO de producto guardado.
+          - generic "Acciones de recuperacion recomendadas" [ref=f7e1309]:
+            - button "Continuar editando" [ref=f7e1310] [cursor=pointer]
+            - button "Continuar editando" [ref=f7e1311] [cursor=pointer]
+          - paragraph [ref=f7e1312]: "Correlation: ui-1793972797640-067704ff9afed"
+        - generic [ref=f7e148]:
+          - paragraph [ref=f7e1510]: "Caracteristicas: contrato BFF no disponible o sin permisos (El servicio no está disponible temporalmente.)."
+          - paragraph [ref=f7e150]: "Transporte: configuracion BFF no disponible o sin permisos (La solicitud no es válida.)."
+        - navigation "Pestanas de producto" [ref=f7e151]:
+          - button "Ajustes basicos" [ref=f7e152] [cursor=pointer]
+          - button "Imagenes" [ref=f7e153] [cursor=pointer]
+          - button "Variantes" [ref=f7e154] [cursor=pointer]
+          - button "Precio" [ref=f7e155] [cursor=pointer]
+          - button "Inventario" [ref=f7e156] [cursor=pointer]
+          - button "Transporte" [ref=f7e157] [cursor=pointer]
+          - button "SEO" [ref=f7e158] [cursor=pointer]
+          - button "Auditoria" [ref=f7e159] [cursor=pointer]
+        - generic [ref=f7e160]:
+          - generic [ref=f7e161]:
+            - generic [ref=f7e1575]:
+              - generic [ref=f7e1576]:
+                - generic [ref=f7e1577]:
+                  - heading "Producto y variantes" [level=2] [ref=f7e1578]
+                  - paragraph [ref=f7e1579]: Gestiona producto y variantes vendibles con SKU, EAN, precio, stock, imagenes y estado propios.
+                - generic [ref=f7e1580]:
+                  - group [ref=f7e1581]:
+                    - generic "Filtros" [ref=f7e1582] [cursor=pointer]
+                    - option "Todas" [selected]
+                    - option "Activas"
+                    - option "Inactivas"
+                    - option "Todas" [selected]
+                    - option "Visibles"
+                    - option "Ocultas"
+                  - group [ref=f7e1583]:
+                    - generic "Acciones masivas" [ref=f7e1584] [cursor=pointer]
+                  - button "Anadir variante" [ref=f7e1585] [cursor=pointer]
+              - generic [ref=f7e1586]:
+                - generic [ref=f7e1587]:
+                  - strong [ref=f7e1588]: Generador rapido desde atributos
+                  - paragraph [ref=f7e1589]: Usalo solo cuando cada resultado generado sea una variante vendible.
+                - generic [ref=f7e1590]:
+                  - generic [ref=f7e1591]:
+                    - generic [ref=f7e1592]: Color
+                    - textbox "Color" [ref=f7e1593]:
+                      - /placeholder: rojo, azul
+                      - text: negro
+                  - generic [ref=f7e1594]:
+                    - generic [ref=f7e1595]: Talla
+                    - textbox "Talla" [ref=f7e1596]:
+                      - /placeholder: S, M, L
+                      - text: M, L
+                - button "Generar variantes" [ref=f7e1597] [cursor=pointer]
+              - table [ref=f7e1599]:
+                - rowgroup [ref=f7e1600]:
+                  - row [ref=f7e1601]:
+                    - columnheader "Seleccion" [ref=f7e1602]: Sel.
+                    - columnheader "Imagen" [ref=f7e1603]
+                    - columnheader "Producto / variante" [ref=f7e1604]
+                    - columnheader "SKU / referencia" [ref=f7e1605]
+                    - columnheader "EAN" [ref=f7e1606]
+                    - columnheader "Precio" [ref=f7e1607]
+                    - columnheader "Stock" [ref=f7e1608]
+                    - columnheader "Configuracion" [ref=f7e1609]
+                    - columnheader "Accion" [ref=f7e1610]
+                - rowgroup [ref=f7e1611]:
+                  - row [ref=f7e1612]:
+                    - cell [ref=f7e1613]:
+                      - radio "Seleccionar producto" [ref=f7e1614]
+                    - cell "Portada producto" [ref=f7e1615]
+                    - cell "Casco QA integral PW 20261106 variantId 5a77ecf9-e4e1-4669-8a6d-40c88641787b Producto - Casco QA integral PW 20261106" [ref=f7e1619]:
+                      - textbox "Nombre del producto" [ref=f7e1620]: Casco QA integral PW 20261106
+                      - generic [ref=f7e1621]: variantId 5a77ecf9-e4e1-4669-8a6d-40c88641787b
+                      - generic [ref=f7e1622]: Producto - Casco QA integral PW 20261106
+                    - cell [ref=f7e1623]:
+                      - textbox "Referencia principal" [ref=f7e1624]: QA-PW-20261106-CASCO
+                    - cell [ref=f7e1625]:
+                      - textbox "EAN principal" [ref=f7e1626]: "2000000000015"
+                    - cell "121.00 Precio del producto" [ref=f7e1627]:
+                      - generic [ref=f7e1628]:
+                        - textbox "Precio del producto / defaultVariant" [ref=f7e1629]: "121.00"
+                        - generic [ref=f7e1630]: Precio del producto
+                    - cell [ref=f7e1631]:
+                      - textbox "Stock principal" [ref=f7e1632]: "10"
+                    - cell "Inactiva Visible" [ref=f7e1633]:
+                      - generic [ref=f7e1634]:
+                        - generic [ref=f7e1635]: Inactiva
+                        - generic [ref=f7e1636]: Visible
+                    - cell [ref=f7e1637]:
+                      - button "Editar base" [ref=f7e1638] [cursor=pointer]
+                  - row [ref=f7e1639]:
+                    - cell [ref=f7e1640]:
+                      - radio "Seleccionar CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M" [checked] [ref=f7e1641]
+                    - cell "Heredada" [ref=f7e1642]
+                    - 'cell "Casco QA integral PW 20261106 / negro / M variantId fb263385-63b6-4d5a-baa5-3afbe8534ced Atributos: color: negro, size: m" [ref=f7e1646]':
+                      - textbox "Nombre variante 1" [ref=f7e1647]: Casco QA integral PW 20261106 / negro / M
+                      - generic [ref=f7e1648]: variantId fb263385-63b6-4d5a-baa5-3afbe8534ced
+                      - generic [ref=f7e1649]: "Atributos: color: negro, size: m"
+                    - cell [ref=f7e1650]:
+                      - textbox "Referencia variante 1" [ref=f7e1651]: CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M
+                    - cell [ref=f7e1652]:
+                      - textbox "EAN variante 1" [ref=f7e1653]: "2000000000022"
+                    - cell "Heredar Usa precio del producto" [ref=f7e1654]:
+                      - generic [ref=f7e1655]:
+                        - spinbutton "Precio variante 1" [ref=f7e1656]
+                        - button "Heredar" [disabled] [ref=f7e1657]
+                        - generic [ref=f7e1658]: Usa precio del producto
+                    - cell [ref=f7e1659]:
+                      - spinbutton "Stock variante 1" [ref=f7e1660]: "8"
+                    - cell "Activa Activa variante 1 Activa Visible variante 1 Visible" [ref=f7e1661]:
+                      - generic [ref=f7e1662]:
+                        - generic [ref=f7e1663]: Activa
+                        - generic [ref=f7e1664]:
+                          - checkbox "Activa variante 1" [checked] [ref=f7e1665]
+                          - text: Activa
+                        - generic [ref=f7e1666]:
+                          - checkbox "Visible variante 1" [checked] [ref=f7e1667]
+                          - text: Visible
+                    - cell [ref=f7e1668]:
+                      - button "Desactivar" [ref=f7e1670] [cursor=pointer]
+                  - row [ref=f7e2064]:
+                    - cell [ref=f7e2065]:
+                      - radio "Seleccionar CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L" [ref=f7e2066]
+                    - cell "Heredada" [ref=f7e2067]
+                    - 'cell "Casco QA integral PW 20261106 / negro / L variantId cc38bf37-e361-4fb4-8262-76b5905ec049 Atributos: color: negro, size: l" [ref=f7e2071]':
+                      - textbox "Nombre variante 2" [ref=f7e2072]: Casco QA integral PW 20261106 / negro / L
+                      - generic [ref=f7e2073]: variantId cc38bf37-e361-4fb4-8262-76b5905ec049
+                      - generic [ref=f7e2074]: "Atributos: color: negro, size: l"
+                    - cell [ref=f7e2075]:
+                      - textbox "Referencia variante 2" [ref=f7e2076]: CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L
+                    - cell [ref=f7e2077]:
+                      - textbox "EAN variante 2" [ref=f7e2078]: "2000000000039"
+                    - cell "Heredar Usa precio del producto" [ref=f7e2079]:
+                      - generic [ref=f7e2080]:
+                        - spinbutton "Precio variante 2" [ref=f7e2081]
+                        - button "Heredar" [disabled] [ref=f7e2082]
+                        - generic [ref=f7e2083]: Usa precio del producto
+                    - cell [ref=f7e2084]:
+                      - spinbutton "Stock variante 2" [ref=f7e2085]: "5"
+                    - cell "Activa Activa variante 2 Activa Visible variante 2 Visible" [ref=f7e2086]:
+                      - generic [ref=f7e2087]:
+                        - generic [ref=f7e2088]: Activa
+                        - generic [ref=f7e2089]:
+                          - checkbox "Activa variante 2" [checked] [ref=f7e2090]
+                          - text: Activa
+                        - generic [ref=f7e2091]:
+                          - checkbox "Visible variante 2" [checked] [ref=f7e2092]
+                          - text: Visible
+                    - cell [ref=f7e2093]:
+                      - button "Desactivar" [ref=f7e2095] [cursor=pointer]
+            - generic [ref=f7e1703]:
+              - generic [ref=f7e1704]:
+                - generic [ref=f7e1705]:
+                  - heading "Servicios adicionales" [level=2] [ref=f7e1706]
+                  - paragraph [ref=f7e1707]: Variante 1 - Casco QA integral PW 20261106 / negro / M (CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M)
+                - button "Servicios adicionales" [ref=f7e1708] [cursor=pointer]
+              - paragraph [ref=f7e1913]: offering attached to variant
+              - paragraph [ref=f7e1710]: No hay servicios adicionales asociados a esta variante.
+            - generic [ref=f7e1711]:
+              - generic [ref=f7e1712]:
+                - generic [ref=f7e1713]:
+                  - heading "Atributos de combinacion" [level=2] [ref=f7e1714]
+                  - paragraph [ref=f7e1715]: Casco QA integral PW 20261106 / negro / M
+                - generic [ref=f7e1716]:
+                  - generic [ref=f7e1717]: 2 asociados
+                  - button "Atributos de combinacion" [ref=f7e1718] [cursor=pointer]
+              - generic [ref=f7e1719]:
+                - paragraph [ref=f7e1720]: Los atributos guardados se actualizaran al guardar la ficha. Quitar un atributo persistido lo desactiva de forma segura.
+                - button "Cerrar aviso de atributos guardados" [ref=f7e1721] [cursor=pointer]
+              - generic [ref=f7e1725]:
+                - paragraph [ref=f7e1726]: Estos atributos identifican esta variante vendible. Si un color o talla necesita stock o imagen propia, crea una variante separada.
+                - button "Cerrar ayuda de atributos de combinacion" [ref=f7e1727] [cursor=pointer]
+              - generic [ref=f7e1732]:
+                - generic [ref=f7e1733]:
+                  - generic [ref=f7e1734]:
+                    - generic [ref=f7e1735]: Atributo
+                    - textbox "Atributo de combinacion 1" [ref=f7e1736]:
+                      - /placeholder: color
+                      - text: color
+                  - textbox "Valor de combinacion 1" [ref=f7e1738]:
+                    - /placeholder: negro
+                    - text: negro
+                  - generic [ref=f7e1739]: Guardado
+                  - button "Quitar" [ref=f7e1741] [cursor=pointer]
+                - generic [ref=f7e1742]:
+                  - generic [ref=f7e1743]:
+                    - generic [ref=f7e1744]: Atributo
+                    - textbox "Atributo de combinacion 2" [ref=f7e1745]:
+                      - /placeholder: color
+                      - text: size
+                  - textbox "Valor de combinacion 2" [ref=f7e1747]:
+                    - /placeholder: negro
+                    - text: m
+                  - generic [ref=f7e1748]: Guardado
+                  - button "Quitar" [ref=f7e1750] [cursor=pointer]
+              - button "Anadir manual" [ref=f7e1751] [cursor=pointer]
+          - complementary [ref=f7e260]:
+            - generic [ref=f7e261]:
+              - heading "Resumen" [level=2] [ref=f7e262]
+              - generic [ref=f7e265]:
+                - generic [ref=f7e266]:
+                  - term [ref=f7e267]: Tipo
+                  - definition [ref=f7e268]: Con variantes
+                - generic [ref=f7e269]:
+                  - term [ref=f7e270]: Precio base
+                  - definition [ref=f7e271]: 121.00 EUR
+                - generic [ref=f7e272]:
+                  - term [ref=f7e273]: Variantes
+                  - definition [ref=f7e274]: "2"
+                - generic [ref=f7e275]:
+                  - term [ref=f7e276]: Imagenes
+                  - definition [ref=f7e277]: "2"
+            - generic [ref=f7e1554]:
+              - heading "Imagenes de variante" [level=2] [ref=f7e1555]
+              - generic [ref=f7e1556]:
+                - generic [ref=f7e1557]: Variante seleccionada
+                - combobox "Variante seleccionada" [ref=f7e1558]:
+                  - option "Producto - Casco QA integral PW 20261106 (QA-PW-20261106-CASCO)"
+                  - option "Variante 1 - Casco QA integral PW 20261106 / negro / M (CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M)" [selected]
+                  - option "Variante 2 - Casco QA integral PW 20261106 / negro / L (CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L)"
+              - generic [ref=f7e1559]:
+                - generic [ref=f7e1560]:
+                  - button [ref=f7e1561] [cursor=pointer]:
+                    - img "Imagen de cascos utilizada para la prueba QA PW 20261106" [ref=f7e1562]
+                  - generic [ref=f7e1563]:
+                    - checkbox "Asignada" [ref=f7e1564]
+                    - text: Asignada
+                  - generic [ref=f7e1565]:
+                    - radio "Portada" [ref=f7e1566]
+                    - text: Portada
+                - generic [ref=f7e1567]:
+                  - button [ref=f7e1568] [cursor=pointer]:
+                    - img "Casco QA integral PW 20261106 imagen 2" [ref=f7e1569]
+                  - generic [ref=f7e1570]:
+                    - checkbox "Asignada" [ref=f7e1571]
+                    - text: Asignada
+                  - generic [ref=f7e1572]:
+                    - radio "Portada" [ref=f7e1573]
+                    - text: Portada
+              - button "Limpiar imagenes y heredar producto" [ref=f7e1574] [cursor=pointer]
+        - dialog [ref=f7e2096]:
+          - generic [ref=f7e2097]:
+            - generic [ref=f7e2098]:
+              - generic [ref=f7e2099]: Sin publicar
+              - heading "Vista previa PDP" [level=2] [ref=f7e2100]
+            - generic [ref=f7e2101]:
+              - link "Ver en tienda" [ref=f7e2102] [cursor=pointer]:
+                - /url: /admin/products/9fd81ffc-51b3-45cc-8448-80b60e666e13/storefront-preview
+              - button "Cerrar vista previa" [ref=f7e2107] [cursor=pointer]
+          - generic [ref=f7e2111]:
+            - region "Imagenes del producto" [ref=f7e2112]:
+              - img "Imagen de cascos utilizada para la prueba QA PW 20261106" [ref=f7e2114]
+              - region "Variantes activas" [ref=f7e2115]:
+                - generic [ref=f7e2117]:
+                  - button "Variante 1 - Casco QA integral PW 20261106 / negro / M (CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M)" [ref=f7e2118] [cursor=pointer]:
+                    - img "Imagen de cascos utilizada para la prueba QA PW 20261106" [ref=f7e2120]
+                    - generic [ref=f7e2121]: Casco QA integral PW 20261106 / negro / M
+                  - button "Variante 2 - Casco QA integral PW 20261106 / negro / L (CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L)" [pressed] [ref=f7e2122] [cursor=pointer]:
+                    - img "Imagen de cascos utilizada para la prueba QA PW 20261106" [ref=f7e2124]
+                    - generic [ref=f7e2125]: Casco QA integral PW 20261106 / negro / L
+            - generic [ref=f7e2126]:
+              - generic [ref=f7e2127]:
+                - generic [ref=f7e2128]: Giro
+                - generic [ref=f7e2129]: Disponible
+              - heading "Casco QA integral PW 20261106" [level=3] [ref=f7e2130]
+              - paragraph [ref=f7e2132]: Casco de prueba para verificar el editor completo, precios y disponibilidad.
+              - region "Seleccion de atributos" [ref=f7e2133]:
+                - generic [ref=f7e2134]:
+                  - generic [ref=f7e2135]: color
+                  - button "color negro" [pressed] [ref=f7e2137] [cursor=pointer]:
+                    - generic [ref=f7e2138]: negro
+                - generic [ref=f7e2139]:
+                  - generic [ref=f7e2140]: size
+                  - generic [ref=f7e2141]:
+                    - button "size m" [ref=f7e2142] [cursor=pointer]:
+                      - generic [ref=f7e2143]: m
+                    - button "size l" [active] [pressed] [ref=f7e2144] [cursor=pointer]:
+                      - generic [ref=f7e2145]: l
+              - generic [ref=f7e2146]:
+                - generic [ref=f7e2147]: Variante vendible
+                - combobox "Variante vendible" [ref=f7e2148]:
+                  - option "Variante 1 - Casco QA integral PW 20261106 / negro / M (CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M)"
+                  - option "Variante 2 - Casco QA integral PW 20261106 / negro / L (CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L)" [selected]
+              - generic [ref=f7e2149]:
+                - strong [ref=f7e2150]: 121.00 EUR
+                - generic [ref=f7e2151]: 150.00 EUR
+              - generic [ref=f7e2152]:
+                - generic [ref=f7e2153]:
+                  - term [ref=f7e2154]: Referencia
+                  - definition [ref=f7e2155]: CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L
+                - generic [ref=f7e2156]:
+                  - term [ref=f7e2157]: EAN
+                  - definition [ref=f7e2158]: "2000000000039"
+                - generic [ref=f7e2159]:
+                  - term [ref=f7e2160]: Stock
+                  - definition [ref=f7e2161]: "4"
+                - generic [ref=f7e2162]:
+                  - term [ref=f7e2163]: Impuesto
+                  - definition [ref=f7e2164]: IVA general España 21% (21%)
+              - generic [ref=f7e2165]:
+                - heading "Combinacion" [level=4] [ref=f7e2166]
+                - generic [ref=f7e2167]:
+                  - generic [ref=f7e2168]:
+                    - strong [ref=f7e2169]: color
+                    - text: negro
+                  - generic [ref=f7e2215]:
+                    - strong [ref=f7e2216]: size
+                    - text: l
+              - generic [ref=f7e2172]:
+                - heading "Caracteristicas tecnicas" [level=4] [ref=f7e2173]
+                - generic [ref=f7e2174]:
+                  - generic [ref=f7e2175]:
+                    - term [ref=f7e2176]: 70363c4c-a333-4cb2-8d2a-abdd86565536
+                    - definition [ref=f7e2177]: de4e157c-05da-4761-bef7-073f5a5f2617
+                  - generic [ref=f7e2178]:
+                    - term [ref=f7e2179]: cf26d814-caf3-4701-b360-a0583df4e13c
+                    - definition [ref=f7e2180]: 56daf8d8-57f4-4e29-9792-ae2f1e237879
+              - generic [ref=f7e2181]:
+                - heading "Precio calculado" [level=4] [ref=f7e2182]
+                - generic [ref=f7e2183]:
+                  - generic [ref=f7e2184]:
+                    - term [ref=f7e2185]: Neto
+                    - definition [ref=f7e2186]: 100.00 EUR
+                  - generic [ref=f7e2187]:
+                    - term [ref=f7e2188]: Impuesto
+                    - definition [ref=f7e2189]: 21.00 EUR
+                  - generic [ref=f7e2190]:
+                    - term [ref=f7e2191]: Total
+                    - definition [ref=f7e2192]: 121.00 EUR
+              - generic [ref=f7e2193]:
+                - heading "Servicios y disponibilidad" [level=4] [ref=f7e2194]
+                - paragraph [ref=f7e2195]: Sin servicios adicionales para esta variante.
+              - generic [ref=f7e2196]:
+                - heading "Detalles" [level=4] [ref=f7e2197]
+                - paragraph [ref=f7e2199]: Producto de control QA PW 20261106. Verifica características, imágenes, variantes, precio base, precio específico, inventario, transporte y SEO. No corresponde a una oferta comercial real.
+              - generic [ref=f7e2200]:
+                - heading "Envio" [level=4] [ref=f7e2201]
+                - generic [ref=f7e2202]:
+                  - generic [ref=f7e2203]:
+                    - term [ref=f7e2204]: Peso
+                    - definition [ref=f7e2205]: 350 g
+                  - generic [ref=f7e2206]:
+                    - term [ref=f7e2207]: Ancho
+                    - definition [ref=f7e2208]: 250 mm
+                  - generic [ref=f7e2209]:
+                    - term [ref=f7e2210]: Alto
+                    - definition [ref=f7e2211]: 200 mm
+                  - generic [ref=f7e2212]:
+                    - term [ref=f7e2213]: Fondo
+                    - definition [ref=f7e2214]: 300 mm
+        - group "Acciones del producto" [ref=f7e278]:
+          - status [ref=f7e279]:
+            - generic [ref=f7e280]: Sin publicar
+            - generic [ref=f7e281]: Guardado
+          - generic [ref=f7e282]:
+            - button "Vista previa" [ref=f7e283] [cursor=pointer]
+            - button "Guardar" [ref=f7e1323] [cursor=pointer]
+            - button "Más acciones del producto" [ref=f7e288] [cursor=pointer]: ⋯
+  - button "Open Next.js Dev Tools" [ref=f7e294] [cursor=pointer]
+  - alert [ref=f7e317]

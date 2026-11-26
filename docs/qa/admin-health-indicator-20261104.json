@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-04",
+  "scope": "UI health indicators",
+  "unitTests": 556,
+  "e2e": 4,
+  "liveServices": {
+    "analytics": "ok",
+    "automation": "ok",
+    "communications": "ok",
+    "after-sales": "ok",
+    "search": "unknown"
+  },
+  "responsiveWidths": [
+    1440,
+    768,
+    390
+  ],
+  "axePanelViolations": 0,
+  "businessArtifacts": [],
+  "temporaryArtifacts": "/private/tmp/import-ui-review/health-*"
+}

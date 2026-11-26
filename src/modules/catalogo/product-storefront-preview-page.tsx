@@ -5,6 +5,7 @@ import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 import { getAdminProductEditorData } from "./products";
 import { getProductStorefrontPreview } from "./product-storefront-preview";
 import type { ProductEditorData } from "./product-editor-types";
+import { sanitizeRichTextHtml } from "../../shared/security/rich-text";
 
 type ProductStorefrontPreviewPageProps = {
   context: AdminContext;
@@ -171,11 +172,11 @@ export async function ProductStorefrontPreviewPage({ context, productId }: Produ
                 <p className="productStorefrontPreviewBreadcrumb">{preview.breadcrumbs.join(" / ")}</p>
               ) : null}
               <p className="productPreviewBrandRow">
-                <span>{preview.brand ?? product.brandName ?? "Sin marca"}</span>
+                <span>{preview.brand ?? product.brandName ?? (product.brandId ? "Marca no disponible" : "Sin marca")}</span>
                 <span>{preview.category ?? product.categoryName ?? "Sin categoria"}</span>
               </p>
               <h2>{preview.title}</h2>
-              {preview.shortDescription ? <p className="productStorefrontPreviewLead">{preview.shortDescription}</p> : null}
+              {preview.shortDescription ? <div className="productStorefrontPreviewLead productPreviewRichText" dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(preview.shortDescription) }} /> : null}
               <div className="productPreviewPriceBlock">
                 <strong>{preview.priceDisplay ?? "Sin precio Storefront"}</strong>
                 <span>{preview.availability}</span>
@@ -188,7 +189,7 @@ export async function ProductStorefrontPreviewPage({ context, productId }: Produ
               </dl>
               <section className="productPreviewSection">
                 <h4>Descripcion Storefront</h4>
-                <p>{preview.description ?? "Storefront no devolvio descripcion extendida."}</p>
+                {preview.description ? <div className="productPreviewRichText" dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(preview.description) }} /> : <p>Storefront no devolvio descripcion extendida.</p>}
               </section>
             </section>
           </div>

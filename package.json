@@ -15,13 +15,16 @@
     "audit:production": "npm audit --omit=dev --audit-level=high",
     "test": "node --test tests/*.test.mjs",
     "test:e2e": "next build && playwright test",
+    "audit:products": "node scripts/audit-products.mjs",
     "pw:open": "playwright open about:blank",
     "pw:show": "playwright-cli show --annotate",
     "pw:close": "echo 'Close the Playwright window to stop the session'",
     "pw:snapshot": "playwright-cli snapshot",
     "pw:codegen": "playwright codegen http://localhost:5173",
     "pw:report": "playwright show-report",
-    "perf:readindex-ui": "node scripts/read-index-ui-performance.mjs"
+    "perf:readindex-ui": "node scripts/read-index-ui-performance.mjs",
+    "test:cms-contracts": "node --test tests/contracts/cms-phase-*.test.mjs",
+    "test:full-app": "node scripts/qa-full-app.mjs"
   },
   "dependencies": {
     "@tiptap/extension-image": "^3.27.1",
@@ -30,11 +33,14 @@
     "@tiptap/react": "^3.27.1",
     "@tiptap/starter-kit": "^3.27.1",
     "@types/sanitize-html": "^2.16.1",
+    "ajv": "^6.15.0",
     "lucide-react": "^1.21.0",
     "next": "16.3.0",
+    "postcss": "8.5.23",
     "react": "latest",
     "react-dom": "latest",
-    "sanitize-html": "^2.17.6"
+    "sanitize-html": "^2.17.6",
+    "swiper": "^12.2.0"
   },
   "overrides": {
     "postcss": "8.5.23"

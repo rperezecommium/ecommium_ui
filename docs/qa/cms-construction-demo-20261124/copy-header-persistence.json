@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Logo Ecommium",
+    "persisted": true
+  },
+  {
+    "name": "Mercado e idioma",
+    "persisted": true
+  },
+  {
+    "name": "Anuncio",
+    "fields": [
+      {
+        "label": "Texto¡Siempre el mejor precio online!",
+        "value": "¡Siempre el mejor precio online!"
+      }
+    ]
+  },
+  {
+    "name": "Servicios y confianza",
+    "persisted": true
+  },
+  {
+    "name": "Buscador",
+    "persisted": true
+  },
+  {
+    "name": "Cuenta de cliente",
+    "fields": []
+  },
+  {
+    "name": "Carrito",
+    "fields": []
+  },
+  {
+    "name": "Navegación de catálogo",
+    "fields": [
+      {
+        "label": "Elementos[]",
+        "value": "[]"
+      }
+    ]
+  }
+]

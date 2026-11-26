@@ -1,0 +1,52 @@
+{
+  "result": "PASS_SANDBOX_WITH_SIMULATED_DATA",
+  "orderReference": "10055",
+  "orderId": "69e5d66c-8a89-4fd2-b569-ddafb6834d39",
+  "transactionId": "69e5d66c-8a89-4fd2-b569-ddafb6834d39",
+  "cartId": "of_466857ee-ca83-4515-b95d-619b26d3916e",
+  "currency": "EUR",
+  "amountMinor": 3797,
+  "productMinor": 2662,
+  "normalPriceWithoutPolicyVerified": true,
+  "shippingMinor": 1135,
+  "pricingRuleId": "90caaf69-b811-45e4-9b4c-1aefd2df52b5",
+  "context": {
+    "locale": "es-ES",
+    "channel": "web",
+    "country": "ES",
+    "currency": "EUR",
+    "tradePolicy": "default",
+    "countrySource": "DELIVERY_ADDRESS"
+  },
+  "orderCount": 1,
+  "settlementCount": 1,
+  "provider": "stripe",
+  "providerEnvironment": "sandbox",
+  "livemode": false,
+  "providerPaymentIntentId": "pi_3UcSK8CAxhBYlrpM1NHt4wGh",
+  "providerAuthorizedAmountMinor": 3797,
+  "providerCapturedAmountMinor": 3797,
+  "providerAmountReceivedMinor": 3797,
+  "guestIdentityVerified": true,
+  "providerCaptureId": "ch_3UcSK8CAxhBYlrpM16P2Tw55",
+  "providerCaptureStatus": "succeeded",
+  "providerShippingMatchesCart": null,
+  "inventoryCommit": "COMMITTED",
+  "reservationCount": 1,
+  "stockMatchesExpectedDecrement": true,
+  "unitsCommitted": 1,
+  "expectedUnits": 1,
+  "testWarehouseOnHandBefore": 2,
+  "testWarehouseOnHandAfter": 1,
+  "simulatedData": [
+    "warehouse stock",
+    "delivery address",
+    "order-only document",
+    "STRIPE_OFFICIAL_TEST_CARD"
+  ],
+  "limitations": [
+    "Not a production certification",
+    "Stripe shipping address not collected; Checkout/Orders retain validated delivery address"
+  ],
+  "packageDataOrigin": "EXISTING_CATALOG"
+}

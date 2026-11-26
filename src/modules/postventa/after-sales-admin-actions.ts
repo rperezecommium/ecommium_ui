@@ -345,7 +345,7 @@ export async function applyAfterSalesFiltersAction(formData: FormData): Promise<
 }
 
 export async function applyAfterSalesTaskFiltersAction(formData: FormData): Promise<never> {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ tab: "tasks" });
   const taskType = optionalEnum(formData.get("taskType"), TASK_TYPES, "Tipo de tarea");
   const taskStatus = optionalEnum(formData.get("taskStatus"), TASK_STATUSES, "Estado de tarea");
 

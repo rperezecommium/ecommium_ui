@@ -1,0 +1,2 @@
+PASS: Orders migration, immutable repository replay, conflicting payload rejection, one persisted order per payment, database unique constraint
+Owned Orders QA database removed

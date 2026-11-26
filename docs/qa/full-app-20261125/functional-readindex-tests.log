@@ -1,0 +1,14 @@
+
+> commerce-read-index@0.0.1 test
+> jest --runInBand --runInBand projection-validation.draft-brand.spec.ts
+
+PASS src/domain/projection-validation.draft-brand.spec.ts
+  draft product brand projection
+    ✓ preserves real absence in an inactive product (2 ms)
+    ✓ rejects active products without a brand and empty IDs instead of null (9 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        1.449 s
+Ran all test suites matching /projection-validation.draft-brand.spec.ts/i.

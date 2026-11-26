@@ -1,3 +1,4 @@
+import { captureEvidence } from "./evidence-capture";
 import { expect, test, type Page } from "@playwright/test";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -36,6 +37,7 @@ let nextProcess: ChildProcessWithoutNullStreams;
 let installationState: InstallationState = "COMPLETED";
 let organizationCreated = false;
 let shopCreated = false;
+let preparationReady = false;
 const mutations: CapturedMutation[] = [];
 
 function makeJwt(payload: Record<string, unknown>) {
@@ -257,7 +259,23 @@ async function startBffMock() {
         name: "Tienda Playwright",
         shopAlias: "tienda-playwright",
         status: "ACTIVE",
-        settings: {},
+        effectiveSettings: { defaultLocale: "es-ES", defaultCurrency: "EUR", defaultCountry: "ES" },
+      });
+      return;
+    }
+
+    if (url.pathname === `/api/v1/admin/organizations-shops/shops/${shopId}/read-preparation` && isAuthenticated(request)) {
+      if (request.method === "POST") {
+        const body = await readBody(request);
+        expect(body).toEqual({ retry: true });
+        mutations.push({ path: url.pathname, body });
+        preparationReady = true;
+      }
+      sendJson(response, 200, {
+        requestId: null, organizationId, shopId,
+        state: preparationReady ? "READY" : "FAILED", phase: "VERIFY", attempts: 1,
+        updatedAt: new Date().toISOString(), code: preparationReady ? null : "PREPARATION_FAILED",
+        context: {locale:"es-ES",currency:"EUR",country:"ES",channel:"web"},
       });
       return;
     }
@@ -272,18 +290,19 @@ async function waitForNext(url: string) {
   const deadline = Date.now() + 45_000;
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
       if (response.status < 500) return;
     } catch {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Server is still starting; retry within the readiness deadline.
     }
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
   throw new Error(`Next server did not become ready at ${url}`);
 }
 
 async function startNext() {
   nextPort = await freePort();
-  nextProcess = spawn("npx", ["next", "start", "-p", String(nextPort)], {
+  nextProcess = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(nextPort)], {
     cwd: process.cwd(),
     env: {
       ...process.env,
@@ -300,7 +319,7 @@ async function startNext() {
 async function loginSystemAdmin(page: Page, next = "/admin") {
   await page.goto(`http://127.0.0.1:${nextPort}/auth/login?next=${encodeURIComponent(next)}`);
   await page.getByLabel("Email").fill("admin.zero@example.test");
-  await page.getByLabel("Password").fill("Current Password 2026!");
+  await page.locator('input[name="password"]').fill("Current Password 2026!");
   await page.getByRole("button", { name: "Entrar con BFF Auth" }).click();
 }
 
@@ -323,6 +342,7 @@ test.beforeEach(async ({ context }) => {
   installationState = "COMPLETED";
   organizationCreated = false;
   shopCreated = false;
+  preparationReady = false;
   mutations.length = 0;
   await context.clearCookies();
 });
@@ -343,7 +363,7 @@ test("fresh creates only Admin 0 and then requires normal login", async ({ page 
   await page.getByLabel("Nombre").fill("Admin");
   await page.getByLabel("Apellidos").fill("Zero");
   await page.getByLabel("Email de Admin 0").fill("admin.zero@example.test");
-  await page.getByLabel("Claim de instalación").fill("one-time-claim");
+  await page.locator('input[name="claim"]').fill("one-time-claim");
   await page.getByLabel("Contraseña", { exact: true }).fill(" Fresh Password 2026! ");
   await page.getByLabel("Confirmar contraseña").fill(" Fresh Password 2026! ");
   await page.getByRole("button", { name: "Crear Admin 0" }).click();
@@ -375,7 +395,7 @@ test("adoption performs step-up, changes password and clears the revoked session
   await page.goto(`http://127.0.0.1:${nextPort}/admin/installation`);
   await page.getByRole("link", { name: "Iniciar sesión para adoptar" }).click();
   await page.getByLabel("Email").fill("admin.zero@example.test");
-  await page.getByLabel("Password").fill(" Current Password 2026! ");
+  await page.locator('input[name="password"]').fill(" Current Password 2026! ");
   await page.getByRole("button", { name: "Entrar con BFF Auth" }).click();
   await page.waitForURL(`http://127.0.0.1:${nextPort}/admin/installation`);
 
@@ -400,12 +420,13 @@ test("adoption performs step-up, changes password and clears the revoked session
 });
 
 test("SYSTEM session without a shop enters separate Organization and Shop onboarding", async ({ page }) => {
+  if (process.env.ECOMMIUM_QA_SCREENSHOTS === "true") await page.setViewportSize({width:1600,height:1000});
   installationState = "COMPLETED";
   await loginSystemAdmin(page);
   await page.waitForURL(/\/admin\/configuracion\/contexto\?tab=create-organization/);
 
   await expect(page.getByText(/Tu sesión SYSTEM está activa/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Crear Organization" })).toBeVisible();
+  await expect(page.locator("#create-organization-form")).toBeVisible();
   await expectNoUnlabelledFields(page);
   const organizationForm = page.locator("#create-organization-form");
   await organizationForm.getByLabel("Nombre", { exact: true }).fill("Organization Playwright");
@@ -419,12 +440,22 @@ test("SYSTEM session without a shop enters separate Organization and Shop onboar
   await shopForm.getByLabel("Nombre", { exact: true }).fill("Tienda Playwright");
   await shopForm.getByLabel("shopAlias", { exact: true }).fill("tienda-playwright");
   await shopForm.getByLabel("Estado operativo").selectOption("ACTIVE");
+  await captureEvidence(page, "02-create-shop-form");
   await shopForm.getByRole("button", { name: "Crear tienda", exact: true }).click();
 
-  await page.waitForURL(/\/admin\/configuracion\/contexto\?contextNotice=/);
-  await expect(page.getByText("Tienda creada y marcada como contexto activo.")).toBeVisible();
+  await page.waitForURL(/\/admin\/configuracion\/contexto\?tab=create-shop&preparationOrganizationId=/);
+  await expect(page.getByText("Tienda creada. Completando el alta; no necesitas volver a crearla.")).toBeVisible();
+  await expect(page.locator("#create-shop-form")).toBeHidden();
+  const completion = page.getByRole("region", { name:"Preparación de la tienda",exact:true });
+  await expect(completion.getByRole("button", {name:"Reintentar preparación",exact:true})).toBeVisible();
+  await captureEvidence(page, "03-create-shop-recovery");
+  await completion.getByRole("button", {name:"Reintentar preparación",exact:true}).click();
+  await expect(completion.getByText("Lista",{exact:true})).toBeVisible();
+  await captureEvidence(page, "04-create-shop-ready");
+  expect(mutations.filter(item => item.path.endsWith("/shops"))).toHaveLength(1);
+  await completion.getByRole("link", {name:"Continuar",exact:true}).click();
   await expect(
-    page.locator(".adminKpi").filter({ hasText: "Shop activa" }).getByText("Tienda Playwright"),
+    page.getByRole("row", { name: /Shop activa/ }).getByText("Tienda Playwright", { exact: true }),
   ).toBeVisible();
   expect(mutations.find((item) => item.path.endsWith("organizations"))?.body).toMatchObject({
     name: "Organization Playwright",

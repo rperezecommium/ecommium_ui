@@ -1,3 +1,4 @@
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { AdminContext } from "../../shared/config/admin-context";
@@ -302,11 +303,13 @@ function drawerCloseHref(filters: SearchAdminFilters) {
 }
 
 function SearchDrawer({
+  drawerId,
   title,
   description,
   closeHref,
   children,
 }: {
+  drawerId: string;
   title: string;
   description: string;
   closeHref: string;
@@ -314,7 +317,7 @@ function SearchDrawer({
 }) {
   return (
     <div className="adminDrawerBackdrop">
-      <aside className="adminSideDrawer searchSideDrawer" aria-label={title}>
+      <AdminResizableDrawer drawerId={drawerId} className="adminSideDrawer searchSideDrawer" aria-label={title}>
         <div className="adminSideDrawerHeader">
           <div>
             <h2>{title}</h2>
@@ -323,7 +326,7 @@ function SearchDrawer({
           <Link className="adminButton adminButtonTiny" href={closeHref}>Cerrar</Link>
         </div>
         {children}
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }
@@ -600,7 +603,7 @@ function ControlDrawer({ data, filters }: { data: SearchAdminData; filters: Sear
 
   if (filters.drawer === "control-create") {
     return (
-      <SearchDrawer closeHref={closeHref} description="Crea sinónimos de forma guiada o pega payload Vertex si necesitas una regla avanzada." title="Crear control">
+      <SearchDrawer drawerId={`search-${filters.drawer}`} closeHref={closeHref} description="Crea sinónimos de forma guiada o pega payload Vertex si necesitas una regla avanzada." title="Crear control">
         <form className="pricingDenseForm" action={createSearchControlAction}>
           <label className="adminField">
             <span>Modo</span>
@@ -644,7 +647,7 @@ function ControlDrawer({ data, filters }: { data: SearchAdminData; filters: Sear
 
   if (filters.drawer === "control-edit") {
     return (
-      <SearchDrawer closeHref={closeHref} description="Edita el payload del control seleccionado y limita el cambio con updateMask si aplica." title="Editar control">
+      <SearchDrawer drawerId={`search-${filters.drawer}`} closeHref={closeHref} description="Edita el payload del control seleccionado y limita el cambio con updateMask si aplica." title="Editar control">
         <form className="pricingDenseForm" action={updateSearchControlAction}>
           <label className="adminField">
             <span>Control ID</span>
@@ -666,7 +669,7 @@ function ControlDrawer({ data, filters }: { data: SearchAdminData; filters: Sear
 
   if (filters.drawer === "control-associate") {
     return (
-      <SearchDrawer closeHref={closeHref} description="Vincula o quita el control del serving config que usa la tienda." title="Asociar control">
+      <SearchDrawer drawerId={`search-${filters.drawer}`} closeHref={closeHref} description="Vincula o quita el control del serving config que usa la tienda." title="Asociar control">
         <form className="pricingDenseForm" action={associateSearchControlAction}>
           <label className="adminField">
             <span>Control ID</span>
@@ -780,7 +783,7 @@ function IndexDrawer({ filters }: { filters: SearchAdminFilters }) {
 
   const isPreview = filters.drawer === "index-preview";
   return (
-    <SearchDrawer
+    <SearchDrawer drawerId={`search-${filters.drawer}`}
       closeHref={closeHref}
       description={isPreview ? "Valida el payload contra el BFF antes de mutar Search." : "Ejecuta un import inline con el payload revisado."}
       title={isPreview ? "Preview index" : "Crear import job"}
@@ -855,7 +858,7 @@ function FeedDrawer({ context, filters, defaultBaseUrl }: { context: AdminContex
 
   if (filters.drawer === "feed-generate") {
     return (
-      <SearchDrawer closeHref={closeHref} description="Genera el NDJSON desde Catalog actual o desde un lote manual controlado." title="Generar NDJSON">
+      <SearchDrawer drawerId={`search-${filters.drawer}`} closeHref={closeHref} description="Genera el NDJSON desde Catalog actual o desde un lote manual controlado." title="Generar NDJSON">
         <form className="pricingDenseForm" action={generateSearchNdjsonAction} encType="multipart/form-data">
           <label className="adminField">
             <span>fileName</span>
@@ -870,7 +873,7 @@ function FeedDrawer({ context, filters, defaultBaseUrl }: { context: AdminContex
 
   if (filters.drawer === "feed-gcs") {
     return (
-      <SearchDrawer closeHref={closeHref} description="Valida o ejecuta la importación GCS. FULL reemplaza la rama de Search." title="GCS import">
+      <SearchDrawer drawerId={`search-${filters.drawer}`} closeHref={closeHref} description="Valida o ejecuta la importación GCS. FULL reemplaza la rama de Search." title="GCS import">
         <form className="pricingDenseForm" action={createSearchGcsImportJobAction} encType="multipart/form-data">
           <label className="adminField">
             <span>Archivo destino en GCS</span>
@@ -901,7 +904,7 @@ function FeedDrawer({ context, filters, defaultBaseUrl }: { context: AdminContex
 
   if (filters.drawer === "feed-delete") {
     return (
-      <SearchDrawer closeHref={closeHref} description="Borra solo el archivo NDJSON de GCS. No toca Catalog ni productos del índice." title="Eliminar archivo NDJSON">
+      <SearchDrawer drawerId={`search-${filters.drawer}`} closeHref={closeHref} description="Borra solo el archivo NDJSON de GCS. No toca Catalog ni productos del índice." title="Eliminar archivo NDJSON">
         <form className="pricingDenseForm" action={deleteSearchNdjsonAction}>
           <label className="adminField">
             <span>Archivo destino en GCS</span>
@@ -970,9 +973,6 @@ export function SearchAdminPage({ context, data, filters }: SearchAdminPageProps
           <p className="adminPageIntro">Gestiona el laboratorio de Search: salud del servicio y preview de consultas usando el BFF.</p>
         </div>
         <Link className="adminButton" href="/admin/catalogo">Volver a catalogo</Link>
-      </div>
-      <div className="adminContextHint">
-        {context.organizationId || "organization pendiente"} / {context.shopId || "shop pendiente"} / {context.locale} / {context.currency} / {context.country} / {context.channel}
       </div>
       {filters.searchMessage ? <div className="adminBanner"><p>{filters.searchMessage}</p></div> : null}
       <nav className="adminTabs pricingTabs" aria-label="Search">

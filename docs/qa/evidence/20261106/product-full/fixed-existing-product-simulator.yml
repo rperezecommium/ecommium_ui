@@ -1,0 +1,287 @@
+- main [ref=f1e131]:
+  - generic [ref=f1e132]:
+    - link "Admin" [ref=f1e133] [cursor=pointer]:
+      - /url: /admin
+    - text: /
+    - link "Catalogo" [ref=f1e134] [cursor=pointer]:
+      - /url: /admin/catalogo
+    - text: /
+    - link "Productos" [ref=f1e135] [cursor=pointer]:
+      - /url: /admin/products
+    - text: / Editar
+  - generic [ref=f1e136]:
+    - generic [ref=f1e137]:
+      - textbox "Nombre del producto" [ref=f1e138]:
+        - /placeholder: Nuevo producto
+        - text: Argon 18 bicicleta de gravel grey matter rival 1 - Serie 172
+      - generic [ref=f1e139]:
+        - generic [ref=f1e140]: Activo
+        - generic [ref=f1e141]: Producto simple
+        - generic [ref=f1e142]: es-ES / EUR
+    - generic [ref=f1e143]:
+      - link "Volver al catálogo" [ref=f1e144] [cursor=pointer]:
+        - /url: /admin/products
+      - generic "Tipo de producto" [ref=f1e145]:
+        - button "Producto simple" [ref=f1e146] [cursor=pointer]
+        - button "Producto con variantes" [ref=f1e147] [cursor=pointer]
+  - navigation "Pestanas de producto" [ref=f1e148]:
+    - button "Ajustes basicos" [ref=f1e149] [cursor=pointer]
+    - button "Imagenes" [ref=f1e150] [cursor=pointer]
+    - button "Variantes" [ref=f1e151] [cursor=pointer]
+    - button "Precio" [ref=f1e152] [cursor=pointer]
+    - button "Inventario" [ref=f1e153] [cursor=pointer]
+    - button "Transporte" [ref=f1e154] [cursor=pointer]
+    - button "SEO" [ref=f1e155] [cursor=pointer]
+    - button "Auditoria" [ref=f1e156] [cursor=pointer]
+  - generic [ref=f1e157]:
+    - generic [ref=f1e302]:
+      - generic [ref=f1e304]:
+        - heading "Precio" [level=2] [ref=f1e305]
+        - paragraph [ref=f1e306]: Define el precio base del producto y anade excepciones solo cuando las necesites.
+      - generic [ref=f1e307]:
+        - generic [ref=f1e308]:
+          - text: "Currency:"
+          - strong [ref=f1e309]: EUR
+        - generic [ref=f1e310]:
+          - text: "Country:"
+          - strong [ref=f1e311]: ES
+        - generic [ref=f1e312]:
+          - text: "Precio base:"
+          - strong [ref=f1e313]: 3814.65 EUR
+        - generic [ref=f1e314]:
+          - text: "Reglas especificas:"
+          - strong [ref=f1e315]: "0"
+      - generic [ref=f1e316]:
+        - generic [ref=f1e317]:
+          - generic [ref=f1e318]: Precio de venta (imp. excl.)
+          - spinbutton "Precio de venta sin impuestos" [ref=f1e319]: "3814.65"
+        - generic [ref=f1e320]:
+          - generic [ref=f1e321]: Precio de venta (imp. incl.)
+          - spinbutton "Precio de venta con impuestos" [ref=f1e322]: "4196.12"
+        - generic [ref=f1e323]:
+          - generic [ref=f1e324]: Impuesto
+          - combobox "Impuesto" [ref=f1e325]:
+            - option "Sin regla fiscal"
+            - option "Default IVA" [selected]
+            - option "Default IVA (10%)"
+            - option "rpf-especial (1.5%)"
+            - option "IVA general España 21% (21%)"
+            - option "IVA (21%)"
+            - option "Bike VAT Included (21%)"
+        - generic [ref=f1e326]:
+          - generic [ref=f1e327]: Precio de coste
+          - spinbutton "Precio de coste" [ref=f1e328]
+        - generic [ref=f1e329]:
+          - generic [ref=f1e330]: Precio tachado
+          - spinbutton "Precio tachado" [ref=f1e331]
+      - generic [ref=f1e332]:
+        - checkbox "Impuestos incluidos" [ref=f1e333]
+        - text: Impuestos incluidos
+      - group [ref=f1e334]:
+        - generic "Contexto avanzado de precio base" [ref=f1e335] [cursor=pointer]
+        - option "Precio base" [selected]
+        - option "vip"
+        - option "vip_table"
+        - option "B2B España Retail"
+        - option "funcionarios"
+        - option "VIP table"
+        - option "cockpit-vip"
+        - option "B2B Standard"
+        - option "Default" [selected]
+        - option "Pc comvencional"
+        - option "Marketplace"
+        - option "Web" [selected]
+        - option "Espana" [selected]
+        - option "Portugal"
+        - option "Todos" [selected]
+        - option "B2B Profesional"
+        - option "VIP"
+      - generic [ref=f1e339]:
+        - generic [ref=f1e340]:
+          - strong [ref=f1e341]: 3814.65 EUR
+          - generic [ref=f1e342]: Precio producto
+        - generic [ref=f1e343]:
+          - strong [ref=f1e344]: "0.00"
+          - generic [ref=f1e345]: Precio tachado
+        - generic [ref=f1e346]:
+          - strong [ref=f1e347]: 3814.65 EUR
+          - generic [ref=f1e348]: Neto preview
+        - generic [ref=f1e349]:
+          - strong [ref=f1e350]: 381.47 EUR
+          - generic [ref=f1e351]: Impuesto preview
+        - generic [ref=f1e352]:
+          - strong [ref=f1e353]: 4196.12 EUR
+          - generic [ref=f1e354]: Bruto preview
+      - group [ref=f1e355]:
+        - generic "Precios especificos Sin reglas" [ref=f1e356] [cursor=pointer]:
+          - generic [ref=f1e357]: Precios especificos
+          - generic [ref=f1e361]: Sin reglas
+        - option "Producto completo · BICI-20260929-172" [selected]
+        - option "Todos"
+        - option "Espana" [selected]
+        - option "Portugal"
+        - option "Todos" [selected]
+        - option "B2B Profesional"
+        - option "VIP"
+        - option "Pc comvencional"
+        - option "Marketplace"
+        - option "Web" [selected]
+        - option "B2B Standard"
+        - option "Default" [selected]
+        - option "Sin tabla" [selected]
+        - option "vip"
+        - option "vip_table"
+        - option "B2B España Retail"
+        - option "funcionarios"
+        - option "VIP table"
+        - option "cockpit-vip"
+      - group [ref=f1e362]:
+        - generic "Simulador de precio aplicado Fallback productVariantDefault" [ref=f1e363] [cursor=pointer]:
+          - generic [ref=f1e364]: Simulador de precio aplicado
+          - generic [ref=f1e368]: Fallback productVariantDefault
+        - paragraph [ref=f1e369]: Confirma el precio que Pricing devuelve para producto, variante y contexto.
+        - generic [ref=f1e370]:
+          - generic [ref=f1e371]:
+            - generic [ref=f1e372]: Aplicar sobre
+            - combobox "Aplicar sobre" [ref=f1e373]:
+              - option "Producto completo · BICI-20260929-172" [selected]
+          - generic [ref=f1e374]:
+            - generic [ref=f1e375]: Cantidad
+            - spinbutton "Cantidad" [ref=f1e376]: "1"
+          - generic [ref=f1e377]:
+            - generic [ref=f1e378]: Pais
+            - combobox "Pais" [ref=f1e379]:
+              - option "Espana" [selected]
+              - option "Portugal"
+          - generic [ref=f1e380]:
+            - generic [ref=f1e381]: Canal
+            - combobox "Canal" [ref=f1e382]:
+              - option "Pc comvencional"
+              - option "Marketplace"
+              - option "Web" [selected]
+          - generic [ref=f1e383]:
+            - generic [ref=f1e384]: Politica comercial
+            - combobox "Politica comercial" [ref=f1e385]:
+              - option "B2B Standard"
+              - option "Default" [selected]
+          - generic [ref=f1e386]:
+            - generic [ref=f1e387]: Grupo cliente
+            - combobox "Grupo cliente" [ref=f1e388]:
+              - option "Todos" [selected]
+              - option "B2B Profesional"
+              - option "VIP"
+          - generic [ref=f1e389]:
+            - generic [ref=f1e390]: Price table
+            - combobox "Price table" [ref=f1e391]:
+              - option "Auto / base" [selected]
+              - option "vip"
+              - option "vip_table"
+              - option "B2B España Retail"
+              - option "funcionarios"
+              - option "VIP table"
+              - option "cockpit-vip"
+          - generic [ref=f1e392]:
+            - generic [ref=f1e393]: Fecha de simulacion
+            - textbox "Fecha de simulacion" [ref=f1e394]
+        - generic [ref=f1e395]:
+          - button "Simular precio" [ref=f1e396] [cursor=pointer]
+          - button "Reiniciar" [ref=f1e397] [cursor=pointer]
+        - generic [ref=f1e398]:
+          - generic [ref=f1e399]:
+            - generic [ref=f1e400]:
+              - strong [ref=f1e401]: 4196.12 EUR
+              - generic [ref=f1e402]: Precio aplicado
+            - generic [ref=f1e403]:
+              - strong [ref=f1e404]: 3814.65 EUR
+              - generic [ref=f1e405]: Precio base
+            - generic [ref=f1e406]:
+              - strong [ref=f1e407]: "-"
+              - generic [ref=f1e408]: Precio especifico
+            - generic [ref=f1e409]:
+              - strong [ref=f1e410]: BASE
+              - generic [ref=f1e411]: Fuente
+            - generic [ref=f1e412]:
+              - strong [ref=f1e413]: 582250c8-69ec-4712-89b4-faf945403edb
+              - generic [ref=f1e414]: pricingId
+          - generic [ref=f1e415]:
+            - generic [ref=f1e416]:
+              - text: "Target:"
+              - strong [ref=f1e417]: Producto - Argon 18 bicicleta de gravel grey matter rival 1 - Serie 172
+            - generic [ref=f1e418]:
+              - text: "Resolucion:"
+              - strong [ref=f1e419]: Fallback productVariantDefault
+            - generic [ref=f1e420]:
+              - text: "Fallback:"
+              - strong [ref=f1e421]: Si
+            - generic [ref=f1e422]:
+              - text: "Tabla:"
+              - strong [ref=f1e423]: base
+          - table [ref=f1e425]:
+            - rowgroup [ref=f1e426]:
+              - row [ref=f1e427]:
+                - columnheader "Parametro" [ref=f1e428]
+                - columnheader "Solicitado" [ref=f1e429]
+                - columnheader "Regla aplicada" [ref=f1e430]
+                - columnheader "Estado" [ref=f1e431]
+            - rowgroup [ref=f1e432]:
+              - row [ref=f1e433]:
+                - cell "Moneda" [ref=f1e434]
+                - cell "EUR" [ref=f1e435]
+                - cell "EUR" [ref=f1e436]
+                - cell "Cumple" [ref=f1e437]
+              - row [ref=f1e439]:
+                - cell "Pais" [ref=f1e440]
+                - cell "ES" [ref=f1e441]
+                - cell "ES" [ref=f1e442]
+                - cell "Cumple" [ref=f1e443]
+              - row [ref=f1e445]:
+                - cell "Canal" [ref=f1e446]
+                - cell "web" [ref=f1e447]
+                - cell "web" [ref=f1e448]
+                - cell "Cumple" [ref=f1e449]
+              - row [ref=f1e451]:
+                - cell "Politica" [ref=f1e452]
+                - cell "default" [ref=f1e453]
+                - cell "default" [ref=f1e454]
+                - cell "Cumple" [ref=f1e455]
+              - row [ref=f1e457]:
+                - cell "Grupo cliente" [ref=f1e458]
+                - cell "Todos" [ref=f1e459]
+                - cell "Todos" [ref=f1e460]
+                - cell "Todos" [ref=f1e461]
+              - row [ref=f1e463]:
+                - cell "Price table" [ref=f1e464]
+                - cell "Todos" [ref=f1e465]
+                - cell "Todos" [ref=f1e466]
+                - cell "Todos" [ref=f1e467]
+              - row [ref=f1e469]:
+                - cell "Cantidad minima" [ref=f1e470]
+                - cell "1" [ref=f1e471]
+                - cell "1" [ref=f1e472]
+                - cell "Cumple" [ref=f1e473]
+      - paragraph [ref=f1e476]: La productVariantDefault se gestiona con el precio superior. Las variantes listadas abajo solo necesitan cambios si requieren precio, impuesto o tabla propios.
+      - paragraph [ref=f1e478]: Este producto no tiene variantes adicionales. El precio superior cubre la productVariantDefault.
+    - complementary [ref=f1e264]:
+      - generic [ref=f1e265]:
+        - heading "Resumen" [level=2] [ref=f1e266]
+        - generic [ref=f1e268]:
+          - generic [ref=f1e269]:
+            - term [ref=f1e270]: Tipo
+            - definition [ref=f1e271]: Producto simple
+          - generic [ref=f1e272]:
+            - term [ref=f1e273]: Precio base
+            - definition [ref=f1e274]: 3814.65 EUR
+          - generic [ref=f1e275]:
+            - term [ref=f1e276]: Variantes
+            - definition [ref=f1e277]: "0"
+          - generic [ref=f1e278]:
+            - term [ref=f1e279]: Imagenes
+            - definition [ref=f1e280]: "1"
+  - group "Acciones del producto" [ref=f1e281]:
+    - status [ref=f1e282]:
+      - generic [ref=f1e283]: Activo
+      - generic [ref=f1e284]: Sin cambios
+    - generic [ref=f1e285]:
+      - button "Vista previa" [ref=f1e286] [cursor=pointer]
+      - button "Guardar cambios" [ref=f1e290] [cursor=pointer]
+      - button "Más acciones del producto" [ref=f1e291] [cursor=pointer]: ⋯

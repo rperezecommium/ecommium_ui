@@ -1,5 +1,12 @@
 # Security backlog de `ecommium_ui`
 
+2026-11-19 — Publicación Header/Footer: la UI guarda la composición antes de
+publicar, comprueba identidad del recibo y detiene la publicación si falla el
+guardado. Los errores conservan el estado local; Employee, cookies HttpOnly,
+permisos y contexto BFF no cambian. No cierra hallazgos previos ni acredita
+atomicidad o concurrencia. Pruebas y límites:
+`docs/qa/cms-site-parts-publish-20261119.md`.
+
 > Estado general: **pendiente de remediacion**  
 > Ultima auditoria: **2026-08-04**  
 > Alcance auditado: repositorio UI `ecommium_ui`; no incluye codigo del BFF, infraestructura, CDN/WAF ni configuracion de despliegue.
@@ -443,3 +450,336 @@ Resolucion:
 ```
 
 No borrar el historial del hallazgo. Si reaparece, volver a `PENDIENTE` y documentar la regresion.
+
+## O15 — paquete de despliegue, 2026-10-20
+
+Se conserva el estado de los hallazgos existentes. El contenedor nuevo falla cerrado ante ausencia/conflicto de contexto, BFF sin HTTPS, secreto de cookie menor de32 o bearer técnico/fixture/credencial Google en su entorno. Build por allowlist sin .env ni credenciales; usuario node. Cookie sólo en runtime y, en Cloud Run, por referencia versionada de Secret Manager. Pruebas nuevas de preflight y regresión admin-login20 PASS; lint0 errores/3 advertencias; build AMD64 y health/formulario login PASS. No certifica permisos mínimos de una cuenta Google, exposición pública o autenticación funcional BFF; estos siguen pendientes del gate remoto. No se cierra ningún hallazgo de seguridad adicional por esta entrega.
+
+
+### O15 — evaluación acotada de separación de hosts (2026-10-21)
+
+Perfil SEPARATED_V1: host allowlist, rutas Admin/Storefront separadas, cabecera
+Storefront de entrada descartada y contexto resuelto fijado al despliegue. Cookie
+Admin httpOnly/Secure/host-only comprobada en integración real; provider público
+sólo modo/site key. Fallo de contexto503 sin fixture y redirects con origen
+configurado. Diez controles de integración y regresión497/Playwright4 PASS.
+Esto no cierra otros hallazgos de autenticación ni acredita Cloudflare/MFA,
+OAuth, Turnstile o exposición pública de producción. Pendientes anteriores se
+conservan; no se interpreta esta nota como auditoría completa de seguridad.
+
+### Consent — origen público detrás de proxy (2026-10-22)
+
+Ajuste autorizado expresamente por Ricardo: Host exacto contra origen público
+HTTPS configurado; Origin de mutaciones contra el origen validado y no contra la
+URL interna de Next. No se admite x-forwarded-host como autoridad. Pruebas ejecutan
+el transporte real con URL interna y rechazan Host ajeno/ambiguo, Admin, puerto
+incorrecto, otra Shop, configuración insegura y Origin ausente/ajeno/HTTP o
+sec-fetch-site cross-site. Regresión acotada 17 PASS. Los secretos internos de
+Consent siguen exclusivamente en backend; no cambian los pendientes de seguridad
+anteriores ni se certifica exposición pública de producción.
+
+Validación final de esta corrección: regresión de privacidad ampliada **27 PASS**,
+TypeScript completo PASS y navegador real → imagen OCI → BFF → Consent/PostgreSQL
+PASS con NOT_CONFIGURED, cookie Secure y otra Shop400. Fixture de transporte
+explícita; no acredita el kernel ni el recorrido completo de PO. La imagen de
+ensayo incorpora dependencias Linux completas del mismo lockfile tras rechazar
+un primer paquete incompleto. No cambia los hallazgos de seguridad anteriores.
+
+
+2026-10-22 — O10/ADR-0307: perfil ADMIN opt-in anterior al tenant. No se modifica
+el cierre SEC-006 de Storefront: su perfil conserva validación de BFF/contexto.
+Admin valida configuración, Host/puerto y superficie propios; prohíbe token
+administrativo técnico y mezcla de perfiles. Sólo HTTP loopback emparejado para
+el ensayo; HTTPS fuera de él. No cambia autenticación/refresh, CSRF, cookie ni
+permisos BFF. Evaluación:45 pruebas focalizadas, lint y build PASS; dos recorridos reales
+PO→formulario→BFF→login con12 controles PASS cada uno, incluido reinicio de web
+y backend con sesión conservada y login nuevo. Autoridad/TTY del ensayo sintéticas;
+no acredita MFA o exposición remota ni cierra otros hallazgos de este backlog.
+
+
+### Evidencia adicional de sesión/permisos Admin — 2026-11-04
+
+Sin cambiar el estado de los hallazgos generales pendientes: auth/me se valida
+por render (cache por render), permisos/roles explícitamente vacíos sustituyen
+privilegios anteriores, y un cambio de contraseña retenido guarda la sesión
+HttpOnly solo tras confirmar identidad y NORMAL. Equipo, taxonomía y Payments
+configuración ocultan las acciones probadas sin su permiso de escritura.
+Se conserva refresh ante 401/403, rotación HttpOnly y defaultContext. El handoff
+técnico de renovación bloquea cross-site y no admite redirects externos.
+Pruebas/evidencia/alcance: `docs/qa/admin-permissions-session-20261104.md`.
+No se afirma cierre de los riesgos Customer, infraestructura, CSP ni del resto
+de acciones UI no cubiertas por este trabajo.
+
+### SEC-007 — evidencia adicional, 2026-11-04
+
+Se preservan los pendientes generales. Constructor CMS valida antes de crear
+recursos; Media decodifica el lote con límite de píxeles antes de persistir y
+compensa errores capturados de escritura/transacción. BFF conserva400 en subidas
+rechazadas, sin detalle crudo. No se certifican polyglots, caída abrupta ni
+limpieza histórica. Evidencia: `docs/qa/cms-media-validation-20261104.md`.
+
+## SEC-018 — Guardado de características podía borrar asignaciones por cascada
+
+- Estado: **CORREGIDO EN CÓDIGO; VALIDADO LOCALMENTE** (2026-11-07).
+- Evidencia: saveGroup eliminaba/reinsertaba specification_fields; FK de product_specification_selections con ON DELETE CASCADE.
+- Corrección autorizada en Catalog: upsert conservando IDs/relaciones/traducciones, rechazo de retirada de campos/valores asignados e IDs ajenos; baja dedicada no destructiva con control transaccional de versión/alcance. BFF valida Employee/permisos sobre todos los scopes compartidos y bloquea baja por PATCH genérico. UI exige revisión de impacto, confirmación y diferencia guardado de ReadIndex.
+- Pruebas: PostgreSQL aislado con4.000 asignaciones;24 controles BFF y22 unitarios UI;4 E2E y axe responsive; builds y lint focalizado. Ver `docs/qa/feature-deactivation-20261107.md`.
+- Riesgo residual: no restaura selecciones históricas perdidas, no certifica despliegue productivo, no cubre borrado físico de grupos ni cierra hallazgos anteriores. La verificación real de UI abrió/canceló la revisión; las mutaciones se probaron en fixtures/base desechable.
+
+2026-11-07 — Extensión de SEC-018: eliminación **intencional** individual mediante permiso separado `catalog.specifications.delete`, impacto revisado/versión/nombre escrito si hay uso, actor/scopes derivados en BFF y recibo/targets/outbox atómicos. El guard de tombstone rechaza recreación por editor obsoleto. Retry no repite borrado y complete exige ReadIndex sin definiciones/selecciones en todos los contextos activos.605 unitarios UI,3 E2E/axe responsive y SQL local desechable PASS; conserva pendientes y límites anteriores. Migración/activación Neon no ejecutadas; no certifica producción, recuperación de selecciones históricas ni borrado de grupos. [Evidencia](docs/qa/feature-deletion-20261107.md).
+
+2026-11-07 — SEC-018: activación expresamente autorizada en Catalog/Neon y ReadIndex local. UI real revisada/cancelada; auditoría de borrados0/targets0. Defensa adicional contra referencias históricas desactualizadas: consumidor recorre selecciones del índice en páginas y contextos activos del scope antes de completar. Pruebas9 RI/13 BFF y SQL desechable PASS; conserva permisos y pendientes anteriores. Evidencia de activación en docs/qa/feature-deletion-20261107.md.
+
+
+## Eliminación revisada — 2026-11-09
+
+Implementación y pruebas locales: [evidencia](docs/qa/catalog-retirement-20261109.md). Activación pendiente de autorización para seis migraciones remotas; ninguna aplicada. Validación de permiso/contexto y rechazo de identidad de borrador remoto incompatible añadidos. Los hallazgos de seguridad pendientes existentes permanecen abiertos.
+
+
+Actualización 2026-11-09: autorización remota recibida, seis migraciones APPLIED y flags locales activos. Playwright real completó eliminación de variante y producto QA; BICI-20260929-172 preservado. Evidencia: catalog-retirement-20261109.md en QA. Sustituye el estado previo de activación bloqueada.
+
+2026-11-09 — Extensión asíncrona de eliminación: sesión/permisos/confirmación se validan al aceptar; ejecución usa cliente interno con scope separado del Employee, sin guardar bearer en operaciones. UI valida `asynchronous` booleano y estados, distingue aceptada/completada y no impulsa pasos desde polling. Lecturas de catálogo excluyen PENDING; histórico/carrito/checkout conservan DTOs. Pruebas locales de identidad/scope, reintentos y reinicios; no certifica proveedores remotos ni cierra hallazgos pendientes. Migración adicional Catalog remota no aplicada.
+
+2026-11-09 — Activación asíncrona autorizada por Ricardo: migración adicional Catalog APPLIED, worker integrado al supervisor existente y pruebas Playwright conectadas de variante/producto, cierre de navegador y reinicios PASS. Tres operaciones QA COMPLETED; seis owner proofs correctos; ReadIndex dos contextos/remaining0; Log verificable; original y tres miniaturas Google404; PDP404/noindex y sitemap sin QA. Se corrigieron prefijos internos faltantes de Pricing/Media y preflight404 durante PENDING. BICI preservado. Sustituye el estado previo PENDING de activación; no certifica producción/CDN ni recuperación Search entre hosts. Evidencia: QA catalog-retirement-20261109. Los pendientes de seguridad ajenos permanecen abiertos.
+
+
+2026-11-16 — Recorrido comercial: moneda y contexto canónicos; BFF deriva pago/pedido del snapshot servidor y exige SETTLED + Inventory COMMITTED; provider explícito. No se cierran hallazgos pendientes de schemas, autorización ni ownership legacy. Suites y SQL aislado verificados; **NO VALIDADO** navegador guest/Customer→Shipping→PSP sandbox→pedido por configuración legítima sin peso+stock coincidentes. No hay cobros ni datos comerciales alterados. Ver [evidencia](docs/qa/commercial-purchase-20261116.md).
+
+
+2026-11-16 — Reanudación PayPal: política server-side acotada al tenant/shop y replay de pedido histórico con comprobación de propietario persistido previa. Nuevo hallazgo demostrado Inventory: concurrencia producía doble reserva para un pago; corregido mediante transacción/locks y probado sobre PostgreSQL aislado. El historial afectado sigue pendiente de reconciliación; segundo E2E exige aprobación sandbox. No se cierran hallazgos pendientes de autenticación, schemas ni matrices de permisos. [Evidencia](docs/qa/paypal-purchase-resumption-20261116.md).
+
+
+2026-11-16 — Conservación postcompra: eliminado DELETE del carrito pagado; rotación verifica identidad nueva y carrito vacío, y409 no se acepta como pedido exitoso. Reintento real verifica propiedad y DTO Orders plano. Compra10052 contrastada con PSP sandbox y owners, sin duplicados. Incidencias históricas10050/10051 y demás hallazgos pendientes se conservan. No certifica producción ni la imposición automática de dirección PSP.
+
+2026-11-16 14:20 UTC — Continuación comercial: PayPal invitado10053 y Stripe invitado10054 completaron PSP sandbox, pedido y seguimiento, sin cookie Customer. Se verificaron captura real de sandbox, snapshot, identidad guest persistida y replays concurrentes. La regla Stripe EUR/ES/WEB fue autorizada expresamente por el usuario. Esta evidencia no cierra hallazgos pendientes de autorización/ownership legacy ni certifica producción. Históricos10050/10051 siguen parcialmente pendientes. Ver [evidencia actualizada](docs/qa/paypal-purchase-resumption-20261116.md).
+
+## Evidencia acotada Pricing — 2026-11-16
+
+Se revisó la superficie de producto/preview/guardado antes de modificarla. Se conserva Employee/BFF, contexto multitienda y autoridad backend; no se añaden tokens a localStorage ni llamadas de negocio directas de UI a servicios/PSP. Credenciales sandbox/sesión no se incorporan a código, documentación o evidencias. Los precios no reciben ES/web/default/EUR artificiales desde los payloads corregidos. El laboratorio distingue stock/dirección/documento QA de datos físicos reales.
+
+UI683 tests, lint0errores/3avisos anteriores, build correcto; compras invitado Stripe test y registrado PayPal sandbox verificadas con persistencia. Este alcance no cierra hallazgos pendientes anteriores de autenticación, handlers API heredados, PII u otras superficies. El aviso axe de contraste en tokens Admin se documenta sin rediseño transversal. [QA](docs/qa/regular-pricing-20261116.md).
+
+## Impuestos: acciones revisadas — 2026-11-17
+
+Antes de tocar las acciones de impuestos se revisó el backlog vigente. UI oculta
+alta/baja/eliminación sin pricing.admin.write y valida confirmación/recibo; BFF
+conserva Employee, permiso y scope. Borrado definitivo tiene endpoint propio, sin
+fallback al DELETE de baja. El diálogo informa de la retirada de asignaciones y
+preserva históricos fiscales. Backend autorizado incorpora transacción, fence y
+pruebas aisladas de scope/rollback/escritor obsoleto; no se han borrado impuestos
+comerciales durante QA. No cierra hallazgos generales anteriores ni acredita
+producción. Axe excluye color-contrast por el pendiente transversal de tokens.
+Evidencia y estado de activación: `docs/qa/tax-removal-20261117.md`.
+
+2026-11-17 — Price tables: botones/destructivos con confirmación y permiso UI;
+endpoint BFF Employee/pricing.admin.write/scope; recibo estricto sin fallback a
+baja legacy. Backend autorizado desactiva/retira asignaciones atómicamente y
+rechaza recreación/reactivación obsoleta con fences. Aislamiento/rollback y
+negativos de scope probados en base desechable. No se eliminan tablas
+comerciales, ni se cierran hallazgos generales. Contraste transversal sigue
+pendiente. Estado de activación y evidencia: QA price-table-list-actions-20261117.
+
+2026-11-17 — Activación Price tables autorizada: migración exacta aplicada,
+Pricing/BFF Admin healthy tras reinicio. Datos/asignaciones conservados,
+tombstones0. Endpoints sin sesión401. No cierra hallazgos anteriores ni acredita
+un borrado comercial; confirma instalación de los guards probados en laboratorio.
+
+2026-11-17 — Eliminación revisada de Pricing: se conservan los pendientes existentes. La UI valida esquemas anidados y recibos exactos; BFF deriva scope y herencia Catalog, no acepta autoridad del navegador. El estado de lecturas consulta recibo persistido y ReadIndex sin repetir eliminación. Nuevas pruebas negativas de DTO/scope/version/recibo y protección de rutas anteriores; no modifica autenticación ni acredita producción. Véase `docs/qa/reviewed-removal-20261117.md`.
+
+## Perfil comercial Customer — 2026-11-18
+
+Revisado el backlog vigente antes de modificar Clientes. La edición mantiene
+Employee/cookie HttpOnly/BFF, añade guard UI de escritura, valida grupo/revisión/
+aprobación/tipo y motivo acotado, y valida identidad del recibo. Snapshot comercial
+proyectado por allowlist antes de serializar a cliente; no se exponen cuerpos de
+error ni se aceptan actores comerciales del navegador. Fallos de lectura omiten
+pertenencia; conflictos conservan borrador sin sobrescritura automática. No cambia
+refresh/defaultContext ni activa flags.705 unitarios/contractuales,10 Playwright,
+lint/build correctos; axe sin contraste por pendiente transversal. No se han
+certificado BFF real, auditoría persistida ni precios/checkout; no se cierran los
+hallazgos pendientes anteriores. [Alcance y límites](docs/qa/customer-commercial-profile-20261118.md).
+
+### Activación comercial autorizada — 2026-11-18
+
+Sustituye los pendientes operativos de la entrada anterior para el scope verificado:
+dos migraciones aditivas instaladas, credenciales server-side independientes bajo
+custodia0700/0600 del backend y flags coordinados. Ningún secreto interno en UI,
+Postman o logs. Auditoría GET Employee/admin/customers.read/tenant→Customers por
+workload, con paginación y proyección; no BFF paralelo. Política guardada con actor
+Employee real; sin grupo predeterminado ni asignaciones a clientes. Compatibilidad
+PERSON→PRIVATE_BUYER en lectura sin reescritura; otros códigos fallan cerrados.
+B2B exige Empresa y aprobación; edición personal conserva grupo inactivo sin
+reenviar membresía. Perfil real leído sin aviso ni modificación.712 unitarios,
+14 E2E/3 adyacentes y laboratorio SQL/HTTP/Playwright; axe mantiene exclusión de
+contraste por pendiente transversal. No cierra hallazgos generales ni certifica
+compra/cobro real, proveedores/CDN o producción. [Alcance](docs/qa/customer-commercial-activation-20261118.md).
+
+### Simplificación del perfil y Logs — 2026-11-18
+
+El motivo ya no es un input: la Server Action establece una descripción fija e
+ignora valores inyectados en el formulario. El historial se consulta en
+`/admin/logs` por cliente/contexto con Employee y permiso de lectura de clientes,
+mediante el endpoint BFF existente; mantiene validación de DTO y paginación.
+No se alteran autenticación, persistencia ni los pendientes generales anteriores.
+Evidencia: `docs/qa/customer-commercial-activation-20261118.md`.
+
+### Confirmación de cambios comerciales — 2026-11-18
+
+Autorizado backend/UI: contraseña del Employee conectado verificada por Sessions
+en cada escritura comercial, exigida por todas las rutas BFF afectadas sin
+confiar en flags/actor/evidencia del navegador ni un step-up anterior. BFF retira
+el secreto antes de Customers; auditoría transaccional y DTO allowlist. La UI
+limpia el secreto al enviar/cancelar/fallar y mantiene el borrador. Rate limit
+local por empleado; coordinación distribuida no certificada. Sin cambios en
+refresh/defaultContext y sin cierre de pendientes generales. Evidencia y límites:
+`docs/qa/commercial-change-reauthentication-20261118.md`.
+
+### Corrección del destino de logs comerciales — 2026-11-18
+
+Se retiran el menú/ruta `/admin/logs` y el enlace desde Actividad: solo consultaban el historial de Customers y no representaban el servicio central. El backend autorizado entrega ahora el evento a `services/log` desde la auditoría transaccional, con reintentos. Se conserva el endpoint de historial por compatibilidad; la UI no lo usa. No se modifican autenticación ni confirmación con contraseña. Esta entrada sustituye las referencias anteriores a ese menú; no cierra pendientes de seguridad generales. Evidencia: `docs/qa/customer-commercial-log-delivery-20261118.md`.
+
+
+### Eliminación de Header/Footer — 2026-11-19
+
+Employee/cms.settings.write/tenant en BFF; UI valida nombre, identidad, usos y
+recibo. Backend protege referencias concurrentes y evita recreación por guardado
+obsoleto. PostgreSQL desechable y negativos de guards probados; no se borraron
+piezas reales ni se cierran hallazgos generales. Evidencia y límites:
+`docs/qa/cms-site-part-deletion-20261119.md`.
+
+### CMS: presentación compartida — evidencia 2026-11-19
+
+La nueva presentación de áreas/bloques funcionales usa el registro visual
+existente y validación BFF + CMS. El renderer filtra valores de CSS y escapa URLs
+antes de emitir reglas responsive. Regresión de CSS malicioso y URLs privadas en
+`tests/cms-unified-builder.test.mjs` y pruebas CMS/BFF. Se preservan los pendientes
+anteriores; esta evidencia se limita a la nueva superficie. La preview no ejecuta
+acciones de compra ni envíos de formularios. Detalles en
+`docs/qa/cms-builder-unification-20261119.md`.
+
+### CMS Preview de borrador — evidencia 2026-11-19
+
+Preview usa srcdoc estático y portal React; sandbox permite same-origin para el
+portal, sin scripts/forms/popups/top-navigation. `frame-src` incorpora `'self'`;
+se preservan frame-ancestors none y X-Frame-Options DENY. No se serializa el
+borrador en una URL ni se crean rutas públicas de draft. Navegación por BFF con
+contexto explícito y verificación Employee/CMS. Cuenta/carrito en modo inerte;
+sin analítica ni mutaciones al abrir. Pruebas con CSP de producción, enlaces
+inertes, permisos/contexto y cierre/foco. Se mantienen los pendientes existentes.
+Alcance y límites: `docs/qa/cms-site-part-preview-20261119.md`.
+
+### CMS: confirmación de composición publicada — 2026-11-19
+
+Styles JSON directo inválido bloquea el envío del formulario sin descartar el
+texto. Publicación exige recibo DRAFT con composición conservada y revisión
+ACTIVE coincidente antes de mostrar éxito. Pruebas negativas de recibos truncados
+y regresión de formulario con carrito/JSON pendiente. Sin mutaciones sobre la
+cabecera real y sin cambios de permisos ni cierre de pendientes generales.
+Evidencia: `docs/qa/cms-style-json-save-20261119.md`.
+
+### CMS hoja de estilos de bloque — 2026-11-19
+
+CSS se interpreta con PostCSS y se persiste como reglas canónicas por scope.
+Selectores acotados al ID de la pieza, sin escapes/combinadores de hermanos;
+valores pasan por el registro Builder, validador BFF y normalizador CMS. Sin
+URLs/imports/at-rules/script. Renderer vuelve a filtrar claves/valores/selectores.
+CSS incompleto bloquea guardado y conserva el texto. No modifica CSP, permisos
+ni estado de hallazgos generales anteriores. Se declara directamente PostCSS
+8.5.23, la versión ya forzada/instalada. QA y límites:
+`docs/qa/cms-single-block-stylesheet-20261119.md`.
+
+## CMS Fase2 — evidencia acotada, 2026-11-20
+
+La nueva ruta Módulos exige sesión Employee/permisos y contexto; mutaciones
+pasan por BFF. Sin tokens en navegador ni almacenamiento alternativo en Next.
+Schema cerrado, validación owner, CAS, copia estructural y CSS acotado probados
+localmente; BFF comprueba Media con lector existente. Los tests BFF con dobles
+no certifican autorización real ni acceso a Media: integración autenticada pendiente.
+No se cierran hallazgos pendientes anteriores. Véase
+[QA Fase2](docs/qa/cms-phase-2-implementation-20261120.md).
+
+Actualización Fase2 activada: listado nuevo sin sesión devuelve401; Employee real
+creó/copió/archivó piezas QA y un editor obsoleto fue rechazado sin sobrescribir.
+Permisos read-only y scope ajeno aún pendientes. Upload fallido ahora muestra
+feedback; no se debilitaron validaciones Media ni se inventaron referencias.
+
+2026-11-20 — Fase2 Media: extensión autorizada sin producto, validación UUID si presente y Shop/permisos existentes conservados. Subida/copia/reemplazo reales verificados sin extraer sesión Employee; producto draft rechaza colección CMS. No se cierra ningún hallazgo pendiente ni se certifican perfiles read-only/scope ajeno aún no probados en vivo.
+
+## CMS SECTION — actualización 2026-11-20
+
+Fase3 implementada y activada con verificación parcial: rutas BFF SECTION,
+locale obligatorio, permisos cms.pages.read/write, validación Media reutilizada,
+CAS e idempotencia owner; lectura exclusiva ReadIndex. No altera autenticación
+ni cierra hallazgos previos. Pendiente probar perfiles Employee solo lectura y
+scope/locale ajenos en integración real. Informe: [Fase3](docs/qa/cms-phase-3-implementation-20261120.md).
+
+### CMS Rich text WYSIWYG — 2026-11-21
+
+El inspector de nodos richText usa Tiptap con carga diferida y guarda el HTML
+formateado en la propiedad existente html. El renderer compartido Admin/Storefront
+aplica la política allowlist de sanitize-html antes de emitir HTML. La política
+existente se centraliza en packages/cms-blocks/src/rich-text.ts y la importación
+compartida anterior se conserva como reexport; htmlEmbed sigue escapado. Los nodos
+antiguos con solo text conservan texto literal. Regresión de formato, serialización
+V2, scripts, eventos y URLs activas; lint sin errores (tres avisos previos), build
+y comprobación de negrita en Chrome correctos. No se guardó ni publicó el módulo
+del usuario; persistencia BFF real y responsive/a11y completos no certificados.
+No se cierran los hallazgos pendientes anteriores.
+
+2026-11-21 — Rich text CMS: barra con iconos, tachado, citas, código,
+listas anidadas, enlaces y fuente HTML. Los enlaces del editor reutilizan la misma
+validación de destinos del saneador; la allowlist de renderizado no se amplía.
+Pruebas de preservación de formatos y seguridad correctas; build y lint correctos
+(tres avisos anteriores). Barra y apertura de fuente comprobadas en Chrome sobre
+un borrador nuevo sin guardar. No modifica el editor de Productos ni cierra
+pendientes anteriores.
+
+### CMS Icon — 2026-11-22
+
+Selector visual con búsqueda sobre 36 iconos Lucide ya instalados (licencia ISC).
+Identidad serializada como texto lucide:<clave> en props.text existente; SVGs
+proceden exclusivamente del registro importado, sin HTML/SVG arbitrario ni URLs.
+Los símbolos legacy permanecen escapados. Tamaño/color usan los estilos del nodo.
+Pruebas de serialización V2, renderizado SVG allowlist y escape de entrada
+maliciosa correctas: 21 pruebas relacionadas, lint sin errores (tres avisos
+previos), build correcto. No certifica guardado BFF real ni responsive/a11y
+completos; no cierra hallazgos anteriores.
+
+### CMS nodos estructurales/contenido — 2026-11-22
+
+Inserción y movimiento limitados a destinos estructurales en los helpers UI;
+importaciones validan jerarquía. Árboles legacy conservados y recuperables sin
+migración automática ni borrado. No cambia el contrato BFF ni sustituye validación
+servidor; no cierra hallazgos previos. Pruebas y límites, incluidos dos fallos
+preexistentes de inventario y QA visual pendiente, en
+`docs/qa/cms-visual-node-categories-20261122.md`.
+
+### CMS shell con secciones independientes — 2026-11-23
+
+Ampliación autorizada en BFF/CMS/UI. Configuración registered cerrada, enlaces
+acotados, validación de presentación y Media anidados antes del owner; UI verifica
+sesión Employee, permiso cms.settings.write y contexto antes de reproducir/guardar.
+Reutiliza revisiones/site parts y preview inerte existentes; no se publicaron ni
+asignaron las copias de ensayo. La comprobación previa de revisión/fecha de la UI
+no es CAS atómico: ese límite legacy se mantiene abierto. No cierra hallazgos
+generales ni acredita aislamiento real con perfiles/scope ajenos. Evidencia y
+límites: docs/qa/cms-shell-independent-sections-20261123.md.
+
+
+2026-11-23 — Continuación CMS: guardado atómico/CAS Header/Footer y revisión
+confirmada al publicar, creación estable y recuperación por lectura, campos
+registered declarados, herencia visual y layout/targeting PLP independiente.
+La comprobación de CAS previa UI se sustituye por validación transaccional owner
+para el flujo nuevo. No cierra hallazgos generales ni certifica producción;
+no cambia sesiones ni permisos y no se han publicado originales. Evidencia,
+contratos y límites: docs/qa/cms-builder-retirement-implementation-20261123.md.
+
+2026-11-24 — Cierre CMS en laboratorio: se acreditan denegaciones reales de
+Employee lector (mutaciones/publicación y shop ajeno), CAS y replay de migración
+y publicación/recuperación. Media real validada por scope/estado/URL; no se
+añadieron APIs Next de negocio ni permisos automáticos a perfiles humanos.
+Builder exclusivo retirado tras comprobar documentos/Storefront. Las identidades
+temporales cierran todas sus sesiones y se desactivan; custodia temporal eliminada.
+No cierra hallazgos generales pendientes ni certifica producción, contraste
+global o ausencia de overflow tablet previo. Evidencias en
+docs/qa/cms-builder-retirement-closure-20261124.md.

@@ -1,0 +1,13 @@
+{
+  "url": "http://localhost:5173/admin/cms/builder",
+  "title": "Ecommium UI",
+  "headings": [
+    "Iniciar sesion",
+    "No encontramos esta página",
+    "La tienda",
+    "Ciclismo",
+    "Te acompañamos",
+    "Privacidad y confianza"
+  ],
+  "notFoundVisible": true
+}

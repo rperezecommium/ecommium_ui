@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAdminSession } from "../../../../src/shared/auth/session";
+import { getCurrentAdminSession as getAdminSession } from "../../../../src/modules/auth/current-admin-session";
 import {
   completeAdoptionAdminInstallationAction,
   completeFreshAdminInstallationAction,
@@ -40,9 +40,9 @@ function FreshCompletionForm() {
         <input autoComplete="email" maxLength={320} name="email" required type="email" />
       </label>
       <label className="adminField">
-        <span>Claim de instalación</span>
+        <span>Código temporal de activación</span>
         <input autoComplete="off" maxLength={512} name="claim" required spellCheck={false} type="password" />
-        <small>Se muestra una sola vez al emitirlo por CLI. La UI no lo guarda.</small>
+        <small>Utiliza el código temporal y el correo de tu invitación. Esta página no guarda el código.</small>
       </label>
       <div className="adminFormGrid">
         <label className="adminField">
@@ -124,16 +124,15 @@ export default async function AdminInstallationPage({ searchParams }: AdminInsta
 
         {result.ok && result.data.state === "FRESH_CLAIM_REQUIRED" ? (
           <div className="adminEmptyState">
-            <h2>Emite un claim efímero</h2>
-            <p>La instalación es fresh, pero todavía no hay un claim activo. Emítelo por CLI y vuelve a cargar esta pantalla.</p>
-            <code>npm run admin-installation -- issue-claim</code>
+            <h2>Espera tu invitación de activación</h2>
+            <p>La instalación está preparada, pero todavía no hay un código activo. El operador debe enviarte una invitación desde Platform Operations.</p>
           </div>
         ) : null}
 
         {result.ok && result.data.state === "FRESH_READY" ? (
           <section aria-labelledby="fresh-installation-title">
             <h2 id="fresh-installation-title">Crear el primer SuperAdmin SYSTEM</h2>
-            <p>El claim es de un solo uso. Roles, permisos, IDs y tenant no son configurables desde este formulario.</p>
+            <p>Introduce el código de un solo uso y el correo al que recibiste la invitación. El backend comprueba el destinatario. No necesitas usar una terminal. Admin 0 conserva su alcance SYSTEM.</p>
             <FreshCompletionForm />
           </section>
         ) : null}

@@ -1,7 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { createServer as createHttpsServer } from "node:https";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { once } from "node:events";
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import net from "node:net";
 
 const organizationId = "11111111-1111-4111-8111-111111111111";
@@ -38,6 +40,7 @@ let bffServer: Server;
 let bffPort = 0;
 let nextPort = 0;
 let nextProcess: ChildProcessWithoutNullStreams;
+let nextOutput = "";
 let addressBook: AddressBookFixture = initialAddressBook();
 const capturedAddressMutations: Array<{ method: string; path: string; body: Record<string, unknown> }> = [];
 const capturedShippingPayloads: Record<string, unknown>[] = [];
@@ -150,8 +153,13 @@ function requireStorefrontAuth(request: IncomingMessage, response: ServerRespons
 
 async function startBffMock() {
   bffPort = await freePort();
-  bffServer = createServer(async (request, response) => {
+  bffServer = createHttpsServer({ key: readFileSync("tests/e2e/fixtures/loopback.key"), cert: readFileSync("tests/e2e/fixtures/loopback.crt") }, async (request, response) => {
     const url = new URL(request.url ?? "/", `http://${request.headers.host}`);
+    if (request.method === "GET" && url.pathname === "/api/v1/storefront/context/resolve") {
+      sendJson(response, 200, { organizationId, shopId, shopAlias: "e2e-shop", locale: "es-ES", currency: "EUR", country: "ES", channel: "web" });
+      return;
+    }
+
 
     if (url.pathname.startsWith("/api/v1/storefront/me") && !requireStorefrontAuth(request, response)) {
       return;
@@ -315,13 +323,14 @@ async function waitForNext(url: string) {
   const deadline = Date.now() + 45_000;
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
       if (response.status < 500) {
         return;
       }
     } catch {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Server is still starting; retry within the readiness deadline.
     }
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   throw new Error(`Next server did not become ready at ${url}`);
@@ -329,17 +338,21 @@ async function waitForNext(url: string) {
 
 async function startNext() {
   nextPort = await freePort();
-  nextProcess = spawn("npx", ["next", "start", "-p", String(nextPort)], {
+  nextProcess = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(nextPort)], {
     cwd: process.cwd(),
     env: {
       ...process.env,
+      // HTTPS loopback fixture trusted only by the test process.
+      NODE_ENV: "production",
       ECOMMIUM_ADMIN_BFF_BASE_URL: "http://127.0.0.1:1/api/v1",
-      ECOMMIUM_STOREFRONT_BFF_BASE_URL: `http://127.0.0.1:${bffPort}/api/v1`,
+      ECOMMIUM_STOREFRONT_BFF_BASE_URL: `https://127.0.0.1:${bffPort}/api/v1`,
       ECOMMIUM_STOREFRONT_ORGANIZATION_ID: organizationId,
       ECOMMIUM_STOREFRONT_SHOP_ID: shopId,
     },
   });
-  await waitForNext(`http://127.0.0.1:${nextPort}/account`);
+  nextProcess.stdout.on("data", chunk => { nextOutput = (nextOutput + chunk.toString()).slice(-16000); });
+  nextProcess.stderr.on("data", chunk => { nextOutput = (nextOutput + chunk.toString()).slice(-16000); });
+  await waitForNext(`http://127.0.0.1:${nextPort}/api/health`);
 }
 
 async function authenticateStorefront(page: Page) {
@@ -372,6 +385,10 @@ test.beforeEach(() => {
   addressBook = initialAddressBook();
   capturedAddressMutations.length = 0;
   capturedShippingPayloads.length = 0;
+});
+
+test.afterEach(async ({}, info) => {
+  if (info.status !== info.expectedStatus) await info.attach("next-server.log", { body: nextOutput, contentType: "text/plain" });
 });
 
 test.afterAll(async () => {

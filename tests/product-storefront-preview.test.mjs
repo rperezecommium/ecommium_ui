@@ -117,7 +117,8 @@ test("getProductStorefrontPreview reads Storefront PDP through public BFF scope"
   assert.equal(result.ok, true);
   assert.equal(result.requestedPath, calls[0].path);
   assert.equal(result.data.title, "Casco Pro Storefront");
-  assert.equal(result.data.shortDescription, "Resumen Storefront");
+  assert.equal(result.data.shortDescription, "<p>Resumen Storefront</p>");
+  assert.equal(result.data.description, "<p>Descripcion Storefront</p>");
   assert.equal(result.data.imageUrl, "/media/casco-pro.jpg");
   assert.match(result.data.priceDisplay, /129,99/);
   assert.equal(result.data.availability, "Disponible");
@@ -142,5 +143,9 @@ test("Storefront preview route is Admin-only noindex and wired from product UI",
   assert.match(helperSource, /\/storefront\/pdp\/\$\{encodeURIComponent\(productSlug\)\}/);
   assert.match(helperSource, /withAuth: false/);
   assert.match(listSource, /\/storefront-preview`/);
-  assert.match(editorSource, /\/storefront-preview`/);
+  assert.match(editorSource, /<ProductPdpPreviewModal/);
+  const modalSource = readFileSync(path.resolve(root, "src/modules/catalogo/product-pdp-preview-modal.tsx"), "utf8");
+  assert.match(modalSource, /\/storefront-preview`/);
+  assert.match(modalSource, /<StorefrontPdpContentClient[\s\S]*preview \/>/);
+  assert.match(modalSource, /\.showModal\(\)/);
 });

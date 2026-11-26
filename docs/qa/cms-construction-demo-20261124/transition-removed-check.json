@@ -1,0 +1,66 @@
+{
+  "navigation": [
+    {
+      "href": "/admin/cms",
+      "label": "Paginas"
+    },
+    {
+      "href": "/admin/cms/headers",
+      "label": "Headers"
+    },
+    {
+      "href": "/admin/cms/footers",
+      "label": "Footers"
+    },
+    {
+      "href": "/admin/cms/modulos",
+      "label": "Módulos"
+    },
+    {
+      "href": "/admin/cms/secciones",
+      "label": "Secciones"
+    },
+    {
+      "href": "/admin/cms/plantillas",
+      "label": "Plantillas"
+    },
+    {
+      "href": "/admin/cms/ajustes-basicos",
+      "label": "Ajustes basicos"
+    }
+  ],
+  "pageEditor": {
+    "url": "http://localhost:5173/admin/cms?pageId=4d493b72-2cc5-42f8-8d37-f1b2ebf859b6&mode=editor&tab=page",
+    "tabs": [
+      "Página",
+      "Composición",
+      "Categorías / PLP",
+      "Previsualizar"
+    ],
+    "sections": 7
+  },
+  "assignmentPages": {
+    "enabled": true,
+    "options": "Selecciona una página\nDemostración CMS · Cierre constructivo · /demostracion-cms-cierre\nDemostración CMS · Para probar módulos · /demostracion-cms-modulos\nDemostración CMS · Página desde plantilla · /demostracion-cms-desde-plantilla\nQA cierre CMS sin Builder · editada · /qa-cierre-cms-sin-builder-20261124\npara probar modulos · /module-test-page\nSeleccion Bike Brakes · /seleccion-bike-brakes\nHome · /home\nPrivacidad del newsletter · /privacidad-newsletter\nQA Fase6 referencia archived · /qa-fase6-20261120-archived\nQA Fase6 referencia missing · /qa-fase6-20261120-missing\nHome · Ensayo Secciones · /cms-ensayo-4cba175d-18f9-4c66-a9cd-512366724e02\nSeleccion Bike Brakes · Ensayo Secciones · /cms-ensayo-24d6f8a0-81ac-42db-8f27-c305c1d81577\nPrivacidad del newsletter · Ensayo Secciones · /cms-ensayo-8d505d30-0c16-4131-8d2f-de97593c7a17\npagina probando · /probando-landing\nQA Fase5 página destino · /qa-fase5-20261120\nQA Fase6 migración · /qa-fase6-20261120"
+  },
+  "retiredRoute": {
+    "url": "http://localhost:5173/admin/cms/transicion",
+    "notFound": true
+  },
+  "storefront": {
+    "moduleInstances": 9,
+    "parts": [
+      {
+        "id": "f0b81f4e-f5e5-4f0d-b858-3956ad8420c8",
+        "revision": "72c915d1-a9b6-401d-9b70-ef6bc72e41a8"
+      },
+      {
+        "id": "1f4c2e56-5fc1-4416-a042-3bd3b4b36e60",
+        "revision": "803f9b24-f3db-4a8e-859d-36b7ac12c2b2"
+      }
+    ],
+    "sections": 7,
+    "title": "Demostración CMS · Cierre constructivo"
+  },
+  "pageCount": 16
+}

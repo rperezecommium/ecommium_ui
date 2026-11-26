@@ -1,0 +1,13 @@
+
+> cms@0.0.1 test
+> jest --runInBand composition-template.value-object.spec independent-section.spec independent-module-copy.spec
+
+PASS src/domain/page/composition-template.value-object.spec.ts
+PASS src/domain/page/independent-section.spec.ts
+PASS src/domain/page/independent-module-copy.spec.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       11 passed, 11 total
+Snapshots:   0 total
+Time:        2.734 s
+Ran all test suites matching /composition-template.value-object.spec|independent-section.spec|independent-module-copy.spec/i.

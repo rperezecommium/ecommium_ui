@@ -1,7 +1,10 @@
+import { parseProductWarehouses } from "./product-warehouses";
+import { parseShippingPackageOverride } from "./product-variant-shipping";
+import { productSpecificationCatalog } from "./product-specification-fields";
 import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { listCatalogAttributeFeatureData } from "./catalog-attributes-features";
-import { listCatalogEntities, toLookupOptions } from "./catalog-taxonomy";
+import { getCatalogEntity, listCatalogEntities, toLookupOptions } from "./catalog-taxonomy";
 import { getPricingEditorLookups } from "./pricing-admin";
 import { productStatusIsActive } from "./product-status";
 import type {
@@ -254,7 +257,7 @@ function parseMediaItem(value: unknown, locale = "es-ES", index = 0) {
     fileSize: asNumber(record.bytes ?? record.fileSize, 0),
     mimeType: asString(record.mimeType) ?? "image/*",
     previewUrl: bestImageUrl(record) ?? undefined,
-    isMain: asBoolean(record.cover ?? record.isMain, index === 0),
+    isMain: asBoolean(record.cover ?? record.isMain, false),
     active: asBoolean(record.isActive, true),
     alt: {
       [locale]: localizedText(alt[locale] ?? record.alt, locale) ?? asText(record.altText) ?? "",
@@ -434,6 +437,7 @@ function parsePrice(value: unknown): PriceDraft | undefined {
 
   return {
     pricingId,
+    ...(isBaseEditorPrice(record) ? { priceKind: "REGULAR" as const } : { priceKind: "SPECIFIC" as const }),
     basePriceMinor,
     listPriceMinor:
       asNullableNumber(record.listPriceMinor) ??
@@ -455,6 +459,11 @@ function parsePrice(value: unknown): PriceDraft | undefined {
     customerGroup: asString(record.customerGroup) ?? null,
     country: asString(record.country),
     source: asString(record.source),
+    ...(record.validFrom !== undefined ? { validFrom: asString(record.validFrom) ?? null } : {}),
+    ...(record.validUntil !== undefined ? { validUntil: asString(record.validUntil) ?? null } : {}),
+    ...(record.timezone !== undefined ? { timezone: asString(record.timezone) } : {}),
+    ...(record.active !== undefined ? { active: asBoolean(record.active, true) } : {}),
+    ...(record.priority !== undefined ? { priority: asNumber(record.priority) } : {}),
   };
 }
 
@@ -478,6 +487,8 @@ function parseSpecificPrice(value: unknown): SpecificPriceDraft | undefined {
 
   return {
     pricingId,
+    dirty: false,
+    source: asString(record.source),
     targetType: rawTargetType === "VARIANT" || variantId ? "VARIANT" : "PRODUCT",
     productId: asString(record.productId),
     variantId,
@@ -623,7 +634,7 @@ function productListQuantity(record: Record<string, unknown>): number | undefine
   return quantityFromRecord(record);
 }
 
-function parseStock(value: unknown, fallbackWarehouseId = "main-warehouse"): StockDraft {
+function parseStock(value: unknown, fallbackWarehouseId = ""): StockDraft {
   const record = asRecord(value);
   const onHandQuantity = asNumber(record.onHandQuantity ?? record.availableQuantity);
   const reservedQuantity = asNumber(record.reservedQuantity);
@@ -633,6 +644,7 @@ function parseStock(value: unknown, fallbackWarehouseId = "main-warehouse"): Sto
     Math.max(0, onHandQuantity - reservedQuantity - safetyStockQuantity);
 
   return {
+    persisted: !listItems(record.reasons).includes("STOCK_LEVEL_NOT_FOUND"),
     warehouseId: asString(record.warehouseId) ?? fallbackWarehouseId,
     onHandQuantity,
     reservedQuantity,
@@ -656,6 +668,18 @@ function parseLocalizedNoteRecord(value: unknown) {
   );
 }
 
+function parseVariantPackages(value: unknown): NonNullable<ProductShippingDraft["variantPackages"]> {
+  if (value !== undefined && (!value || typeof value !== "object" || Array.isArray(value))) throw new Error("Invalid variant shipping map");
+  const result: NonNullable<ProductShippingDraft["variantPackages"]> = {};
+  const entries = Object.entries(asRecord(value));
+  if (entries.length > 1000) throw new Error("Too many variant shipping packages");
+  for (const [id, raw] of entries) {
+    if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) throw new Error("Invalid variant shipping identity");
+    result[id] = parseShippingPackageOverride(raw);
+  }
+  return result;
+}
+
 function parseProductShipping(value: unknown): ProductShippingDraft | undefined {
   const record = asRecord(value);
   if (Object.keys(record).length === 0) {
@@ -667,6 +691,7 @@ function parseProductShipping(value: unknown): ProductShippingDraft | undefined 
   const deliveryTimeNotes = asRecord(record.deliveryTimeNotes);
 
   return {
+    variantPackages: parseVariantPackages(record.variantPackages),
     package: {
       weightGrams: parsePositiveIntegerOrNull(packageRecord.weightGrams ?? record.weightGrams),
       widthMm: parsePositiveIntegerOrNull(packageRecord.widthMm ?? record.widthMm),
@@ -776,8 +801,17 @@ function parseShippingConfiguration(value: unknown): ProductLookupOption[] {
     .filter((carrier): carrier is ProductLookupOption => Boolean(carrier));
 }
 
+function isBaseEditorPrice(value: unknown) {
+  const record = asRecord(value);
+  return record.active !== false && (record.source === "BASE" || !record.source)
+    && ["priceTableId", "tradePolicy", "channel", "customerGroup", "country", "validFrom", "validUntil"].every((key) => !record[key])
+    && record.fixedPrice == null && record.fixedPriceMinor == null
+    && !listItems(record.tiers).length && !record.minQuantity;
+}
+
 function firstActivePrice(value: unknown): PriceDraft | undefined {
   return listItems(value)
+    .filter(isBaseEditorPrice)
     .map(parsePrice)
     .find((price): price is PriceDraft => Boolean(price && !price.markedForDeletion));
 }
@@ -842,7 +876,24 @@ function parseOffering(value: unknown): ProductOfferingRecord {
     priceMinor: asNumber(record.priceMinor),
     currency: asString(record.currency) ?? "EUR",
     type: asString(record.type) ?? "service",
-    active: asBoolean(record.active, true),
+    active: asBoolean(record.relationActive ?? record.active, true),
+  };
+}
+
+function parseOfferingMutation(value: unknown, input: {offeringId: string; variantId: string}) {
+  const record = asRecord(value);
+  if (record.offeringId !== input.offeringId || record.variantId !== input.variantId) throw new Error("Invalid offering mutation identity");
+  if (record.offerings !== undefined && (!Array.isArray(record.offerings) || record.offerings.some(item => {
+    const offering = asRecord(item);
+    return !(asString(offering.id) ?? asString(offering.offeringId)) || typeof offering.active !== "boolean" || (offering.relationActive !== undefined && typeof offering.relationActive !== "boolean");
+  }))) throw new Error("Invalid offering mutation snapshot");
+  return {
+    offeringId: input.offeringId, variantId: input.variantId,
+    message: asString(record.message),
+    detached: typeof record.detached === "boolean" ? record.detached : undefined,
+    active: typeof record.active === "boolean" ? record.active : undefined,
+    updated: typeof record.updated === "boolean" ? record.updated : undefined,
+    ...(Array.isArray(record.offerings) ? {offerings: parseOfferingList(record.offerings)} : {}),
   };
 }
 
@@ -1027,7 +1078,7 @@ function parseEditorState(value: unknown, locale: string, currency: string): Pro
     firstActivePrice(prices.product ?? prices.productPrices) ??
     allPrices.map(parsePrice).find((price, index) => {
       const raw = allPrices[index];
-      return Boolean(price && (priceTargetType(raw) === "PRODUCT" || !priceVariantId(raw)));
+      return Boolean(price && isBaseEditorPrice(raw) && (priceTargetType(raw) === "PRODUCT" || !priceVariantId(raw)));
     });
   const variantPrices: Record<string, PriceDraft> = {};
   const rawVariantPrices = listItems(prices.variants).length
@@ -1037,15 +1088,26 @@ function parseEditorState(value: unknown, locale: string, currency: string): Pro
     const priceRecord = asRecord(priceValue);
     const variantId = priceVariantId(priceRecord);
     const price = parsePrice(priceValue);
-    if (variantId && price) {
+    if (variantId && price && isBaseEditorPrice(priceValue)) {
       variantPrices[variantId] = {
         ...price,
         currency: price.currency || currency,
       };
     }
   }
-  const specificPrices = listItems(prices.specificPrices)
-    .map(parseSpecificPrice)
+  const seenSpecific = new Set<string>();
+  const specificPrices = [
+    ...listItems(prices.specificPrices),
+    ...listItems(prices.product ?? prices.productPrices),
+    ...rawVariantPrices,
+    ...allPrices,
+  ].filter((value) => {
+    if (isBaseEditorPrice(value)) return false;
+    const id = asString(asRecord(value).pricingId);
+    if (!id || seenSpecific.has(id)) return false;
+    seenSpecific.add(id);
+    return true;
+  }).map(parseSpecificPrice)
     .filter((price): price is SpecificPriceDraft => Boolean(price));
   const specifications = asRecord(record.specifications);
 
@@ -1168,6 +1230,7 @@ export async function getAdminProductEditorData(context: AdminContext, productId
     return {
       ok: false as const,
       error: editorState.error,
+      status: editorState.status,
       correlationId: editorState.correlationId,
     };
   }
@@ -1177,6 +1240,12 @@ export async function getAdminProductEditorData(context: AdminContext, productId
     ? await makeProductGateway(context).resolveOfferingsBatchByVariants(variantIds)
     : { ok: true as const, data: {}, status: 200, correlationId: undefined };
   const warnings = [...editorState.data.warnings];
+  const product = { ...editorState.data.product };
+  if (product.brandId && !product.brandName) {
+    const brand = await getCatalogEntity(context, "brands", product.brandId);
+    if (brand.ok) product.brandName = brand.data.label;
+    else warnings.push(brand.status === 404 ? "La marca asignada ya no está disponible." : "No se pudo resolver la marca asignada.");
+  }
   if (!offeringsResult.ok) {
     warnings.push(`Offerings: contrato BFF no disponible o sin permisos (${offeringsResult.error}).`);
   }
@@ -1185,6 +1254,7 @@ export async function getAdminProductEditorData(context: AdminContext, productId
     ok: true as const,
     data: {
       ...editorState.data,
+      product,
       offeringsByVariant: offeringsResult.ok ? offeringsResult.data : {},
       warnings,
       correlationIds: [editorState.correlationId, offeringsResult.correlationId].filter(isString),
@@ -1193,14 +1263,17 @@ export async function getAdminProductEditorData(context: AdminContext, productId
 }
 
 export async function getProductEditorLookups(context: AdminContext): Promise<ProductEditorLookups> {
-  const [categoriesResult, brandsResult, pricingLookups, carriersResult, specificationsResult, offeringsResult] = await Promise.all([
+  const [categoriesResult, brandsResult] = await Promise.all([
     listCatalogEntities(context, "categories", { limit: 100, offset: 0, isActive: true }),
     listCatalogEntities(context, "brands", { limit: 100, offset: 0, isActive: true }),
-    getPricingEditorLookups(context),
+  ]);
+  const pricingLookups = await getPricingEditorLookups(context);
+  const [carriersResult, specificationsResult, warehousesResult] = await Promise.all([
     getShippingCarrierLookups(context),
     listCatalogAttributeFeatureData(context),
-    makeProductGateway(context).listOfferings({ includeInactive: false }),
+    requestAdminBff(`/admin/shipping/warehouses?${makeScopedParams(context, { includeInactive: "true" })}`, { context, parse: parseProductWarehouses }),
   ]);
+  const offeringsResult = await makeProductGateway(context).listOfferings({ includeInactive: false });
   const warnings: string[] = [];
 
   if (categoriesResult.source === "unavailable") {
@@ -1226,12 +1299,15 @@ export async function getProductEditorLookups(context: AdminContext): Promise<Pr
     tradePolicies: pricingLookups.tradePolicies ?? [],
     countries: pricingLookups.countries ?? [],
     carriers: carriersResult.carriers,
+    warehouses: warehousesResult.ok ? warehousesResult.data : [],
+    warehouseLoadError: warehousesResult.ok ? undefined : "No se pudo cargar el catálogo de almacenes. Se conserva el almacén registrado.",
     variantAttributeFields: specificationsResult.fields
       .filter((field) => field.isStockKeepingUnit && field.isActive)
       .map((field) => ({
         fieldId: field.fieldId,
         groupId: field.groupId,
         groupName: field.groupName,
+        categoryIds: [...new Set([field.categoryId, ...(specificationsResult.groups.find((group) => group.specificationGroupId === field.groupId)?.linkedCategoryIds ?? [])])],
         name: field.name,
         isStockKeepingUnit: field.isStockKeepingUnit,
         isActive: field.isActive,
@@ -1243,30 +1319,16 @@ export async function getProductEditorLookups(context: AdminContext): Promise<Pr
             isActive: value.isActive,
           })),
       })),
-    specificationFields: specificationsResult.fields
-      .filter((field) => !field.isStockKeepingUnit && field.isActive)
-      .map((field) => ({
-        fieldId: field.fieldId,
-        groupId: field.groupId,
-        groupName: field.groupName,
-        name: field.name,
-        isStockKeepingUnit: field.isStockKeepingUnit,
-        isActive: field.isActive,
-        values: field.values
-          .filter((value) => value.isActive)
-          .map((value) => ({
-            fieldValueId: value.fieldValueId,
-            name: value.name,
-            isActive: value.isActive,
-          })),
-      })),
+    specificationFields: productSpecificationCatalog(specificationsResult.groups ?? []).fields,
+    specificationGroups: productSpecificationCatalog(specificationsResult.groups ?? []).groups,
+    specificationLoadError: specificationsResult.source === "unavailable" ? specificationsResult.message : undefined,
     offerings: offeringsResult.ok ? offeringsResult.data : [],
     warnings: [...warnings, ...(pricingLookups.warnings ?? []), ...carriersResult.warnings],
   };
 }
 
 async function getShippingCarrierLookups(context: AdminContext) {
-  const params = makeScopedParams(context, { includeInactive: "false" });
+  const params = makeScopedParams(context);
   const endpoint = `/admin/shipping/configuration?${params.toString()}`;
   const result = await requestAdminBff(endpoint, {
     context,
@@ -1304,12 +1366,12 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
     productId: target.productId,
     variantId: target.variantId ?? null,
     priceTableId: price.priceTableId ?? null,
-    tradePolicy: price.tradePolicy || "default",
-    channel: price.channel || context.channel || "web",
+    tradePolicy: price.tradePolicy?.trim() || null,
+    channel: price.channel?.trim() || null,
     customerGroup: price.customerGroup ?? null,
-    country: price.country || context.country || "ES",
-    currency: price.currency || context.currency || "EUR",
-    timezone: "Europe/Madrid",
+    country: price.country?.trim() || null,
+    currency: price.currency,
+    timezone: price.timezone ?? "UTC",
     basePriceMinor: price.basePriceMinor,
     listPriceMinor: price.listPriceMinor ?? null,
     costPriceMinor: price.costPriceMinor ?? null,
@@ -1320,6 +1382,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
     active: true,
     priority: 10,
     source: price.source || "BASE",
+    ...(price.priceKind ? { priceKind: price.priceKind } : {}),
   });
   const priceTaxPayload = (price: PriceDraft) => {
     if (!price.tax?.taxCode || !price.tax.calculationType) {
@@ -1574,18 +1637,19 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
           body: JSON.stringify({
             organizationId: context.organizationId,
             shopId: context.shopId,
+            ...(input.price.priceKind ? { priceKind: input.price.priceKind } : {}),
             basePriceMinor: input.price.basePriceMinor,
             listPriceMinor: input.price.listPriceMinor ?? null,
             costPriceMinor: input.price.costPriceMinor ?? null,
-            currency: input.price.currency || context.currency || "EUR",
+            currency: input.price.currency,
             taxIncluded: input.price.taxIncluded,
             tax: priceTaxPayload(input.price),
             taxCode: input.price.taxCode,
             priceTableId: input.price.priceTableId ?? null,
-            tradePolicy: input.price.tradePolicy || "default",
-            channel: input.price.channel || context.channel || "web",
+            tradePolicy: input.price.tradePolicy?.trim() || null,
+            channel: input.price.channel?.trim() || null,
             customerGroup: input.price.customerGroup ?? null,
-            country: input.price.country || context.country || "ES",
+            country: input.price.country?.trim() || null,
             active: true,
           }),
         },
@@ -1630,10 +1694,10 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
       setParam("productId", input.productId);
       setParam("variantId", input.variantId);
       setParam("defaultVariantId", input.defaultVariantId);
-      setParam("currency", input.currency ?? context.currency ?? "EUR");
-      setParam("country", input.country ?? context.country ?? "ES");
-      setParam("tradePolicy", input.tradePolicy ?? "default");
-      setParam("channel", input.channel ?? context.channel ?? "web");
+      setParam("currency", input.currency || context.currency);
+      setParam("country", input.country || context.country);
+      setParam("tradePolicy", input.tradePolicy);
+      setParam("channel", input.channel || context.channel);
       setParam("customerGroup", input.customerGroup);
       setParam("priceTableId", input.priceTableId);
       setParam("quantity", input.quantity ?? 1);
@@ -1672,8 +1736,10 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
         },
         parse: (value) => {
           const record = asRecord(value);
+          const offering = parseOffering(record.offering);
+          if (!offering.offeringId) throw new Error("Missing created offering identity");
           return {
-            offering: parseOffering(record.offering),
+            offering,
             message: asString(record.message),
           };
         },
@@ -1719,7 +1785,10 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
         init: {
           method: "PUT",
         },
-        parse: (value) => asRecord(value) as { offeringId: string; variantId: string; message?: string },
+        parse: (value) => {
+          const record = asRecord(value);
+          return { offeringId: asString(record.offeringId) ?? "", variantId: asString(record.variantId) ?? "", message: asString(record.message), ...(Array.isArray(record.offerings) ? { offerings: parseOfferingList(record.offerings) } : {}) };
+        },
       });
     },
     detachOfferingFromVariant(input) {
@@ -1728,7 +1797,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
         init: {
           method: "DELETE",
         },
-        parse: (value) => asRecord(value) as { offeringId: string; variantId: string; detached?: boolean; message?: string },
+        parse: (value) => parseOfferingMutation(value, input),
       });
     },
     setOfferingVariantActivation(input) {
@@ -1741,7 +1810,7 @@ export function makeProductGateway(context: AdminContext): ProductGateway {
           },
           body: JSON.stringify({ active: input.active }),
         },
-        parse: (value) => asRecord(value) as { offeringId: string; variantId: string; active?: boolean; message?: string },
+        parse: (value) => parseOfferingMutation(value, input),
       });
     },
     listOfferingsByVariant(variantId: string) {

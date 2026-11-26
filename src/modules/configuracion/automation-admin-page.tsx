@@ -1,3 +1,4 @@
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
 import Link from "next/link";
 import type {
   AutomationBusinessEvent,
@@ -724,7 +725,7 @@ function AutomationGuidedPreview({ data, filters }: Props) {
 
   return (
     <div className="adminDrawerBackdrop">
-      <aside className="adminSideDrawer" aria-label="Disenar automatizacion" aria-modal="true" role="dialog">
+      <AdminResizableDrawer drawerId="automation-admin-page-disenar-automatizacion-1" className="adminSideDrawer" aria-label="Disenar automatizacion" aria-modal="true" role="dialog">
         <div className="adminSideDrawerHeader">
           <div>
             <h2>Diseñar automatización</h2>
@@ -756,7 +757,7 @@ function AutomationGuidedPreview({ data, filters }: Props) {
             Abrir modo avanzado
           </Link>
         </div>
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }
@@ -1761,7 +1762,7 @@ function AutomationDetailDrawer({ data, filters }: Props) {
 
     return (
       <div className="adminDrawerBackdrop">
-        <aside className="adminSideDrawer" aria-label="Crear regla con asistente" aria-modal="true" role="dialog">
+        <AdminResizableDrawer drawerId="automation-admin-page-crear-regla-con-asistente-2" className="adminSideDrawer" aria-label="Crear regla con asistente" aria-modal="true" role="dialog">
           <div className="adminSideDrawerHeader">
             <div>
               <h2>Crear una regla</h2>
@@ -1778,7 +1779,7 @@ function AutomationDetailDrawer({ data, filters }: Props) {
             locale={data.context.locale}
             shopLabel={shopLabel}
           />
-        </aside>
+        </AdminResizableDrawer>
       </div>
     );
   }
@@ -1816,7 +1817,7 @@ function AutomationDetailDrawer({ data, filters }: Props) {
 
   return (
     <div className="adminDrawerBackdrop">
-      <aside className="adminSideDrawer" aria-label={title} aria-modal="true" role="dialog">
+      <AdminResizableDrawer drawerId={`automation-${filters.drawer}`} className="adminSideDrawer" aria-label={title} aria-modal="true" role="dialog">
         <div className="adminSideDrawerHeader">
           <div>
             <h2>{title}</h2>
@@ -1840,7 +1841,7 @@ function AutomationDetailDrawer({ data, filters }: Props) {
         {result?.ok && isExecutionDrawer ? (
           <ExecutionDetailContent execution={result.data as AutomationExecutionDetail} filters={filters} />
         ) : null}
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }

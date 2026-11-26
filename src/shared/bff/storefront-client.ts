@@ -1,3 +1,4 @@
+import { withStorefrontCommercialPolicy } from "../config/storefront-commercial-policy";
 import { getStorefrontBffBaseUrl } from "../config/storefront-env";
 import { requestBffAt, requestBffResponseAt } from "./request-client";
 import type { BffRequestOptions } from "./request-client";
@@ -13,7 +14,7 @@ export function requestStorefrontBff<T>(
   path: string,
   options: BffRequestOptions<T> = {},
 ): Promise<BffResult<T>> {
-  return requestBffAt(getStorefrontBffBaseUrl(), path, options);
+  return requestBffAt(getStorefrontBffBaseUrl(), withStorefrontCommercialPolicy(path), options);
 }
 
 /**
@@ -24,5 +25,5 @@ export function requestStorefrontBffResponse(
   path: string,
   options: BffRequestOptions<unknown> = {},
 ): Promise<BffResult<Response>> {
-  return requestBffResponseAt(getStorefrontBffBaseUrl(), path, options);
+  return requestBffResponseAt(getStorefrontBffBaseUrl(), withStorefrontCommercialPolicy(path), options);
 }

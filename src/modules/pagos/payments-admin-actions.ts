@@ -1,5 +1,7 @@
 "use server";
 
+import {paymentConfigurationPayload,parsePaymentConfiguration,type PaymentConfigurationKind} from "./payment-configuration-schema";
+import {formFailure,type AdminFormState} from "../../shared/validation/admin-form-state";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requestAdminBff } from "../../shared/bff/admin-client";
@@ -8,10 +10,6 @@ import { getAdminContext } from "../../shared/config/admin-context";
 function value(formData: FormData, key: string) {
   const raw = formData.get(key);
   return typeof raw === "string" ? raw.trim() : "";
-}
-
-function boolValue(formData: FormData, key: string) {
-  return value(formData, key) === "on";
 }
 
 function activeValue(formData: FormData, key: string) {
@@ -64,7 +62,7 @@ async function activeContext() {
   return context;
 }
 
-function paymentsRedirect(tab: string, notice: string, includeInactive = false) {
+function paymentsRedirect(tab: string, notice: string, includeInactive = false): never {
   const params = new URLSearchParams({ tab, notice });
   if (includeInactive) {
     params.set("includeInactive", "true");
@@ -94,91 +92,21 @@ function operationRedirect(
   redirect(`/admin/pagos?${params.toString()}`);
 }
 
-export async function createPaymentSystemAction(formData: FormData) {
-  const context = await activeContext();
-  const payload = {
-    paymentSystemId: value(formData, "paymentSystemId"),
-    name: value(formData, "name"),
-    groupName: value(formData, "groupName"),
-    methodType: value(formData, "methodType"),
-    provider: value(formData, "provider"),
-    active: boolValue(formData, "active"),
-    supportsInstallments: boolValue(formData, "supportsInstallments"),
-    maxInstallments: numberValue(formData, "maxInstallments"),
-  };
-
-  const result = await requestAdminBff(scopedPath("/admin/payments/payment-systems", context.organizationId, context.shopId), {
-    context,
-    init: {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    },
-  });
-
-  if (!result.ok) {
-    throw new Error(result.error);
-  }
-
-  paymentsRedirect("metodos", "Metodo de pago creado.");
+async function createConfiguration(kind:PaymentConfigurationKind,formData:FormData):Promise<AdminFormState>{
+ let context:Awaited<ReturnType<typeof activeContext>>;let payload:ReturnType<typeof paymentConfigurationPayload>;
+ try{context=await activeContext();payload=paymentConfigurationPayload(kind,formData);}catch(error){return formFailure(error);}
+ const key=kind==='payment-systems'?'paymentSystemId':kind==='affiliations'?'affiliationId':'ruleId';
+ const result=await requestAdminBff(scopedPath('/admin/payments/'+kind,context.organizationId,context.shopId),{
+   context,init:{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)},
+   parse:value=>parsePaymentConfiguration(kind,value,String((payload as Record<string,unknown>)[key])),
+ });
+ if(!result.ok)return {error:result.error};
+ const tab=kind==='payment-systems'?'metodos':kind==='affiliations'?'proveedores':'routing';
+ paymentsRedirect(tab,kind==='payment-systems'?'Metodo de pago creado.':kind==='affiliations'?'Proveedor de pago creado.':'Regla de routing creada.',!payload.active);
 }
-
-export async function createPaymentAffiliationAction(formData: FormData) {
-  const context = await activeContext();
-  const payload = {
-    affiliationId: value(formData, "affiliationId"),
-    name: value(formData, "name"),
-    provider: value(formData, "provider"),
-    merchantId: value(formData, "merchantId"),
-    active: boolValue(formData, "active"),
-  };
-
-  const result = await requestAdminBff(scopedPath("/admin/payments/affiliations", context.organizationId, context.shopId), {
-    context,
-    init: {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    },
-  });
-
-  if (!result.ok) {
-    throw new Error(result.error);
-  }
-
-  paymentsRedirect("proveedores", "Proveedor de pago creado.");
-}
-
-export async function createPaymentRuleAction(formData: FormData) {
-  const context = await activeContext();
-  const payload = {
-    ruleId: value(formData, "ruleId"),
-    name: value(formData, "name"),
-    paymentSystemId: value(formData, "paymentSystemId"),
-    affiliationId: value(formData, "affiliationId"),
-    priority: numberValue(formData, "priority"),
-    country: value(formData, "country"),
-    currency: value(formData, "currency"),
-    minValueMinor: numberValue(formData, "minValueMinor"),
-    maxValueMinor: numberValue(formData, "maxValueMinor"),
-    active: boolValue(formData, "active"),
-  };
-
-  const result = await requestAdminBff(scopedPath("/admin/payments/rules", context.organizationId, context.shopId), {
-    context,
-    init: {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    },
-  });
-
-  if (!result.ok) {
-    throw new Error(result.error);
-  }
-
-  paymentsRedirect("routing", "Regla de routing creada.");
-}
+export async function createPaymentSystemAction(previous:AdminFormState|FormData,submitted?:FormData){return createConfiguration('payment-systems',submitted??previous as FormData);}
+export async function createPaymentAffiliationAction(previous:AdminFormState|FormData,submitted?:FormData){return createConfiguration('affiliations',submitted??previous as FormData);}
+export async function createPaymentRuleAction(previous:AdminFormState|FormData,submitted?:FormData){return createConfiguration('rules',submitted??previous as FormData);}
 
 export async function setPaymentResourceActiveAction(formData: FormData) {
   const context = await activeContext();

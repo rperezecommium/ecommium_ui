@@ -1,0 +1,710 @@
+{
+  "categories": [
+    {
+      "label": "Bike Brakes",
+      "href": "/plp/bike-brakes"
+    },
+    {
+      "label": "Bike Cockpit",
+      "href": "/plp/bike-cockpit"
+    },
+    {
+      "label": "Bike Drivetrain",
+      "href": "/plp/bike-drivetrain"
+    },
+    {
+      "label": "Bike Workshop",
+      "href": "/plp/bike-workshop"
+    },
+    {
+      "label": "BikerShop",
+      "href": "/plp/imp-bf62d289bb-bikershop-9f92d709"
+    },
+    {
+      "label": "Electrónica bike",
+      "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059"
+    },
+    {
+      "label": "Nutritiom-pro",
+      "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+    },
+    {
+      "label": "nutritions",
+      "href": "/plp/imp-bf62d289bb-nutritions-8084421f"
+    },
+    {
+      "label": "bicicletas",
+      "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+    },
+    {
+      "label": "BikerShop",
+      "href": "/plp/imp-bf62d289bb-bikershop-a7371a92"
+    },
+    {
+      "label": "Ropa ciclismo",
+      "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+    },
+    {
+      "label": "Accesorios y componentes",
+      "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a"
+    },
+    {
+      "label": "Zapatillas carretera",
+      "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba"
+    },
+    {
+      "label": "Electrónica bike",
+      "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e"
+    },
+    {
+      "label": "Zapatillas MTB",
+      "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d"
+    },
+    {
+      "label": "componentes",
+      "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+    }
+  ],
+  "results": [
+    {
+      "label": "Bike Brakes",
+      "href": "/plp/bike-brakes",
+      "status": 200,
+      "url": "http://localhost:5173/plp/bike-brakes",
+      "ms": 1774,
+      "headings": [
+        "Frenos"
+      ],
+      "count": "20 productos.",
+      "error": false,
+      "productLinks": 32
+    },
+    {
+      "label": "Bike Cockpit",
+      "href": "/plp/bike-cockpit",
+      "status": 200,
+      "url": "http://localhost:5173/plp/bike-cockpit",
+      "ms": 1665,
+      "headings": [
+        "Cascos y cockpit"
+      ],
+      "count": "20 productos.",
+      "error": false,
+      "productLinks": 32
+    },
+    {
+      "label": "Bike Drivetrain",
+      "href": "/plp/bike-drivetrain",
+      "status": 200,
+      "url": "http://localhost:5173/plp/bike-drivetrain",
+      "ms": 1701,
+      "headings": [
+        "Transmisión"
+      ],
+      "count": "20 productos.",
+      "error": false,
+      "productLinks": 32
+    },
+    {
+      "label": "Bike Workshop",
+      "href": "/plp/bike-workshop",
+      "status": 200,
+      "url": "http://localhost:5173/plp/bike-workshop",
+      "ms": 1443,
+      "headings": [
+        "Taller de bicicletas"
+      ],
+      "count": "20 productos.",
+      "error": false,
+      "productLinks": 32
+    },
+    {
+      "label": "BikerShop",
+      "href": "/plp/imp-bf62d289bb-bikershop-9f92d709",
+      "status": 200,
+      "ms": 1659,
+      "headings": [
+        "BikerShop",
+        "No hay productos visibles"
+      ],
+      "count": "0 productos.",
+      "error": false,
+      "cards": 0,
+      "failureText": [
+        "CategoriaNo hay productos visiblesEl BFF respondio correctamente, pero el listado no contiene items para esta categoria."
+      ]
+    },
+    {
+      "label": "Electrónica bike",
+      "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059",
+      "status": 200,
+      "ms": 1647,
+      "headings": [
+        "Electrónica para tu bicicleta"
+      ],
+      "count": "1 productos.",
+      "error": false,
+      "cards": 1,
+      "failureText": []
+    },
+    {
+      "label": "Nutritiom-pro",
+      "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772",
+      "status": 200,
+      "ms": 1786,
+      "headings": [
+        "Nutrición deportiva"
+      ],
+      "count": "10 productos.",
+      "error": false,
+      "cards": 10,
+      "failureText": []
+    },
+    {
+      "label": "nutritions",
+      "href": "/plp/imp-bf62d289bb-nutritions-8084421f",
+      "status": 200,
+      "ms": 1617,
+      "headings": [
+        "Nutrición para cada ruta"
+      ],
+      "count": "20 productos.",
+      "error": false,
+      "cards": 16,
+      "failureText": []
+    },
+    {
+      "label": "bicicletas",
+      "href": "/plp/imp-bf62d289bb-bicicletas-013320a6",
+      "status": 200,
+      "ms": 1778,
+      "headings": [
+        "Bicicletas"
+      ],
+      "count": "500 productos.",
+      "error": false,
+      "cards": 16,
+      "failureText": []
+    },
+    {
+      "label": "BikerShop",
+      "href": "/plp/imp-bf62d289bb-bikershop-a7371a92",
+      "status": 200,
+      "ms": 2949,
+      "headings": [
+        "Imp Bf62d289bb Bikershop A7371a92",
+        "No se pudo cargar el listado"
+      ],
+      "error": true,
+      "cards": 0,
+      "failureText": [
+        "PLPNo se pudo cargar el listadoEl servicio no está disponible temporalmente./plp/imp-bf62d289bb-bikershop-a7371a92"
+      ]
+    },
+    {
+      "label": "Ropa ciclismo",
+      "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57",
+      "status": 200,
+      "ms": 2098,
+      "headings": [
+        "Ropa de ciclismo"
+      ],
+      "count": "44 productos.",
+      "error": false,
+      "cards": 16,
+      "failureText": []
+    },
+    {
+      "label": "Accesorios y componentes",
+      "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a",
+      "status": 200,
+      "ms": 1762,
+      "headings": [
+        "Accesorios y componentes"
+      ],
+      "count": "25 productos.",
+      "error": false,
+      "cards": 16,
+      "failureText": []
+    },
+    {
+      "label": "Zapatillas carretera",
+      "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba",
+      "status": 200,
+      "ms": 1654,
+      "headings": [
+        "Zapatillas de carretera"
+      ],
+      "count": "37 productos.",
+      "error": false,
+      "cards": 16,
+      "failureText": []
+    },
+    {
+      "label": "Electrónica bike",
+      "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e",
+      "status": 200,
+      "ms": 1630,
+      "headings": [
+        "Electrónica para tus rutas"
+      ],
+      "count": "109 productos.",
+      "error": false,
+      "cards": 16,
+      "failureText": []
+    },
+    {
+      "label": "Zapatillas MTB",
+      "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d",
+      "status": 200,
+      "ms": 1561,
+      "headings": [
+        "Zapatillas MTB"
+      ],
+      "count": "46 productos.",
+      "error": false,
+      "cards": 16,
+      "failureText": []
+    },
+    {
+      "label": "componentes",
+      "href": "/plp/imp-bf62d289bb-componentes-861c66b1",
+      "status": 200,
+      "ms": 1534,
+      "headings": [
+        "Componentes"
+      ],
+      "count": "600 productos.",
+      "error": false,
+      "cards": 16,
+      "failureText": []
+    }
+  ],
+  "extra": [
+    {
+      "label": "bicicletas",
+      "mode": "click",
+      "ms": 424,
+      "cards": 16,
+      "error": []
+    },
+    {
+      "label": "bicicletas",
+      "mode": "page2",
+      "url": "http://localhost:5173/plp/imp-bf62d289bb-bicicletas-013320a6?page=2",
+      "cards": 16,
+      "error": []
+    },
+    {
+      "label": "componentes",
+      "mode": "click",
+      "ms": 424,
+      "cards": 16,
+      "error": []
+    },
+    {
+      "label": "componentes",
+      "mode": "page2",
+      "url": "http://localhost:5173/plp/imp-bf62d289bb-componentes-861c66b1?page=2",
+      "cards": 16,
+      "error": []
+    }
+  ],
+  "bff": [
+    {
+      "label": "bicicletas",
+      "href": "/plp/imp-bf62d289bb-bicicletas-013320a6",
+      "status": 200,
+      "ms": 192,
+      "total": 500,
+      "products": 16,
+      "view": "cards"
+    },
+    {
+      "label": "componentes",
+      "href": "/plp/imp-bf62d289bb-componentes-861c66b1",
+      "status": 200,
+      "ms": 6,
+      "total": 600,
+      "products": 16,
+      "view": "cards"
+    },
+    {
+      "label": "BikerShop",
+      "href": "/plp/imp-bf62d289bb-bikershop-9f92d709",
+      "status": 200,
+      "ms": 154,
+      "total": 0,
+      "products": 0,
+      "view": "cards"
+    },
+    {
+      "label": "BikerShop",
+      "href": "/plp/imp-bf62d289bb-bikershop-a7371a92",
+      "status": 200,
+      "ms": 123,
+      "total": 239,
+      "products": 16,
+      "view": "cards"
+    }
+  ],
+  "repeats": [
+    {
+      "round": 1,
+      "label": "Bike Brakes",
+      "href": "/plp/bike-brakes",
+      "status": 200,
+      "ms": 190,
+      "total": 20,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "Bike Cockpit",
+      "href": "/plp/bike-cockpit",
+      "status": 200,
+      "ms": 150,
+      "total": 20,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "Bike Drivetrain",
+      "href": "/plp/bike-drivetrain",
+      "status": 200,
+      "ms": 404,
+      "total": 20,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "Bike Workshop",
+      "href": "/plp/bike-workshop",
+      "status": 200,
+      "ms": 151,
+      "total": 20,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "BikerShop",
+      "href": "/plp/imp-bf62d289bb-bikershop-9f92d709",
+      "status": 200,
+      "ms": 116,
+      "total": 0,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "Electrónica bike",
+      "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059",
+      "status": 200,
+      "ms": 101,
+      "total": 1,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "Nutritiom-pro",
+      "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772",
+      "status": 200,
+      "ms": 91,
+      "total": 10,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "nutritions",
+      "href": "/plp/imp-bf62d289bb-nutritions-8084421f",
+      "status": 200,
+      "ms": 191,
+      "total": 20,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "bicicletas",
+      "href": "/plp/imp-bf62d289bb-bicicletas-013320a6",
+      "status": 200,
+      "ms": 138,
+      "total": 500,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "BikerShop",
+      "href": "/plp/imp-bf62d289bb-bikershop-a7371a92",
+      "status": 200,
+      "ms": 87,
+      "total": 239,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "Ropa ciclismo",
+      "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57",
+      "status": 200,
+      "ms": 92,
+      "total": 44,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "Accesorios y componentes",
+      "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a",
+      "status": 200,
+      "ms": 90,
+      "total": 25,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "Zapatillas carretera",
+      "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba",
+      "status": 200,
+      "ms": 86,
+      "total": 37,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "Electrónica bike",
+      "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e",
+      "status": 200,
+      "ms": 84,
+      "total": 109,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "Zapatillas MTB",
+      "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d",
+      "status": 200,
+      "ms": 86,
+      "total": 46,
+      "source": "readindex",
+      "cache": "miss"
+    },
+    {
+      "round": 1,
+      "label": "componentes",
+      "href": "/plp/imp-bf62d289bb-componentes-861c66b1",
+      "status": 200,
+      "ms": 4,
+      "total": 600,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "Bike Brakes",
+      "href": "/plp/bike-brakes",
+      "status": 200,
+      "ms": 4,
+      "total": 20,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "Bike Cockpit",
+      "href": "/plp/bike-cockpit",
+      "status": 200,
+      "ms": 4,
+      "total": 20,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "Bike Drivetrain",
+      "href": "/plp/bike-drivetrain",
+      "status": 200,
+      "ms": 5,
+      "total": 20,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "Bike Workshop",
+      "href": "/plp/bike-workshop",
+      "status": 200,
+      "ms": 3,
+      "total": 20,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "BikerShop",
+      "href": "/plp/imp-bf62d289bb-bikershop-9f92d709",
+      "status": 200,
+      "ms": 3,
+      "total": 0,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "Electrónica bike",
+      "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059",
+      "status": 200,
+      "ms": 3,
+      "total": 1,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "Nutritiom-pro",
+      "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772",
+      "status": 200,
+      "ms": 3,
+      "total": 10,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "nutritions",
+      "href": "/plp/imp-bf62d289bb-nutritions-8084421f",
+      "status": 200,
+      "ms": 1,
+      "total": 20,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "bicicletas",
+      "href": "/plp/imp-bf62d289bb-bicicletas-013320a6",
+      "status": 200,
+      "ms": 3,
+      "total": 500,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "BikerShop",
+      "href": "/plp/imp-bf62d289bb-bikershop-a7371a92",
+      "status": 200,
+      "ms": 3,
+      "total": 239,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "Ropa ciclismo",
+      "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57",
+      "status": 200,
+      "ms": 3,
+      "total": 44,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "Accesorios y componentes",
+      "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a",
+      "status": 200,
+      "ms": 2,
+      "total": 25,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "Zapatillas carretera",
+      "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba",
+      "status": 200,
+      "ms": 2,
+      "total": 37,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "Electrónica bike",
+      "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e",
+      "status": 200,
+      "ms": 2,
+      "total": 109,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "Zapatillas MTB",
+      "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d",
+      "status": 200,
+      "ms": 3,
+      "total": 46,
+      "source": "readindex",
+      "cache": "hit"
+    },
+    {
+      "round": 2,
+      "label": "componentes",
+      "href": "/plp/imp-bf62d289bb-componentes-861c66b1",
+      "status": 200,
+      "ms": 2,
+      "total": 600,
+      "source": "readindex",
+      "cache": "hit"
+    }
+  ],
+  "bikerShopRetries": [
+    {
+      "iteration": 1,
+      "heading": [
+        "BikerShop"
+      ],
+      "cards": 16,
+      "error": []
+    },
+    {
+      "iteration": 2,
+      "heading": [
+        "BikerShop"
+      ],
+      "cards": 16,
+      "error": []
+    },
+    {
+      "iteration": 3,
+      "heading": [
+        "BikerShop"
+      ],
+      "cards": 16,
+      "error": []
+    }
+  ],
+  "context": {
+    "organizationId": "11111111-1111-4111-8111-111111111111",
+    "shopId": "22222222-2222-4222-8222-222222222222",
+    "locale": "es-ES",
+    "currency": "EUR",
+    "country": "ES",
+    "channel": "web"
+  },
+  "cookies": [
+    "ec_consent_subject"
+  ]
+}

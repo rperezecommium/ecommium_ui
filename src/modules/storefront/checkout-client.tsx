@@ -1,5 +1,7 @@
 "use client";
 
+import { rotatePurchasedCart } from "./rotate-purchased-cart";
+
 import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Image from "next/image";
@@ -98,7 +100,7 @@ const defaultProfile = {
   email: "",
   firstName: "",
   lastName: "",
-  documentType: "dni",
+  documentType: "",
   document: "",
   phone: "",
 };
@@ -115,7 +117,7 @@ const defaultAddress = {
   postalCode: "",
   city: "",
   state: "",
-  country: "ES",
+  country: "",
   street: "",
   number: "",
   neighborhood: "",
@@ -348,6 +350,7 @@ export function StorefrontCheckoutClient() {
       setPendingAction(null);
       return;
     }
+    setValidationErrors((next) => ({ ...next, profile: undefined }));
     try {
       const action = contactMutationAction(checkoutContext);
       await applyOrderformAction(action, {
@@ -1936,6 +1939,10 @@ function validateProfile(profile: CheckoutProfile, authenticated: boolean) {
     errors.push("Introduce un teléfono válido.");
   }
 
+  if (Boolean(profile.documentType.trim()) !== Boolean(profile.document.trim())) {
+    errors.push("Indica el tipo y el número de documento, o deja ambos vacíos.");
+  }
+
   return errors;
 }
 
@@ -2236,7 +2243,6 @@ function buildShippingOptionsPayload(orderform: StorefrontOrderform, address: ty
       refId: item.refId,
       quantity: item.quantity,
       priceMinor: cartItemUnitPriceMinor(item),
-      weightGrams: 1500,
     })),
   };
 }
@@ -2346,7 +2352,7 @@ function buildPaymentTransactionPayload(input: {
     transactionId: input.transactionId,
     referenceId: orderFormId,
     channel: "storefront",
-    salesChannel: "web",
+    salesChannel: input.orderform.commercialContext?.channel,
     paymentSystemId: input.method.paymentSystemId,
     country: paymentCountry(input.orderform),
     valueMinor: Math.max(0, Math.round(amountMinor)),
@@ -2357,7 +2363,7 @@ function buildPaymentTransactionPayload(input: {
       returnUrl: urls.returnUrl,
       cancelUrl: urls.cancelUrl,
       brandName: "Ecommium",
-      locale: "es-ES",
+      locale: input.orderform.commercialContext?.locale,
       userAction: "PAY_NOW",
       landingPage: "LOGIN",
       paymentMethodId: input.method.paymentSystemId,
@@ -2415,7 +2421,7 @@ function buildPaymentInventorySnapshot(orderform: StorefrontOrderform, transacti
   return {
     saleId: transactionId,
     orderFormId: orderform.orderFormId ?? "",
-    warehouseId: findWarehouseId(orderform.shippingData) ?? "warehouse-default",
+    warehouseId: findWarehouseId(orderform.shippingData),
     items: orderform.items
       .map((item) => ({
         variantId: item.variantId ?? "",
@@ -2426,7 +2432,7 @@ function buildPaymentInventorySnapshot(orderform: StorefrontOrderform, transacti
 }
 
 function paymentCountry(orderform: StorefrontOrderform) {
-  return findCountry(orderform.shippingData) ?? "ES";
+  return findCountry(orderform.shippingData) ?? orderform.commercialContext?.country;
 }
 
 function findCountry(value: unknown): string | undefined {
@@ -2624,39 +2630,7 @@ async function clearCheckoutCart(orderform: StorefrontOrderform, guestSessionId:
     return;
   }
 
-  const response = await fetch("/api/storefront/cart/items", {
-    method: "DELETE",
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      guestSessionId,
-      orderFormId: orderform.orderFormId,
-    }),
-  });
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(`El pedido se creó, pero no pudimos vaciar el carrito: ${errorMessage(payload)}`);
-  }
-
-  const clearedOrderform = normalizeOrderformPayload(payload);
-  if (clearedOrderform.items.length > 0) {
-    throw new Error("El pedido se creó, pero el carrito no quedó vacío. Actualiza la página antes de continuar.");
-  }
-
-  const params = new URLSearchParams({ forceNewCart: "true", guestSessionId });
-  const nextResponse = await fetch(`/api/storefront/cart?${params.toString()}`, {
-    cache: "no-store",
-    credentials: "same-origin",
-  });
-  const nextPayload = await nextResponse.json().catch(() => ({}));
-  if (!nextResponse.ok) {
-    throw new Error(`El pedido se creó, pero no pudimos preparar un carrito nuevo: ${errorMessage(nextPayload)}`);
-  }
-
+  const nextPayload = await rotatePurchasedCart(orderform.orderFormId, guestSessionId);
   const nextOrderform = normalizeOrderformPayload(nextPayload);
   if (nextOrderform.items.length > 0) {
     throw new Error("El pedido se creó, pero el nuevo carrito contiene artículos. Actualiza la página antes de continuar.");

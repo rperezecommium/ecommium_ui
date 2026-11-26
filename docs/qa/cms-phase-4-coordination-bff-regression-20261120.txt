@@ -1,0 +1,9 @@
+PASS src/modules/cms/presentation/http/cms-admin.controller.spec.ts
+PASS src/modules/cms/application/use-cases/manage-admin-cms.use-case.spec.ts
+PASS src/shared/cms-client/infrastructure/api-v1/cms-client.api-v1.spec.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       27 passed, 27 total
+Snapshots:   0 total
+Time:        2.555 s, estimated 6 s
+Ran all test suites within paths "src/modules/cms/application/use-cases/manage-admin-cms.use-case.spec.ts", "src/modules/cms/presentation/http/cms-admin.controller.spec.ts", "src/shared/cms-client/infrastructure/api-v1/cms-client.api-v1.spec.ts".

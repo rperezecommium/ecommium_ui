@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { StorefrontCartPageClient } from "../../src/modules/storefront/cart-client";
-import { StorefrontHeader } from "../../src/modules/storefront/plp-page";
+import { StorefrontPageShell } from "../../src/modules/storefront/storefront-header";
 
 export default function StorefrontCartPage() {
   return (
     <main className="storefrontPage">
-      <StorefrontHeader />
+      <StorefrontPageShell surface="CART">
       <div className="storefrontShell">
         <nav className="storefrontBreadcrumb">
           <Link href="/">Inicio</Link>
@@ -14,6 +14,7 @@ export default function StorefrontCartPage() {
         </nav>
         <StorefrontCartPageClient />
       </div>
+      </StorefrontPageShell>
     </main>
   );
 }

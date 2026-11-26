@@ -1,0 +1,8 @@
+{
+  "pageId": "f120030d-730c-4074-9b0a-61ff45afe966",
+  "status": "PASS",
+  "checks": [
+    "Real UI inspector edits and persists a migrated visual with no declared content fields",
+    "Reopened UI restores the original text and saves without changing the public version"
+  ]
+}

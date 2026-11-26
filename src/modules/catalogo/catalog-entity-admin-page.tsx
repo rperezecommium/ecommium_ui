@@ -1,24 +1,35 @@
 "use client";
+import { useId, useRef, useState } from "react";
+import { AdminResourceDrawer } from "../../shared/ui/admin-resource-drawer";
+import {AdminMutationForm} from "../../shared/ui/admin-mutation-form";
+import type {AdminFormState} from "../../shared/validation/admin-form-state";
 
 import Link from "next/link";
+import { CatalogEntityFields } from "./catalog-entity-fields";
 import type { CatalogEntityListResult } from "./catalog-taxonomy";
 
 type EntityAction = (formData: FormData) => Promise<void>;
 
 type CatalogEntityAdminPageProps = {
+  kind: "categories"|"brands";
+  createDrawerOpen?: boolean;
+  canCreate: boolean;
   title: string;
   description: string;
   breadcrumb: string;
   list: CatalogEntityListResult;
   q: string;
   status: string;
-  createAction: EntityAction;
+  createAction: (state:AdminFormState,data:FormData)=>Promise<AdminFormState>;
   updateAction: EntityAction;
   softDeleteAction: EntityAction;
   hardDeleteAction: EntityAction;
 };
 
 export function CatalogEntityAdminPage({
+  kind,
+  createDrawerOpen = false,
+  canCreate,
   title,
   description,
   breadcrumb,
@@ -30,8 +41,15 @@ export function CatalogEntityAdminPage({
   softDeleteAction,
   hardDeleteAction,
 }: CatalogEntityAdminPageProps) {
+  const isCategories = kind === "categories";
+  const query = new URLSearchParams({ q, status });
+  const listHref = `/admin/catalogo/${isCategories ? "categorias" : "marcas"}?${query}`;
+  const creationForm = (<AdminMutationForm action={createAction} label={kind==='categories'?'Crear categoría':'Crear marca'} className="adminForm">
+          <CatalogEntityFields kind={kind} />
+          <button className="adminButton adminButtonPrimary" type="submit">Crear nueva</button>
+        </AdminMutationForm>);
   return (
-    <main className="adminPage">
+    <main className={`adminPage catalogEntityListPage ${isCategories ? "categoryListPage" : "brandListPage"}`}>
       <div className="adminBreadcrumb">Admin / Catalogo / {breadcrumb}</div>
       <div className="adminPageHeader">
         <div>
@@ -50,37 +68,18 @@ export function CatalogEntityAdminPage({
         </div>
       ) : null}
 
-      <section className="adminCard">
-        <div className="adminCardHeader">
-          <div>
-            <h2>Listado</h2>
-            <p>{list.total} registros encontrados.</p>
-          </div>
-          <form className="adminButtonRow" method="get">
-            <input aria-label="Buscar" className="adminFilterInput" defaultValue={q} name="q" placeholder="Buscar por nombre" />
-            <select aria-label="Estado" defaultValue={status} name="status">
-              <option value="active">Activos</option>
-              <option value="inactive">Inactivos</option>
-              <option value="all">Todos</option>
-            </select>
-            <button className="adminButton" type="submit">Filtrar</button>
-          </form>
+      <>
+        <div className="employeesToolbar">
+          <p className="adminMuted">{list.total} {isCategories ? "categorías encontradas" : "marcas / proveedores encontrados"}.</p>
+          {canCreate ? <Link className="employeesTextAction" href={`${listHref}&drawer=create`}>Crear nueva</Link> : null}
         </div>
-
-        <form action={createAction} className="adminInlineCreateForm">
-          <label className="adminField">
-            <span>Nombre</span>
-            <input name="name" placeholder={`Nueva ${breadcrumb.toLowerCase()}`} />
-          </label>
-          <label className="adminCheckbox">
-            <input defaultChecked name="isActive" type="checkbox" />
-            Activa
-          </label>
-          <button className="adminButton adminButtonPrimary" type="submit">
-            Crear nueva
-          </button>
+        <form className="catalogEntitySearchForm" method="get" aria-label={isCategories ? "Buscar categorías" : "Buscar marcas / proveedores"}>
+          <label className="adminField"><span>Buscar</span><input defaultValue={q} name="q" placeholder="Buscar por nombre" /></label>
+          <label className="adminField"><span>Estado</span><select defaultValue={status} name="status"><option value="active">Activos</option><option value="inactive">Inactivos</option><option value="all">Todos</option></select></label>
+          <button className="adminButton adminButtonPrimary" type="submit">Buscar</button>
         </form>
-
+      </>
+      <section className="employeesWorkspace">
         {list.items.length === 0 ? (
           <div className="adminEmptyState">
             <h2>Sin registros</h2>
@@ -103,7 +102,7 @@ export function CatalogEntityAdminPage({
                 {list.items.map((item) => (
                   <tr key={item.id}>
                     <td>
-                      <form action={updateAction} className="adminTableEditForm">
+                      {canCreate?<form action={updateAction} className="adminTableEditForm">
                         <input name="id" type="hidden" value={item.id} />
                         <input aria-label={`Nombre ${item.label}`} defaultValue={item.label} name="name" />
                         <label className="adminCheckbox">
@@ -111,7 +110,7 @@ export function CatalogEntityAdminPage({
                           Activa
                         </label>
                         <button className="adminButton" type="submit">Guardar</button>
-                      </form>
+                      </form>:item.label}
                     </td>
                     <td>{item.slug ?? "-"}</td>
                     <td>
@@ -122,23 +121,7 @@ export function CatalogEntityAdminPage({
                     <td>{item.productCount ?? 0}</td>
                     <td>{item.updatedAt ?? "-"}</td>
                     <td>
-                      <div className="adminButtonRow">
-                        <form action={softDeleteAction}>
-                          <input name="id" type="hidden" value={item.id} />
-                          <button className="adminButton" type="submit">Eliminar soft</button>
-                        </form>
-                        <form
-                          action={hardDeleteAction}
-                          onSubmit={(event) => {
-                            if (!window.confirm(`Eliminar definitivamente "${item.label}"?`)) {
-                              event.preventDefault();
-                            }
-                          }}
-                        >
-                          <input name="id" type="hidden" value={item.id} />
-                          <button className="adminButton adminButtonDanger" type="submit">Eliminar hard</button>
-                        </form>
-                      </div>
+                      {canCreate ? <CatalogEntityActionsMenu id={item.id} label={item.label} softDeleteAction={softDeleteAction} hardDeleteAction={hardDeleteAction} /> : null}
                     </td>
                   </tr>
                 ))}
@@ -147,6 +130,37 @@ export function CatalogEntityAdminPage({
           </div>
         )}
       </section>
+      {canCreate && createDrawerOpen ? <AdminResourceDrawer drawerId="catalog-entity-admin-page-1" title={isCategories ? "Crear categoría" : "Crear marca"} description={isCategories ? "Añade los datos de la categoría para la tienda y el locale activos." : "Añade los datos de la marca o proveedor para la tienda y el locale activos."} closeHref={listHref}>
+        {creationForm}
+      </AdminResourceDrawer> : null}
     </main>
   );
+}
+
+function CatalogEntityActionsMenu({ id, label, softDeleteAction, hardDeleteAction }: {
+  id: string; label: string; softDeleteAction: EntityAction; hardDeleteAction: EntityAction;
+}) {
+  const popupId = useId();
+  const popup = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({left:0,top:0});
+  return <>
+    <button type="button" className="adminButton adminButtonTiny" aria-label={`Acciones de ${label}`} popoverTarget={popupId}
+      onClick={event => {
+        const rect=event.currentTarget.getBoundingClientRect();
+        setPosition({left:Math.max(8,Math.min(rect.right-190,window.innerWidth-198)),top:Math.max(8,Math.min(rect.bottom+4,window.innerHeight-112))});
+      }}>…</button>
+    <div id={popupId} ref={popup} popover="auto" className="catalogEntityActionsPopover" style={position}>
+      <form action={softDeleteAction} onSubmit={() => popup.current?.hidePopover()}>
+        <input name="id" type="hidden" value={id} />
+        <button className="adminButton" type="submit">Eliminar soft</button>
+      </form>
+      <form action={hardDeleteAction} onSubmit={event => {
+        if (!window.confirm(`Eliminar definitivamente "${label}"? Esta acción no se puede deshacer.`)) event.preventDefault();
+        else popup.current?.hidePopover();
+      }}>
+        <input name="id" type="hidden" value={id} />
+        <button className="adminButton adminButtonDanger" type="submit">Eliminar hard</button>
+      </form>
+    </div>
+  </>;
 }

@@ -1,0 +1,15 @@
+.panel { margin: 16px 0; padding: 16px; border: 1px solid var(--admin-border); border-radius: 6px; background: var(--admin-surface); color: var(--admin-text); }
+.heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.heading h2 { margin:0; font-size:14px; }
+.body { display:flex; align-items:flex-start; gap:8px; margin-top:12px; }
+.body svg { flex-shrink:0; }
+.body p { margin:0; font-size:13px; line-height:1.6; }
+.context,.details { margin:10px 0; font-size:12px; }
+.details summary { cursor:pointer; }
+.error { color:var(--admin-text); border-left:3px solid var(--admin-danger); padding-left:8px; font-size:13px; }
+.spinner { animation:preparation-spin 1s linear infinite; }
+@keyframes preparation-spin { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .spinner { animation:none; } }
+@media(max-width:600px) { .heading { align-items:flex-start; flex-direction:column; }.panel button { width:100%; justify-content:center; min-height:40px; } }
+
+.heading :global(.adminBadge) { color: var(--admin-text); }

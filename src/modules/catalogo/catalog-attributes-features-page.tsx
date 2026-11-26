@@ -1,5 +1,12 @@
+import {FeatureDeletionButton} from './feature-deletion-button';
+import {FeatureDeletionStatusPanel} from './feature-deletion-status';
+import { FeatureDeactivationButton } from './feature-deactivation-button';
+import { AdminResourceDrawer } from "../../shared/ui/admin-resource-drawer";
+import { CatalogFeatureCreateFields, FeatureToggles } from "./catalog-feature-create-fields";
 import Link from "next/link";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { AdminMutationForm } from "../../shared/ui/admin-mutation-form";
+import type { AdminFormState } from "../../shared/validation/admin-form-state";
+import { Pencil, Plus, X } from "lucide-react";
 import type { CatalogEntityListResult } from "./catalog-taxonomy";
 import {
   filterAttributeFeatureFields,
@@ -14,11 +21,18 @@ type Props = {
   data: CatalogAttributeFeatureData;
   categories: CatalogEntityListResult;
   filters: CatalogAttributeFeatureFilters;
-  createAction: Action;
+  createdFieldId?: string;
+  mutationError?: string;
+  updatedFieldId?: string;
+  expectedActive?: string;
+  createAction: (state: AdminFormState, data: FormData) => Promise<AdminFormState>;
   updateAction: Action;
   addValueAction: Action;
   removeValueAction: Action;
-  deactivateAction: Action;
+  deletionEnabled?: boolean;
+  deletionOperationId?: string;
+  deletionContext?: {organizationId:string;shopId:string;locale:string;shopName:string};
+  deactivationContext?: {organizationId:string;shopId:string;locale:string;shopName:string};
 };
 
 function featureHref(filters: CatalogAttributeFeatureFilters, overrides: Partial<CatalogAttributeFeatureFilters> = {}) {
@@ -69,35 +83,26 @@ function FieldValueChips({
   );
 }
 
-function FeatureToggles({ field }: { field?: CatalogSpecificationField }) {
-  return (
-    <div className="adminFeatureToggleGroup">
-      <label className="adminSwitch">
-        <input defaultChecked={field?.isActive ?? true} name="isActive" type="checkbox" />
-        <span>Activa</span>
-      </label>
-      <label className="adminSwitch">
-        <input defaultChecked={field?.isFilter ?? true} name="isFilter" type="checkbox" />
-        <span>Filtrable</span>
-      </label>
-      <label className="adminSwitch">
-        <input defaultChecked={field?.isOnProductDetails ?? true} name="isOnProductDetails" type="checkbox" />
-        <span>Visible en ficha</span>
-      </label>
-    </div>
-  );
-}
-
 export function CatalogAttributesFeaturesPage({
   data,
   categories,
   filters,
+  createdFieldId,
+  mutationError,
+  updatedFieldId,
+  expectedActive,
   createAction,
   updateAction,
   addValueAction,
   removeValueAction,
-  deactivateAction,
+  deactivationContext,
+  deletionContext,
+  deletionOperationId,
+  deletionEnabled,
 }: Props) {
+  const updatedField = updatedFieldId ? data.fields.find(field => field.fieldId === updatedFieldId) : undefined;
+  const updateConfirmed = Boolean(updatedFieldId && (expectedActive === "true" || expectedActive === "false"));
+  const updatePending = updateConfirmed && (!updatedField || updatedField.isActive !== (expectedActive === "true"));
   const activeFields = filterAttributeFeatureFields(data.fields, filters);
   const selectedField = filters.fieldId ? data.fields.find((field) => field.fieldId === filters.fieldId) : undefined;
   const isCreatePanel = filters.panel === "create";
@@ -137,35 +142,42 @@ export function CatalogAttributesFeaturesPage({
         groupPlaceholder: "Ficha tecnica",
       };
   const closeDrawerHref = featureHref(filters, { panel: "", fieldId: "" });
+  const createdFieldVisible = Boolean(createdFieldId && data.fields.some(field => field.fieldId === createdFieldId));
+  const refreshCreationHref = `${closeDrawerHref}${createdFieldId ? `&createdFieldId=${encodeURIComponent(createdFieldId)}` : ""}`;
 
   return (
-    <main className={`adminPage adminFeaturePage ${showDrawer ? "adminFeaturePageWithDrawer" : ""}`}>
+    <main className={`adminPage productListPage adminFeaturePage ${showDrawer ? "adminFeaturePageWithDrawer" : ""}`}>
       <div className="adminFeatureContent">
+        {createdFieldId ? <div className="adminBanner adminBannerInfo" role="status">
+          <p>{createdFieldVisible ? "Registro creado y disponible en el listado." : "Creación confirmada. El registro todavía no está disponible en el listado. No lo crees de nuevo."}</p>
+          {!createdFieldVisible ? <Link className="adminButton adminButtonTiny" href={refreshCreationHref}>Actualizar listado</Link> : null}
+        </div> : null}
         <div className="adminBreadcrumb">{copy.breadcrumb}</div>
         <div className="adminPageHeader">
           <div>
             <h1 className="adminPageTitle">{copy.title}</h1>
-            <p className="adminPageIntro">{copy.intro}</p>
-          </div>
-          <div className="adminButtonRow">
-            <Link className="adminButton" href="/admin/products">
-              Volver a productos
-            </Link>
-            <Link className="adminButton adminButtonPrimary" href={featureHref(filters, { panel: "create", fieldId: "" })}>
-              <Plus aria-hidden="true" size={16} />
-              {copy.create}
-            </Link>
           </div>
         </div>
 
-        <nav aria-label="Tipo de dato catalogo" className="adminFeatureModeNav">
-          <Link className={`adminFeatureModeLink ${isAttributesTab ? "adminFeatureModeLinkActive" : ""}`} href={featureHref(filters, { tab: "attributes", panel: "", fieldId: "" })}>
-            Atributos
+        <div className="employeesToolbar adminFeatureToolbar">
+          <nav aria-label="Tipo de dato catalogo" className="productEditorTabs pricingTabs">
+            <Link aria-current={isAttributesTab ? "page" : undefined} className={`productEditorTab ${isAttributesTab ? "productEditorTabActive" : ""}`} href={featureHref(filters, { tab: "attributes", panel: "", fieldId: "" })}>
+              Atributos
+            </Link>
+            <Link aria-current={!isAttributesTab ? "page" : undefined} className={`productEditorTab ${!isAttributesTab ? "productEditorTabActive" : ""}`} href={featureHref(filters, { tab: "features", panel: "", fieldId: "" })}>
+              Caracteristicas
+            </Link>
+          </nav>
+          <Link className="employeesTextAction" href={featureHref(filters, { panel: "create", fieldId: "" })}>
+            {copy.create}
           </Link>
-          <Link className={`adminFeatureModeLink ${!isAttributesTab ? "adminFeatureModeLinkActive" : ""}`} href={featureHref(filters, { tab: "features", panel: "", fieldId: "" })}>
-            Caracteristicas
-          </Link>
-        </nav>
+        </div>
+
+        {deletionContext && deletionOperationId ? <FeatureDeletionStatusPanel key={`${deletionOperationId}:${deletionContext.shopId}`} operationId={deletionOperationId} {...deletionContext}/> : null}
+        {updateConfirmed ? <div className={`adminBanner ${updatePending ? "adminBannerWarning" : "adminBannerSuccess"}`} role="status">
+          {updatePending ? "El BFF confirmó el cambio de estado, pero el listado todavía no lo refleja. No repitas la operación; pulsa Refrescar para comprobar la lectura." : "El listado refleja el cambio de estado confirmado por el BFF."}
+        </div> : null}
+        {mutationError ? <div className="adminBanner adminBannerError" role="alert">{mutationError}</div> : null}
 
         {data.source === "unavailable" ? (
           <div className="adminBanner adminBannerError">
@@ -174,49 +186,46 @@ export function CatalogAttributesFeaturesPage({
           </div>
         ) : null}
 
-        <section className="adminFeatureListArea" aria-label={copy.listTitle}>
-          <div className="adminFeatureListHeader">
+        <form aria-label="Filtros superiores" className="productListSearchPanel adminFeatureFilterBar" method="get">
+          <input name="tab" type="hidden" value={tab} />
+          <label className="adminField">
+            <span>ID</span>
+            <input aria-label="Filtrar por ID superior" defaultValue={filters.id ?? ""} name="id" placeholder="ID" />
+          </label>
+          <label className="adminField adminFeatureFilterName">
+            <span>Nombre</span>
+            <input aria-label="Filtrar por nombre superior" defaultValue={filters.q ?? ""} name="q" placeholder={isAttributesTab ? "Color" : "Nombre"} />
+          </label>
+          <label className="adminField">
+            <span>Grupo</span>
+            <input aria-label="Filtrar por grupo superior" defaultValue={filters.group ?? ""} name="group" placeholder="Ficha tecnica" />
+          </label>
+          <label className="adminField">
+            <span>Estado</span>
+            <select aria-label="Filtrar por estado superior" defaultValue={filters.status ?? "active"} name="status">
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+              <option value="all">Todos</option>
+            </select>
+          </label>
+          <button className="adminButton adminButtonPrimary" type="submit">Buscar</button>
+          <Link className="productListToolbarTrigger" href={`/admin/catalogo/atributos-caracteristicas?${new URLSearchParams({tab, ...(updateConfirmed ? {updatedFieldId: updatedFieldId!, expectedActive: expectedActive!} : {})})}`}>
+            Limpiar
+          </Link>
+        </form>
+
+        <section className="productListGrid adminFeatureListArea" aria-label={copy.listTitle}>
+          <div className="adminCardHeader productListGridHeader adminFeatureListHeader">
             <div>
-              <h2>{copy.listTitle}</h2>
-              <p>{activeFields.length} registros encontrados.</p>
+              <h2>{copy.listTitle} ({activeFields.length})</h2>
             </div>
             <div className="adminButtonRow">
-              <Link className="adminButton" href={`/admin/catalogo/atributos-caracteristicas?tab=${tab}`}>
+              <Link className="productListToolbarTrigger" href={`/admin/catalogo/atributos-caracteristicas?${new URLSearchParams({tab, ...(updateConfirmed ? {updatedFieldId: updatedFieldId!, expectedActive: expectedActive!} : {})})}`}>
                 Refrescar
-              </Link>
-              <Link className="adminButton" href="/admin/products/new">
-                Usar en producto
               </Link>
             </div>
           </div>
 
-          <form aria-label="Filtros superiores" className="adminFeatureFilterBar" method="get">
-            <input name="tab" type="hidden" value={tab} />
-            <label className="adminField">
-              <span>ID</span>
-              <input aria-label="Filtrar por ID superior" defaultValue={filters.id ?? ""} name="id" placeholder="ID" />
-            </label>
-            <label className="adminField adminFeatureFilterName">
-              <span>Nombre</span>
-              <input aria-label="Filtrar por nombre superior" defaultValue={filters.q ?? ""} name="q" placeholder={isAttributesTab ? "Color" : "Nombre"} />
-            </label>
-            <label className="adminField">
-              <span>Grupo</span>
-              <input aria-label="Filtrar por grupo superior" defaultValue={filters.group ?? ""} name="group" placeholder="Ficha tecnica" />
-            </label>
-            <label className="adminField">
-              <span>Estado</span>
-              <select aria-label="Filtrar por estado superior" defaultValue={filters.status ?? "active"} name="status">
-                <option value="active">Activos</option>
-                <option value="inactive">Inactivos</option>
-                <option value="all">Todos</option>
-              </select>
-            </label>
-            <button className="adminButton adminButtonPrimary" type="submit">Buscar</button>
-            <Link className="adminButton" href={`/admin/catalogo/atributos-caracteristicas?tab=${tab}`}>
-              Limpiar
-            </Link>
-          </form>
 
           {activeFields.length === 0 ? (
             <div className="adminEmptyState">
@@ -224,8 +233,8 @@ export function CatalogAttributesFeaturesPage({
               <p>{copy.empty}</p>
             </div>
           ) : (
-            <div className="adminFeatureTableShell">
-              <table className="adminTable adminFeatureTable">
+            <div className="adminTableScroller adminFeatureTableShell">
+              <table className="adminTable productListTable adminFeatureTable">
                 <thead>
                   <tr>
                     <th scope="col">ID</th>
@@ -245,17 +254,26 @@ export function CatalogAttributesFeaturesPage({
                       <td>
                         <div className="adminFeatureNameCell">
                           <strong>{field.name}</strong>
-                          <span>Pos. {field.position}</span>
                         </div>
                       </td>
                       <td>
                         <div className="adminFeatureNameCell">
                           <strong>{field.groupName}</strong>
-                          <span>{field.isStockKeepingUnit ? "Combinacion" : "Ficha tecnica"}</span>
                         </div>
                       </td>
                       <td>
-                        <FieldValueChips field={field} removeValueAction={removeValueAction} />
+                        {activeValues(field).length > 0 ? (
+                          <select
+                            aria-label={`Valores de ${field.name}`}
+                            className="adminFeatureValueSelect"
+                            defaultValue=""
+                          >
+                            <option disabled value="">Ver valores ({activeValues(field).length})</option>
+                            {activeValues(field).map((value) => (
+                              <option key={value.fieldValueId} value={value.fieldValueId}>{value.name}</option>
+                            ))}
+                          </select>
+                        ) : <span className="adminMuted">Sin valores</span>}
                       </td>
                       <td>
                         <span className={`adminBadge ${field.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>
@@ -272,16 +290,8 @@ export function CatalogAttributesFeaturesPage({
                           >
                             <Pencil aria-hidden="true" size={16} />
                           </Link>
-                          <form action={deactivateAction} aria-label={`Eliminar ${field.name}`}>
-                            <input name="groupId" type="hidden" value={field.groupId} />
-                            <input name="fieldId" type="hidden" value={field.fieldId} />
-                            <input name="name" type="hidden" value={field.name} />
-                            <input name="isFilter" type="hidden" value={String(field.isFilter)} />
-                            <input name="isOnProductDetails" type="hidden" value={String(field.isOnProductDetails)} />
-                            <button aria-label={`Eliminar ${field.name}`} className="adminIconButton adminIconButtonDanger" title="Eliminar" type="submit">
-                              <Trash2 aria-hidden="true" size={16} />
-                            </button>
-                          </form>
+                          {field.isActive && deactivationContext ? <FeatureDeactivationButton key={`${field.fieldId}:${deactivationContext.shopId}:${deactivationContext.locale}`} {...deactivationContext} groupId={field.groupId} fieldId={field.fieldId} name={field.name} compact /> : null}
+                          {deletionContext && deletionEnabled ? <FeatureDeletionButton key={`delete:${field.fieldId}:${deletionContext.shopId}`} {...deletionContext} groupId={field.groupId} fieldId={field.fieldId} name={field.name} compact/> : null}
                         </div>
                       </td>
                     </tr>
@@ -294,64 +304,19 @@ export function CatalogAttributesFeaturesPage({
       </div>
 
       {showDrawer ? (
-        <>
-          <div aria-hidden="true" className="adminFeatureDrawerBackdrop" />
-          <aside aria-labelledby="feature-drawer-title" aria-modal="true" className="adminFeatureDrawer" role="dialog">
-            <div className="adminFeatureDrawerHeader">
-              <h2 id="feature-drawer-title">
-                {isCreatePanel ? copy.create : `${copy.edit}: ${selectedField?.fieldId.slice(0, 8)}`}
-              </h2>
-              <Link aria-label="Cerrar panel" className="adminIconButton" href={closeDrawerHref}>
-                <X aria-hidden="true" size={18} />
-              </Link>
-            </div>
-
+        <AdminResourceDrawer drawerId={`catalog-definition-${tab}`} title={isCreatePanel ? copy.create : `${copy.edit}: ${selectedField?.fieldId.slice(0, 8)}`} description="Define los campos y valores del catálogo de la tienda actual." closeHref={closeDrawerHref}>
             {isCreatePanel ? (
-              <form action={createAction} aria-label={copy.create} className="adminFeatureDrawerBody">
+              <AdminMutationForm action={createAction} label={copy.create} className="adminFeatureDrawerBody">
                 <input name="tab" type="hidden" value={tab} />
                 <div className="adminFeatureReadOnlyLine">
                   <span>ID</span>
                   <strong>Nuevo</strong>
                 </div>
-                <label className="adminField">
-                  <span>Nombre</span>
-                  <input name="name" placeholder={copy.namePlaceholder} required />
-                </label>
-                <label className="adminField">
-                  <span>Grupo</span>
-                  <select name="groupId">
-                    <option value="">Crear grupo nuevo</option>
-                    {data.groups.map((group) => (
-                      <option key={group.specificationGroupId} value={group.specificationGroupId}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="adminField">
-                  <span>Grupo nuevo</span>
-                  <input name="groupName" placeholder={copy.groupPlaceholder} />
-                </label>
-                <label className="adminField">
-                  <span>Categoria</span>
-                  <select name="categoryId" required>
-                    <option value="">Seleccionar categoria</option>
-                    {categories.items.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="adminField">
-                  <span>{copy.values}</span>
-                  <input name="values" placeholder={copy.valuePlaceholder} />
-                </label>
-                <FeatureToggles />
+                <CatalogFeatureCreateFields categories={categories.items} groups={data.groups.map(group => ({ id: group.specificationGroupId, label: group.name, categoryIds: [group.categoryId, ...group.linkedCategoryIds] }))} namePlaceholder={copy.namePlaceholder} valuesLabel={copy.values} valuePlaceholder={copy.valuePlaceholder} groupPlaceholder={copy.groupPlaceholder} />
                 <button className="adminButton adminButtonPrimary" type="submit">
                   Guardar cambios
                 </button>
-              </form>
+              </AdminMutationForm>
             ) : null}
 
             {isEditPanel && selectedField ? (
@@ -361,7 +326,8 @@ export function CatalogAttributesFeaturesPage({
                   <strong>{selectedField.fieldId.slice(0, 8)}</strong>
                 </div>
                 <form action={updateAction} aria-label={`Editar ${selectedField.name}`} className="adminFeatureDrawerStack">
-                  <input name="groupId" type="hidden" value={selectedField.groupId} />
+                  <input name="tab" type="hidden" value={tab} />
+                    <input name="groupId" type="hidden" value={selectedField.groupId} />
                   <input name="fieldId" type="hidden" value={selectedField.fieldId} />
                   <label className="adminField">
                     <span>Nombre</span>
@@ -379,7 +345,7 @@ export function CatalogAttributesFeaturesPage({
                       </option>
                     </select>
                   </label>
-                  <FeatureToggles field={selectedField} />
+                  <FeatureToggles field={selectedField} preventDeactivation />
                   <button className="adminButton adminButtonPrimary" type="submit">
                     Guardar cambios
                   </button>
@@ -389,6 +355,7 @@ export function CatalogAttributesFeaturesPage({
                   <span className="adminFeatureDrawerLabel">{copy.values}</span>
                   <FieldValueChips field={selectedField} removeValueAction={removeValueAction} />
                   <form action={addValueAction} aria-label={`Anadir valor ${selectedField.name}`} className="adminFeatureAddValueForm">
+                    <input name="tab" type="hidden" value={tab} />
                     <input name="groupId" type="hidden" value={selectedField.groupId} />
                     <input name="fieldId" type="hidden" value={selectedField.fieldId} />
                     <input aria-label={`Nuevo valor ${selectedField.name}`} name="value" placeholder="Nuevo valor" />
@@ -398,20 +365,11 @@ export function CatalogAttributesFeaturesPage({
                   </form>
                 </section>
 
-                <form action={deactivateAction} aria-label={`Eliminar ${selectedField.name}`}>
-                  <input name="groupId" type="hidden" value={selectedField.groupId} />
-                  <input name="fieldId" type="hidden" value={selectedField.fieldId} />
-                  <input name="name" type="hidden" value={selectedField.name} />
-                  <input name="isFilter" type="hidden" value={String(selectedField.isFilter)} />
-                  <input name="isOnProductDetails" type="hidden" value={String(selectedField.isOnProductDetails)} />
-                  <button className="adminButton adminButtonDanger" type="submit">
-                    {copy.delete}
-                  </button>
-                </form>
+                {selectedField.isActive && deactivationContext ? <FeatureDeactivationButton key={`${selectedField.fieldId}:${deactivationContext.shopId}:${deactivationContext.locale}`} {...deactivationContext} groupId={selectedField.groupId} fieldId={selectedField.fieldId} name={selectedField.name} /> : null}
+                {deletionContext && deletionEnabled ? <FeatureDeletionButton key={`delete:${selectedField.fieldId}:${deletionContext.shopId}`} {...deletionContext} groupId={selectedField.groupId} fieldId={selectedField.fieldId} name={selectedField.name}/> : null}
               </div>
             ) : null}
-          </aside>
-        </>
+        </AdminResourceDrawer>
       ) : null}
     </main>
   );

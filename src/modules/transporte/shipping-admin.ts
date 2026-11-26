@@ -137,7 +137,6 @@ export type ShippingAdminData = {
 
 export type ShippingAdminFilters = {
   tab: ShippingAdminTab;
-  includeInactive?: boolean;
   quoteRequested?: boolean;
   postalCode?: string;
   city?: string;
@@ -477,7 +476,7 @@ export async function getShippingAdminData(
   };
   const configuration = filters.tab === "fulfillments"
     ? { source: "bff" as const, data: configurationFallback }
-    : await readShippingConfiguration(context, filters, configurationFallback);
+    : await readShippingConfiguration(context, configurationFallback);
   const quote = filters.tab === "quote" && filters.quoteRequested
     ? await resolveShippingQuote(context, filters)
     : null;
@@ -503,12 +502,9 @@ export async function getShippingAdminData(
 
 async function readShippingConfiguration(
   context: AdminContext,
-  filters: ShippingAdminFilters,
   fallback: ShippingConfigurationData,
 ): Promise<ShippingAdminResult<ShippingConfigurationData>> {
-  const params = makeScopedParams(context, {
-    includeInactive: filters.includeInactive ? "true" : "false",
-  });
+  const params = makeScopedParams(context);
   const endpoint = `/admin/shipping/configuration?${params.toString()}`;
   const result = await requestAdminBff(endpoint, {
     context,

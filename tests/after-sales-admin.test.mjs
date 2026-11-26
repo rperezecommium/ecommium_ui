@@ -119,7 +119,7 @@ test("after-sales admin route and navigation expose support cockpit", () => {
   assert.match(routeSource, /AfterSalesAdminPage/);
   assert.match(pageSource, /Postventa y soporte/);
   assert.match(pageSource, /Bandeja de casos/);
-  assert.match(pageSource, /Cola operativa/);
+  assert.doesNotMatch(pageSource, /Cola operativa/);
   assert.match(pageSource, /Mensaje del cliente/);
   assert.match(pageSource, /Evidencia pendiente/);
   assert.match(pageSource, /Propuesta rechazada/);
@@ -179,7 +179,7 @@ test("after-sales cases tray keeps its card scrollable", () => {
   const pageSource = readFileSync(path.resolve(root, "src/modules/postventa/after-sales-admin-page.tsx"), "utf8");
   const cardRule = cssSource.match(/\.afterSalesCasesCard\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
 
-  assert.match(pageSource, /adminCard afterSalesCasesCard/);
+  assert.match(pageSource, /productListGrid afterSalesCasesCard/);
   assert.match(cardRule, /overflow:\s*auto/);
 });
 
@@ -1048,4 +1048,51 @@ test("after-sales guided actions validate input and return public failure notice
     method: "POST",
   }]);
   assert.match(pageSource, /filters\.noticeKind === "error" \? "adminBannerError" : "adminBannerSuccess"/);
+});
+
+test("after-sales keeps canonical employee identity and principal alias for historical assignments", async () => {
+  const { getAfterSalesAdminData } = loadAfterSalesAdminModule(async (url, options = {}) => {
+    const payload = url.startsWith("/admin/employees?")
+      ? { items: [{ employeeId: "employee-1", principalId: "principal-1", firstName: "QA", lastName: "Employee", email: "qa@example.test", active: true, status: "ACTIVE" }] }
+      : { items: [], total: 0 };
+    return { ok: true, status: 200, data: options.parse ? options.parse(payload) : payload };
+  });
+  const data = await getAfterSalesAdminData(context, {}, { canViewAfterSales: true, canManageAfterSales: true });
+  assert.equal(data.employees.ok, true);
+  assert.equal(data.employees.data[0].employeeId, "employee-1");
+  assert.equal(data.employees.data[0].principalId, "principal-1");
+  assert.equal(data.employees.data[0].label, "QA Employee · qa@example.test");
+});
+
+test("opening a case retains detail and employee names within ReadIndex admission capacity", async () => {
+  let inFlight = 0;
+  let maximum = 0;
+  let rejected = 0;
+  const { getAfterSalesAdminData } = loadAfterSalesAdminModule(async (url, options = {}) => {
+    const indexed = !url.endsWith("/health");
+    if (indexed) {
+      inFlight += 1;
+      maximum = Math.max(maximum, inFlight);
+      if (inFlight > 4) {
+        inFlight -= 1;
+        rejected += 1;
+        return { ok: false, status: 503, error: "READ_INDEX_BUSY" };
+      }
+    }
+    await new Promise(setImmediate);
+    if (indexed) inFlight -= 1;
+    const payload = url.startsWith("/admin/employees?")
+      ? { items: [{ employeeId: "employee-1", principalId: "principal-1", firstName: "QA", lastName: "Employee", active: true }] }
+      : url.includes("/cases/case-1?")
+        ? { caseId: "case-1", status: "SUBMITTED" }
+        : { items: [], total: 0 };
+    return { ok: true, status: 200, data: options.parse ? options.parse(payload) : payload };
+  });
+  const data = await getAfterSalesAdminData(context, { caseId: "case-1" }, { canViewAfterSales: true, canManageAfterSales: true });
+  assert.equal(rejected, 0);
+  assert.ok(maximum <= 4);
+  assert.equal(data.selectedCase.ok, true);
+  assert.equal(data.selectedCase.data.caseId, "case-1");
+  assert.equal(data.employees.ok, true);
+  assert.equal(data.employees.data[0].label, "QA Employee");
 });

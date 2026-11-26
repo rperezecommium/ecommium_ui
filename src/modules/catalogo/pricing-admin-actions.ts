@@ -95,7 +95,7 @@ export async function deleteTaxDefinitionAction(formData: FormData) {
   const confirmed = asString(formData.get("confirmDelete")) === "DELETE";
 
   if (!confirmed) {
-    finish("taxes", "Confirma escribiendo DELETE antes de desactivar el impuesto.");
+    finish("taxes", "Confirma la advertencia antes de desactivar el impuesto.");
   }
   if (!taxCode) {
     finish("taxes", "Falta taxCode.");
@@ -104,6 +104,23 @@ export async function deleteTaxDefinitionAction(formData: FormData) {
   const path = scopedPath(`/admin/pricing/taxes/${encodeURIComponent(taxCode)}`, context.organizationId, context.shopId);
   const result = await mutatePricing(context, path, "DELETE");
   finish("taxes", mutationMessage(result, "Impuesto desactivado."));
+}
+
+export async function removeTaxDefinitionAction(formData: FormData) {
+  const context = await getAdminContext();
+  const taxCode = asString(formData.get("taxCode"));
+  if (!taxCode || taxCode.length > 200) finish("taxes", "El código del impuesto no es válido.");
+  if (formData.get("confirmDelete") !== "DELETE" || formData.get("detachPrices") !== "true") {
+    finish("taxes", "Confirma que los precios quedarán sin impuesto asignado antes de eliminar.");
+  }
+  const path = scopedPath(`/admin/pricing/taxes/${encodeURIComponent(taxCode)}/permanent`, context.organizationId, context.shopId, { detachPrices: "true" });
+  const result = await mutatePricing(context, path, "DELETE");
+  if (!result.ok) finish("taxes", mutationMessage(result, ""));
+  const receipt = result.data;
+  if (receipt.mode !== "hard" || receipt.code !== taxCode || typeof receipt.deleted !== "boolean" || !Number.isSafeInteger(receipt.detachedPrices) || Number(receipt.detachedPrices) < 0 || receipt.remainingAssignments !== 0) {
+    finish("taxes", "No se pudo confirmar la eliminación completa. Actualiza el listado antes de reintentar.");
+  }
+  finish("taxes", `Impuesto eliminado. ${receipt.detachedPrices} precios han quedado sin impuesto asignado.`);
 }
 
 export async function upsertPriceTableReferenceAction(formData: FormData) {
@@ -142,6 +159,23 @@ export async function deletePriceTableReferenceAction(formData: FormData) {
   const path = scopedPath(`/admin/pricing/price-tables/${encodeURIComponent(priceTableId)}`, context.organizationId, context.shopId);
   const result = await mutatePricing(context, path, "DELETE");
   finish("tables", mutationMessage(result, "Price table desactivada."));
+}
+
+export async function removePriceTableReferenceAction(formData: FormData) {
+  const context = await getAdminContext();
+  const priceTableId = asString(formData.get("priceTableId"));
+  if (!priceTableId || priceTableId.length > 200) finish("tables", "El código de la tabla no es válido.");
+  if (formData.get("confirmDelete") !== "DELETE" || formData.get("deactivatePrices") !== "true") {
+    finish("tables", "Confirma que los precios y reglas asociados se desactivarán antes de eliminar la tabla.");
+  }
+  const path = scopedPath(`/admin/pricing/price-tables/${encodeURIComponent(priceTableId)}/permanent`, context.organizationId, context.shopId, {deactivatePrices:"true"});
+  const result = await mutatePricing(context, path, "DELETE");
+  if (!result.ok) finish("tables", mutationMessage(result, ""));
+  const receipt = result.data;
+  if (receipt.mode !== "hard" || receipt.code !== priceTableId || typeof receipt.deleted !== "boolean" || !Number.isSafeInteger(receipt.affectedPrices) || Number(receipt.affectedPrices) < 0 || receipt.remainingAssignments !== 0 || receipt.activePricesRemaining !== 0) {
+    finish("tables", "No se pudo confirmar la eliminación completa. Actualiza el listado antes de reintentar.");
+  }
+  finish("tables", `Tabla eliminada. ${receipt.affectedPrices} precios y sus reglas han quedado desactivados.`);
 }
 
 function referenceKindPath(kind: string) {
@@ -197,6 +231,7 @@ export async function deletePricingReferenceAction(formData: FormData) {
 
 export async function updatePriceTableActivationAction(formData: FormData) {
   const context = await getAdminContext();
+  if (formData.get("confirmActivation") !== "yes") finish("tables", "Confirma la advertencia antes de cambiar la activación de la tabla.");
   const priceTableId = asString(formData.get("priceTableId"));
   const active = asString(formData.get("active")) === "true";
 

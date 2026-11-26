@@ -1,7 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { createServer as createHttpsServer } from "node:https";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { once } from "node:events";
-import { createServer, type Server, type ServerResponse } from "node:http";
+import { type Server, type ServerResponse } from "node:http";
 import net from "node:net";
 
 const organizationId = "11111111-1111-4111-8111-111111111111";
@@ -137,7 +139,7 @@ async function freePort() {
 
 async function startBffMock() {
   bffPort = await freePort();
-  bffServer = createServer((request, response) => {
+  bffServer = createHttpsServer({ key: readFileSync("tests/e2e/fixtures/loopback.key"), cert: readFileSync("tests/e2e/fixtures/loopback.crt") }, (request, response) => {
     const url = new URL(request.url ?? "/", `http://127.0.0.1:${bffPort}`);
     if (url.pathname === "/api/v1/storefront/context/resolve") {
       return sendJson(response, 200, {
@@ -173,7 +175,7 @@ async function startBffMock() {
 async function waitForNext(url: string) {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
       if (response.status < 500) return;
     } catch {
       // El servidor todavía está iniciando.
@@ -185,15 +187,14 @@ async function waitForNext(url: string) {
 
 async function startNext() {
   nextPort = await freePort();
-  nextProcess = spawn("npx", ["next", "start", "-p", String(nextPort)], {
+  nextProcess = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(nextPort)], {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      // El proceso publicado se usa solo como servidor aislado de la prueba;
-      // el mock BFF HTTP es local y no representa una configuración productiva.
-      NODE_ENV: "development",
+      // HTTPS fixture local; se conserva el runtime de producción.
+      NODE_ENV: "production",
       ECOMMIUM_ADMIN_BFF_BASE_URL: "http://127.0.0.1:1/api/v1",
-      ECOMMIUM_STOREFRONT_BFF_BASE_URL: `http://127.0.0.1:${bffPort}/api/v1`,
+      ECOMMIUM_STOREFRONT_BFF_BASE_URL: `https://127.0.0.1:${bffPort}/api/v1`,
       ECOMMIUM_STOREFRONT_ORGANIZATION_ID: organizationId,
       ECOMMIUM_STOREFRONT_SHOP_ID: shopId,
       ECOMMIUM_STOREFRONT_LOCALE: locale,
@@ -202,7 +203,7 @@ async function startNext() {
   });
   nextProcess.stdout.on("data", (data: Buffer) => { nextOutput += data.toString(); });
   nextProcess.stderr.on("data", (data: Buffer) => { nextOutput += data.toString(); });
-  await waitForNext(`http://127.0.0.1:${nextPort}/plp/bike-drivetrain`);
+  await waitForNext(`http://127.0.0.1:${nextPort}/api/health`);
 }
 
 async function installConsentMock(page: Page) {
@@ -256,6 +257,10 @@ test.beforeAll(async () => {
 });
 
 test.beforeEach(() => resetConsentState());
+
+test.afterEach(async ({}, info) => {
+  if (info.status !== info.expectedStatus) await info.attach("next-server.log", { body: nextOutput, contentType: "text/plain" });
+});
 
 test.afterAll(async () => {
   nextProcess?.kill();

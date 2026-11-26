@@ -43,6 +43,10 @@ function parseResolvedContext(value: unknown): StorefrontContext {
     );
   }
 
+  if (process.env.ECOMMIUM_UI_ROUTING_MODE === "SEPARATED_V1" &&
+    (context.organizationId !== process.env.ECOMMIUM_STOREFRONT_ORGANIZATION_ID || context.shopId !== process.env.ECOMMIUM_STOREFRONT_SHOP_ID)) {
+    throw new StorefrontConfigurationError("La tienda resuelta no pertenece a este despliegue.");
+  }
   return context;
 }
 

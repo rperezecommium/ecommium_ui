@@ -1,5 +1,5 @@
 import { getAdminContext } from "../../../../src/shared/config/admin-context";
-import { refreshAdminEmployeeSession } from "../../../../src/modules/auth/admin-session-actions";
+import { getCurrentAdminSession as refreshAdminEmployeeSession } from "../../../../src/modules/auth/current-admin-session";
 import { getCustomersAdminCapabilities, getCustomersAdminData } from "../../../../src/modules/clientes/customers-admin";
 import { CustomersAdminPage } from "../../../../src/modules/clientes/customers-admin-page";
 import type { CustomersAdminFilters } from "../../../../src/modules/clientes/customers-admin-types";

@@ -8,12 +8,12 @@ function normalizeSignupHumanVerificationMode(
   return value?.trim().toLowerCase() === "turnstile" ? "turnstile" : "off";
 }
 
-export function getStorefrontSignupHumanVerificationConfig() {
-  const mode = normalizeSignupHumanVerificationMode(
-    process.env.NEXT_PUBLIC_ECOMMIUM_SIGNUP_HUMAN_VERIFICATION,
+export function getStorefrontSignupHumanVerificationConfig(runtime?: {mode: "off" | "turnstile"; turnstileSiteKey: string}) {
+  const mode = runtime?.mode ?? normalizeSignupHumanVerificationMode(
+    process.env.ECOMMIUM_SIGNUP_HUMAN_VERIFICATION ?? process.env.NEXT_PUBLIC_ECOMMIUM_SIGNUP_HUMAN_VERIFICATION,
   );
   const turnstileSiteKey =
-    process.env.NEXT_PUBLIC_ECOMMIUM_TURNSTILE_SITE_KEY?.trim() ?? "";
+    runtime?.turnstileSiteKey ?? process.env.ECOMMIUM_TURNSTILE_SITE_KEY?.trim() ?? process.env.NEXT_PUBLIC_ECOMMIUM_TURNSTILE_SITE_KEY?.trim() ?? "";
 
   return {
     action: storefrontSignupHumanVerificationAction,

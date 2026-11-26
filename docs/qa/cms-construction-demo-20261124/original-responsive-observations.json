@@ -1,0 +1,17 @@
+[
+  {
+    "device": "desktop-1440",
+    "documentWidth": 1425,
+    "viewport": 1425
+  },
+  {
+    "device": "tablet-820",
+    "documentWidth": 1260,
+    "viewport": 805
+  },
+  {
+    "device": "mobile-390",
+    "documentWidth": 375,
+    "viewport": 375
+  }
+]

@@ -1,0 +1,16 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+locator.waitFor: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for getByText('El creador no ha habilitado campos editables para este módulo. Su contenido y diseño se conservan.', { exact: true }) to be visible[22m
+
+    at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/cms-independent-sections-browser.mjs:444:145 {
+  log: [
+    "  - waiting for getByText('El creador no ha habilitado campos editables para este módulo. Su contenido y diseño se conservan.', { exact: true }) to be visible"
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v22.23.2

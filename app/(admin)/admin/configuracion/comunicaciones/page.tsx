@@ -1,3 +1,4 @@
+import { getCurrentAdminSession } from "../../../../../src/modules/auth/current-admin-session";
 import { getAdminContext } from "../../../../../src/shared/config/admin-context";
 import { CommunicationsAdminPage } from "../../../../../src/modules/configuracion/communications-admin-page";
 import {
@@ -14,7 +15,10 @@ type PageProps = {
 export default async function ComunicacionesPage({ searchParams }: PageProps) {
   const query = await searchParams;
   const context = await getAdminContext();
+  const session = await getCurrentAdminSession();
+  const canManage = Boolean(session?.permissions.some(permission => ["*", "admin:*", "system.admin", "communications.manage"].includes(permission)));
   const filters: CommunicationsAdminFilters = {
+    tab: normalizeTab(first(query?.tab)),
     drawer: normalizeDrawer(first(query?.drawer)),
     notice: first(query?.notice),
     status: normalizeStatus(first(query?.status)),
@@ -31,7 +35,7 @@ export default async function ComunicacionesPage({ searchParams }: PageProps) {
   };
   const data = await getCommunicationsAdminData(context, filters);
 
-  return <CommunicationsAdminPage context={context} data={data} filters={filters} />;
+  return <CommunicationsAdminPage canManage={canManage} context={context} data={data} filters={filters} />;
 }
 
 function first(value: string | string[] | undefined): string | undefined {
@@ -67,4 +71,8 @@ function normalizeLimit(value: string | undefined) {
 function normalizeOffset(value: string | undefined) {
   const parsed = Number.parseInt(value ?? "", 10);
   return Number.isFinite(parsed) && parsed >= 0 ? String(parsed) : undefined;
+}
+
+function normalizeTab(value: string | undefined): CommunicationsAdminFilters["tab"] {
+  return value === "provider" || value === "templates" || value === "deliveries" ? value : undefined;
 }

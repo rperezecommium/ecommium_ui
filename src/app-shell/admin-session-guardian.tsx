@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const warningLeadMs = 5 * 60_000;
@@ -29,6 +30,8 @@ type StoredRecovery = {
   savedAt: string;
   pathname: string;
   forms: Record<string, Record<string, StoredControl>>;
+  discarded?: boolean;
+  activeControl?: { form: string; index: number; name: string };
 };
 
 type GuardianMessage = {
@@ -86,6 +89,40 @@ function recoveryKey(employeeId: string, pathname: string) {
   return `ecommium-admin-recovery:v1:${employeeId}:${pathname}`;
 }
 
+function recoveryEnabledForPathname(pathname: string) {
+  // Product editors own a structured draft (variants, media, prices). The
+  // generic named-form snapshot cannot restore this React state.
+  return !pathname.startsWith("/admin/cms") && !pathname.startsWith("/admin/products/");
+}
+
+function recoveryLocationLabel(pathname: string) {
+  if (pathname === "/admin/products" || pathname.startsWith("/admin/products/")) {
+    return "Catálogo / Productos";
+  }
+  const labels: Record<string, string> = {
+    catalogo: "Catálogo", configuracion: "Configuración", categorias: "Categorías",
+    "atributos-caracteristicas": "Características", search: "Búsqueda",
+    marcas: "Marcas / Proveedores", media: "Media / Archivos", offerings: "Servicios adicionales",
+    stock: "Stock", importar: "Importar", contexto: "Contexto", equipo: "Equipo",
+    precios: "Precios", transporte: "Transporte", seo: "SEO", automatizacion: "Automatización",
+    comunicaciones: "Comunicaciones", checkout: "Checkout", consent: "Consentimiento",
+    seguridad: "Seguridad", promociones: "Promociones", analitica: "Analítica",
+    pedidos: "Pedidos", postventa: "Postventa", clientes: "Clientes", pagos: "Pagos",
+  };
+  return pathname.split("/").slice(2, 4).filter(Boolean)
+    .map((segment) => labels[segment] ?? segment.replaceAll("-", " "))
+    .join(" / ") || "Inicio";
+}
+
+function clearRecoveryForPathPrefix(employeeId: string, pathnamePrefix: string) {
+  const keyPrefix = `ecommium-admin-recovery:v1:${employeeId}:${pathnamePrefix}`;
+  for (const key of Object.keys(window.sessionStorage)) {
+    if (key.startsWith(keyPrefix)) {
+      window.sessionStorage.removeItem(key);
+    }
+  }
+}
+
 function dismissedRecoveryKey(employeeId: string, pathname: string) {
   return `${recoveryKey(employeeId, pathname)}:dismissed`;
 }
@@ -105,7 +142,7 @@ function readStoredRecovery(key: string, pathname: string): StoredRecovery | nul
       parsed.version !== 1 ||
       parsed.pathname !== pathname ||
       !Number.isFinite(savedAt) ||
-      Date.now() - savedAt > recoveryTtlMs ||
+      (!parsed.discarded && Date.now() - savedAt > recoveryTtlMs) ||
       typeof parsed.forms !== "object" ||
       parsed.forms === null
     ) {
@@ -207,11 +244,13 @@ function snapshotVisibleForms(pathname: string): StoredRecovery {
   };
 }
 
-function snapshotForm(form: HTMLFormElement, employeeId: string, pathname: string) {
+function snapshotForm(form: HTMLFormElement, employeeId: string, pathname: string, editedControl?: Element) {
   const controls = snapshotControls(form);
   if (Object.keys(controls).length === 0) return;
   const key = formKey(form);
   const dismissed = readDismissedRecovery(employeeId, pathname);
+  // Unload/session checks must never recreate a copy explicitly discarded.
+  if (dismissed?.discarded && !editedControl) return;
   if (dismissed && controlsMatch(dismissed.forms[key], controls)) return;
   if (dismissed) {
     window.sessionStorage.removeItem(dismissedRecoveryKey(employeeId, pathname));
@@ -225,7 +264,26 @@ function snapshotForm(form: HTMLFormElement, employeeId: string, pathname: strin
   };
   current.savedAt = new Date().toISOString();
   current.forms[key] = controls;
+  if (editedControl && isRecoverableControl(editedControl)) {
+    current.activeControl = {
+      form: key,
+      index: Array.from(form.elements).indexOf(editedControl),
+      name: editedControl.name,
+    };
+  }
   writeRecovery(employeeId, pathname, current);
+}
+
+function focusRecoveryControl(recovery: StoredRecovery) {
+  const active = recovery.activeControl;
+  if (!active) return;
+  const form = Array.from(document.forms).find((candidate) => formKey(candidate) === active.form);
+  const control = form?.elements.item(active.index);
+  if (!control || !isRecoverableControl(control) || control.name !== active.name) return;
+  control.focus({ preventScroll: true });
+  control.scrollIntoView({ block: "center", behavior: "auto" });
+  control.classList.add("adminRecoveryFocus");
+  control.addEventListener("blur", () => control.classList.remove("adminRecoveryFocus"), { once: true });
 }
 
 function snapshotAllForms(employeeId: string, pathname: string) {
@@ -309,6 +367,7 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab");
   const recoveryPathname = tab ? `${pathname}?tab=${tab}` : pathname;
+  const recoveryEnabled = recoveryEnabledForPathname(pathname);
   const [state, setState] = useState<AdminSessionState | null>(null);
   const [warningOpen, setWarningOpen] = useState(false);
   const [countdown, setCountdown] = useState("");
@@ -403,8 +462,10 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
   }, [applyState, clearLocalSessionAndRedirect, requestWithTechnicalRefresh]);
 
   const closeSession = useCallback(async () => {
-    snapshotAllForms(employeeId, recoveryPathname);
-    setRecovery(readRecovery(employeeId, recoveryPathname));
+    if (recoveryEnabled) {
+      snapshotAllForms(employeeId, recoveryPathname);
+      setRecovery(readRecovery(employeeId, recoveryPathname));
+    }
     setBusy("close");
     setNotice(null);
     const response = await fetch("/api/admin/session/close", {
@@ -418,11 +479,14 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
       return;
     }
     setNotice("No pudimos cerrar la sesión por un problema temporal. No se ha borrado ninguna credencial ni tu copia de recuperación.");
-  }, [clearLocalSessionAndRedirect, employeeId, recoveryPathname]);
+  }, [clearLocalSessionAndRedirect, employeeId, recoveryEnabled, recoveryPathname]);
 
   useEffect(() => {
+    if (!recoveryEnabled) {
+      clearRecoveryForPathPrefix(employeeId, "/admin/cms");
+    }
     const recoveryTimer = window.setTimeout(() => {
-      setRecovery(readRecovery(employeeId, recoveryPathname));
+      setRecovery(recoveryEnabled ? readRecovery(employeeId, recoveryPathname) : null);
     }, 0);
     const stateTimer = window.setTimeout(() => {
       void syncState();
@@ -438,10 +502,10 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
 
     const onActivity = (event: Event) => {
       const target = event.target;
-      if (target instanceof Element) {
+      if (recoveryEnabled && target instanceof Element) {
         const form = target.closest("form");
         if (form instanceof HTMLFormElement && (event.type === "input" || event.type === "change")) {
-          snapshotForm(form, employeeId, recoveryPathname);
+          snapshotForm(form, employeeId, recoveryPathname, event.isTrusted ? target : undefined);
           setRecovery(readRecovery(employeeId, recoveryPathname));
         }
       }
@@ -450,7 +514,9 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
     const onVisibility = () => {
       if (document.visibilityState === "visible") void syncState();
     };
-    const onBeforeUnload = () => snapshotAllForms(employeeId, recoveryPathname);
+    const onBeforeUnload = () => {
+      if (recoveryEnabled) snapshotAllForms(employeeId, recoveryPathname);
+    };
     const eventTypes = ["pointerdown", "keydown", "input", "change", "focusin"] as const;
     eventTypes.forEach((eventType) => document.addEventListener(eventType, onActivity, true));
     document.addEventListener("visibilitychange", onVisibility);
@@ -466,7 +532,7 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
       channel?.close();
       channelRef.current = null;
     };
-  }, [applyState, clearWarningTimer, employeeId, recoveryPathname, reportHumanActivity, sessionId, syncState]);
+  }, [applyState, clearWarningTimer, employeeId, recoveryEnabled, recoveryPathname, reportHumanActivity, sessionId, syncState]);
 
   useEffect(() => {
     if (!warningOpen) return;
@@ -479,7 +545,7 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
   }, [state?.idleExpiresAt, warningOpen]);
 
   const restoreDraft = () => {
-    if (!recovery) return;
+    if (!recoveryEnabled || !recovery) return;
     const baseline = snapshotVisibleForms(recoveryPathname);
     const restoredBaseline: StoredRecovery = {
       ...baseline,
@@ -489,25 +555,30 @@ export function AdminSessionGuardian({ employeeId, sessionId }: Props) {
     writeDismissedRecovery(employeeId, recoveryPathname, restoredBaseline);
     setRecovery(null);
     restoreRecovery(recovery);
+    focusRecoveryControl(recovery);
     setNotice("Se restauró la copia de recuperación en los formularios visibles. Revisa los datos antes de guardar.");
   };
 
   const discardDraft = () => {
+    if (!recoveryEnabled) return;
     const baseline = snapshotVisibleForms(recoveryPathname);
     window.sessionStorage.removeItem(recoveryKey(employeeId, recoveryPathname));
-    writeDismissedRecovery(employeeId, recoveryPathname, baseline);
+    writeDismissedRecovery(employeeId, recoveryPathname, { ...baseline, discarded: true });
     setRecovery(null);
   };
 
   return (
     <>
-      {recovery ? (
+      {recoveryEnabled && recovery ? (
         <aside className="adminSessionRecovery" aria-label="Copia de recuperación disponible" role="status">
           <div>
             <strong>Hay una copia de recuperación en esta pestaña</strong>
             <p>Se guardó {new Date(recovery.savedAt).toLocaleString()} y no contiene contraseñas, secretos ni datos de pago.</p>
           </div>
           <div className="adminSessionRecoveryActions">
+            <Link className="adminButton adminButtonTiny" href={recoveryPathname} onClick={() => focusRecoveryControl(recovery)}>
+              Ir a {recoveryLocationLabel(pathname)}
+            </Link>
             <button className="adminButton adminButtonTiny" onClick={restoreDraft} type="button">Recuperar</button>
             <button className="adminButton adminButtonTiny" onClick={discardDraft} type="button">Descartar</button>
           </div>

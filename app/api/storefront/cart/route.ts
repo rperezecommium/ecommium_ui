@@ -21,6 +21,7 @@ async function cartContextParams() {
     locale: context.locale,
     currency: context.currency,
     country: context.country,
+    countrySource: "SHOP_DEFAULT",
     channel: context.channel,
   });
 

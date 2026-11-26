@@ -1,0 +1,103 @@
+{
+  "date": "2026-11-20",
+  "organizationId": "11111111-1111-4111-8111-111111111111",
+  "shopId": "22222222-2222-4222-8222-222222222222",
+  "locale": "es-ES",
+  "templateId": "68953f6a-7e16-479c-b7c5-671b779e3eeb",
+  "sectionDestinationId": "0b51f80e-3a1b-4f9a-888f-ba80fa63f4c4",
+  "templateName": "QA Fase5 plantilla sección",
+  "templateContentName": "QA Fase5 origen editado",
+  "destinationName": "QA Fase5 sección destino",
+  "templateStatus": "ARCHIVED",
+  "sharedIdentities": [],
+  "sharedMediaAssetId": "4c0ede21-b32a-4cbc-8e4d-33b6299e4fd3",
+  "confirmed": [
+    "employee_login_default_context",
+    "template_create_via_ui",
+    "template_list_via_readindex",
+    "template_apply_to_new_section",
+    "destination_save_via_ui",
+    "template_edit_via_ui",
+    "independence_after_edit_sql_readonly",
+    "section_template_archive_via_ui",
+    "page_template_create_apply_save_reopen",
+    "page_template_edit_39px",
+    "page_template_archive_via_ui",
+    "destination_retains_17px_after_origin_edit_archive",
+    "preview_storefront_17px_content_equivalence",
+    "template_two_editor_conflict_preserves_stale_52px_and_saved_41px",
+    "archived_library_390_768_1440_compacta",
+    "archived_detail_readonly",
+    "qa_page_unpublished_public_404",
+    "drawer_semantics_axe_1440_768_390",
+    "drawer_resize_memory_keyboard_regression"
+  ],
+  "notConfirmed": [
+    "readonly_employee"
+  ],
+  "browserBlocker": "Resolved: replaced native confirmation with existing CMS HTML dialog pattern.",
+  "pageTemplateId": "a424c954-050c-4ea9-928b-f83f89f180cd",
+  "pageDestinationId": "57e9b1ba-3b50-476d-8641-99acec133f1b",
+  "accessibilityBlocker": {
+    "rule": "aria-allowed-role",
+    "component": "src/shared/ui/admin-resizable-drawer.tsx",
+    "element": "aside role=dialog",
+    "status": "Resolved with explicit authorization: div role=dialog; axe and drawer regression PASS"
+  },
+  "ownerFinalRead": {
+    "templateStates": [
+      {
+        "id": "68953f6a-7e16-479c-b7c5-671b779e3eeb",
+        "status": "ARCHIVED"
+      },
+      {
+        "id": "a424c954-050c-4ea9-928b-f83f89f180cd",
+        "status": "ARCHIVED",
+        "css": {
+          "base": [
+            {
+              "styles": {
+                "paddingTop": "39px"
+              },
+              "selector": ":scope"
+            }
+          ]
+        }
+      },
+      {
+        "id": "d546c4c2-0aaf-4d2f-8f0f-a3cc57358502",
+        "status": "DRAFT",
+        "css": {
+          "base": [
+            {
+              "styles": {
+                "paddingTop": "41px"
+              },
+              "selector": ":scope"
+            }
+          ]
+        }
+      }
+    ],
+    "page": {
+      "id": "57e9b1ba-3b50-476d-8641-99acec133f1b",
+      "status": "UNPUBLISHED",
+      "css": {
+        "base": [
+          {
+            "styles": {
+              "paddingTop": "17px"
+            },
+            "selector": ":scope"
+          }
+        ]
+      },
+      "sections": 1
+    },
+    "section": {
+      "id": "0b51f80e-3a1b-4f9a-888f-ba80fa63f4c4",
+      "name": "QA Fase5 sección destino"
+    },
+    "sharedPageIdentities": []
+  }
+}

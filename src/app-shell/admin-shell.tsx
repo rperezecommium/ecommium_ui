@@ -10,6 +10,7 @@ import {
   ShoppingBasket,
   UsersRound,
 } from "lucide-react";
+import { cookies } from "next/headers";
 import type { AdminSession } from "../shared/auth/session";
 import type { AdminContext } from "../shared/config/admin-context";
 import type { OrganizationShopDirectory } from "../modules/configuracion/organization-shop";
@@ -17,6 +18,7 @@ import { updateAdminContext } from "../modules/configuracion/context-actions";
 import { logoutAdminEmployee } from "../modules/auth/admin-session-actions";
 import { filterAllowedNavigation } from "../shared/permissions/permissions";
 import { AdminContextSelector } from "./admin-context-selector";
+import { AdminSidebarFrame } from "./admin-sidebar-frame";
 import { AdminNavigation, type AdminNavigationItem } from "./admin-navigation";
 import { getAfterSalesAdminCapabilities, getAfterSalesTaskSummary } from "../modules/postventa/after-sales-admin";
 
@@ -35,7 +37,7 @@ const navItems = [
 
 const configurationNavItems = [
   { href: "/admin/configuracion/contexto", label: "Contexto", description: "Organization y Shop", permission: "admin:configuration:view" as const },
-  { href: "/admin/configuracion/equipo", label: "Equipo", description: "Empleados y permisos", permission: "admin:employees:view" as const },
+  { href: "/admin/configuracion/equipo", label: "Equipo", description: "Empleados, permisos y seguridad", permission: "admin:configuration:view" as const },
   { href: "/admin/configuracion/precios", label: "Precios", description: "Impuestos, tablas y reglas", permission: "admin:catalog:view" as const },
   { href: "/admin/configuracion/transporte", label: "Transporte", description: "Carriers, zonas y SLA", permission: "admin:shipping:view" as const },
   { href: "/admin/configuracion/seo", label: "SEO", description: "Rutas, redirects y sitemap", permission: "admin:catalog:view" as const },
@@ -43,24 +45,28 @@ const configurationNavItems = [
   { href: "/admin/configuracion/comunicaciones", label: "Comunicaciones", description: "Email, SMTP y plantillas", permission: "admin:communications:view" as const },
   { href: "/admin/configuracion/checkout", label: "Checkout", description: "OrderForm y reglas de compra", permission: "admin:checkout:view" as const },
   { href: "/admin/configuracion/consent", label: "Consentimiento", description: "Cookies, terceros y publicaciones", permission: "admin:consent:view" as const },
-  { href: "/admin/configuracion/seguridad", label: "Seguridad", description: "Sesiones y confirmación de identidad", permission: "admin:configuration:view" as const },
 ];
 
 const cmsNavItems = [
   { href: "/admin/cms", label: "Paginas", description: "Paginas, bloques y publicacion", permission: "admin:cms:view" as const },
-  { href: "/admin/cms/builder", label: "Builder", description: "Canvas visual de bloques", permission: "admin:cms-builder:view" as const },
+  { href: "/admin/cms/headers", label: "Headers", description: "Cabeceras reutilizables", permission: "admin:cms-settings:view" as const },
+  { href: "/admin/cms/footers", label: "Footers", description: "Pies reutilizables", permission: "admin:cms-settings:view" as const },
+  { href: "/admin/cms/modulos", label: "Módulos", description: "Piezas independientes de contenido", permission: "admin:cms-builder:view" as const },
+  { href: "/admin/cms/secciones", label: "Secciones", description: "Composición de espacios y módulos", permission: "admin:cms-builder:view" as const },
+  { href: "/admin/cms/plantillas", label: "Plantillas", description: "Copias independientes de secciones y páginas", permission: "admin:cms-builder:view" as const },
   { href: "/admin/cms/ajustes-basicos", label: "Ajustes basicos", description: "Configuracion global, plantillas y layout", permission: "admin:cms-settings:view" as const },
 ];
 
 const catalogNavItems = [
   { href: "/admin/products", label: "Productos", description: "Ficha, variantes y media", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/categorias", label: "Categorias", description: "Arbol, familias y rutas", permission: "admin:catalog:view" as const },
-  { href: "/admin/catalogo/atributos-caracteristicas", label: "Caracteristicas", description: "Ficha tecnica y filtros", permission: "admin:catalog:view" as const },
+  { href: "/admin/catalogo/atributos-caracteristicas", label: "Características / Atributos", description: "Ficha tecnica y filtros", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/search", label: "Busqueda", description: "Relevancia, sinonimos e indexacion", permission: "admin:search:view" as const },
   { href: "/admin/catalogo/marcas", label: "Marcas / Proveedores", description: "Fabricantes y colecciones", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/media", label: "Media / Archivos", description: "Imagenes y documentos", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/offerings", label: "Offerings / Servicios adicionales", description: "Servicios vendibles asociados", permission: "admin:catalog:view" as const },
   { href: "/admin/catalogo/stock", label: "Stock", description: "Existencias por variante", permission: "admin:catalog:view" as const },
+  { href: "/admin/catalogo/importar", label: "Importar", description: "Importacion de productos por CSV", permission: "admin:catalog:view" as const },
 ];
 
 type AdminShellProps = {
@@ -75,6 +81,7 @@ function toNavigationItems<T extends AdminNavigationItem>(items: T[]): AdminNavi
 }
 
 export async function AdminShell({ children, context, directory, session }: AdminShellProps) {
+  const initiallyCollapsed = (await cookies()).get("ecommium_admin_sidebar")?.value === "collapsed";
   const allowedNavItems = filterAllowedNavigation(session, navItems);
   const allowedConfigurationNavItems = filterAllowedNavigation(session, configurationNavItems);
   const allowedCatalogNavItems = filterAllowedNavigation(session, catalogNavItems);
@@ -86,7 +93,7 @@ export async function AdminShell({ children, context, directory, session }: Admi
     : undefined;
 
   return (
-    <div className="adminShell">
+    <AdminSidebarFrame initiallyCollapsed={initiallyCollapsed} sidebar={
       <aside className="adminSidebar" aria-label="Navegacion Admin">
         <div className="adminBrand">
           <span className="adminBrandMark">E</span>
@@ -111,7 +118,7 @@ export async function AdminShell({ children, context, directory, session }: Admi
           <p>{context.organizationId || "organization pendiente"} / {context.shopId || "shop pendiente"}</p>
         </div>
       </aside>
-
+      }>
       <section className="adminMain">
         <header className="adminTopbar">
           <AdminContextSelector
@@ -137,6 +144,6 @@ export async function AdminShell({ children, context, directory, session }: Admi
 
         {children}
       </section>
-    </div>
+    </AdminSidebarFrame>
   );
 }

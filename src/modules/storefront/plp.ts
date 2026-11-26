@@ -1,3 +1,6 @@
+import {parseCmsPublicModule} from './cms-public-module';
+import { withStorefrontCommercialPolicy } from "../../shared/config/storefront-commercial-policy";
+import { getStorefrontCommercialReadOptions } from "./storefront-commercial-context";
 import { parsePlpCardsPayload } from "./plp-cards-contract";
 import { requestStorefrontBff } from "../../shared/bff/storefront-client";
 import { getStorefrontContext, type StorefrontContext } from "./storefront-context";
@@ -134,14 +137,19 @@ export async function getStorefrontPlp(
   params.set("limit", String(limit));
   params.set("offset", String(offset));
   params.set("routePath", routePath);
-  const cards = storefrontPlpCardsEnabled();
-  if (cards) params.set("view", "cards");
+  const commercialReadOptions = await getStorefrontCommercialReadOptions();
+  // The compact contract only supports public, unsegmented context. Resolve
+  // the deployment policy before choosing it, just as the shared client does.
+  const commercialPath = withStorefrontCommercialPolicy(`/storefront/plp/${encodeURIComponent(categorySlug)}?${params.toString()}`);
+  const commercialParams = new URLSearchParams(commercialPath.split("?")[1]);
+  const cards = storefrontPlpCardsEnabled() && !commercialReadOptions.init
+    && !["tradePolicy", "priceTableId", "customerGroup"].some((key) => commercialParams.has(key));
 
   const categoriesPromise = getStorefrontCategories(context, categorySlug);
-  const requestedPath = `/storefront/plp/${encodeURIComponent(categorySlug)}?${params.toString()}`;
+  const requestedPath = cards ? `${commercialPath}&view=cards` : commercialPath;
   const result = await requestStorefrontBff<unknown>(requestedPath, {
     context: { locale: context.locale },
-    withAuth: false,
+    ...commercialReadOptions,
     ...(cards ? { parse: (value: unknown) => parsePlpCardsPayload(value, { categorySlug, limit, offset, currency: context.currency }) } : {}),
   });
   const categories = await categoriesPromise;
@@ -200,7 +208,7 @@ export async function getStorefrontSearch(
   const requestedPath = `/storefront/search?${params.toString()}`;
   const result = await requestStorefrontBff<unknown>(requestedPath, {
     context: { locale: context.locale },
-    withAuth: false,
+    ...await getStorefrontCommercialReadOptions(),
   });
   const categories = await categoriesPromise;
 
@@ -238,22 +246,19 @@ function compactContext<T extends Record<string, string | undefined>>(value: T):
   ) as Partial<T>;
 }
 
-async function getStorefrontCategories(
-  context: StorefrontContext,
-  activeSlug: string,
-): Promise<StorefrontCategoryLink[]> {
-  const result = await requestStorefrontBff<unknown>("/storefront/navigation/categories/tree/3", {
-    context: { locale: context.locale },
-    withAuth: false,
-  });
+export async function getStorefrontCategories(context: StorefrontContext, activeSlug: string): Promise<StorefrontCategoryLink[]> {
+  const result = await getStorefrontNavigationRead(context, activeSlug);
+  return result.categories.length ? result.categories : fallbackCategories(activeSlug);
+}
 
-  if (!result.ok) {
-    return fallbackCategories(activeSlug);
-  }
-
+export async function getStorefrontNavigationRead(context: Pick<StorefrontContext, "organizationId" | "shopId" | "locale">, activeSlug = ""): Promise<{ categories: StorefrontCategoryLink[]; message?: string }> {
+  const result = await requestStorefrontBff<unknown>(`/storefront/navigation/categories/tree/3?${new URLSearchParams({ organizationId: context.organizationId, shopId: context.shopId ?? "", locale: context.locale }).toString()}`, { context, withAuth: false });
+  if (!result.ok) return { categories: fallbackCategories(activeSlug), message: "Navegación provisional: el BFF no respondió; se muestra la misma navegación de reserva que la tienda." };
   const root = asRecord(result.data);
-  const categories = flattenCategories(listItems(root.categories), activeSlug);
-  return categories.length > 0 ? categories : fallbackCategories(activeSlug);
+  const items = Array.isArray(root.categories) ? root.categories : asRecord(root.categories).items;
+  if (!Array.isArray(items)) return { categories: fallbackCategories(activeSlug), message: "Navegación provisional: respuesta no válida; se muestra la navegación de reserva de la tienda." };
+  const categories = flattenCategories(items, activeSlug);
+  return categories.length ? { categories } : { categories: fallbackCategories(activeSlug), message: "No hay categorías publicadas; se muestra la misma navegación de reserva que la tienda." };
 }
 
 function mapPlpPayload(
@@ -508,6 +513,7 @@ function normalizeOffering(value: unknown): StorefrontPlpOffering {
 
 function mapBlock(value: unknown): StorefrontPlpBlock {
   const block = asRecord(value);
+  if(block.type==='cms.module')parseCmsPublicModule(asRecord(block.props).document);
 
   return {
     blockId: asString(block.blockId) ?? "block",

@@ -1,0 +1,34 @@
+[
+  {
+    "sitePartId": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+    "kind": "HEADER",
+    "oldActiveRevisionId": "3132fc43-9bab-4132-8aaf-29ee9b4f82d4",
+    "newActiveRevisionId": "6d5b34b4-c983-47aa-bca3-eccf3fc240d8",
+    "usageCount": 1,
+    "status": "PASS"
+  },
+  {
+    "sitePartId": "559ca9dd-5a9b-4801-b3a2-45dfb31bd58b",
+    "kind": "HEADER",
+    "oldActiveRevisionId": "d01c7ba0-36ab-48d8-9af6-6312701502fd",
+    "newActiveRevisionId": "fc5b616b-f92f-479b-b462-9f382291ab96",
+    "usageCount": 1,
+    "status": "PASS"
+  },
+  {
+    "sitePartId": "874af487-b1d3-48c4-bdac-a766b9cb22aa",
+    "kind": "HEADER",
+    "oldActiveRevisionId": "8a22175f-e18a-437d-9bee-1b759a109f56",
+    "newActiveRevisionId": "530a161d-48f5-4299-9be4-4a4a0c214caf",
+    "usageCount": 0,
+    "status": "PASS"
+  },
+  {
+    "sitePartId": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+    "kind": "FOOTER",
+    "oldActiveRevisionId": "9fd269bd-e944-4b30-84ef-fc57c96bb084",
+    "newActiveRevisionId": "50312532-9b0e-4e3d-8209-1fdf36930981",
+    "usageCount": 1,
+    "status": "PASS"
+  }
+]

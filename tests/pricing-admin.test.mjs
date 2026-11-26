@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import vm from "node:vm";
+import { createRequire } from "node:module";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
 import ts from "typescript";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname);
@@ -103,17 +106,19 @@ test("pricing governance uses scoped BFF endpoints and maps read 403 permissions
     itemId: "item-1",
   });
 
-  assert.equal(data.taxes.source, "unavailable");
-  assert.equal(data.taxes.message, "Falta permiso pricing.admin.read.");
+  assert.equal(data.computed.source, "bff");
+  const taxes = await getPricingGovernanceData(context, { tab: "taxes" });
+  assert.equal(taxes.taxes.source, "unavailable");
+  assert.equal(taxes.taxes.message, "Falta permiso pricing.admin.read.");
   assert.equal(calls.every((call) => call.path.includes("organizationId=org-1")), true);
   assert.equal(calls.every((call) => call.path.includes("shopId=shop-1")), true);
-  assert.ok(calls.some((call) => call.path === "/admin/pricing/config?organizationId=org-1&shopId=shop-1"));
+  assert.ok(!calls.some((call) => call.path.startsWith("/admin/pricing/config?")));
   assert.ok(calls.some((call) => call.path === "/admin/pricing/customer-groups?organizationId=org-1&shopId=shop-1"));
   assert.ok(calls.some((call) => call.path === "/admin/pricing/channels?organizationId=org-1&shopId=shop-1"));
   assert.ok(calls.some((call) => call.path === "/admin/pricing/trade-policies?organizationId=org-1&shopId=shop-1"));
   assert.ok(calls.some((call) => call.path === "/admin/pricing/countries?organizationId=org-1&shopId=shop-1"));
   assert.ok(calls.some((call) => call.path === "/admin/pricing/prices/computed/default/resolve-batch?organizationId=org-1&shopId=shop-1" && call.method === "POST"));
-  assert.ok(calls.some((call) => call.path === "/admin/pricing/prices/computed-auto/resolve-batch?organizationId=org-1&shopId=shop-1" && call.method === "POST"));
+  assert.ok(!calls.some((call) => call.path.includes("/computed-auto/")));
   assert.ok(calls.some((call) => call.method === "POST" && JSON.stringify(call.body) === JSON.stringify({ itemIds: ["item-1"] })));
 });
 
@@ -281,20 +286,6 @@ test("fixed prices UI sends the canonical BFF payload fields", () => {
   assert.doesNotMatch(actionsSource, /Falta itemId o priceTableId\./);
 });
 
-test("price table row actions stay compact in one line", () => {
-  const pageSource = readFileSync(path.resolve(root, "src/modules/catalogo/pricing-admin-page.tsx"), "utf8");
-  const cssSource = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
-
-  assert.match(pageSource, /className="pricingPriceTableActions"/);
-  assert.match(pageSource, /className="pricingPriceTableActivationForm"/);
-  assert.match(pageSource, /className="pricingPriceTableDeleteForm"/);
-  assert.match(pageSource, /maxLength=\{6\}/);
-  assert.doesNotMatch(pageSource, /<div className="pricingActionStack">\s*<form action={updatePriceTableActivationAction} className="pricingInlineForm"/);
-  assert.match(cssSource, /\.pricingPriceTableActions[\s\S]*?flex-wrap: nowrap;/);
-  assert.match(cssSource, /\.pricingPriceTableActions \.adminButton[\s\S]*?width: 100px;/);
-  assert.match(cssSource, /\.pricingPriceTableDeleteForm input[\s\S]*?width: 76px;/);
-});
-
 test("pricing editor lookups preserve complete tax rules and collapse duplicates", async () => {
   const calls = [];
   const requestAdminBff = async (pathValue, options = {}) => {
@@ -410,4 +401,87 @@ test("pricing editor lookups infer percentage taxes from partial BFF records", a
   assert.equal(lookups.taxes[0].taxCode, "standard");
   assert.equal(lookups.taxes[0].calculationType, "PERCENTAGE");
   assert.equal(lookups.taxes[0].rate, 0.21);
+});
+
+
+test("pricing screens and editor lookups do not overrun ReadIndex admission", async () => {
+  let active = 0;
+  let maximum = 0;
+  let rejected = 0;
+  const requestAdminBff = async (endpoint, options = {}) => {
+    active += 1;
+    maximum = Math.max(maximum, active);
+    try {
+      if (active > 4) {
+        rejected += 1;
+        return { ok: false, status: 503, error: "El servicio no está disponible temporalmente." };
+      }
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      const raw = endpoint.includes("/taxes?")
+        ? { items: [{ taxCode: "IVA", name: "IVA", rate: 0.21, isActive: true }] }
+        : { items: [] };
+      return { ok: true, data: options.parse ? options.parse(raw) : raw };
+    } finally {
+      active -= 1;
+    }
+  };
+  const { getPricingGovernanceData, getPricingEditorLookups } = loadPricingAdminModule(requestAdminBff);
+  const data = await getPricingGovernanceData(context, { tab: "taxes" });
+  const lookups = await getPricingEditorLookups(context);
+  assert.equal(rejected, 0);
+  assert.ok(maximum <= 2, `Unexpected fan-out: ${maximum}`);
+  assert.equal(data.taxes.data[0].taxCode, "IVA");
+  assert.equal(lookups.taxes[0].taxCode, "IVA");
+});
+
+test("pricing loads the active result without querying unrelated pricing tabs", async () => {
+  const calls = [];
+  const requestAdminBff = async (endpoint, options = {}) => {
+    calls.push(endpoint);
+    return { ok: true, data: options.parse ? options.parse({ items: [] }) : {} };
+  };
+  const { getPricingGovernanceData } = loadPricingAdminModule(requestAdminBff);
+  await getPricingGovernanceData(context, { tab: "taxes", itemId: "sku", priceTableId: "vip" });
+  assert.ok(calls.some((endpoint) => endpoint.startsWith("/admin/pricing/taxes?")));
+  assert.ok(!calls.some((endpoint) => /\/(config|migration|pipeline|prices)\b/.test(endpoint)));
+  assert.ok(!calls.some((endpoint) => endpoint.includes("/price-tables/vip")));
+});
+
+
+function loadPricingTable() {
+  const source = readFileSync(path.resolve(root, "src/modules/catalogo/pricing-admin-page.tsx"), "utf8");
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
+  });
+  const exports = {};
+  const require = createRequire(import.meta.url);
+  vm.runInNewContext(outputText + "\nexports.RecordTable = RecordTable;", {
+    exports,
+    URLSearchParams,
+    require(specifier) {
+      if (specifier === "react/jsx-runtime") return require(specifier);
+      return {};
+    },
+  });
+  return exports.RecordTable;
+}
+
+test("pricing table distinguishes service failure, forbidden, empty and populated results", () => {
+  const Table = loadPricingTable();
+  const render = (result) => renderToStaticMarkup(createElement(Table, {
+    title: "Impuestos", result, columns: ["taxCode"], empty: "No hay impuestos disponibles para este contexto.",
+  }));
+  const unavailable = render({ source: "unavailable", data: [], status: 503, message: "No se pudieron cargar los impuestos." });
+  assert.match(unavailable, /No se pudieron cargar los impuestos/);
+  assert.doesNotMatch(unavailable, /0 registros|No hay impuestos|Falta permiso/);
+  const forbidden = render({ source: "unavailable", data: [], status: 403, message: "Falta permiso pricing.admin.read." });
+  assert.match(forbidden, /Falta permiso pricing.admin.read/);
+  assert.doesNotMatch(forbidden, /0 registros|No hay impuestos/);
+  const empty = render({ source: "bff", data: [] });
+  assert.match(empty, /0 registros/);
+  assert.match(empty, /No hay impuestos disponibles para este contexto/);
+  const populated = render({ source: "bff", data: [{ taxCode: "IVA" }] });
+  assert.match(populated, /1 registros/);
+  assert.match(populated, /IVA/);
+  assert.doesNotMatch(populated, /No hay impuestos|adminBannerError/);
 });

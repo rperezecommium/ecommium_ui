@@ -9,6 +9,9 @@ import { StorefrontConsentIntegrationRegistry } from "./storefront-consent-gates
 import { StorefrontConsentProvider } from "./storefront-consent-runtime";
 import { storefrontConsentIntegrations } from "./storefront-google-analytics-adapter";
 import { StorefrontConsentAnalyticsLifecycle } from "./search-events-client";
+import { getStorefrontCmsShell, type StorefrontSurface } from "./storefront-cms-shell";
+import { StorefrontSitePartView } from "./storefront-site-part";
+import { getStorefrontCategories } from "./plp";
 
 export async function StorefrontHeader({
   initialQuery,
@@ -17,8 +20,8 @@ export async function StorefrontHeader({
   initialQuery?: string;
   openCustomerLogin?: boolean;
 }) {
-  const customerSession = await getStorefrontCustomerSession();
   const context = await getStorefrontContext();
+  const [customerSession, cmsShell, categories] = await Promise.all([getStorefrontCustomerSession(), getStorefrontCmsShell("CMS"), getStorefrontCategories(context, "")]);
 
   return (
     <StorefrontConsentProvider
@@ -26,11 +29,11 @@ export async function StorefrontHeader({
       organizationId={context.organizationId}
       shopId={context.shopId}
     >
-      <StorefrontHeaderContent
+      {cmsShell?.header ? <StorefrontSitePartView categories={categories} country={context.country} currency={context.currency} locale={context.locale} part={cmsShell.header} customerEmail={customerSession?.email} initialQuery={initialQuery} marketLabel={`${context.locale} · ${context.currency}`} openCustomerLogin={openCustomerLogin} /> : <StorefrontHeaderContent
         customerEmail={customerSession?.email}
         initialQuery={initialQuery}
         openCustomerLogin={openCustomerLogin}
-      />
+      />}
       <StorefrontConsentBanner />
       <StorefrontConsentDataCleanupRegistry />
       <StorefrontConsentIntegrationRegistry integrations={storefrontConsentIntegrations} />
@@ -43,14 +46,20 @@ export async function StorefrontPageShell({
   children,
   initialQuery,
   openCustomerLogin = false,
+  pageId,
+  surface = "CMS",
 }: {
   children: React.ReactNode;
   initialQuery?: string;
   openCustomerLogin?: boolean;
+  pageId?: string;
+  surface?: StorefrontSurface;
 }) {
-  const [customerSession, context] = await Promise.all([
+  const context = await getStorefrontContext();
+  const [customerSession, cmsShell, categories] = await Promise.all([
     getStorefrontCustomerSession(),
-    getStorefrontContext(),
+    getStorefrontCmsShell(surface, pageId),
+    getStorefrontCategories(context, ""),
   ]);
 
   return (
@@ -59,12 +68,13 @@ export async function StorefrontPageShell({
       organizationId={context.organizationId}
       shopId={context.shopId}
     >
-      <StorefrontHeaderContent
+      {cmsShell?.header ? <StorefrontSitePartView categories={categories} country={context.country} currency={context.currency} locale={context.locale} part={cmsShell.header} customerEmail={customerSession?.email} initialQuery={initialQuery} marketLabel={`${context.locale} · ${context.currency}`} openCustomerLogin={openCustomerLogin} /> : <StorefrontHeaderContent
         customerEmail={customerSession?.email}
         initialQuery={initialQuery}
         openCustomerLogin={openCustomerLogin}
-      />
-      {children}
+      />}
+      <div className="storefrontShellContent" data-cms-breadcrumb-mode={cmsShell?.breadcrumbMode ?? "AUTO"}>{children}</div>
+      {cmsShell?.footer ? <StorefrontSitePartView part={cmsShell.footer} customerEmail={customerSession?.email} marketLabel={`${context.locale} · ${context.currency}`} /> : null}
       <StorefrontConsentBanner />
       <StorefrontConsentDataCleanupRegistry />
       <StorefrontConsentIntegrationRegistry integrations={storefrontConsentIntegrations} />

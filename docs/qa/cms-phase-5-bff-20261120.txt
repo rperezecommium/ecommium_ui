@@ -1,0 +1,12 @@
+
+> bff@0.0.1 test
+> jest --runInBand manage-composition-templates.use-case.spec.ts manage-independent-cms-sections.use-case.spec.ts
+
+PASS src/modules/cms/application/use-cases/manage-composition-templates.use-case.spec.ts
+PASS src/modules/cms/application/use-cases/manage-independent-cms-sections.use-case.spec.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       12 passed, 12 total
+Snapshots:   0 total
+Time:        2.533 s, estimated 4 s
+Ran all test suites matching /manage-composition-templates.use-case.spec.ts|manage-independent-cms-sections.use-case.spec.ts/i.

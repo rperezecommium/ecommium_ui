@@ -1,0 +1,2573 @@
+[
+  {
+    "path": "/home",
+    "width": 1440,
+    "status": 200,
+    "errors": [],
+    "text": "Home\nVelocidad sin limites\n\nSiente cada kilometro como si fuera el primero.\n\nVer bicicletas\nPedalea junto al mar\n\nDescubre nuevas rutas con la costa como horizonte.\n\nExplorar equipamiento\nSu primera gran aventura\n\nBicicletas infantiles para descubrir el mundo jugando.\n\nVer bicicletas infantiles\nRopa\nBicicletas y cuadros\nComponentes\nCascos\nNutricion\nComponentes destacados\n\nEquipa tu bicicleta para tu próxima salida\n\nSunrace\nSunrace desviador trasero rs2 - Serie 323\n13,18 €\nShimano\nShimano desviador trasero ty21 - Serie 038\n15,59 €\nShimano\nShimano desviador trasero cues rd u4000 u4020 sgs type direct mount - Serie 522\n24,30 €\nSram\nSram grupo de componentes de bicicleta nx eagle set boost - Serie 085\n25,33 €\nRockshox\nRockshox amortiguador vivid coil ultimate rc2t metric trunnion - Serie 598\n27,38 €\nSram\nSram desviador trasero force 22 wifli - Serie 364\n29,18 €\nShimano\nShimano desviador trasero claris r2000 direct - Serie 492\n31,21 €\nSram\nSram disco de freno hs2 6b - Serie 219\n34,91 €\nShimano\nShimano desviador trasero tourney ty300 - Serie 001\n35,70 €\nSram\nSram desviador trasero s100 eagle drivetrain - Serie 501\n40,50 €\nÚNETE A NUESTRO CLUB\nRecibe descuentos exclusivos, novedades y tendencias en tu email.\n\nEscribe tu correo electrónico. Podrás darte de baja cuando quieras.\n\nTu correo electrónico\nQuiero recibir el newsletter con novedades y ofertas de esta tienda por correo electrónico. Puedo darme de baja en cualquier momento.\nPrivacidad del newsletter\nSUSCRIBIR",
+    "headings": [
+      {
+        "text": "Home",
+        "x": 0,
+        "y": 182,
+        "width": 1,
+        "height": 1,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Velocidad sin limites",
+        "x": 56,
+        "y": 303.796875,
+        "width": 354.140625,
+        "height": 40.3125,
+        "font": "700 36px / 40.32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Pedalea junto al mar",
+        "x": 1496,
+        "y": 303.796875,
+        "width": 350.125,
+        "height": 40.3125,
+        "font": "700 36px / 40.32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Su primera gran aventura",
+        "x": 2936,
+        "y": 303.796875,
+        "width": 436.15625,
+        "height": 40.3125,
+        "font": "700 36px / 40.32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Componentes destacados",
+        "x": 72,
+        "y": 1360,
+        "width": 1296,
+        "height": 42,
+        "font": "700 36px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "ÚNETE A NUESTRO CLUB",
+        "x": 441.25,
+        "y": 2278.484375,
+        "width": 557.484375,
+        "height": 78,
+        "font": "800 40px / 46px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Recibe descuentos exclusivos, novedades y tendencias en tu email.",
+        "x": 331.171875,
+        "y": 2390.484375,
+        "width": 777.640625,
+        "height": 33.59375,
+        "font": "700 24px / 33.6px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Ver bicicletas",
+        "href": "/search?q=bicicletas"
+      },
+      {
+        "text": "Explorar equipamiento",
+        "href": "/search?q=ciclismo"
+      },
+      {
+        "text": "Ver bicicletas infantiles",
+        "href": "/search?q=bicicleta%20infantil"
+      },
+      {
+        "text": "Ropa",
+        "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+      },
+      {
+        "text": "Bicicletas y cuadros",
+        "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+      },
+      {
+        "text": "Componentes",
+        "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+      },
+      {
+        "text": "Cascos",
+        "href": "/plp/bike-cockpit"
+      },
+      {
+        "text": "Nutricion",
+        "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sunrace-desviador-trasero-rs2-serie-323-323-dd2cedbe"
+      },
+      {
+        "text": "Sunrace desviador trasero rs2 - Serie 323",
+        "href": "/pdp/imp-bf62d289bb-sunrace-desviador-trasero-rs2-serie-323-323-dd2cedbe"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-ty21-serie-038-038-384a17c7"
+      },
+      {
+        "text": "Shimano desviador trasero ty21 - Serie 038",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-ty21-serie-038-038-384a17c7"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-cues-rd-u4000-u4020-sgs-type-direct-mount-serie-522-522-62da73b3"
+      },
+      {
+        "text": "Shimano desviador trasero cues rd u4000 u4020 sgs type direct mount - Serie 522",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-cues-rd-u4000-u4020-sgs-type-direct-mount-serie-522-522-62da73b3"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-grupo-de-componentes-de-bicicleta-nx-eagle-set-boost-serie-085-085-e5cd2dbb"
+      },
+      {
+        "text": "Sram grupo de componentes de bicicleta nx eagle set boost - Serie 085",
+        "href": "/pdp/imp-bf62d289bb-sram-grupo-de-componentes-de-bicicleta-nx-eagle-set-boost-serie-085-085-e5cd2dbb"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-rockshox-amortiguador-vivid-coil-ultimate-rc2t-metric-trunnion-serie-598-598-a66c03a5"
+      },
+      {
+        "text": "Rockshox amortiguador vivid coil ultimate rc2t metric trunnion - Serie 598",
+        "href": "/pdp/imp-bf62d289bb-rockshox-amortiguador-vivid-coil-ultimate-rc2t-metric-trunnion-serie-598-598-a66c03a5"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-force-22-wifli-serie-364-364-190f32c0"
+      },
+      {
+        "text": "Sram desviador trasero force 22 wifli - Serie 364",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-force-22-wifli-serie-364-364-190f32c0"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-claris-r2000-direct-serie-492-492-7c891f26"
+      },
+      {
+        "text": "Shimano desviador trasero claris r2000 direct - Serie 492",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-claris-r2000-direct-serie-492-492-7c891f26"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-disco-de-freno-hs2-6b-serie-219-219-cdbc1b90"
+      },
+      {
+        "text": "Sram disco de freno hs2 6b - Serie 219",
+        "href": "/pdp/imp-bf62d289bb-sram-disco-de-freno-hs2-6b-serie-219-219-cdbc1b90"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-tourney-ty300-serie-001-001-3debafc8"
+      },
+      {
+        "text": "Shimano desviador trasero tourney ty300 - Serie 001",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-tourney-ty300-serie-001-001-3debafc8"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-s100-eagle-drivetrain-serie-501-501-43759b5f"
+      },
+      {
+        "text": "Sram desviador trasero s100 eagle drivetrain - Serie 501",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-s100-eagle-drivetrain-serie-501-501-43759b5f"
+      },
+      {
+        "text": "Privacidad del newsletter",
+        "href": "/privacidad-newsletter"
+      }
+    ],
+    "images": [
+      {
+        "alt": "Tres ciclistas compitiendo en carretera",
+        "src": "/assets/cms/home-slider/ciclismo-velocidad.jpg",
+        "loaded": true,
+        "width": 1440,
+        "height": 380
+      },
+      {
+        "alt": "Dos bicicletas electricas frente al mar",
+        "src": "/assets/cms/home-slider/paseo-costa.jpg",
+        "loaded": true,
+        "width": 1440,
+        "height": 380
+      },
+      {
+        "alt": "Nino montando una bicicleta infantil en la montana",
+        "src": "/assets/cms/home-slider/bicicleta-infantil.jpg",
+        "loaded": true,
+        "width": 1440,
+        "height": 380
+      },
+      {
+        "alt": "Ciclista con ropa tecnica en una ruta de montana",
+        "src": "/assets/cms/home-categories/ropa-ciclismo.webp",
+        "loaded": true,
+        "width": 636,
+        "height": 320
+      },
+      {
+        "alt": "Bicicleta de carretera en movimiento",
+        "src": "/assets/cms/home-categories/bicicletas.webp",
+        "loaded": true,
+        "width": 636,
+        "height": 320
+      },
+      {
+        "alt": "Transmision y componentes de una bicicleta",
+        "src": "/assets/cms/home-categories/componentes.webp",
+        "loaded": true,
+        "width": 416,
+        "height": 320
+      },
+      {
+        "alt": "Ciclista equipada con casco y gafas",
+        "src": "/assets/cms/home-categories/cascos.webp",
+        "loaded": true,
+        "width": 416,
+        "height": 320
+      },
+      {
+        "alt": "Bidones de hidratacion sobre una bicicleta",
+        "src": "/assets/cms/home-categories/nutricion.webp",
+        "loaded": true,
+        "width": 416,
+        "height": 320
+      },
+      {
+        "alt": "Sunrace desviador trasero rs2 - Serie 323",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/dd2cedbe-c068-4236-8ef8-fff2c6a2c097/546d6eb3-7cda-45cd-8881-d9eb44d8753b/original.jpg",
+        "loaded": true,
+        "width": 240,
+        "height": 240
+      },
+      {
+        "alt": "Shimano desviador trasero ty21 - Serie 038",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/384a17c7-1487-405f-82b2-3702dd1aacc3/ae7c262a-f99c-44bf-8673-b838e0b5fbf6/original.jpg",
+        "loaded": true,
+        "width": 240,
+        "height": 240
+      },
+      {
+        "alt": "Shimano desviador trasero cues rd u4000 u4020 sgs type direct mount - Serie 522",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/62da73b3-47b6-43d0-825b-39168906c196/3639c410-1498-4699-bb57-aed8d2bb07a2/original.jpg",
+        "loaded": true,
+        "width": 240,
+        "height": 240
+      },
+      {
+        "alt": "Sram grupo de componentes de bicicleta nx eagle set boost - Serie 085",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/e5cd2dbb-935a-4d88-8017-1d2e0899d560/1597ab01-dac1-4429-9f65-89f5628f7e0c/original.jpg",
+        "loaded": true,
+        "width": 240,
+        "height": 240
+      },
+      {
+        "alt": "Rockshox amortiguador vivid coil ultimate rc2t metric trunnion - Serie 598",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/a66c03a5-7ec9-4860-8118-843eb4a1f3ec/a8e99b48-f7e4-4a58-947d-88e8d7b03156/original.jpg",
+        "loaded": true,
+        "width": 240,
+        "height": 240
+      },
+      {
+        "alt": "Sram desviador trasero force 22 wifli - Serie 364",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/190f32c0-0567-4718-84a3-8e86b6a50846/0d36c1ad-0a93-4842-ba40-8c3da661055c/original.jpg",
+        "loaded": true,
+        "width": 240,
+        "height": 240
+      },
+      {
+        "alt": "Shimano desviador trasero claris r2000 direct - Serie 492",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/7c891f26-5e9f-4dce-868b-686794de7062/6c59dff3-574f-4de8-ba92-cf142d8ea035/original.jpg",
+        "loaded": true,
+        "width": 240,
+        "height": 240
+      },
+      {
+        "alt": "Sram disco de freno hs2 6b - Serie 219",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/cdbc1b90-419d-4b4e-8151-abdc7c6cb9d4/77ccec47-4d2f-41ee-b31b-17d86a8ddca0/original.jpg",
+        "loaded": true,
+        "width": 240,
+        "height": 240
+      },
+      {
+        "alt": "Shimano desviador trasero tourney ty300 - Serie 001",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/3debafc8-d0a5-40a4-86b2-5263e92ba184/b0d77a67-38c3-4233-8109-ca35a35f19f9/original.jpg",
+        "loaded": true,
+        "width": 240,
+        "height": 240
+      },
+      {
+        "alt": "Sram desviador trasero s100 eagle drivetrain - Serie 501",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/43759b5f-416a-4539-8bae-f6315cd2b1c9/0ea44be7-f1f2-4441-90ab-8a47e122f5b1/original.jpg",
+        "loaded": true,
+        "width": 240,
+        "height": 240
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "path": "/home",
+    "width": 768,
+    "status": 200,
+    "errors": [],
+    "text": "Home\nVelocidad sin limites\n\nSiente cada kilometro como si fuera el primero.\n\nVer bicicletas\nPedalea junto al mar\n\nDescubre nuevas rutas con la costa como horizonte.\n\nExplorar equipamiento\nSu primera gran aventura\n\nBicicletas infantiles para descubrir el mundo jugando.\n\nVer bicicletas infantiles\nRopa\nBicicletas y cuadros\nComponentes\nCascos\nNutricion\nComponentes destacados\n\nEquipa tu bicicleta para tu próxima salida\n\nSunrace\nSunrace desviador trasero rs2 - Serie 323\n13,18 €\nShimano\nShimano desviador trasero ty21 - Serie 038\n15,59 €\nShimano\nShimano desviador trasero cues rd u4000 u4020 sgs type direct mount - Serie 522\n24,30 €\nSram\nSram grupo de componentes de bicicleta nx eagle set boost - Serie 085\n25,33 €\nRockshox\nRockshox amortiguador vivid coil ultimate rc2t metric trunnion - Serie 598\n27,38 €\nSram\nSram desviador trasero force 22 wifli - Serie 364\n29,18 €\nShimano\nShimano desviador trasero claris r2000 direct - Serie 492\n31,21 €\nSram\nSram disco de freno hs2 6b - Serie 219\n34,91 €\nShimano\nShimano desviador trasero tourney ty300 - Serie 001\n35,70 €\nSram\nSram desviador trasero s100 eagle drivetrain - Serie 501\n40,50 €\nÚNETE A NUESTRO CLUB\nRecibe descuentos exclusivos, novedades y tendencias en tu email.\n\nEscribe tu correo electrónico. Podrás darte de baja cuando quieras.\n\nTu correo electrónico\nQuiero recibir el newsletter con novedades y ofertas de esta tienda por correo electrónico. Puedo darme de baja en cualquier momento.\nPrivacidad del newsletter\nSUSCRIBIR",
+    "headings": [
+      {
+        "text": "Home",
+        "x": 0,
+        "y": 234,
+        "width": 1,
+        "height": 1,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Velocidad sin limites",
+        "x": 56,
+        "y": 340.796875,
+        "width": 354.140625,
+        "height": 40.3125,
+        "font": "700 36px / 40.32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Pedalea junto al mar",
+        "x": 824,
+        "y": 340.796875,
+        "width": 350.125,
+        "height": 40.3125,
+        "font": "700 36px / 40.32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Su primera gran aventura",
+        "x": 1592,
+        "y": 340.796875,
+        "width": 436.15625,
+        "height": 40.3125,
+        "font": "700 36px / 40.32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Componentes destacados",
+        "x": 38.40625,
+        "y": 1382,
+        "width": 691.1875,
+        "height": 28,
+        "font": "700 24px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "ÚNETE A NUESTRO CLUB",
+        "x": 105.25,
+        "y": 3078.71875,
+        "width": 557.484375,
+        "height": 78,
+        "font": "800 40px / 46px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Recibe descuentos exclusivos, novedades y tendencias en tu email.",
+        "x": 32,
+        "y": 3190.71875,
+        "width": 704,
+        "height": 67.1875,
+        "font": "700 24px / 33.6px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Ver bicicletas",
+        "href": "/search?q=bicicletas"
+      },
+      {
+        "text": "Explorar equipamiento",
+        "href": "/search?q=ciclismo"
+      },
+      {
+        "text": "Ver bicicletas infantiles",
+        "href": "/search?q=bicicleta%20infantil"
+      },
+      {
+        "text": "Ropa",
+        "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+      },
+      {
+        "text": "Bicicletas y cuadros",
+        "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+      },
+      {
+        "text": "Componentes",
+        "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+      },
+      {
+        "text": "Cascos",
+        "href": "/plp/bike-cockpit"
+      },
+      {
+        "text": "Nutricion",
+        "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sunrace-desviador-trasero-rs2-serie-323-323-dd2cedbe"
+      },
+      {
+        "text": "Sunrace desviador trasero rs2 - Serie 323",
+        "href": "/pdp/imp-bf62d289bb-sunrace-desviador-trasero-rs2-serie-323-323-dd2cedbe"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-ty21-serie-038-038-384a17c7"
+      },
+      {
+        "text": "Shimano desviador trasero ty21 - Serie 038",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-ty21-serie-038-038-384a17c7"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-cues-rd-u4000-u4020-sgs-type-direct-mount-serie-522-522-62da73b3"
+      },
+      {
+        "text": "Shimano desviador trasero cues rd u4000 u4020 sgs type direct mount - Serie 522",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-cues-rd-u4000-u4020-sgs-type-direct-mount-serie-522-522-62da73b3"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-grupo-de-componentes-de-bicicleta-nx-eagle-set-boost-serie-085-085-e5cd2dbb"
+      },
+      {
+        "text": "Sram grupo de componentes de bicicleta nx eagle set boost - Serie 085",
+        "href": "/pdp/imp-bf62d289bb-sram-grupo-de-componentes-de-bicicleta-nx-eagle-set-boost-serie-085-085-e5cd2dbb"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-rockshox-amortiguador-vivid-coil-ultimate-rc2t-metric-trunnion-serie-598-598-a66c03a5"
+      },
+      {
+        "text": "Rockshox amortiguador vivid coil ultimate rc2t metric trunnion - Serie 598",
+        "href": "/pdp/imp-bf62d289bb-rockshox-amortiguador-vivid-coil-ultimate-rc2t-metric-trunnion-serie-598-598-a66c03a5"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-force-22-wifli-serie-364-364-190f32c0"
+      },
+      {
+        "text": "Sram desviador trasero force 22 wifli - Serie 364",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-force-22-wifli-serie-364-364-190f32c0"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-claris-r2000-direct-serie-492-492-7c891f26"
+      },
+      {
+        "text": "Shimano desviador trasero claris r2000 direct - Serie 492",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-claris-r2000-direct-serie-492-492-7c891f26"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-disco-de-freno-hs2-6b-serie-219-219-cdbc1b90"
+      },
+      {
+        "text": "Sram disco de freno hs2 6b - Serie 219",
+        "href": "/pdp/imp-bf62d289bb-sram-disco-de-freno-hs2-6b-serie-219-219-cdbc1b90"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-tourney-ty300-serie-001-001-3debafc8"
+      },
+      {
+        "text": "Shimano desviador trasero tourney ty300 - Serie 001",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-tourney-ty300-serie-001-001-3debafc8"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-s100-eagle-drivetrain-serie-501-501-43759b5f"
+      },
+      {
+        "text": "Sram desviador trasero s100 eagle drivetrain - Serie 501",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-s100-eagle-drivetrain-serie-501-501-43759b5f"
+      },
+      {
+        "text": "Privacidad del newsletter",
+        "href": "/privacidad-newsletter"
+      }
+    ],
+    "images": [
+      {
+        "alt": "Tres ciclistas compitiendo en carretera",
+        "src": "/assets/cms/home-slider/ciclismo-velocidad.jpg",
+        "loaded": true,
+        "width": 768,
+        "height": 350
+      },
+      {
+        "alt": "Dos bicicletas electricas frente al mar",
+        "src": "/assets/cms/home-slider/paseo-costa.jpg",
+        "loaded": true,
+        "width": 768,
+        "height": 350
+      },
+      {
+        "alt": "Nino montando una bicicleta infantil en la montana",
+        "src": "/assets/cms/home-slider/bicicleta-infantil.jpg",
+        "loaded": true,
+        "width": 768,
+        "height": 350
+      },
+      {
+        "alt": "Ciclista con ropa tecnica en una ruta de montana",
+        "src": "/assets/cms/home-categories/ropa-ciclismo.webp",
+        "loaded": true,
+        "width": 333.59375,
+        "height": 320
+      },
+      {
+        "alt": "Bicicleta de carretera en movimiento",
+        "src": "/assets/cms/home-categories/bicicletas.webp",
+        "loaded": true,
+        "width": 333.59375,
+        "height": 320
+      },
+      {
+        "alt": "Transmision y componentes de una bicicleta",
+        "src": "/assets/cms/home-categories/componentes.webp",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 320
+      },
+      {
+        "alt": "Ciclista equipada con casco y gafas",
+        "src": "/assets/cms/home-categories/cascos.webp",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 320
+      },
+      {
+        "alt": "Bidones de hidratacion sobre una bicicleta",
+        "src": "/assets/cms/home-categories/nutricion.webp",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 320
+      },
+      {
+        "alt": "Sunrace desviador trasero rs2 - Serie 323",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/dd2cedbe-c068-4236-8ef8-fff2c6a2c097/546d6eb3-7cda-45cd-8881-d9eb44d8753b/original.jpg",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 214.390625
+      },
+      {
+        "alt": "Shimano desviador trasero ty21 - Serie 038",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/384a17c7-1487-405f-82b2-3702dd1aacc3/ae7c262a-f99c-44bf-8673-b838e0b5fbf6/original.jpg",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 214.390625
+      },
+      {
+        "alt": "Shimano desviador trasero cues rd u4000 u4020 sgs type direct mount - Serie 522",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/62da73b3-47b6-43d0-825b-39168906c196/3639c410-1498-4699-bb57-aed8d2bb07a2/original.jpg",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 214.390625
+      },
+      {
+        "alt": "Sram grupo de componentes de bicicleta nx eagle set boost - Serie 085",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/e5cd2dbb-935a-4d88-8017-1d2e0899d560/1597ab01-dac1-4429-9f65-89f5628f7e0c/original.jpg",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 214.390625
+      },
+      {
+        "alt": "Rockshox amortiguador vivid coil ultimate rc2t metric trunnion - Serie 598",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/a66c03a5-7ec9-4860-8118-843eb4a1f3ec/a8e99b48-f7e4-4a58-947d-88e8d7b03156/original.jpg",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 214.390625
+      },
+      {
+        "alt": "Sram desviador trasero force 22 wifli - Serie 364",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/190f32c0-0567-4718-84a3-8e86b6a50846/0d36c1ad-0a93-4842-ba40-8c3da661055c/original.jpg",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 214.390625
+      },
+      {
+        "alt": "Shimano desviador trasero claris r2000 direct - Serie 492",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/7c891f26-5e9f-4dce-868b-686794de7062/6c59dff3-574f-4de8-ba92-cf142d8ea035/original.jpg",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 214.390625
+      },
+      {
+        "alt": "Sram disco de freno hs2 6b - Serie 219",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/cdbc1b90-419d-4b4e-8151-abdc7c6cb9d4/77ccec47-4d2f-41ee-b31b-17d86a8ddca0/original.jpg",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 214.390625
+      },
+      {
+        "alt": "Shimano desviador trasero tourney ty300 - Serie 001",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/3debafc8-d0a5-40a4-86b2-5263e92ba184/b0d77a67-38c3-4233-8109-ca35a35f19f9/original.jpg",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 214.390625
+      },
+      {
+        "alt": "Sram desviador trasero s100 eagle drivetrain - Serie 501",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/43759b5f-416a-4539-8bae-f6315cd2b1c9/0ea44be7-f1f2-4441-90ab-8a47e122f5b1/original.jpg",
+        "loaded": true,
+        "width": 214.390625,
+        "height": 214.390625
+      }
+    ],
+    "overflow": true
+  },
+  {
+    "path": "/home",
+    "width": 390,
+    "status": 200,
+    "errors": [],
+    "text": "Home\nVelocidad sin limites\n\nSiente cada kilometro como si fuera el primero.\n\nVer bicicletas\nPedalea junto al mar\n\nDescubre nuevas rutas con la costa como horizonte.\n\nExplorar equipamiento\nSu primera gran aventura\n\nBicicletas infantiles para descubrir el mundo jugando.\n\nVer bicicletas infantiles\nRopa\nBicicletas y cuadros\nComponentes\nCascos\nNutricion\nComponentes destacados\n\nEquipa tu bicicleta para tu próxima salida\n\nSunrace\nSunrace desviador trasero rs2 - Serie 323\n13,18 €\nShimano\nShimano desviador trasero ty21 - Serie 038\n15,59 €\nShimano\nShimano desviador trasero cues rd u4000 u4020 sgs type direct mount - Serie 522\n24,30 €\nSram\nSram grupo de componentes de bicicleta nx eagle set boost - Serie 085\n25,33 €\nRockshox\nRockshox amortiguador vivid coil ultimate rc2t metric trunnion - Serie 598\n27,38 €\nSram\nSram desviador trasero force 22 wifli - Serie 364\n29,18 €\nShimano\nShimano desviador trasero claris r2000 direct - Serie 492\n31,21 €\nSram\nSram disco de freno hs2 6b - Serie 219\n34,91 €\nShimano\nShimano desviador trasero tourney ty300 - Serie 001\n35,70 €\nSram\nSram desviador trasero s100 eagle drivetrain - Serie 501\n40,50 €\nÚNETE A NUESTRO CLUB\nRecibe descuentos exclusivos, novedades y tendencias en tu email.\n\nEscribe tu correo electrónico. Podrás darte de baja cuando quieras.\n\nTu correo electrónico\nQuiero recibir el newsletter con novedades y ofertas de esta tienda por correo electrónico. Puedo darme de baja en cualquier momento.\nPrivacidad del newsletter\nSUSCRIBIR",
+    "headings": [
+      {
+        "text": "Home",
+        "x": 0,
+        "y": 328,
+        "width": 1,
+        "height": 1,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Velocidad sin limites",
+        "x": 44,
+        "y": 417.125,
+        "width": 275.4375,
+        "height": 31.359375,
+        "font": "700 28px / 31.36px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Pedalea junto al mar",
+        "x": 434,
+        "y": 417.125,
+        "width": 272.328125,
+        "height": 31.359375,
+        "font": "700 28px / 31.36px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Su primera gran aventura",
+        "x": 824,
+        "y": 401.453125,
+        "width": 302,
+        "height": 62.71875,
+        "font": "700 28px / 31.36px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Componentes destacados",
+        "x": 19.5,
+        "y": 2378,
+        "width": 351,
+        "height": 28,
+        "font": "700 24px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "ÚNETE A NUESTRO CLUB",
+        "x": 20,
+        "y": 4260.4375,
+        "width": 350,
+        "height": 96.375,
+        "font": "800 28px / 32.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Recibe descuentos exclusivos, novedades y tendencias en tu email.",
+        "x": 20,
+        "y": 4390.8125,
+        "width": 350,
+        "height": 56,
+        "font": "700 20px / 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Ver bicicletas",
+        "href": "/search?q=bicicletas"
+      },
+      {
+        "text": "Explorar equipamiento",
+        "href": "/search?q=ciclismo"
+      },
+      {
+        "text": "Ver bicicletas infantiles",
+        "href": "/search?q=bicicleta%20infantil"
+      },
+      {
+        "text": "Ropa",
+        "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+      },
+      {
+        "text": "Bicicletas y cuadros",
+        "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+      },
+      {
+        "text": "Componentes",
+        "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+      },
+      {
+        "text": "Cascos",
+        "href": "/plp/bike-cockpit"
+      },
+      {
+        "text": "Nutricion",
+        "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sunrace-desviador-trasero-rs2-serie-323-323-dd2cedbe"
+      },
+      {
+        "text": "Sunrace desviador trasero rs2 - Serie 323",
+        "href": "/pdp/imp-bf62d289bb-sunrace-desviador-trasero-rs2-serie-323-323-dd2cedbe"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-ty21-serie-038-038-384a17c7"
+      },
+      {
+        "text": "Shimano desviador trasero ty21 - Serie 038",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-ty21-serie-038-038-384a17c7"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-cues-rd-u4000-u4020-sgs-type-direct-mount-serie-522-522-62da73b3"
+      },
+      {
+        "text": "Shimano desviador trasero cues rd u4000 u4020 sgs type direct mount - Serie 522",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-cues-rd-u4000-u4020-sgs-type-direct-mount-serie-522-522-62da73b3"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-grupo-de-componentes-de-bicicleta-nx-eagle-set-boost-serie-085-085-e5cd2dbb"
+      },
+      {
+        "text": "Sram grupo de componentes de bicicleta nx eagle set boost - Serie 085",
+        "href": "/pdp/imp-bf62d289bb-sram-grupo-de-componentes-de-bicicleta-nx-eagle-set-boost-serie-085-085-e5cd2dbb"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-rockshox-amortiguador-vivid-coil-ultimate-rc2t-metric-trunnion-serie-598-598-a66c03a5"
+      },
+      {
+        "text": "Rockshox amortiguador vivid coil ultimate rc2t metric trunnion - Serie 598",
+        "href": "/pdp/imp-bf62d289bb-rockshox-amortiguador-vivid-coil-ultimate-rc2t-metric-trunnion-serie-598-598-a66c03a5"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-force-22-wifli-serie-364-364-190f32c0"
+      },
+      {
+        "text": "Sram desviador trasero force 22 wifli - Serie 364",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-force-22-wifli-serie-364-364-190f32c0"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-claris-r2000-direct-serie-492-492-7c891f26"
+      },
+      {
+        "text": "Shimano desviador trasero claris r2000 direct - Serie 492",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-claris-r2000-direct-serie-492-492-7c891f26"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-disco-de-freno-hs2-6b-serie-219-219-cdbc1b90"
+      },
+      {
+        "text": "Sram disco de freno hs2 6b - Serie 219",
+        "href": "/pdp/imp-bf62d289bb-sram-disco-de-freno-hs2-6b-serie-219-219-cdbc1b90"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-tourney-ty300-serie-001-001-3debafc8"
+      },
+      {
+        "text": "Shimano desviador trasero tourney ty300 - Serie 001",
+        "href": "/pdp/imp-bf62d289bb-shimano-desviador-trasero-tourney-ty300-serie-001-001-3debafc8"
+      },
+      {
+        "text": "",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-s100-eagle-drivetrain-serie-501-501-43759b5f"
+      },
+      {
+        "text": "Sram desviador trasero s100 eagle drivetrain - Serie 501",
+        "href": "/pdp/imp-bf62d289bb-sram-desviador-trasero-s100-eagle-drivetrain-serie-501-501-43759b5f"
+      },
+      {
+        "text": "Privacidad del newsletter",
+        "href": "/privacidad-newsletter"
+      }
+    ],
+    "images": [
+      {
+        "alt": "Tres ciclistas compitiendo en carretera",
+        "src": "/assets/cms/home-slider/ciclismo-velocidad.jpg",
+        "loaded": true,
+        "width": 390,
+        "height": 320
+      },
+      {
+        "alt": "Dos bicicletas electricas frente al mar",
+        "src": "/assets/cms/home-slider/paseo-costa.jpg",
+        "loaded": true,
+        "width": 390,
+        "height": 320
+      },
+      {
+        "alt": "Nino montando una bicicleta infantil en la montana",
+        "src": "/assets/cms/home-slider/bicicleta-infantil.jpg",
+        "loaded": true,
+        "width": 390,
+        "height": 320
+      },
+      {
+        "alt": "Ciclista con ropa tecnica en una ruta de montana",
+        "src": "/assets/cms/home-categories/ropa-ciclismo.webp",
+        "loaded": true,
+        "width": 351,
+        "height": 300
+      },
+      {
+        "alt": "Bicicleta de carretera en movimiento",
+        "src": "/assets/cms/home-categories/bicicletas.webp",
+        "loaded": true,
+        "width": 351,
+        "height": 300
+      },
+      {
+        "alt": "Transmision y componentes de una bicicleta",
+        "src": "/assets/cms/home-categories/componentes.webp",
+        "loaded": true,
+        "width": 351,
+        "height": 300
+      },
+      {
+        "alt": "Ciclista equipada con casco y gafas",
+        "src": "/assets/cms/home-categories/cascos.webp",
+        "loaded": true,
+        "width": 351,
+        "height": 300
+      },
+      {
+        "alt": "Bidones de hidratacion sobre una bicicleta",
+        "src": "/assets/cms/home-categories/nutricion.webp",
+        "loaded": true,
+        "width": 351,
+        "height": 300
+      },
+      {
+        "alt": "Sunrace desviador trasero rs2 - Serie 323",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/dd2cedbe-c068-4236-8ef8-fff2c6a2c097/546d6eb3-7cda-45cd-8881-d9eb44d8753b/original.jpg",
+        "loaded": true,
+        "width": 167.5,
+        "height": 167.5
+      },
+      {
+        "alt": "Shimano desviador trasero ty21 - Serie 038",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/384a17c7-1487-405f-82b2-3702dd1aacc3/ae7c262a-f99c-44bf-8673-b838e0b5fbf6/original.jpg",
+        "loaded": true,
+        "width": 167.5,
+        "height": 167.5
+      },
+      {
+        "alt": "Shimano desviador trasero cues rd u4000 u4020 sgs type direct mount - Serie 522",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/62da73b3-47b6-43d0-825b-39168906c196/3639c410-1498-4699-bb57-aed8d2bb07a2/original.jpg",
+        "loaded": true,
+        "width": 167.5,
+        "height": 167.5
+      },
+      {
+        "alt": "Sram grupo de componentes de bicicleta nx eagle set boost - Serie 085",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/e5cd2dbb-935a-4d88-8017-1d2e0899d560/1597ab01-dac1-4429-9f65-89f5628f7e0c/original.jpg",
+        "loaded": true,
+        "width": 167.5,
+        "height": 167.5
+      },
+      {
+        "alt": "Rockshox amortiguador vivid coil ultimate rc2t metric trunnion - Serie 598",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/a66c03a5-7ec9-4860-8118-843eb4a1f3ec/a8e99b48-f7e4-4a58-947d-88e8d7b03156/original.jpg",
+        "loaded": true,
+        "width": 167.5,
+        "height": 167.5
+      },
+      {
+        "alt": "Sram desviador trasero force 22 wifli - Serie 364",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/190f32c0-0567-4718-84a3-8e86b6a50846/0d36c1ad-0a93-4842-ba40-8c3da661055c/original.jpg",
+        "loaded": true,
+        "width": 167.5,
+        "height": 167.5
+      },
+      {
+        "alt": "Shimano desviador trasero claris r2000 direct - Serie 492",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/7c891f26-5e9f-4dce-868b-686794de7062/6c59dff3-574f-4de8-ba92-cf142d8ea035/original.jpg",
+        "loaded": true,
+        "width": 167.5,
+        "height": 167.5
+      },
+      {
+        "alt": "Sram disco de freno hs2 6b - Serie 219",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/cdbc1b90-419d-4b4e-8151-abdc7c6cb9d4/77ccec47-4d2f-41ee-b31b-17d86a8ddca0/original.jpg",
+        "loaded": true,
+        "width": 167.5,
+        "height": 167.5
+      },
+      {
+        "alt": "Shimano desviador trasero tourney ty300 - Serie 001",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/3debafc8-d0a5-40a4-86b2-5263e92ba184/b0d77a67-38c3-4233-8109-ca35a35f19f9/original.jpg",
+        "loaded": true,
+        "width": 167.5,
+        "height": 167.5
+      },
+      {
+        "alt": "Sram desviador trasero s100 eagle drivetrain - Serie 501",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/43759b5f-416a-4539-8bae-f6315cd2b1c9/0ea44be7-f1f2-4441-90ab-8a47e122f5b1/original.jpg",
+        "loaded": true,
+        "width": 167.5,
+        "height": 167.5
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "path": "/privacidad-newsletter",
+    "width": 1440,
+    "status": 200,
+    "errors": [],
+    "text": "Inicio\n/\nPrivacidad del newsletter\nINFORMACIÓN\nPrivacidad del newsletter\nPrivacidad del newsletter\n\nTu correo se utiliza para gestionar tu suscripción al newsletter de esta tienda. Recibirás un mensaje de confirmación antes de activar la suscripción. Si no has solicitado el alta, puedes ignorar el mensaje o cancelar la solicitud.\n\nLa suscripción es voluntaria y no crea una cuenta de cliente. Guardamos el estado de la suscripción y la versión del consentimiento que has aceptado. Puedes retirar tu consentimiento desde el enlace de baja de los mensajes.\n\nInformación del entorno de pruebas: antes de abrir el servicio al público, esta página debe completarse con el responsable, contacto, conservación y ejercicio de derechos.",
+    "headings": [
+      {
+        "text": "Privacidad del newsletter",
+        "x": 20,
+        "y": 279,
+        "width": 1400,
+        "height": 32,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Privacidad del newsletter",
+        "x": 20,
+        "y": 353,
+        "width": 1400,
+        "height": 37,
+        "font": "700 32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Inicio",
+        "href": "/"
+      }
+    ],
+    "images": [],
+    "overflow": false
+  },
+  {
+    "path": "/privacidad-newsletter",
+    "width": 768,
+    "status": 200,
+    "errors": [],
+    "text": "Inicio\n/\nPrivacidad del newsletter\nINFORMACIÓN\nPrivacidad del newsletter\nPrivacidad del newsletter\n\nTu correo se utiliza para gestionar tu suscripción al newsletter de esta tienda. Recibirás un mensaje de confirmación antes de activar la suscripción. Si no has solicitado el alta, puedes ignorar el mensaje o cancelar la solicitud.\n\nLa suscripción es voluntaria y no crea una cuenta de cliente. Guardamos el estado de la suscripción y la versión del consentimiento que has aceptado. Puedes retirar tu consentimiento desde el enlace de baja de los mensajes.\n\nInformación del entorno de pruebas: antes de abrir el servicio al público, esta página debe completarse con el responsable, contacto, conservación y ejercicio de derechos.",
+    "headings": [
+      {
+        "text": "Privacidad del newsletter",
+        "x": 20,
+        "y": 331,
+        "width": 728,
+        "height": 32,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Privacidad del newsletter",
+        "x": 20,
+        "y": 405,
+        "width": 728,
+        "height": 37,
+        "font": "700 32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Inicio",
+        "href": "/"
+      }
+    ],
+    "images": [],
+    "overflow": true
+  },
+  {
+    "path": "/privacidad-newsletter",
+    "width": 390,
+    "status": 200,
+    "errors": [],
+    "text": "Inicio\n/\nPrivacidad del newsletter\nINFORMACIÓN\nPrivacidad del newsletter\nPrivacidad del newsletter\n\nTu correo se utiliza para gestionar tu suscripción al newsletter de esta tienda. Recibirás un mensaje de confirmación antes de activar la suscripción. Si no has solicitado el alta, puedes ignorar el mensaje o cancelar la solicitud.\n\nLa suscripción es voluntaria y no crea una cuenta de cliente. Guardamos el estado de la suscripción y la versión del consentimiento que has aceptado. Puedes retirar tu consentimiento desde el enlace de baja de los mensajes.\n\nInformación del entorno de pruebas: antes de abrir el servicio al público, esta página debe completarse con el responsable, contacto, conservación y ejercicio de derechos.",
+    "headings": [
+      {
+        "text": "Privacidad del newsletter",
+        "x": 12,
+        "y": 425,
+        "width": 366,
+        "height": 32,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Privacidad del newsletter",
+        "x": 12,
+        "y": 499,
+        "width": 366,
+        "height": 74,
+        "font": "700 32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Inicio",
+        "href": "/"
+      }
+    ],
+    "images": [],
+    "overflow": false
+  },
+  {
+    "path": "/seleccion-bike-brakes",
+    "width": 1440,
+    "status": 200,
+    "errors": [],
+    "text": "Inicio\n/\nSeleccion Bike Brakes\nPÁGINA ESPECIAL\nSeleccion Bike Brakes\n20 productos Bike Brakes\nVertex Cycles\nBBB Cycling Code kit de freno de disco BD-568-0922\n80,24 €\n\nTalla: s · m · l\n\nVertex Cycles\nBBB Cycling Deore XT freno de disco hidráulico BD-219-0573\n7,00 €\n7,99 €\n− 12%\n\nTalla: s · m · l\n\nCobalt Race Lab\nBBB Cycling Deore XT kit de freno de disco BD-181-0681\n81,66 €\n\nTalla: s · l · m\n\nVertex Cycles\nBBB Cycling Deore XT pinza de freno BD-776-0895\nPrecio no disponible\n\nTalla: xl · s\n\nVertex Cycles\nBBB Cycling Deore pinza de freno BD-168-0597\nPrecio no disponible\n\nTalla: s · m · l\n\nVertex Cycles\nBBB Cycling Deore pinza de freno BD-640-0568\n20,15 €\n\nTalla: s · m · l\n\nNorthline Components\nBBB Cycling G2 freno de disco hidráulico BD-534-0625\n39,33 €\n\nTalla: l · xl\n\nSummit Mechanics\nBBB Cycling MT Trail pinza de freno BD-488-0622\n63,89 €\n\nTalla: s · m\n\nTrailForge\nBBB Cycling RX4 freno de disco hidráulico BD-835-0624\n58,38 €\n\nTalla: xl · s\n\nSummit Mechanics\nBBB Cycling RX4 pinza de freno BD-242-0805\n64,53 €\n\nTalla: s · l · m\n\nTrailForge\nBBB Cycling Ride cockpit integrado HS-774-0588\n53,14 €\n\nTalla: m · l\n\nCobalt Race Lab\nBBB Cycling SLX freno de disco hidráulico BD-489-0907\n54,99 €\n\nTalla: xl · s\n\nSummit Mechanics\nBike Component\n71,93 €\n\nTalla: xl · s\n\nNorthline Components\nBike Component\n22,81 €\n\nTalla: xl · s\n\nCobalt Race Lab\nBike Component\n86,33 €\n\nTalla: m · l\n\nNorthline Components\nBike Component\n31,28 €\n\nTalla: xl · s\n\nVertex Cycles\nCane Creek Code freno de disco hidráulico BD-941-0916\n73,63 €\n\nTalla: xl · s\n\nSummit Mechanics\nCane Creek Deore cassette C-895-0225\n101,16 €\n\nTalla: s · m\n\nCobalt Race Lab\nCane Creek Deore pinza de freno BD-581-0790\n34,67 €\n\nTalla: xl · s\n\nNorthline Components\nPastillas de freno doble\n8,47 €\n10,00 €\n− 15%\n\nTalla: s · m · l",
+    "headings": [
+      {
+        "text": "Seleccion Bike Brakes",
+        "x": 20,
+        "y": 279,
+        "width": 1400,
+        "height": 32,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "20 productos Bike Brakes",
+        "x": 90,
+        "y": 423,
+        "width": 1260,
+        "height": 42,
+        "font": "700 36px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Inicio",
+        "href": "/"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0110-handlebar-tape"
+      },
+      {
+        "text": "BBB Cycling Code kit de freno de disco BD-568-0922",
+        "href": "/pdp/bikershop-pa7-bulk-0110-handlebar-tape"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0310-handlebar-tape"
+      },
+      {
+        "text": "BBB Cycling Deore XT freno de disco hidráulico BD-219-0573",
+        "href": "/pdp/bikershop-pa7-bulk-0310-handlebar-tape"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0054-cassette-lockring"
+      },
+      {
+        "text": "BBB Cycling Deore XT kit de freno de disco BD-181-0681",
+        "href": "/pdp/bikershop-pa7-bulk-0054-cassette-lockring"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0280"
+      },
+      {
+        "text": "BBB Cycling Deore XT pinza de freno BD-776-0895",
+        "href": "/pdp/bikershop-pa7-fast-0280"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0050-chain-lube"
+      },
+      {
+        "text": "BBB Cycling Deore pinza de freno BD-168-0597",
+        "href": "/pdp/bikershop-pa7-bulk-0050-chain-lube"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0010-handlebar-tape"
+      },
+      {
+        "text": "BBB Cycling Deore pinza de freno BD-640-0568",
+        "href": "/pdp/bikershop-pa7-bulk-0010-handlebar-tape"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0051"
+      },
+      {
+        "text": "BBB Cycling G2 freno de disco hidráulico BD-534-0625",
+        "href": "/pdp/bikershop-pa7-fast-0051"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0309"
+      },
+      {
+        "text": "BBB Cycling MT Trail pinza de freno BD-488-0622",
+        "href": "/pdp/bikershop-pa7-fast-0309"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0096"
+      },
+      {
+        "text": "BBB Cycling RX4 freno de disco hidráulico BD-835-0624",
+        "href": "/pdp/bikershop-pa7-fast-0096"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0346-tire-lever"
+      },
+      {
+        "text": "BBB Cycling RX4 pinza de freno BD-242-0805",
+        "href": "/pdp/bikershop-pa7-bulk-0346-tire-lever"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0022-imgi-11-iman-para-sensor-de-velocidad-integrado"
+      },
+      {
+        "text": "BBB Cycling Ride cockpit integrado HS-774-0588",
+        "href": "/pdp/bikershop-pa7-bulk-0022-imgi-11-iman-para-sensor-de-velocidad-integrado"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0288"
+      },
+      {
+        "text": "BBB Cycling SLX freno de disco hidráulico BD-489-0907",
+        "href": "/pdp/bikershop-pa7-fast-0288"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0128"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0128"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0212"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0212"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0162"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0162"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0432"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0432"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0132"
+      },
+      {
+        "text": "Cane Creek Code freno de disco hidráulico BD-941-0916",
+        "href": "/pdp/bikershop-pa7-fast-0132"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0197"
+      },
+      {
+        "text": "Cane Creek Deore cassette C-895-0225",
+        "href": "/pdp/bikershop-pa7-fast-0197"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0240"
+      },
+      {
+        "text": "Cane Creek Deore pinza de freno BD-581-0790",
+        "href": "/pdp/bikershop-pa7-fast-0240"
+      },
+      {
+        "text": "",
+        "href": "/pdp/pastillas-de-freno-doble"
+      },
+      {
+        "text": "Pastillas de freno doble",
+        "href": "/pdp/pastillas-de-freno-doble"
+      }
+    ],
+    "images": [
+      {
+        "alt": "BBB Cycling Code kit de freno de disco BD-568-0922 - latiguillo 1000mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/handlebar-tape-pro-0110-ee6ac02e/1eb33618-beca-436c-a2f7-a21a9e41e96b/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "BBB Cycling Deore XT freno de disco hidráulico BD-219-0573 - latiguillo 1700mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/handlebar-tape-pro-0310-62f9a756/317086c9-b03e-48d4-9203-1b2051353d11/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "BBB Cycling Deore XT kit de freno de disco BD-181-0681 - latiguillo 1000mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/cassette-lockring-pro-0054-9aea8287/33c69d26-61cb-4a97-af40-4db8d58db9ff/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "<p>Bike Component 0280</p> image 3",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0280-p-7493f4cc/6e799370-cb60-4c47-ae28-e9d1b31a692c/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "BBB Cycling Deore pinza de freno BD-168-0597 - latiguillo 1000mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/chain-lube-pro-0050-009dc7ff/4468c2d9-e8bd-41d0-9468-a749afcda446/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "BBB Cycling Deore pinza de freno BD-640-0568 - Post Mount image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/handlebar-tape-pro-0010-e3b1a042/474619e0-a4d1-44ca-a891-1a119b6ab984/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "BBB Cycling G2 freno de disco hidráulico BD-534-0625 - Post Mount image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0051-p-f18e0b2c/0743d3b5-51fd-446a-b63f-8de07668ead4/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "BBB Cycling MT Trail pinza de freno BD-488-0622 - 2 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0309-p-ee6ac02e/e58dd457-ee08-41fb-b38f-774277855ade/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "BBB Cycling RX4 freno de disco hidráulico BD-835-0624 - 4 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0096-p-96439786/c3dbd0da-d5d8-49f4-bfd9-f94333451477/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "BBB Cycling RX4 pinza de freno BD-242-0805 - 4 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/tire-lever-pro-0346-a8c31332/500056b9-bfd8-4fd4-b7e5-41fe71072f1f/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "BBB Cycling Ride cockpit integrado HS-774-0588 - carbono image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-imgi-11-iman-para-sensor-de-velocidad-integrado-pro-0022-p-8d701e46/76a9b7f6-e108-47f9-9181-aa3677eb3a4d/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "BBB Cycling SLX freno de disco hidráulico BD-489-0907 - 4 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0288-p-a37ea376/a8af87ea-4d9d-44a3-88e0-49c3c8bd9260/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "Bike Component 0128 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0128-p-3eea3a66/4f4fbc07-765d-4b85-b1e9-0667429bbf17/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "Bike Component 0212 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0212-p-49b4754e/af7cb366-e35d-4c32-a3bc-9d4ee68a70d0/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "Bike Component 0162 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0162-p-2908bd30/aafefff5-11b0-4c00-bb9f-51d844f8f245/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "Bike Component 0432 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0432-p-149ed691/41b9bfe8-782b-4438-9a15-95f49e69955c/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "Cane Creek Code freno de disco hidráulico BD-941-0916 - latiguillo 1700mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0132-p-17d1b776/94b77057-6eab-4f0c-b92d-e4ef5e2e8caf/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "Cane Creek Deore cassette C-895-0225 - rango amplio image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0197-p-465d8ff5/47b3ef29-c452-4493-9fcb-734ed48f4b15/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "Cane Creek Deore pinza de freno BD-581-0790 - latiguillo 1700mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0240-p-035b34e5/f22cd2b1-c469-4777-8b97-6698bc0b28fc/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      },
+      {
+        "alt": "BBB Cycling Code freno de disco hidráulico BD-676-0748 - 2 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/stem-bolt-pro-0078-cc35a9b3/7ea515ba-a617-4e7a-9301-9d265cd2fe42/original.jpg",
+        "loaded": true,
+        "width": 297,
+        "height": 297
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "path": "/seleccion-bike-brakes",
+    "width": 768,
+    "status": 200,
+    "errors": [],
+    "text": "Inicio\n/\nSeleccion Bike Brakes\nPÁGINA ESPECIAL\nSeleccion Bike Brakes\n20 productos Bike Brakes\nVertex Cycles\nBBB Cycling Code kit de freno de disco BD-568-0922\n80,24 €\n\nTalla: s · m · l\n\nVertex Cycles\nBBB Cycling Deore XT freno de disco hidráulico BD-219-0573\n7,00 €\n7,99 €\n− 12%\n\nTalla: s · m · l\n\nCobalt Race Lab\nBBB Cycling Deore XT kit de freno de disco BD-181-0681\n81,66 €\n\nTalla: s · l · m\n\nVertex Cycles\nBBB Cycling Deore XT pinza de freno BD-776-0895\nPrecio no disponible\n\nTalla: xl · s\n\nVertex Cycles\nBBB Cycling Deore pinza de freno BD-168-0597\nPrecio no disponible\n\nTalla: s · m · l\n\nVertex Cycles\nBBB Cycling Deore pinza de freno BD-640-0568\n20,15 €\n\nTalla: s · m · l\n\nNorthline Components\nBBB Cycling G2 freno de disco hidráulico BD-534-0625\n39,33 €\n\nTalla: l · xl\n\nSummit Mechanics\nBBB Cycling MT Trail pinza de freno BD-488-0622\n63,89 €\n\nTalla: s · m\n\nTrailForge\nBBB Cycling RX4 freno de disco hidráulico BD-835-0624\n58,38 €\n\nTalla: xl · s\n\nSummit Mechanics\nBBB Cycling RX4 pinza de freno BD-242-0805\n64,53 €\n\nTalla: s · l · m\n\nTrailForge\nBBB Cycling Ride cockpit integrado HS-774-0588\n53,14 €\n\nTalla: m · l\n\nCobalt Race Lab\nBBB Cycling SLX freno de disco hidráulico BD-489-0907\n54,99 €\n\nTalla: xl · s\n\nSummit Mechanics\nBike Component\n71,93 €\n\nTalla: xl · s\n\nNorthline Components\nBike Component\n22,81 €\n\nTalla: xl · s\n\nCobalt Race Lab\nBike Component\n86,33 €\n\nTalla: m · l\n\nNorthline Components\nBike Component\n31,28 €\n\nTalla: xl · s\n\nVertex Cycles\nCane Creek Code freno de disco hidráulico BD-941-0916\n73,63 €\n\nTalla: xl · s\n\nSummit Mechanics\nCane Creek Deore cassette C-895-0225\n101,16 €\n\nTalla: s · m\n\nCobalt Race Lab\nCane Creek Deore pinza de freno BD-581-0790\n34,67 €\n\nTalla: xl · s\n\nNorthline Components\nPastillas de freno doble\n8,47 €\n10,00 €\n− 15%\n\nTalla: s · m · l",
+    "headings": [
+      {
+        "text": "Seleccion Bike Brakes",
+        "x": 20,
+        "y": 331,
+        "width": 728,
+        "height": 32,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "20 productos Bike Brakes",
+        "x": 56.40625,
+        "y": 475,
+        "width": 655.1875,
+        "height": 28,
+        "font": "700 24px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Inicio",
+        "href": "/"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0110-handlebar-tape"
+      },
+      {
+        "text": "BBB Cycling Code kit de freno de disco BD-568-0922",
+        "href": "/pdp/bikershop-pa7-bulk-0110-handlebar-tape"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0310-handlebar-tape"
+      },
+      {
+        "text": "BBB Cycling Deore XT freno de disco hidráulico BD-219-0573",
+        "href": "/pdp/bikershop-pa7-bulk-0310-handlebar-tape"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0054-cassette-lockring"
+      },
+      {
+        "text": "BBB Cycling Deore XT kit de freno de disco BD-181-0681",
+        "href": "/pdp/bikershop-pa7-bulk-0054-cassette-lockring"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0280"
+      },
+      {
+        "text": "BBB Cycling Deore XT pinza de freno BD-776-0895",
+        "href": "/pdp/bikershop-pa7-fast-0280"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0050-chain-lube"
+      },
+      {
+        "text": "BBB Cycling Deore pinza de freno BD-168-0597",
+        "href": "/pdp/bikershop-pa7-bulk-0050-chain-lube"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0010-handlebar-tape"
+      },
+      {
+        "text": "BBB Cycling Deore pinza de freno BD-640-0568",
+        "href": "/pdp/bikershop-pa7-bulk-0010-handlebar-tape"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0051"
+      },
+      {
+        "text": "BBB Cycling G2 freno de disco hidráulico BD-534-0625",
+        "href": "/pdp/bikershop-pa7-fast-0051"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0309"
+      },
+      {
+        "text": "BBB Cycling MT Trail pinza de freno BD-488-0622",
+        "href": "/pdp/bikershop-pa7-fast-0309"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0096"
+      },
+      {
+        "text": "BBB Cycling RX4 freno de disco hidráulico BD-835-0624",
+        "href": "/pdp/bikershop-pa7-fast-0096"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0346-tire-lever"
+      },
+      {
+        "text": "BBB Cycling RX4 pinza de freno BD-242-0805",
+        "href": "/pdp/bikershop-pa7-bulk-0346-tire-lever"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0022-imgi-11-iman-para-sensor-de-velocidad-integrado"
+      },
+      {
+        "text": "BBB Cycling Ride cockpit integrado HS-774-0588",
+        "href": "/pdp/bikershop-pa7-bulk-0022-imgi-11-iman-para-sensor-de-velocidad-integrado"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0288"
+      },
+      {
+        "text": "BBB Cycling SLX freno de disco hidráulico BD-489-0907",
+        "href": "/pdp/bikershop-pa7-fast-0288"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0128"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0128"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0212"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0212"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0162"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0162"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0432"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0432"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0132"
+      },
+      {
+        "text": "Cane Creek Code freno de disco hidráulico BD-941-0916",
+        "href": "/pdp/bikershop-pa7-fast-0132"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0197"
+      },
+      {
+        "text": "Cane Creek Deore cassette C-895-0225",
+        "href": "/pdp/bikershop-pa7-fast-0197"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0240"
+      },
+      {
+        "text": "Cane Creek Deore pinza de freno BD-581-0790",
+        "href": "/pdp/bikershop-pa7-fast-0240"
+      },
+      {
+        "text": "",
+        "href": "/pdp/pastillas-de-freno-doble"
+      },
+      {
+        "text": "Pastillas de freno doble",
+        "href": "/pdp/pastillas-de-freno-doble"
+      }
+    ],
+    "images": [
+      {
+        "alt": "BBB Cycling Code kit de freno de disco BD-568-0922 - latiguillo 1000mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/handlebar-tape-pro-0110-ee6ac02e/1eb33618-beca-436c-a2f7-a21a9e41e96b/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "BBB Cycling Deore XT freno de disco hidráulico BD-219-0573 - latiguillo 1700mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/handlebar-tape-pro-0310-62f9a756/317086c9-b03e-48d4-9203-1b2051353d11/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "BBB Cycling Deore XT kit de freno de disco BD-181-0681 - latiguillo 1000mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/cassette-lockring-pro-0054-9aea8287/33c69d26-61cb-4a97-af40-4db8d58db9ff/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "<p>Bike Component 0280</p> image 3",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0280-p-7493f4cc/6e799370-cb60-4c47-ae28-e9d1b31a692c/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "BBB Cycling Deore pinza de freno BD-168-0597 - latiguillo 1000mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/chain-lube-pro-0050-009dc7ff/4468c2d9-e8bd-41d0-9468-a749afcda446/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "BBB Cycling Deore pinza de freno BD-640-0568 - Post Mount image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/handlebar-tape-pro-0010-e3b1a042/474619e0-a4d1-44ca-a891-1a119b6ab984/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "BBB Cycling G2 freno de disco hidráulico BD-534-0625 - Post Mount image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0051-p-f18e0b2c/0743d3b5-51fd-446a-b63f-8de07668ead4/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "BBB Cycling MT Trail pinza de freno BD-488-0622 - 2 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0309-p-ee6ac02e/e58dd457-ee08-41fb-b38f-774277855ade/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "BBB Cycling RX4 freno de disco hidráulico BD-835-0624 - 4 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0096-p-96439786/c3dbd0da-d5d8-49f4-bfd9-f94333451477/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "BBB Cycling RX4 pinza de freno BD-242-0805 - 4 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/tire-lever-pro-0346-a8c31332/500056b9-bfd8-4fd4-b7e5-41fe71072f1f/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "BBB Cycling Ride cockpit integrado HS-774-0588 - carbono image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-imgi-11-iman-para-sensor-de-velocidad-integrado-pro-0022-p-8d701e46/76a9b7f6-e108-47f9-9181-aa3677eb3a4d/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "BBB Cycling SLX freno de disco hidráulico BD-489-0907 - 4 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0288-p-a37ea376/a8af87ea-4d9d-44a3-88e0-49c3c8bd9260/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "Bike Component 0128 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0128-p-3eea3a66/4f4fbc07-765d-4b85-b1e9-0667429bbf17/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "Bike Component 0212 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0212-p-49b4754e/af7cb366-e35d-4c32-a3bc-9d4ee68a70d0/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "Bike Component 0162 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0162-p-2908bd30/aafefff5-11b0-4c00-bb9f-51d844f8f245/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "Bike Component 0432 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0432-p-149ed691/41b9bfe8-782b-4438-9a15-95f49e69955c/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "Cane Creek Code freno de disco hidráulico BD-941-0916 - latiguillo 1700mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0132-p-17d1b776/94b77057-6eab-4f0c-b92d-e4ef5e2e8caf/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "Cane Creek Deore cassette C-895-0225 - rango amplio image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0197-p-465d8ff5/47b3ef29-c452-4493-9fcb-734ed48f4b15/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "Cane Creek Deore pinza de freno BD-581-0790 - latiguillo 1700mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0240-p-035b34e5/f22cd2b1-c469-4777-8b97-6698bc0b28fc/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      },
+      {
+        "alt": "BBB Cycling Code freno de disco hidráulico BD-676-0748 - 2 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/stem-bolt-pro-0078-cc35a9b3/7ea515ba-a617-4e7a-9301-9d265cd2fe42/original.jpg",
+        "loaded": true,
+        "width": 202.390625,
+        "height": 202.390625
+      }
+    ],
+    "overflow": true
+  },
+  {
+    "path": "/seleccion-bike-brakes",
+    "width": 390,
+    "status": 200,
+    "errors": [],
+    "text": "Inicio\n/\nSeleccion Bike Brakes\nPÁGINA ESPECIAL\nSeleccion Bike Brakes\n20 productos Bike Brakes\nVertex Cycles\nBBB Cycling Code kit de freno de disco BD-568-0922\n80,24 €\n\nTalla: s · m · l\n\nVertex Cycles\nBBB Cycling Deore XT freno de disco hidráulico BD-219-0573\n7,00 €\n7,99 €\n− 12%\n\nTalla: s · m · l\n\nCobalt Race Lab\nBBB Cycling Deore XT kit de freno de disco BD-181-0681\n81,66 €\n\nTalla: s · l · m\n\nVertex Cycles\nBBB Cycling Deore XT pinza de freno BD-776-0895\nPrecio no disponible\n\nTalla: xl · s\n\nVertex Cycles\nBBB Cycling Deore pinza de freno BD-168-0597\nPrecio no disponible\n\nTalla: s · m · l\n\nVertex Cycles\nBBB Cycling Deore pinza de freno BD-640-0568\n20,15 €\n\nTalla: s · m · l\n\nNorthline Components\nBBB Cycling G2 freno de disco hidráulico BD-534-0625\n39,33 €\n\nTalla: l · xl\n\nSummit Mechanics\nBBB Cycling MT Trail pinza de freno BD-488-0622\n63,89 €\n\nTalla: s · m\n\nTrailForge\nBBB Cycling RX4 freno de disco hidráulico BD-835-0624\n58,38 €\n\nTalla: xl · s\n\nSummit Mechanics\nBBB Cycling RX4 pinza de freno BD-242-0805\n64,53 €\n\nTalla: s · l · m\n\nTrailForge\nBBB Cycling Ride cockpit integrado HS-774-0588\n53,14 €\n\nTalla: m · l\n\nCobalt Race Lab\nBBB Cycling SLX freno de disco hidráulico BD-489-0907\n54,99 €\n\nTalla: xl · s\n\nSummit Mechanics\nBike Component\n71,93 €\n\nTalla: xl · s\n\nNorthline Components\nBike Component\n22,81 €\n\nTalla: xl · s\n\nCobalt Race Lab\nBike Component\n86,33 €\n\nTalla: m · l\n\nNorthline Components\nBike Component\n31,28 €\n\nTalla: xl · s\n\nVertex Cycles\nCane Creek Code freno de disco hidráulico BD-941-0916\n73,63 €\n\nTalla: xl · s\n\nSummit Mechanics\nCane Creek Deore cassette C-895-0225\n101,16 €\n\nTalla: s · m\n\nCobalt Race Lab\nCane Creek Deore pinza de freno BD-581-0790\n34,67 €\n\nTalla: xl · s\n\nNorthline Components\nPastillas de freno doble\n8,47 €\n10,00 €\n− 15%\n\nTalla: s · m · l",
+    "headings": [
+      {
+        "text": "Seleccion Bike Brakes",
+        "x": 12,
+        "y": 425,
+        "width": 366,
+        "height": 32,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "20 productos Bike Brakes",
+        "x": 30.296875,
+        "y": 569,
+        "width": 329.390625,
+        "height": 28,
+        "font": "700 24px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Inicio",
+        "href": "/"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0110-handlebar-tape"
+      },
+      {
+        "text": "BBB Cycling Code kit de freno de disco BD-568-0922",
+        "href": "/pdp/bikershop-pa7-bulk-0110-handlebar-tape"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0310-handlebar-tape"
+      },
+      {
+        "text": "BBB Cycling Deore XT freno de disco hidráulico BD-219-0573",
+        "href": "/pdp/bikershop-pa7-bulk-0310-handlebar-tape"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0054-cassette-lockring"
+      },
+      {
+        "text": "BBB Cycling Deore XT kit de freno de disco BD-181-0681",
+        "href": "/pdp/bikershop-pa7-bulk-0054-cassette-lockring"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0280"
+      },
+      {
+        "text": "BBB Cycling Deore XT pinza de freno BD-776-0895",
+        "href": "/pdp/bikershop-pa7-fast-0280"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0050-chain-lube"
+      },
+      {
+        "text": "BBB Cycling Deore pinza de freno BD-168-0597",
+        "href": "/pdp/bikershop-pa7-bulk-0050-chain-lube"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0010-handlebar-tape"
+      },
+      {
+        "text": "BBB Cycling Deore pinza de freno BD-640-0568",
+        "href": "/pdp/bikershop-pa7-bulk-0010-handlebar-tape"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0051"
+      },
+      {
+        "text": "BBB Cycling G2 freno de disco hidráulico BD-534-0625",
+        "href": "/pdp/bikershop-pa7-fast-0051"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0309"
+      },
+      {
+        "text": "BBB Cycling MT Trail pinza de freno BD-488-0622",
+        "href": "/pdp/bikershop-pa7-fast-0309"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0096"
+      },
+      {
+        "text": "BBB Cycling RX4 freno de disco hidráulico BD-835-0624",
+        "href": "/pdp/bikershop-pa7-fast-0096"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0346-tire-lever"
+      },
+      {
+        "text": "BBB Cycling RX4 pinza de freno BD-242-0805",
+        "href": "/pdp/bikershop-pa7-bulk-0346-tire-lever"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-bulk-0022-imgi-11-iman-para-sensor-de-velocidad-integrado"
+      },
+      {
+        "text": "BBB Cycling Ride cockpit integrado HS-774-0588",
+        "href": "/pdp/bikershop-pa7-bulk-0022-imgi-11-iman-para-sensor-de-velocidad-integrado"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0288"
+      },
+      {
+        "text": "BBB Cycling SLX freno de disco hidráulico BD-489-0907",
+        "href": "/pdp/bikershop-pa7-fast-0288"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0128"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0128"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0212"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0212"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0162"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0162"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0432"
+      },
+      {
+        "text": "Bike Component",
+        "href": "/pdp/bikershop-pa7-fast-0432"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0132"
+      },
+      {
+        "text": "Cane Creek Code freno de disco hidráulico BD-941-0916",
+        "href": "/pdp/bikershop-pa7-fast-0132"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0197"
+      },
+      {
+        "text": "Cane Creek Deore cassette C-895-0225",
+        "href": "/pdp/bikershop-pa7-fast-0197"
+      },
+      {
+        "text": "",
+        "href": "/pdp/bikershop-pa7-fast-0240"
+      },
+      {
+        "text": "Cane Creek Deore pinza de freno BD-581-0790",
+        "href": "/pdp/bikershop-pa7-fast-0240"
+      },
+      {
+        "text": "",
+        "href": "/pdp/pastillas-de-freno-doble"
+      },
+      {
+        "text": "Pastillas de freno doble",
+        "href": "/pdp/pastillas-de-freno-doble"
+      }
+    ],
+    "images": [
+      {
+        "alt": "BBB Cycling Code kit de freno de disco BD-568-0922 - latiguillo 1000mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/handlebar-tape-pro-0110-ee6ac02e/1eb33618-beca-436c-a2f7-a21a9e41e96b/original.jpg",
+        "loaded": true,
+        "width": 156.6875,
+        "height": 156.6875
+      },
+      {
+        "alt": "BBB Cycling Deore XT freno de disco hidráulico BD-219-0573 - latiguillo 1700mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/handlebar-tape-pro-0310-62f9a756/317086c9-b03e-48d4-9203-1b2051353d11/original.jpg",
+        "loaded": true,
+        "width": 156.703125,
+        "height": 156.703125
+      },
+      {
+        "alt": "BBB Cycling Deore XT kit de freno de disco BD-181-0681 - latiguillo 1000mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/cassette-lockring-pro-0054-9aea8287/33c69d26-61cb-4a97-af40-4db8d58db9ff/original.jpg",
+        "loaded": true,
+        "width": 156.6875,
+        "height": 156.6875
+      },
+      {
+        "alt": "<p>Bike Component 0280</p> image 3",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0280-p-7493f4cc/6e799370-cb60-4c47-ae28-e9d1b31a692c/original.jpg",
+        "loaded": true,
+        "width": 156.703125,
+        "height": 156.703125
+      },
+      {
+        "alt": "BBB Cycling Deore pinza de freno BD-168-0597 - latiguillo 1000mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/chain-lube-pro-0050-009dc7ff/4468c2d9-e8bd-41d0-9468-a749afcda446/original.jpg",
+        "loaded": true,
+        "width": 156.6875,
+        "height": 156.6875
+      },
+      {
+        "alt": "BBB Cycling Deore pinza de freno BD-640-0568 - Post Mount image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/handlebar-tape-pro-0010-e3b1a042/474619e0-a4d1-44ca-a891-1a119b6ab984/original.jpg",
+        "loaded": true,
+        "width": 156.703125,
+        "height": 156.703125
+      },
+      {
+        "alt": "BBB Cycling G2 freno de disco hidráulico BD-534-0625 - Post Mount image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0051-p-f18e0b2c/0743d3b5-51fd-446a-b63f-8de07668ead4/original.jpg",
+        "loaded": true,
+        "width": 156.6875,
+        "height": 156.6875
+      },
+      {
+        "alt": "BBB Cycling MT Trail pinza de freno BD-488-0622 - 2 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0309-p-ee6ac02e/e58dd457-ee08-41fb-b38f-774277855ade/original.jpg",
+        "loaded": true,
+        "width": 156.703125,
+        "height": 156.703125
+      },
+      {
+        "alt": "BBB Cycling RX4 freno de disco hidráulico BD-835-0624 - 4 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0096-p-96439786/c3dbd0da-d5d8-49f4-bfd9-f94333451477/original.jpg",
+        "loaded": true,
+        "width": 156.6875,
+        "height": 156.6875
+      },
+      {
+        "alt": "BBB Cycling RX4 pinza de freno BD-242-0805 - 4 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/tire-lever-pro-0346-a8c31332/500056b9-bfd8-4fd4-b7e5-41fe71072f1f/original.jpg",
+        "loaded": true,
+        "width": 156.703125,
+        "height": 156.703125
+      },
+      {
+        "alt": "BBB Cycling Ride cockpit integrado HS-774-0588 - carbono image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-imgi-11-iman-para-sensor-de-velocidad-integrado-pro-0022-p-8d701e46/76a9b7f6-e108-47f9-9181-aa3677eb3a4d/original.jpg",
+        "loaded": true,
+        "width": 156.6875,
+        "height": 156.6875
+      },
+      {
+        "alt": "BBB Cycling SLX freno de disco hidráulico BD-489-0907 - 4 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0288-p-a37ea376/a8af87ea-4d9d-44a3-88e0-49c3c8bd9260/original.jpg",
+        "loaded": true,
+        "width": 156.703125,
+        "height": 156.703125
+      },
+      {
+        "alt": "Bike Component 0128 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0128-p-3eea3a66/4f4fbc07-765d-4b85-b1e9-0667429bbf17/original.jpg",
+        "loaded": true,
+        "width": 156.6875,
+        "height": 156.6875
+      },
+      {
+        "alt": "Bike Component 0212 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0212-p-49b4754e/af7cb366-e35d-4c32-a3bc-9d4ee68a70d0/original.jpg",
+        "loaded": true,
+        "width": 156.703125,
+        "height": 156.703125
+      },
+      {
+        "alt": "Bike Component 0162 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0162-p-2908bd30/aafefff5-11b0-4c00-bb9f-51d844f8f245/original.jpg",
+        "loaded": true,
+        "width": 156.6875,
+        "height": 156.6875
+      },
+      {
+        "alt": "Bike Component 0432 image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0432-p-149ed691/41b9bfe8-782b-4438-9a15-95f49e69955c/original.jpg",
+        "loaded": true,
+        "width": 156.703125,
+        "height": 156.703125
+      },
+      {
+        "alt": "Cane Creek Code freno de disco hidráulico BD-941-0916 - latiguillo 1700mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0132-p-17d1b776/94b77057-6eab-4f0c-b92d-e4ef5e2e8caf/original.jpg",
+        "loaded": true,
+        "width": 156.6875,
+        "height": 156.6875
+      },
+      {
+        "alt": "Cane Creek Deore cassette C-895-0225 - rango amplio image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0197-p-465d8ff5/47b3ef29-c452-4493-9fcb-734ed48f4b15/original.jpg",
+        "loaded": true,
+        "width": 156.703125,
+        "height": 156.703125
+      },
+      {
+        "alt": "Cane Creek Deore pinza de freno BD-581-0790 - latiguillo 1700mm image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/p-bike-component-0240-p-035b34e5/f22cd2b1-c469-4777-8b97-6698bc0b28fc/original.jpg",
+        "loaded": true,
+        "width": 156.6875,
+        "height": 156.6875
+      },
+      {
+        "alt": "BBB Cycling Code freno de disco hidráulico BD-676-0748 - 2 pistones image",
+        "src": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/stem-bolt-pro-0078-cc35a9b3/7ea515ba-a617-4e7a-9301-9d265cd2fe42/original.jpg",
+        "loaded": true,
+        "width": 156.703125,
+        "height": 156.703125
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "path": "/module-test-page",
+    "width": 1440,
+    "status": 200,
+    "errors": [],
+    "text": "Inicio\n/\npara probar modulos\nPÁGINA ESPECIAL\npara probar modulos\n\nWelcome To Techsouq\n\nTransforming ideas into a\nDigital world\n\nCrafting intuitive designs that captivate and inspire. Building robust websites that elevate brands online.\n\nBook a Consultation ->\nExplore Our Work\nHOW CAN YOU HELP?\n\nLorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n\nED\nEDUCATION\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\n$\nDONATION\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\n25\nPROJECTS\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\n*\nVOLUNTEER\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\nDesign and prototype hero images for your website\nDownload Free\n\nProducts\n\non Tap Hold\n\non Swipe Up\n\non Swipe Down\n\non Swipe Left\n\non Swipe Right\n\non Pinch Open\n\non Rotate Left\n\nNEED TO CONSULT WITH US?\n\nThere's nothing can hold me when I hold you. Feels so right it cant be wrong. Rockin' and rollin' all week long. A man is born he's a man come two they got nothing.\n\nCONTACT US\nNEED TO EXPLORE OUR WORKS?\n\nThere's nothing can hold me when I hold you. Feels so right it cant be wrong. Rockin' and rollin' all week long. A man is born he's a man come two they got nothing.\n\nVIEW WORKS\nDestacados\nTarjeta destacada\n\nDescribe el contenido o coleccion.\n\nExplorar\nDesign and prototype hero images for your website\nDownload Free\n\nProducts\n\non Tap Hold\n\non Swipe Up\n\non Swipe Down\n\non Swipe Left\n\non Swipe Right\n\non Pinch Open\n\non Rotate Left\n\nNUEVA TEMPORADA INICIADA\nConstruye una pagina memorable\n\nPresenta una coleccion, campana o contenido editorial con una llamada clara.\n\nVer mas",
+    "headings": [
+      {
+        "text": "para probar modulos",
+        "x": 20,
+        "y": 279,
+        "width": 1400,
+        "height": 32,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Transforming ideas into a",
+        "x": 624.390625,
+        "y": 534.25,
+        "width": 600,
+        "height": 120.9375,
+        "font": "700 56px / 60.48px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Digital world",
+        "x": 624.390625,
+        "y": 655.1875,
+        "width": 336,
+        "height": 60.46875,
+        "font": "700 56px / 60.48px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "HOW CAN YOU HELP?",
+        "x": 499.40625,
+        "y": 1115,
+        "width": 321.1875,
+        "height": 36,
+        "font": "30px / 36px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "EDUCATION",
+        "x": 165,
+        "y": 1267,
+        "width": 175,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "DONATION",
+        "x": 470,
+        "y": 1267,
+        "width": 175,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "PROJECTS",
+        "x": 775,
+        "y": 1267,
+        "width": 175,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "VOLUNTEER",
+        "x": 1080,
+        "y": 1267,
+        "width": 175,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Design and prototype hero images for your website",
+        "x": 92,
+        "y": 1701.828125,
+        "width": 628.078125,
+        "height": 112.625,
+        "font": "800 44px / 56.32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "NEED TO CONSULT WITH US?",
+        "x": 101.953125,
+        "y": 2244.5625,
+        "width": 476.09375,
+        "height": 48.390625,
+        "font": "800 44px / 48.4px Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif",
+        "fontFamily": "Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif"
+      },
+      {
+        "text": "NEED TO EXPLORE OUR WORKS?",
+        "x": 716.03125,
+        "y": 2244.5625,
+        "width": 527.921875,
+        "height": 48.390625,
+        "font": "800 44px / 48.4px Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif",
+        "fontFamily": "Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif"
+      },
+      {
+        "text": "Destacados",
+        "x": 20,
+        "y": 2829.140625,
+        "width": 692,
+        "height": 24,
+        "font": "700 21px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Design and prototype hero images for your website",
+        "x": 92,
+        "y": 3098.515625,
+        "width": 240,
+        "height": 337.875,
+        "font": "800 44px / 56.32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Construye una pagina memorable",
+        "x": 819,
+        "y": 3095.515625,
+        "width": 418.984375,
+        "height": 31,
+        "font": "700 26px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Inicio",
+        "href": "/"
+      },
+      {
+        "text": "Book a Consultation ->",
+        "href": "/contact"
+      },
+      {
+        "text": "Explore Our Work",
+        "href": "/case-study"
+      },
+      {
+        "text": "CONTACT US",
+        "href": "/contact"
+      },
+      {
+        "text": "VIEW WORKS",
+        "href": "/works"
+      },
+      {
+        "text": "Explorar",
+        "href": "/"
+      },
+      {
+        "text": "Ver mas",
+        "href": "/"
+      }
+    ],
+    "images": [],
+    "overflow": false
+  },
+  {
+    "path": "/module-test-page",
+    "width": 768,
+    "status": 200,
+    "errors": [],
+    "text": "Inicio\n/\npara probar modulos\nPÁGINA ESPECIAL\npara probar modulos\n\nWelcome To Techsouq\n\nTransforming ideas into a\nDigital world\n\nCrafting intuitive designs that captivate and inspire. Building robust websites that elevate brands online.\n\nBook a Consultation ->\nExplore Our Work\nHOW CAN YOU HELP?\n\nLorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n\nED\nEDUCATION\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\n$\nDONATION\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\n25\nPROJECTS\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\n*\nVOLUNTEER\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\nDesign and prototype hero images for your website\nDownload Free\n\nProducts\n\non Tap Hold\n\non Swipe Up\n\non Swipe Down\n\non Swipe Left\n\non Swipe Right\n\non Pinch Open\n\non Rotate Left\n\nNEED TO CONSULT WITH US?\n\nThere's nothing can hold me when I hold you. Feels so right it cant be wrong. Rockin' and rollin' all week long. A man is born he's a man come two they got nothing.\n\nCONTACT US\nNEED TO EXPLORE OUR WORKS?\n\nThere's nothing can hold me when I hold you. Feels so right it cant be wrong. Rockin' and rollin' all week long. A man is born he's a man come two they got nothing.\n\nVIEW WORKS\nDestacados\nTarjeta destacada\n\nDescribe el contenido o coleccion.\n\nExplorar\nDesign and prototype hero images for your website\nDownload Free\n\nProducts\n\non Tap Hold\n\non Swipe Up\n\non Swipe Down\n\non Swipe Left\n\non Swipe Right\n\non Pinch Open\n\non Rotate Left\n\nNUEVA TEMPORADA INICIADA\nConstruye una pagina memorable\n\nPresenta una coleccion, campana o contenido editorial con una llamada clara.\n\nVer mas",
+    "headings": [
+      {
+        "text": "para probar modulos",
+        "x": 20,
+        "y": 331,
+        "width": 728,
+        "height": 32,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Transforming ideas into a",
+        "x": 364.796875,
+        "y": 527.65625,
+        "width": 343.1875,
+        "height": 95.03125,
+        "font": "700 44px / 47.52px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Digital world",
+        "x": 364.796875,
+        "y": 622.6875,
+        "width": 264,
+        "height": 47.515625,
+        "font": "700 44px / 47.52px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "HOW CAN YOU HELP?",
+        "x": 223.40625,
+        "y": 1039,
+        "width": 321.1875,
+        "height": 36,
+        "font": "30px / 36px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "EDUCATION",
+        "x": 159,
+        "y": 1215,
+        "width": 210,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "DONATION",
+        "x": 499,
+        "y": 1215,
+        "width": 210,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "PROJECTS",
+        "x": 159,
+        "y": 1415,
+        "width": 210,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "VOLUNTEER",
+        "x": 499,
+        "y": 1415,
+        "width": 210,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Design and prototype hero images for your website",
+        "x": 92,
+        "y": 1779,
+        "width": 206,
+        "height": 394.1875,
+        "font": "800 44px / 56.32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "NEED TO CONSULT WITH US?",
+        "x": 68,
+        "y": 2508.859375,
+        "width": 268,
+        "height": 83.59375,
+        "font": "800 38px / 41.8px Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif",
+        "fontFamily": "Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif"
+      },
+      {
+        "text": "NEED TO EXPLORE OUR WORKS?",
+        "x": 432,
+        "y": 2508.859375,
+        "width": 268,
+        "height": 83.59375,
+        "font": "800 38px / 41.8px Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif",
+        "fontFamily": "Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif"
+      },
+      {
+        "text": "Destacados",
+        "x": 20,
+        "y": 3131.1875,
+        "width": 356,
+        "height": 24,
+        "font": "700 21px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Design and prototype hero images for your website",
+        "x": 92,
+        "y": 3422.25,
+        "width": 202.875,
+        "height": 394.1875,
+        "font": "800 44px / 56.32px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Construye una pagina memorable",
+        "x": 487.8125,
+        "y": 3419.25,
+        "width": 229.1875,
+        "height": 93,
+        "font": "700 26px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Inicio",
+        "href": "/"
+      },
+      {
+        "text": "Book a Consultation ->",
+        "href": "/contact"
+      },
+      {
+        "text": "Explore Our Work",
+        "href": "/case-study"
+      },
+      {
+        "text": "CONTACT US",
+        "href": "/contact"
+      },
+      {
+        "text": "VIEW WORKS",
+        "href": "/works"
+      },
+      {
+        "text": "Explorar",
+        "href": "/"
+      },
+      {
+        "text": "Ver mas",
+        "href": "/"
+      }
+    ],
+    "images": [],
+    "overflow": true
+  },
+  {
+    "path": "/module-test-page",
+    "width": 390,
+    "status": 200,
+    "errors": [],
+    "text": "Inicio\n/\npara probar modulos\nPÁGINA ESPECIAL\npara probar modulos\n\nWelcome To Techsouq\n\nTransforming ideas into a\nDigital world\n\nCrafting intuitive designs that captivate and inspire. Building robust websites that elevate brands online.\n\nBook a Consultation ->\nExplore Our Work\nHOW CAN YOU HELP?\n\nLorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n\nED\nEDUCATION\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\n$\nDONATION\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\n25\nPROJECTS\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\n*\nVOLUNTEER\n\nSed do eiusmod tempor incididuntlabore dolore magna aliqua. Ut enim minim veniam, nostrud exercitation.\n\nDesign and prototype hero images for your website\nDownload Free\n\nProducts\n\non Tap Hold\n\non Swipe Up\n\non Swipe Down\n\non Swipe Left\n\non Swipe Right\n\non Pinch Open\n\non Rotate Left\n\nNEED TO CONSULT WITH US?\n\nThere's nothing can hold me when I hold you. Feels so right it cant be wrong. Rockin' and rollin' all week long. A man is born he's a man come two they got nothing.\n\nCONTACT US\nNEED TO EXPLORE OUR WORKS?\n\nThere's nothing can hold me when I hold you. Feels so right it cant be wrong. Rockin' and rollin' all week long. A man is born he's a man come two they got nothing.\n\nVIEW WORKS\nDestacados\nTarjeta destacada\n\nDescribe el contenido o coleccion.\n\nExplorar\nDesign and prototype hero images for your website\nDownload Free\n\nProducts\n\non Tap Hold\n\non Swipe Up\n\non Swipe Down\n\non Swipe Left\n\non Swipe Right\n\non Pinch Open\n\non Rotate Left\n\nNUEVA TEMPORADA INICIADA\nConstruye una pagina memorable\n\nPresenta una coleccion, campana o contenido editorial con una llamada clara.\n\nVer mas",
+    "headings": [
+      {
+        "text": "para probar modulos",
+        "x": 12,
+        "y": 425,
+        "width": 366,
+        "height": 32,
+        "font": "700 28px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Transforming ideas into a",
+        "x": 36,
+        "y": 893,
+        "width": 318,
+        "height": 82.0625,
+        "font": "700 38px / 41.04px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Digital world",
+        "x": 81,
+        "y": 975.0625,
+        "width": 228,
+        "height": 41.03125,
+        "font": "700 38px / 41.04px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "HOW CAN YOU HELP?",
+        "x": 55.8125,
+        "y": 1368.234375,
+        "width": 278.359375,
+        "height": 31.1875,
+        "font": "26px / 31.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "EDUCATION",
+        "x": 139,
+        "y": 1549.421875,
+        "width": 212,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "DONATION",
+        "x": 139,
+        "y": 1737.171875,
+        "width": 212,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "PROJECTS",
+        "x": 139,
+        "y": 1924.921875,
+        "width": 212,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "VOLUNTEER",
+        "x": 139,
+        "y": 2112.671875,
+        "width": 212,
+        "height": 24.1875,
+        "font": "22px / 24.2px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Design and prototype hero images for your website",
+        "x": 34,
+        "y": 2406.109375,
+        "width": 542,
+        "height": 97.25,
+        "font": "800 38px / 48.64px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "NEED TO CONSULT WITH US?",
+        "x": 32,
+        "y": 3167.796875,
+        "width": 326,
+        "height": 74.78125,
+        "font": "800 34px / 37.4px Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif",
+        "fontFamily": "Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif"
+      },
+      {
+        "text": "NEED TO EXPLORE OUR WORKS?",
+        "x": 32,
+        "y": 3687.796875,
+        "width": 326,
+        "height": 74.78125,
+        "font": "800 34px / 37.4px Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif",
+        "fontFamily": "Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif"
+      },
+      {
+        "text": "Destacados",
+        "x": 12,
+        "y": 4158.421875,
+        "width": 366,
+        "height": 24,
+        "font": "700 21px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Design and prototype hero images for your website",
+        "x": 34,
+        "y": 4418.296875,
+        "width": 542,
+        "height": 97.25,
+        "font": "800 38px / 48.64px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      },
+      {
+        "text": "Construye una pagina memorable",
+        "x": 33,
+        "y": 5161.109375,
+        "width": 324,
+        "height": 62,
+        "font": "700 26px Manrope, Arial, sans-serif",
+        "fontFamily": "Manrope, Arial, sans-serif"
+      }
+    ],
+    "links": [
+      {
+        "text": "Inicio",
+        "href": "/"
+      },
+      {
+        "text": "Book a Consultation ->",
+        "href": "/contact"
+      },
+      {
+        "text": "Explore Our Work",
+        "href": "/case-study"
+      },
+      {
+        "text": "CONTACT US",
+        "href": "/contact"
+      },
+      {
+        "text": "VIEW WORKS",
+        "href": "/works"
+      },
+      {
+        "text": "Explorar",
+        "href": "/"
+      },
+      {
+        "text": "Ver mas",
+        "href": "/"
+      }
+    ],
+    "images": [],
+    "overflow": false
+  }
+]

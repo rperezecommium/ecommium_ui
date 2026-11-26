@@ -1,0 +1,165 @@
+- generic [active] [ref=f2e1]:
+  - status "Copia de recuperación disponible" [ref=f2e2]:
+    - generic [ref=f2e3]:
+      - strong [ref=f2e4]: Hay una copia de recuperación en esta pestaña
+      - paragraph [ref=f2e5]: Se guardó 11/6/2026, 2:48:40 PM y no contiene contraseñas, secretos ni datos de pago.
+    - generic [ref=f2e6]:
+      - link "Ir a Catálogo / Productos" [ref=f2e7] [cursor=pointer]:
+        - /url: /admin/products
+      - button "Recuperar" [ref=f2e8] [cursor=pointer]
+      - button "Descartar" [ref=f2e9] [cursor=pointer]
+  - generic [ref=f2e10]:
+    - complementary "Navegacion Admin" [ref=f2e11]:
+      - generic [ref=f2e12]:
+        - generic [ref=f2e13]: E
+        - generic [ref=f2e14]:
+          - strong [ref=f2e15]: Ecommium
+          - generic [ref=f2e16]: Admin backoffice
+      - navigation [ref=f2e17]:
+        - generic [ref=f2e18]: Vender
+        - link [ref=f2e19] [cursor=pointer]:
+          - /url: /admin
+          - strong [ref=f2e24]: Inicio
+        - group [ref=f2e25]:
+          - generic [ref=f2e26] [cursor=pointer]:
+            - strong [ref=f2e31]: Configuracion
+            - generic [aria-hidden] [ref=f2e32]: ⌄
+        - group [ref=f2e33]:
+          - generic [ref=f2e34] [cursor=pointer]:
+            - strong [ref=f2e42]: Catalogo
+            - generic [aria-hidden] [ref=f2e43]: ⌄
+          - generic [ref=f2e44]:
+            - link "Resumen" [ref=f2e45] [cursor=pointer]:
+              - /url: /admin/catalogo
+            - link "Productos" [ref=f2e47] [cursor=pointer]:
+              - /url: /admin/products
+            - link "Categorias" [ref=f2e49] [cursor=pointer]:
+              - /url: /admin/catalogo/categorias
+            - link "Caracteristicas" [ref=f2e51] [cursor=pointer]:
+              - /url: /admin/catalogo/atributos-caracteristicas
+            - link "Busqueda" [ref=f2e53] [cursor=pointer]:
+              - /url: /admin/catalogo/search
+            - link "Marcas / Proveedores" [ref=f2e55] [cursor=pointer]:
+              - /url: /admin/catalogo/marcas
+            - link "Media / Archivos" [ref=f2e57] [cursor=pointer]:
+              - /url: /admin/catalogo/media
+            - link "Offerings / Servicios adicionales" [ref=f2e59] [cursor=pointer]:
+              - /url: /admin/catalogo/offerings
+            - link "Stock" [ref=f2e61] [cursor=pointer]:
+              - /url: /admin/catalogo/stock
+            - link "Importar" [ref=f2e63] [cursor=pointer]:
+              - /url: /admin/catalogo/importar
+        - group [ref=f2e65]:
+          - generic [ref=f2e66] [cursor=pointer]:
+            - strong [ref=f2e71]: CMS
+            - generic [aria-hidden] [ref=f2e72]: ⌄
+        - link [ref=f2e73] [cursor=pointer]:
+          - /url: /admin/promociones
+          - strong [ref=f2e78]: Promociones
+        - link [ref=f2e79] [cursor=pointer]:
+          - /url: /admin/analitica
+          - strong [ref=f2e83]: Analitica
+        - link [ref=f2e84] [cursor=pointer]:
+          - /url: /admin/pedidos
+          - strong [ref=f2e96]: Pedidos
+        - link [ref=f2e97] [cursor=pointer]:
+          - /url: /admin/postventa
+          - strong [ref=f2e106]: Postventa
+        - link [ref=f2e107] [cursor=pointer]:
+          - /url: /admin/clientes
+          - strong [ref=f2e113]: Clientes
+        - link [ref=f2e114] [cursor=pointer]:
+          - /url: /admin/pagos
+          - strong [ref=f2e118]: Pagos
+      - generic [ref=f2e119]:
+        - strong [ref=f2e120]: Perfil
+        - paragraph [ref=f2e121]: Operator
+        - strong [ref=f2e122]: Contexto
+        - paragraph [ref=f2e123]: 11111111-1111-4111-8111-111111111111 / 22222222-2222-4222-8222-222222222222
+    - generic [ref=f2e124]:
+      - generic [ref=f2e125]:
+        - form "Selector de contexto Admin" [ref=f2e126]:
+          - combobox "Organization" [ref=f2e127]:
+            - option "Organization"
+            - option "READPREP-20261104 Organización"
+            - option "QA-20261104 Integracion UI"
+            - option "ReadIndex Live b"
+            - option "ReadIndex Live a"
+            - option "Read Path Baseline b"
+            - option "Read Path Baseline a"
+            - option "Ecommium Default Organization" [selected]
+            - option "Ecommium UI Smoke 1780565751104"
+          - combobox "Shop" [ref=f2e128]:
+            - option "Shop"
+            - option "READPREP-20261104 Interrupción"
+            - option "READPREP-20261104 Tienda existente"
+            - option "Tienda UI 1780565845946"
+            - option "Activa - Tienda Barcelona" [selected]
+          - textbox "Shop alias" [ref=f2e129]:
+            - /placeholder: shopAlias
+            - text: tienda-barcelona
+          - combobox "Locale" [ref=f2e130]:
+            - option "es-ES" [selected]
+            - option "en-US"
+            - option "pt-PT"
+          - button "Aplicar" [ref=f2e131] [cursor=pointer]
+        - generic [ref=f2e132]:
+          - generic [aria-hidden] [ref=f2e133]: r
+          - generic [ref=f2e134]:
+            - strong [ref=f2e135]: [employee-email-redacted]
+            - generic [ref=f2e136]: [employee-email-redacted]
+          - button "Salir" [ref=f2e138] [cursor=pointer]
+      - main [ref=f2e139]:
+        - generic [ref=f2e140]: Admin / Catalogo / Productos
+        - generic [ref=f2e141]:
+          - generic [ref=f2e142]:
+            - heading "Productos" [level=1] [ref=f2e143]
+            - paragraph [ref=f2e144]: Gestiona fichas de producto, variantes, imagenes, precio y stock desde un unico editor.
+          - link "Anadir producto" [ref=f2e146] [cursor=pointer]:
+            - /url: /admin/products/new
+        - form "Buscar productos" [ref=f2e147]:
+          - searchbox "Filtrar por nombre" [ref=f2e148]: Casco QA integral PW 20261106
+          - combobox "Filtrar por categoria" [ref=f2e149]:
+            - option "Todas las categorías" [selected]
+            - option "Bike Brakes"
+            - option "Bike Cockpit"
+            - option "Bike Drivetrain"
+            - option "Bike Workshop"
+            - option "BikerShop"
+            - option "Electrónica bike"
+            - option "Nutritiom-pro"
+            - option "nutritions"
+            - option "Ropa ciclismo"
+            - option "Accesorios y componentes"
+            - option "Zapatillas carretera"
+            - option "Electrónica bike"
+            - option "BikerShop"
+            - option "Zapatillas MTB"
+            - option "bicicletas"
+            - option "componentes"
+          - generic [ref=f2e150]:
+            - text: Por página
+            - spinbutton "Productos por pagina" [ref=f2e151]: "20"
+          - generic [ref=f2e152]:
+            - checkbox "Activo" [ref=f2e153]
+            - text: Activo
+          - button "Buscar" [ref=f2e154] [cursor=pointer]
+        - region "Listado de productos" [ref=f2e158]:
+          - generic [ref=f2e159]:
+            - heading "Productos (0)" [level=2] [ref=f2e161]
+            - generic "Filtros de productos" [ref=f2e162]:
+              - group [ref=f2e163]:
+                - generic "Columnas" [ref=f2e164] [cursor=pointer]
+              - group [ref=f2e167]:
+                - generic "Acciones agrupadas" [ref=f2e168] [cursor=pointer]
+              - group [ref=f2e172]:
+                - generic "Ajustes" [ref=f2e173] [cursor=pointer]
+              - button "Fijar vista" [ref=f2e178] [cursor=pointer]
+              - button "Restablecer vista original" [ref=f2e180] [cursor=pointer]
+          - generic [ref=f2e181]:
+            - heading "No hay productos para este contexto" [level=2] [ref=f2e182]
+            - paragraph [ref=f2e183]: Crea un producto inactivo para completar imagenes, precio y stock antes de publicarlo.
+            - link "Anadir producto" [ref=f2e184] [cursor=pointer]:
+              - /url: /admin/products/new
+  - button "Open Next.js Dev Tools" [ref=f2e190] [cursor=pointer]
+  - alert [ref=f2e194]

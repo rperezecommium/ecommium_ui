@@ -1,10 +1,11 @@
+import {NewsletterProvider} from './newsletter-client';
 import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { StorefrontCategoryLink, StorefrontPlpBlock, StorefrontPlpData, StorefrontPlpProduct, StorefrontPlpResult } from "./plp";
 import { StorefrontAddToCartButton } from "./cart-client";
 import { StorefrontSearchEventsClient } from "./search-events-client";
-import { StorefrontCmsBlockRenderer } from "./storefront-cms-page";
+import { StorefrontCmsBlockRenderer,storefrontCmsPublicBlockType } from "./storefront-cms-page";
 import { StorefrontPageShell } from "./storefront-header";
 
 export { StorefrontHeader } from "./storefront-header";
@@ -14,6 +15,7 @@ type Props = {
   categorySlug: string;
   searchQuery?: string;
   openCustomerLogin?: boolean;
+  surface?: "HOME" | "PLP" | "SEARCH";
 };
 
 const titleFromSlug = (slug: string) =>
@@ -23,7 +25,7 @@ const titleFromSlug = (slug: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ") || "Categoria";
 
-export function StorefrontPlpPage({ result, categorySlug, searchQuery, openCustomerLogin }: Props) {
+export function StorefrontPlpPage({ result, categorySlug, searchQuery, openCustomerLogin, surface }: Props) {
   const activeSearchQuery = searchQuery ?? result.data?.searchQuery;
   const title = activeSearchQuery
     ? "Resultados de busqueda"
@@ -36,7 +38,7 @@ export function StorefrontPlpPage({ result, categorySlug, searchQuery, openCusto
 
   return (
     <main className="storefrontPage">
-      <StorefrontPageShell initialQuery={activeSearchQuery} openCustomerLogin={openCustomerLogin}>
+      <StorefrontPageShell initialQuery={activeSearchQuery} openCustomerLogin={openCustomerLogin} surface={surface ?? (activeSearchQuery ? "SEARCH" : "PLP")}>
         <div className="storefrontShell">
           <nav className="storefrontBreadcrumb">
             <Link href="/">Inicio</Link>
@@ -75,8 +77,8 @@ function StorefrontListing({ data, title }: { data: StorefrontPlpData; title: st
 
   return (
     <section className="storefrontListing">
-      <CategoryIntro description={description} title={title} />
-      <BlockStack blocks={data.cmsBlocks.beforeList} />
+      {data.cmsBlocks.beforeList.some((block) => storefrontCmsPublicBlockType(block) === "plp.categoryIntro") ? null : <CategoryIntro description={description} title={title} />}
+      <BlockStack blocks={data.cmsBlocks.beforeList.map((block) => block.type === "plp.categoryIntro" ? { ...block, props: { ...block.props, headingLevel: 1 } } : block)} />
       {data.searchEvent ? (
         <StorefrontSearchEventsClient
           event={data.searchEvent}
@@ -130,7 +132,7 @@ function CategoryIntro({ description, title }: { description: string; title: str
         <h1>{title}</h1>
         <p>{description}</p>
       </div>
-      <div className="storefrontCategoryImage" />
+
     </section>
   );
 }
@@ -305,8 +307,8 @@ function BlockStack({ blocks }: { blocks: StorefrontPlpBlock[] }) {
   }
 
   return (
-    <div className="storefrontBlockStack">
+    <NewsletterProvider enabled={JSON.stringify(blocks).includes("newsletterForm")}><div className="storefrontBlockStack">
       {blocks.map((block) => <StorefrontCmsBlockRenderer key={block.blockId} block={block} />)}
-    </div>
+    </div></NewsletterProvider>
   );
 }

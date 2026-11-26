@@ -1,0 +1,3 @@
+PASS 1440: invalid JSON/CSS blocked; upload failure visible; timeout keeps payload; readonly; axe without contrast
+PASS 768: invalid JSON/CSS blocked; upload failure visible; timeout keeps payload; readonly; axe without contrast
+PASS 390: invalid JSON/CSS blocked; upload failure visible; timeout keeps payload; readonly; axe without contrast

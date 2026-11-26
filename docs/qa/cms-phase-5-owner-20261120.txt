@@ -1,0 +1,16 @@
+
+> cms@0.0.1 test
+> jest --runInBand composition-template.value-object.spec.ts independent-section.value-object.spec.ts
+
+PASS src/domain/page/composition-template.value-object.spec.ts
+  ✓ validates an independent section and returns an isolated snapshot (6 ms)
+  ✓ validates page composition without importing title, SEO, route or inheritance (13 ms)
+  ✓ rejects unsupported kinds, unknown fields and invalid nested identities (3 ms)
+  ✓ preserves existing page section limits and rejects transient hydration
+  ✓ materializes page template IDs and CSS without linking the source (7 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        1.713 s, estimated 2 s
+Ran all test suites matching /composition-template.value-object.spec.ts|independent-section.value-object.spec.ts/i.

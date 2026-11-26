@@ -1,0 +1,18 @@
+{
+  "scope": "isolated PostgreSQL owner; not UI/BFF/Media E2E",
+  "checks": [
+    "additive SQL migration applies to prior schema",
+    "concurrent create retries persist one resource and identical receipt",
+    "same operation with changed input returns409",
+    "atomic CAS accepts exactly one concurrent editor",
+    "reopening preserves edit and original creation replay",
+    "owner scope isolates reads and writes",
+    "independent copy persists name, content and CSS after reconnection without changing original",
+    "archive persists and prevents editing",
+    "legacy and independent formats remain isolated",
+    "new visual contract resolves ARIA and rejects unknown Media references",
+    "real CMS source exports independent receipts separately and existing SQL trigger emits changes"
+  ],
+  "cleanup": true,
+  "status": "PASS"
+}

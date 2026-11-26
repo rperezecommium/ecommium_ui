@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, CopyPlus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, CopyPlus, Plus, Trash2 } from "lucide-react";
 import {
   blocksToJson,
   createCmsBlockFromPreset,
@@ -25,19 +25,21 @@ import {
   type CmsVisualModuleV2Props,
   type CmsVisualNode,
 } from "./cms-blocks";
-import {
-  CmsBlockRenderer,
-  CmsPlpStorefrontPreviewRenderer,
-} from "../../../packages/cms-blocks/src/react";
-import type { CmsModulePlacement, CmsModuleSlot, CmsVisualModuleDefinitionsList } from "./cms-admin";
+import { CmsPlpStorefrontPreviewRenderer } from "../../../packages/cms-blocks/src/react";
+import type { CmsDesignTokens, CmsLayout, CmsModulePlacement, CmsModuleSlot, CmsResolvedModule, CmsVisualModuleDefinitionsList } from "./cms-admin";
+import { CmsLayoutPreview } from "./cms-layout-preview";
 
 type CmsBlockEditorClientProps = {
+  disabled?: boolean;
   initialBlocks: CmsBlock[];
   locale?: string;
   mode?: "all" | "plp";
   moduleSlots?: CmsModuleSlot[];
   pageId?: string;
   publishVisualModuleAction?: (formData: FormData) => void | Promise<void>;
+  resolvedLayout?: CmsLayout | null;
+  resolvedModules?: CmsResolvedModule[];
+  tokens?: CmsDesignTokens | null;
   visualModules?: CmsVisualModuleDefinitionsList;
 };
 type SavedVisualModulePreset = {
@@ -962,6 +964,12 @@ function boolProp(block: CmsBlock, key: string) {
   return block.props[key] === true;
 }
 
+function numberProp(block: CmsBlock, key: string, fallback: number) {
+  const value = block.props[key];
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function arrayProp(block: CmsBlock, key: string) {
   const value = block.props[key];
   return Array.isArray(value) ? value : [];
@@ -1336,12 +1344,16 @@ function modulePlacementIssues(blocks: CmsBlock[], slots: CmsModuleSlot[], mode:
 }
 
 export function CmsBlockEditorClient({
+  disabled = false,
   initialBlocks,
   locale,
   mode = "all",
   moduleSlots = [],
   pageId,
   publishVisualModuleAction,
+  resolvedLayout,
+  resolvedModules = [],
+  tokens,
   visualModules,
 }: CmsBlockEditorClientProps) {
   const [blocks, setBlocks] = useState<CmsBlock[]>(() =>
@@ -1490,6 +1502,7 @@ export function CmsBlockEditorClient({
               {savedVisualModulePresets.map((preset) => (
                 <button
                   className="adminButton adminButtonSecondary"
+                  disabled={disabled}
                   key={preset.presetId}
                   type="button"
                   onClick={() => addSavedVisualBlock(preset.presetId)}
@@ -1503,6 +1516,7 @@ export function CmsBlockEditorClient({
           {presets.map((preset) => (
             <button
               className="adminButton adminButtonSecondary"
+              disabled={disabled}
               key={preset.type}
               type="button"
               onClick={() => addBlock(preset.type)}
@@ -1526,6 +1540,12 @@ export function CmsBlockEditorClient({
                 {placementIssues.length > 5 ? <li>{placementIssues.length - 5} alertas mas.</li> : null}
               </ul>
             ) : <span>Todos los modulos de pagina apuntan a slots activos.</span>}
+          </div>
+        ) : null}
+        {disabled ? (
+          <div className="cmsEditorValidation cmsEditorValidationWarning" role="status">
+            <strong>Editor bloqueado</strong>
+            <span>Esta pagina esta publicada. Despublicala antes de cambiar bloques o placements.</span>
           </div>
         ) : null}
         <dl className="pricingDefinitionGrid cmsPlacementSummary">
@@ -1555,19 +1575,20 @@ export function CmsBlockEditorClient({
                 <span>{block.blockId} - {getCmsBlockSurface(block)} - {placementLabel(block, moduleSlots, visibleIndex + 1)}</span>
               </div>
               <div className="adminButtonRow">
-                <button className="adminIconButton" type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); moveBlock(index, -1); }} aria-label="Subir bloque">
+                <button className="adminIconButton" disabled={disabled} type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); moveBlock(index, -1); }} aria-label="Subir bloque">
                   <ArrowUp size={16} aria-hidden="true" />
                 </button>
-                <button className="adminIconButton" type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); moveBlock(index, 1); }} aria-label="Bajar bloque">
+                <button className="adminIconButton" disabled={disabled} type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); moveBlock(index, 1); }} aria-label="Bajar bloque">
                   <ArrowDown size={16} aria-hidden="true" />
                 </button>
-                <button className="adminIconButton adminIconButtonDanger" type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); removeBlock(index); }} aria-label="Eliminar bloque">
+                <button className="adminIconButton adminIconButtonDanger" disabled={disabled} type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); removeBlock(index); }} aria-label="Eliminar bloque">
                   <Trash2 size={16} aria-hidden="true" />
                 </button>
               </div>
             </summary>
             <BlockFields
               block={block}
+              disabled={disabled}
               locale={locale}
               moduleSlots={moduleSlots}
               onPlacementChange={(placement) => updateBlock(index, (current) => ({ ...current, placement }))}
@@ -1588,9 +1609,18 @@ export function CmsBlockEditorClient({
           </div>
         </div>
         <div className="cmsPreviewFrame">
-          {mode === "plp" ? <CmsPlpStorefrontPreviewRenderer blocks={orderedBlocks} /> : orderedBlocks.map((block) => (
-            <CmsBlockRenderer block={block} key={block.blockId} mode="admin-preview" />
-          ))}
+          {mode === "plp" ? (
+            <CmsPlpStorefrontPreviewRenderer blocks={orderedBlocks} />
+          ) : (
+            <CmsLayoutPreview
+              blocks={orderedBlocks}
+              emptyLabel="Agrega un bloque para empezar la composicion."
+              layout={resolvedLayout}
+              moduleSlots={moduleSlots}
+              resolvedModules={resolvedModules}
+              tokens={tokens}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -1599,6 +1629,7 @@ export function CmsBlockEditorClient({
 
 function BlockFields({
   block,
+  disabled,
   locale,
   moduleSlots,
   onPlacementChange,
@@ -1608,6 +1639,7 @@ function BlockFields({
   publishVisualModuleAction,
 }: {
   block: CmsBlock;
+  disabled?: boolean;
   locale?: string;
   moduleSlots: CmsModuleSlot[];
   onPlacementChange: (placement: CmsModulePlacement) => void;
@@ -1623,6 +1655,7 @@ function BlockFields({
       <label className="adminField">
         <span>Superficie</span>
         <select
+          disabled={disabled}
           value={surface}
           onChange={(event) => onPropChange("surface", event.target.value)}
         >
@@ -1633,6 +1666,7 @@ function BlockFields({
       <label className="adminField">
         <span>Ubicacion</span>
         <select
+          disabled={disabled}
           value={placementProp(block)}
           onChange={(event) => onPropChange("placement", event.target.value)}
         >
@@ -1644,6 +1678,7 @@ function BlockFields({
       {surface === "page" ? (
         <ModulePlacementFields
           block={block}
+          disabled={disabled}
           moduleSlots={moduleSlots}
           onPlacementChange={onPlacementChange}
         />
@@ -1654,6 +1689,7 @@ function BlockFields({
           <label className="adminField">
             <span>Tipo listing</span>
             <select
+              disabled={disabled}
               value={target.listingKind}
               onChange={(event) => onTargetChange("listingKind", event.target.value as CmsPlpListingKind)}
             >
@@ -1663,11 +1699,13 @@ function BlockFields({
             </select>
           </label>
           <TextField
+            disabled={disabled}
             label="URL PLP"
             value={target.routePath}
             onChange={(value) => onTargetChange("routePath", value)}
           />
           <TextField
+            disabled={disabled}
             label="Slug categoria"
             value={target.categorySlug}
             onChange={(value) => onTargetChange("categorySlug", value)}
@@ -1676,44 +1714,34 @@ function BlockFields({
       ) : null}
       {block.type === "banner.hero" ? (
         <>
-          <TextField label="Eyebrow" value={textProp(block, "eyebrow")} onChange={(value) => onPropChange("eyebrow", value)} />
-          <TextField label="Titulo" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
-          <TextAreaField label="Texto" value={textProp(block, "body")} onChange={(value) => onPropChange("body", value)} />
-          <TextField label="Imagen URL" value={textProp(block, "imageUrl")} onChange={(value) => onPropChange("imageUrl", value)} />
-          <TextField label="CTA label" value={textProp(block, "ctaLabel")} onChange={(value) => onPropChange("ctaLabel", value)} />
-          <TextField label="CTA href" value={textProp(block, "ctaHref", "/")} onChange={(value) => onPropChange("ctaHref", value)} />
+          <TextField disabled={disabled} label="Eyebrow" value={textProp(block, "eyebrow")} onChange={(value) => onPropChange("eyebrow", value)} />
+          <TextField disabled={disabled} label="Titulo" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
+          <TextAreaField disabled={disabled} label="Texto" value={textProp(block, "body")} onChange={(value) => onPropChange("body", value)} />
+          <TextField disabled={disabled} label="Imagen URL" value={textProp(block, "imageUrl")} onChange={(value) => onPropChange("imageUrl", value)} />
+          <TextField disabled={disabled} label="CTA label" value={textProp(block, "ctaLabel")} onChange={(value) => onPropChange("ctaLabel", value)} />
+          <TextField disabled={disabled} label="CTA href" value={textProp(block, "ctaHref", "/")} onChange={(value) => onPropChange("ctaHref", value)} />
         </>
       ) : null}
       {block.type === "slider.fullWidth" ? (
-        <>
-          <label className="adminField">
-            <span>Autoplay</span>
-            <select
-              value={String(boolProp(block, "autoplay"))}
-              onChange={(event) => onPropChange("autoplay", event.target.value === "true")}
-            >
-              <option value="false">No</option>
-              <option value="true">Si</option>
-            </select>
-          </label>
-          <CollectionTextarea
-            label="Slides JSON"
-            value={arrayProp(block, "slides")}
-            onChange={(value) => onPropChange("slides", value)}
-          />
-        </>
+        <SliderFields block={block} disabled={disabled} onPropChange={onPropChange} />
       ) : null}
       {block.type === "plp.categoryIntro" ? (
         <>
-          <TextField label="Titulo categoria" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
-          <TextAreaField label="Descripcion" value={textProp(block, "body")} onChange={(value) => onPropChange("body", value)} />
-          <TextField label="Imagen URL" value={textProp(block, "imageUrl")} onChange={(value) => onPropChange("imageUrl", value)} />
+          <TextField disabled={disabled} label="Titulo categoria" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
+          <label className="adminCheckbox"><input disabled={disabled} type="checkbox" checked={boolProp(block, "backgroundMode")} onChange={(event) => onPropChange("backgroundMode", event.target.checked)} />Usar imagen como fondo</label>
+          <NumberField disabled={disabled} label="Altura (px)" minimum={160} maximum={600} value={numberProp(block, "height", 240)} onChange={(value) => onPropChange("height", value)} />
+          <NumberField disabled={disabled} label="Oscurecer imagen (%)" minimum={0} maximum={90} value={numberProp(block, "overlayOpacity", 55)} onChange={(value) => onPropChange("overlayOpacity", value)} />
+          <TextField disabled={disabled} label="Color del texto" value={textProp(block, "textColor", "#ffffff")} onChange={(value) => onPropChange("textColor", value)} />
+          <TextField disabled={disabled} label="Posicion del fondo" value={textProp(block, "backgroundPosition", "center")} onChange={(value) => onPropChange("backgroundPosition", value)} />
+          <TextAreaField disabled={disabled} label="Descripcion" value={textProp(block, "body")} onChange={(value) => onPropChange("body", value)} />
+          <TextField disabled={disabled} label="Imagen URL" value={textProp(block, "imageUrl")} onChange={(value) => onPropChange("imageUrl", value)} />
         </>
       ) : null}
       {block.type === "plp.subcategoryTiles" ? (
         <>
-          <TextField label="Titulo" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
+          <TextField disabled={disabled} label="Titulo" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
           <CollectionTextarea
+            disabled={disabled}
             label="Subcategorias JSON"
             value={arrayProp(block, "items")}
             onChange={(value) => onPropChange("items", value)}
@@ -1722,8 +1750,9 @@ function BlockFields({
       ) : null}
       {block.type === "accordion" ? (
         <>
-          <TextField label="Titulo grupo" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
+          <TextField disabled={disabled} label="Titulo grupo" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
           <CollectionTextarea
+            disabled={disabled}
             label="Items JSON"
             value={arrayProp(block, "items")}
             onChange={(value) => onPropChange("items", value)}
@@ -1732,8 +1761,9 @@ function BlockFields({
       ) : null}
       {block.type === "carousel" ? (
         <>
-          <TextField label="Titulo" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
+          <TextField disabled={disabled} label="Titulo" value={textProp(block, "heading")} onChange={(value) => onPropChange("heading", value)} />
           <CollectionTextarea
+            disabled={disabled}
             label="Cards JSON"
             value={arrayProp(block, "items")}
             onChange={(value) => onPropChange("items", value)}
@@ -1744,11 +1774,12 @@ function BlockFields({
         <>
           <VisualModulePublishFields
             block={block}
+            disabled={disabled}
             locale={locale}
             pageId={pageId}
             publishVisualModuleAction={publishVisualModuleAction}
           />
-          <VisualModuleContentFields block={block} onContentValuesChange={(values) => onPropChange("contentValues", values)} />
+          <VisualModuleContentFields block={block} disabled={disabled} onContentValuesChange={(values) => onPropChange("contentValues", values)} />
         </>
       ) : null}
       <label className="adminField cmsJsonField">
@@ -1759,13 +1790,159 @@ function BlockFields({
   );
 }
 
+type SliderEditorSlide = {
+  backgroundPosition: string;
+  contentPosition: string;
+  ctaHref: string;
+  ctaLabel: string;
+  imageAlt: string;
+  imageUrl: string;
+  subtitle: string;
+  title: string;
+};
+
+const sliderBackgroundPositions = [
+  ["left top", "Izquierda arriba"],
+  ["center top", "Centro arriba"],
+  ["right top", "Derecha arriba"],
+  ["left center", "Izquierda centro"],
+  ["center center", "Centro"],
+  ["right center", "Derecha centro"],
+  ["left bottom", "Izquierda abajo"],
+  ["center bottom", "Centro abajo"],
+  ["right bottom", "Derecha abajo"],
+] as const;
+
+export function SliderFields({
+  block,
+  disabled,
+  onPropChange,
+}: {
+  block: CmsBlock;
+  disabled?: boolean;
+  onPropChange: (key: string, value: unknown) => void;
+}) {
+  const slides = arrayProp(block, "slides").map(normalizeSliderEditorSlide);
+  const updateSlides = (next: SliderEditorSlide[]) => onPropChange("slides", next.slice(0, 12));
+  const updateSlide = (index: number, key: keyof SliderEditorSlide, value: string) => {
+    updateSlides(slides.map((slide, slideIndex) => slideIndex === index ? { ...slide, [key]: value } : slide));
+  };
+  const moveSlide = (index: number, direction: -1 | 1) => {
+    const destination = index + direction;
+    if (destination < 0 || destination >= slides.length) return;
+    const next = [...slides];
+    [next[index], next[destination]] = [next[destination], next[index]];
+    updateSlides(next);
+  };
+
+  return (
+    <fieldset className="cmsBlockFieldset cmsSliderSettings">
+      <legend>Configuracion del slider</legend>
+      <label className="adminCheckbox cmsSliderAutoplay">
+        <input
+          checked={boolProp(block, "autoplay")}
+          disabled={disabled}
+          onChange={(event) => onPropChange("autoplay", event.target.checked)}
+          type="checkbox"
+        />
+        <span>Reproduccion automatica</span>
+      </label>
+      <NumberField disabled={disabled} label="Intervalo (ms)" maximum={15000} minimum={1500} value={numberProp(block, "autoplayDelay", 2500)} onChange={(value) => onPropChange("autoplayDelay", value)} />
+      <NumberField disabled={disabled} label="Altura escritorio (px)" maximum={720} minimum={220} value={numberProp(block, "heightDesktop", 380)} onChange={(value) => onPropChange("heightDesktop", value)} />
+      <NumberField disabled={disabled} label="Altura tablet (px)" maximum={720} minimum={220} value={numberProp(block, "heightTablet", 350)} onChange={(value) => onPropChange("heightTablet", value)} />
+      <NumberField disabled={disabled} label="Altura movil (px)" maximum={720} minimum={220} value={numberProp(block, "heightMobile", 320)} onChange={(value) => onPropChange("heightMobile", value)} />
+      <NumberField disabled={disabled} label="Oscurecer imagen (%)" maximum={80} minimum={0} value={numberProp(block, "overlayOpacity", 28)} onChange={(value) => onPropChange("overlayOpacity", value)} />
+
+      <div className="cmsSliderSlidesEditor">
+        <div className="cmsSliderSlidesHeader">
+          <strong>Diapositivas</strong>
+          <button
+            className="adminButton adminButtonTiny"
+            disabled={disabled || slides.length >= 12}
+            onClick={() => updateSlides([...slides, createSliderEditorSlide(slides.length + 1)])}
+            type="button"
+          >
+            <Plus aria-hidden="true" size={15} />
+            Agregar
+          </button>
+        </div>
+        {slides.length === 0 ? <p className="cmsSliderEmpty">Agrega una diapositiva para mostrar el slider.</p> : null}
+        {slides.map((slide, index) => (
+          <details className="cmsSliderSlideEditor" key={index} open={slides.length <= 3}>
+            <summary>
+              <strong>{index + 1}. {slide.title || "Sin titulo"}</strong>
+              <span className="adminButtonRow">
+                <button aria-label="Subir diapositiva" className="adminIconButton" disabled={disabled || index === 0} onClick={(event) => { event.preventDefault(); moveSlide(index, -1); }} type="button"><ArrowUp aria-hidden="true" size={15} /></button>
+                <button aria-label="Bajar diapositiva" className="adminIconButton" disabled={disabled || index === slides.length - 1} onClick={(event) => { event.preventDefault(); moveSlide(index, 1); }} type="button"><ArrowDown aria-hidden="true" size={15} /></button>
+                <button aria-label="Duplicar diapositiva" className="adminIconButton" disabled={disabled || slides.length >= 12} onClick={(event) => { event.preventDefault(); updateSlides([...slides.slice(0, index + 1), { ...slide }, ...slides.slice(index + 1)]); }} type="button"><CopyPlus aria-hidden="true" size={15} /></button>
+                <button aria-label="Eliminar diapositiva" className="adminIconButton adminIconButtonDanger" disabled={disabled} onClick={(event) => { event.preventDefault(); updateSlides(slides.filter((_, slideIndex) => slideIndex !== index)); }} type="button"><Trash2 aria-hidden="true" size={15} /></button>
+              </span>
+            </summary>
+            <div className="cmsSliderSlideFields">
+              <TextField disabled={disabled} label="Titulo" value={slide.title} onChange={(value) => updateSlide(index, "title", value)} />
+              <TextField disabled={disabled} label="Subtitulo" value={slide.subtitle} onChange={(value) => updateSlide(index, "subtitle", value)} />
+              <TextField disabled={disabled} label="Imagen URL" value={slide.imageUrl} onChange={(value) => updateSlide(index, "imageUrl", value)} />
+              <TextField disabled={disabled} label="Texto alternativo" value={slide.imageAlt} onChange={(value) => updateSlide(index, "imageAlt", value)} />
+              <TextField disabled={disabled} label="Texto del boton" value={slide.ctaLabel} onChange={(value) => updateSlide(index, "ctaLabel", value)} />
+              <TextField disabled={disabled} label="Enlace del boton" value={slide.ctaHref} onChange={(value) => updateSlide(index, "ctaHref", value)} />
+              <label className="adminField">
+                <span>Posicion de imagen</span>
+                <select disabled={disabled} value={slide.backgroundPosition} onChange={(event) => updateSlide(index, "backgroundPosition", event.target.value)}>
+                  {sliderBackgroundPositions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+              <label className="adminField">
+                <span>Posicion del contenido</span>
+                <select disabled={disabled} value={slide.contentPosition} onChange={(event) => updateSlide(index, "contentPosition", event.target.value)}>
+                  <option value="left">Izquierda</option>
+                  <option value="center">Centro</option>
+                  <option value="right">Derecha</option>
+                </select>
+              </label>
+            </div>
+          </details>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function normalizeSliderEditorSlide(value: unknown): SliderEditorSlide {
+  const slide = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  return {
+    backgroundPosition: typeof slide.backgroundPosition === "string" ? slide.backgroundPosition : "center center",
+    contentPosition: typeof slide.contentPosition === "string" ? slide.contentPosition : "left",
+    ctaHref: typeof slide.ctaHref === "string" ? slide.ctaHref : "/",
+    ctaLabel: typeof slide.ctaLabel === "string" ? slide.ctaLabel : "Ver mas",
+    imageAlt: typeof slide.imageAlt === "string" ? slide.imageAlt : "",
+    imageUrl: typeof slide.imageUrl === "string" ? slide.imageUrl : "",
+    subtitle: typeof slide.subtitle === "string" ? slide.subtitle : typeof slide.body === "string" ? slide.body : "",
+    title: typeof slide.title === "string" ? slide.title : "",
+  };
+}
+
+function createSliderEditorSlide(index: number): SliderEditorSlide {
+  return {
+    backgroundPosition: "center center",
+    contentPosition: "left",
+    ctaHref: "/",
+    ctaLabel: "Ver mas",
+    imageAlt: "",
+    imageUrl: "",
+    subtitle: "",
+    title: `Diapositiva ${index}`,
+  };
+}
+
 function VisualModulePublishFields({
   block,
+  disabled,
   locale,
   pageId,
   publishVisualModuleAction,
 }: {
   block: CmsBlock;
+  disabled?: boolean;
   locale?: string;
   pageId?: string;
   publishVisualModuleAction?: (formData: FormData) => void | Promise<void>;
@@ -1793,6 +1970,7 @@ function VisualModulePublishFields({
       ) : (
         <button
           className="adminButton adminButtonPrimary"
+          disabled={disabled}
           formAction={publishVisualModuleAction}
           name="visualDefinitionIntent"
           type="submit"
@@ -1807,9 +1985,11 @@ function VisualModulePublishFields({
 
 function VisualModuleContentFields({
   block,
+  disabled,
   onContentValuesChange,
 }: {
   block: CmsBlock;
+  disabled?: boolean;
   onContentValuesChange: (values: Record<string, unknown>) => void;
 }) {
   const moduleProps = normalizeCmsVisualModuleProps(block.props);
@@ -1837,6 +2017,7 @@ function VisualModuleContentFields({
       <legend>Contenido del modulo visual</legend>
       {fields.map(([key, field]) => (
         <VisualContentValueField
+          disabled={disabled}
           field={field}
           key={key}
           name={key}
@@ -1849,11 +2030,13 @@ function VisualModuleContentFields({
 }
 
 function VisualContentValueField({
+  disabled,
   field,
   name,
   onChange,
   value,
 }: {
+  disabled?: boolean;
   field: CmsVisualContentField;
   name: string;
   onChange: (value: unknown) => void;
@@ -1865,7 +2048,7 @@ function VisualContentValueField({
   if (field.type === "boolean") {
     return (
       <label className="adminCheckbox">
-        <input checked={value === true} onChange={(event) => onChange(event.target.checked)} type="checkbox" />
+        <input checked={value === true} disabled={disabled} onChange={(event) => onChange(event.target.checked)} type="checkbox" />
         <span>{label}{field.required ? " *" : ""}</span>
       </label>
     );
@@ -1875,7 +2058,7 @@ function VisualContentValueField({
     return (
       <label className="adminField cmsJsonField">
         <span>{label}{field.required ? " *" : ""}</span>
-        <textarea value={textValue} onChange={(event) => onChange(event.target.value)} />
+        <textarea disabled={disabled} value={textValue} onChange={(event) => onChange(event.target.value)} />
       </label>
     );
   }
@@ -1884,7 +2067,7 @@ function VisualContentValueField({
     return (
       <label className="adminField cmsBlockBuilderColorInputRow">
         <span>{label}{field.required ? " *" : ""}</span>
-        <input type="color" value={textValue || "#000000"} onChange={(event) => onChange(event.target.value)} />
+        <input disabled={disabled} type="color" value={textValue || "#000000"} onChange={(event) => onChange(event.target.value)} />
       </label>
     );
   }
@@ -1893,6 +2076,7 @@ function VisualContentValueField({
     <label className="adminField">
       <span>{label}{field.required ? " *" : ""}</span>
       <input
+        disabled={disabled}
         inputMode={field.type === "number" ? "decimal" : undefined}
         placeholder={field.type === "media" ? "asset:key" : undefined}
         type={field.type === "url" ? "url" : field.type === "number" ? "number" : "text"}
@@ -1905,10 +2089,12 @@ function VisualContentValueField({
 
 function ModulePlacementFields({
   block,
+  disabled,
   moduleSlots,
   onPlacementChange,
 }: {
   block: CmsBlock;
+  disabled?: boolean;
   moduleSlots: CmsModuleSlot[];
   onPlacementChange: (placement: CmsModulePlacement) => void;
 }) {
@@ -1933,10 +2119,16 @@ function ModulePlacementFields({
           <span>Region / area / columna</span>
           <select
             value={selectedKey}
-            disabled={moduleSlots.length === 0}
+            disabled={disabled || moduleSlots.length === 0}
             onChange={(event) => {
-              const [region, areaId, columnIndex] = event.target.value.split("|");
-              changePlacement({ region: region as CmsModulePlacement["region"], areaId, columnIndex: Number(columnIndex) || 1 });
+              const selectedSlot = moduleSlots.find((slot) => slotKey(slot) === event.target.value);
+              if (!selectedSlot) return;
+              changePlacement({
+                region: selectedSlot.region,
+                areaId: selectedSlot.areaId,
+                columnIndex: selectedSlot.columnIndex,
+                width: selectedSlot.width,
+              });
             }}
           >
             {moduleSlots.length === 0 ? <option value="">Sin slots disponibles</option> : null}
@@ -1949,11 +2141,11 @@ function ModulePlacementFields({
         </label>
         <label className="adminField cmsModulePlacementWidthField">
           <span>Ancho modulo</span>
-          <input value={placement?.width ?? "100%"} onChange={(event) => changePlacement({ width: event.target.value })} />
+          <input disabled={disabled} value={placement?.width ?? "100%"} onChange={(event) => changePlacement({ width: event.target.value })} />
         </label>
         <label className="adminField">
           <span>Alineacion</span>
-          <select value={placement?.align ?? "stretch"} onChange={(event) => changePlacement({ align: event.target.value as CmsModulePlacement["align"] })}>
+          <select disabled={disabled} value={placement?.align ?? "stretch"} onChange={(event) => changePlacement({ align: event.target.value as CmsModulePlacement["align"] })}>
             <option value="stretch">Stretch</option>
             <option value="start">Start</option>
             <option value="center">Center</option>
@@ -1962,7 +2154,7 @@ function ModulePlacementFields({
         </label>
         <label className="adminField">
           <span>Container</span>
-          <select value={placement?.containerMode ?? "inherit"} onChange={(event) => changePlacement({ containerMode: event.target.value as CmsModulePlacement["containerMode"] })}>
+          <select disabled={disabled} value={placement?.containerMode ?? "inherit"} onChange={(event) => changePlacement({ containerMode: event.target.value as CmsModulePlacement["containerMode"] })}>
             <option value="inherit">Heredado</option>
             <option value="container">Container</option>
             <option value="full-width">Full width</option>
@@ -1973,6 +2165,7 @@ function ModulePlacementFields({
         {(["mobile", "tablet", "desktop"] as const).map((device) => (
           <label className="adminCheckbox" key={device}>
             <input
+              disabled={disabled}
               type="checkbox"
               checked={placement?.visibility?.[device] !== false}
               onChange={(event) => changePlacement({
@@ -1993,10 +2186,12 @@ function ModulePlacementFields({
 }
 
 function TextField({
+  disabled,
   label,
   value,
   onChange,
 }: {
+  disabled?: boolean;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -2004,16 +2199,48 @@ function TextField({
   return (
     <label className="adminField">
       <span>{label}</span>
-      <input value={value} onChange={(event) => onChange(event.target.value)} />
+      <input disabled={disabled} value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  );
+}
+
+function NumberField({
+  disabled,
+  label,
+  maximum,
+  minimum,
+  value,
+  onChange,
+}: {
+  disabled?: boolean;
+  label: string;
+  maximum: number;
+  minimum: number;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="adminField">
+      <span>{label}</span>
+      <input
+        disabled={disabled}
+        max={maximum}
+        min={minimum}
+        type="number"
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
     </label>
   );
 }
 
 function TextAreaField({
+  disabled,
   label,
   value,
   onChange,
 }: {
+  disabled?: boolean;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -2021,16 +2248,18 @@ function TextAreaField({
   return (
     <label className="adminField">
       <span>{label}</span>
-      <textarea value={value} onChange={(event) => onChange(event.target.value)} />
+      <textarea disabled={disabled} value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }
 
 function CollectionTextarea({
+  disabled,
   label,
   value,
   onChange,
 }: {
+  disabled?: boolean;
   label: string;
   value: unknown[];
   onChange: (value: unknown[]) => void;
@@ -2040,6 +2269,7 @@ function CollectionTextarea({
     <label className="adminField cmsJsonField">
       <span>{label}</span>
       <textarea
+        disabled={disabled}
         value={draft}
         onChange={(event) => {
           const next = event.target.value;

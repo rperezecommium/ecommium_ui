@@ -1,0 +1,63 @@
+{
+  "checkout": {
+    "tests_passed": 66,
+    "tests_total": 66,
+    "unit_result": "PASS",
+    "build": "PASS"
+  },
+  "shipping": {
+    "tests_passed": 41,
+    "tests_total": 41,
+    "unit_result": "PASS",
+    "build": "PASS"
+  },
+  "payments": {
+    "tests_passed": 74,
+    "tests_total": 74,
+    "unit_result": "PASS",
+    "build": "PASS"
+  },
+  "orders": {
+    "tests_passed": 29,
+    "tests_total": 29,
+    "unit_result": "PASS",
+    "build": "PASS"
+  },
+  "bff": {
+    "tests_passed": 1025,
+    "tests_total": 1025,
+    "unit_result": "PASS",
+    "build": "PASS"
+  },
+  "ui": {
+    "tests_passed": 671,
+    "tests_total": 671,
+    "unit_result": "PASS",
+    "build": "PASS",
+    "lint": "PASS_WITH_3_EXISTING_WARNINGS"
+  },
+  "real_checkout_postgres_owners": {
+    "result": "PASS",
+    "scope": "Disposable Checkout PostgreSQL plus read-only live Catalog/Pricing/Inventory HTTP; not browser E2E"
+  },
+  "real_orders_postgres": {
+    "result": "PASS",
+    "scope": "Disposable Orders PostgreSQL, repository and unique constraint; technical records, not a commercial purchase"
+  },
+  "purchase_e2e": {
+    "result": "NO VALIDADO",
+    "reason": "User selected no commercial data changes: no Catalog weight + Inventory stock at configured Shipping origin coincide",
+    "real_charges": false,
+    "commercial_migrations_applied": false,
+    "sandbox_approval_executed": false
+  },
+  "lint_backend": {
+    "result": "NOT_FULL_PASS",
+    "scope": "task-touched files only",
+    "existing_checkout_errors": 2,
+    "existing_payments_errors": 2,
+    "existing_bff_errors": 5,
+    "orders": "PASS",
+    "shipping": "ESLint configuration absent"
+  }
+}

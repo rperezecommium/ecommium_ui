@@ -54,8 +54,6 @@ function appendOperationalDiagnostic(message: string, input: { status?: number; 
   return details.length > 0 ? `${message} (${details.join(", ")}).` : message;
 }
 
-const serverSessionValidationLeadMs = 60_000;
-
 function genericOperationalAccessError(input: { status?: number; correlationId?: string }) {
   const { status } = input;
 
@@ -81,7 +79,9 @@ function parseLoginResult(value: unknown): AdminSession {
 }
 
 function parseMeResult(value: unknown): AdminSession {
-  return parseAuthSessionPayload(value, { requireAccessToken: false });
+  const session=parseAuthSessionPayload(value, { requireAccessToken: false });
+  if(session.principalType!=="EMPLOYEE"||session.scope!=="admin")throw Error("Invalid Employee/admin session");
+  return session;
 }
 
 function makeAuthHeader(accessToken: string) {
@@ -148,26 +148,13 @@ async function refreshStoredAdminSession(current: AdminSession) {
 
   const meResult = await fetchCurrentSessionWithToken(refreshResult.accessToken);
 
-  if (!meResult.ok) {
+  if (!meResult.ok || meResult.data.employeeId!==current.employeeId) {
     return null;
   }
 
   const nextSession = mergeAuthSessions(refreshedSession, meResult.data);
   await saveAdminSession(nextSession);
   return nextSession;
-}
-
-function hasFreshServerSession(current: AdminSession) {
-  if (!hasUsableAdminBearer(current)) {
-    return false;
-  }
-
-  if (!current.expiresAt) {
-    return true;
-  }
-
-  const expiresAt = new Date(current.expiresAt).getTime();
-  return Number.isFinite(expiresAt) && expiresAt - Date.now() > serverSessionValidationLeadMs;
 }
 
 async function loginAdminWithCredentials({
@@ -298,7 +285,7 @@ export async function logoutAdminEmployee() {
   redirect("/auth/login");
 }
 
-export async function refreshAdminEmployeeSession() {
+export async function refreshAdminEmployeeSession(options: {cookieWrite?:boolean;returnTo?:string} = {}) {
   const current = await getAdminSession();
 
   if (!current) {
@@ -307,10 +294,6 @@ export async function refreshAdminEmployeeSession() {
 
   if (!hasUsableAdminBearer(current)) {
     return null;
-  }
-
-  if (hasFreshServerSession(current)) {
-    return current;
   }
 
   if (!current.accessToken) {
@@ -322,8 +305,14 @@ export async function refreshAdminEmployeeSession() {
   });
 
   if (meResult.ok) {
+    if(meResult.data.employeeId!==current.employeeId)return null;
     const nextSession = mergeAuthSessions(current, meResult.data);
     return nextSession;
+  }
+
+  if ((meResult.status===401||meResult.status===403) && current.refreshToken && options.cookieWrite===false) {
+    const next=options.returnTo?.startsWith('/admin')&&!options.returnTo.startsWith('//')?options.returnTo:'/admin';
+    redirect('/auth/admin/session-renew?next='+encodeURIComponent(next));
   }
 
   const refreshedSession = meResult.status === 401 || meResult.status === 403

@@ -6,7 +6,7 @@ import { categoryPublicPageToPlpResult, productPublicPageToPdpResult } from "./p
 import { classifyStorefrontPublicPageError, type StorefrontPublicPageResponse } from "./public-page-contract";
 import { isSafeStorefrontTarget } from "./public-path";
 import { StorefrontCmsPage } from "./storefront-cms-page";
-import { StorefrontHeader } from "./storefront-header";
+import { StorefrontPageShell } from "./storefront-header";
 
 type StorefrontResolvedPublicPageProps = {
   correlationId: string;
@@ -52,7 +52,7 @@ export function StorefrontPublicFailure({ status }: { status?: number }) {
   const error = classifyStorefrontPublicPageError(status);
   return (
     <main className="storefrontPage">
-      <StorefrontHeader />
+      <StorefrontPageShell surface="ERROR">
       <div className="storefrontShell">
         <section className="storefrontUnavailable">
           <span>Página pública</span>
@@ -61,6 +61,7 @@ export function StorefrontPublicFailure({ status }: { status?: number }) {
           <Link className="storefrontCmsAction" href="/">Volver a la tienda</Link>
         </section>
       </div>
+      </StorefrontPageShell>
     </main>
   );
 }
@@ -68,7 +69,7 @@ export function StorefrontPublicFailure({ status }: { status?: number }) {
 export function StorefrontPublicNotFound() {
   return (
     <main className="storefrontPage">
-      <StorefrontHeader />
+      <StorefrontPageShell surface="ERROR">
       <div className="storefrontShell">
         <section className="storefrontUnavailable storefrontPublicState">
           <span>Error 404</span>
@@ -77,6 +78,7 @@ export function StorefrontPublicNotFound() {
           <Link className="storefrontCmsAction" href="/">Volver a la tienda</Link>
         </section>
       </div>
+      </StorefrontPageShell>
     </main>
   );
 }

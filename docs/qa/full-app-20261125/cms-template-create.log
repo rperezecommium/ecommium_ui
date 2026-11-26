@@ -1,0 +1,3 @@
+PASS 1440: link alignment, SECTION/PAGE creation, exact retry, readonly, axe
+PASS 768: link alignment, SECTION/PAGE creation, exact retry, readonly, axe
+PASS 390: link alignment, SECTION/PAGE creation, exact retry, readonly, axe

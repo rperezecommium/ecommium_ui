@@ -1,10 +1,13 @@
+import {randomUUID} from "node:crypto";
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import { Search, Trash2 } from "lucide-react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 import {
   changeCmsPublishedPathAction,
   createCmsPageAction,
+  deleteCmsPageAction,
   publishCmsPageAction,
   saveCmsDraftAction,
   saveCmsPageSettingsAction,
@@ -15,11 +18,9 @@ import {
   blocksToJson,
   createCmsBlockFromPreset,
   getCmsBlockSurface,
-  summarizePlpComposition,
   summarizePlacements,
   type CmsAdminData,
   type CmsAdminFilters,
-  type CmsArea,
   type CmsBlock,
   type CmsLayout,
   type CmsModulePlacement,
@@ -27,12 +28,12 @@ import {
   type CmsPage,
   type CmsPageDetail,
   type CmsPageSettingsResponse,
-  type CmsTemplateSettings,
   type CmsPageVersion,
   type CmsRegionCode,
   type CmsResolvedPageSettings,
 } from "./cms-admin";
 import { CmsBlockEditorClient } from "./cms-block-editor-client";
+import { CmsLayoutPreview } from "./cms-layout-preview";
 import { CmsLayoutAreaEditorClient } from "./cms-layout-area-editor-client";
 
 type CmsAdminPageProps = {
@@ -45,7 +46,6 @@ const tabs = [
   { id: "page", label: "Pagina" },
   { id: "settings", label: "Configuracion" },
   { id: "blocks", label: "Bloques" },
-  { id: "plp", label: "PLP" },
   { id: "seo", label: "SEO" },
   { id: "preview", label: "Preview" },
 ] as const;
@@ -68,13 +68,6 @@ function cmsHref(filters: CmsAdminFilters, overrides: Partial<CmsAdminFilters> =
   return query ? `/admin/cms?${query}` : "/admin/cms";
 }
 
-function cmsBuilderHref(filters: CmsAdminFilters, pageId: string) {
-  const params = new URLSearchParams();
-  params.set("pageId", pageId);
-  if (filters.locale) params.set("locale", filters.locale);
-  return `/admin/cms/builder?${params.toString()}`;
-}
-
 function formatDate(value: string | null | undefined) {
   if (!value) return "-";
   const date = new Date(value);
@@ -95,14 +88,6 @@ function pageTypeLabel(value: string) {
   if (value === "HOME") return "Home";
   if (value === "CONTENT") return "Contenido";
   return "Landing";
-}
-
-function templateOptionLabel(template: CmsTemplateSettings) {
-  return `${template.name} - ${template.status}`;
-}
-
-function selectableTemplates(templates: CmsTemplateSettings[], selectedTemplateId: string | null) {
-  return templates.filter((template) => template.status === "ACTIVE" || template.templateId === selectedTemplateId);
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -287,11 +272,11 @@ function ResultBanner({ data }: { data: CmsAdminData }) {
 
 function PageFilters({ filters, context }: { filters: CmsAdminFilters; context: AdminContext }) {
   return (
-    <form className="pricingFilterBar cmsFilterBar" action="/admin/cms">
+    <form aria-label="Buscar paginas CMS" className="productListSearchPanel cmsPagesSearchPanel" action="/admin/cms">
       <input type="hidden" name="mode" value="list" />
       <label className="adminField">
         <span>Buscar</span>
-        <input name="q" defaultValue={filters.q ?? ""} placeholder="Titulo, path o pageId" />
+        <input name="q" type="search" defaultValue={filters.q ?? ""} placeholder="Titulo, path o pageId" />
       </label>
       <label className="adminField">
         <span>Estado</span>
@@ -315,7 +300,8 @@ function PageFilters({ filters, context }: { filters: CmsAdminFilters; context: 
         <span>Locale</span>
         <input name="locale" defaultValue={filters.locale ?? context.locale} placeholder="es-ES" />
       </label>
-      <button className="adminButton adminButtonPrimary" type="submit">Aplicar</button>
+      <button className="adminButton adminButtonPrimary" type="submit"><Search aria-hidden="true" size={16} />Buscar</button>
+      <Link className="employeesTextAction" href={cmsHref({ locale: filters.locale ?? context.locale, mode: "list" })}>Limpiar filtros</Link>
     </form>
   );
 }
@@ -333,7 +319,7 @@ function PagesTable({
 
   return (
     <div className="adminTableScroller">
-      <table className="adminTable cmsPagesTable">
+      <table className="adminTable productListTable cmsPagesTable">
         <colgroup>
           <col className="cmsPagesTitleColumn" />
           <col className="cmsPagesPathColumn" />
@@ -365,12 +351,32 @@ function PagesTable({
               <td>{formatDate(page.updatedAt)}</td>
               <td>
                 <div className="adminInlineActions">
-                  <Link className="adminButton adminButtonTiny" href={cmsBuilderHref(filters, page.pageId)}>
+                  <Link className="adminButton adminButtonTiny" href={cmsHref(filters,{mode:"editor",pageId:page.pageId,tab:"page"})}>
                     Editar
                   </Link>
                   <Link className="adminButton adminButtonTiny" href={cmsHref(filters, { mode: "editor", pageId: page.pageId, tab: "preview" })}>
                     Preview
                   </Link>
+                  {page.status === "PUBLISHED" ? (
+                    <button
+                      aria-label={`Eliminar ${page.title}`}
+                      className="adminIconButton adminIconButtonDanger"
+                      disabled
+                      title="Despublica la pagina antes de eliminarla"
+                      type="button"
+                    >
+                      <Trash2 aria-hidden="true" size={16} />
+                    </button>
+                  ) : (
+                    <Link
+                      aria-label={`Eliminar ${page.title}`}
+                      className="adminIconButton adminIconButtonDanger"
+                      href={cmsHref(filters, { drawer: "delete", mode: "list", pageId: page.pageId })}
+                      title="Eliminar pagina"
+                    >
+                      <Trash2 aria-hidden="true" size={16} />
+                    </Link>
+                  )}
                 </div>
               </td>
             </tr>
@@ -387,7 +393,7 @@ function CreatePageDrawer({ context, filters }: { context: AdminContext; filters
 
   return (
     <div className="adminDrawerBackdrop">
-      <aside className="adminSideDrawer" aria-label="Crear pagina CMS">
+      <AdminResizableDrawer drawerId="cms-admin-page-crear-pagina-cms-1" className="adminSideDrawer" aria-label="Crear pagina CMS">
         <div className="adminSideDrawerHeader">
           <div>
             <h2>Crear pagina CMS</h2>
@@ -408,23 +414,97 @@ function CreatePageDrawer({ context, filters }: { context: AdminContext; filters
           </label>
           <label className="adminField">
             <span>Titulo</span>
-            <input name="title" placeholder="Nueva landing" />
+            <input name="title" placeholder="Nueva landing" required />
           </label>
           <label className="adminField">
             <span>Path</span>
-            <input name="path" placeholder="/landing-campana" />
+            <input name="path" placeholder="/landing-campana" required />
           </label>
           <label className="adminField">
             <span>SEO title</span>
-            <input name="seoTitle" placeholder="Titulo SEO" />
+            <input name="seoTitle" placeholder="Titulo SEO" required />
           </label>
           <label className="adminField">
             <span>SEO description</span>
-            <textarea name="seoDescription" placeholder="Descripcion corta para buscadores" />
+            <textarea name="seoDescription" placeholder="Descripcion corta para buscadores" required />
           </label>
           <button className="adminButton adminButtonPrimary" type="submit">Crear draft</button>
         </form>
-      </aside>
+      </AdminResizableDrawer>
+    </div>
+  );
+}
+
+function PageLifecycleFields({page,operation}:{page:CmsPageDetail;operation:'DELETE'|'CHANGE_PATH'}){
+ if(page.contractVersion!==1)return null;
+ const command=page.pendingOperation?.command.operation===operation?page.pendingOperation.command:{contractVersion:1,operation,operationId:randomUUID(),expectedRevision:page.revisionToken};
+ return <><input type="hidden" name="pageLifecycleCommand" value={JSON.stringify(command)}/>{page.pendingOperation?<p role="status">Hay una operación pendiente. Reintentar conserva su identidad; no se repetirá una petición a Routing con resultado incierto.</p>:null}</>;
+}
+function DeletePageDrawer({
+  context,
+  filters,
+  page,
+}: {
+  context: AdminContext;
+  filters: CmsAdminFilters;
+  page: CmsPageDetail | null;
+}) {
+  if (filters.drawer !== "delete" || !page) return null;
+
+  const closeHref = cmsHref(filters, {
+    drawer: undefined,
+    mode: "list",
+    pageId: undefined,
+  });
+  const isPublished = page.status === "PUBLISHED";
+
+  return (
+    <div className="adminDrawerBackdrop">
+      <AdminResizableDrawer drawerId="cms-admin-page-eliminar-pagina-cms-2" aria-label="Eliminar pagina CMS" aria-modal="true" className="adminSideDrawer" role="dialog">
+        <div className="adminSideDrawerHeader">
+          <div>
+            <h2>Eliminar pagina</h2>
+            <p>{page.title}</p>
+          </div>
+          <Link className="adminButton adminButtonTiny" href={closeHref}>Cerrar</Link>
+        </div>
+
+        <div className="adminBanner adminBannerWarning">
+          <strong>Esta accion es irreversible.</strong>
+          <p>Se eliminaran la pagina, sus versiones y su configuracion. Si tuvo una ruta publica, CMS la desactivara antes del borrado.</p>
+        </div>
+
+        <dl className="pricingDefinitionGrid">
+          <div><dt>Path</dt><dd>{page.path}</dd></div>
+          <div><dt>Estado</dt><dd>{page.status}</dd></div>
+          <div><dt>Page ID</dt><dd>{page.pageId}</dd></div>
+        </dl>
+
+        {isPublished ? (
+          <div className="adminBanner adminBannerError">
+            <strong>Pagina publicada.</strong>
+            <p>Despublicala antes de eliminarla para retirar su estado publico de forma explicita.</p>
+          </div>
+        ) : (
+          <form action={deleteCmsPageAction} className="pricingDenseForm">
+            <PageLifecycleFields page={page} operation="DELETE"/>
+            <input type="hidden" name="pageId" value={page.pageId} />
+            <input type="hidden" name="locale" value={filters.locale ?? context.locale} />
+            <input type="hidden" name="q" value={filters.q ?? ""} />
+            <input type="hidden" name="status" value={filters.status ?? "all"} />
+            <input type="hidden" name="pageType" value={filters.pageType ?? "all"} />
+            <label className="adminField">
+              <span>Confirmacion</span>
+              <input name="confirmDeletePage" placeholder="ELIMINAR" />
+              <small>Escribe ELIMINAR para borrar definitivamente esta pagina.</small>
+            </label>
+            <button className="adminButton adminButtonDanger" type="submit">
+              <Trash2 aria-hidden="true" size={16} />
+              Eliminar definitivamente
+            </button>
+          </form>
+        )}
+      </AdminResizableDrawer>
     </div>
   );
 }
@@ -455,6 +535,7 @@ function PageEditor({
   const version = pageVersion(page);
   const tab = filters.tab ?? "blocks";
   const blocks = version?.blocks ?? [];
+  const resolved = data.resolvedPageSettings.data;
   const moduleSlots = moduleSlotsForResolvedSettings(data.resolvedPageSettings.data);
   const placementSummary = summarizePlacements(blocks);
   const canEditDraft = page.status !== "PUBLISHED";
@@ -498,6 +579,7 @@ function PageEditor({
             className={`productEditorTab${tab === item.id ? " productEditorTabActive" : ""}`}
             href={cmsHref(filters, { tab: item.id })}
             key={item.id}
+            aria-current={tab === item.id ? "page" : undefined}
           >
             {item.label}
           </Link>
@@ -507,7 +589,7 @@ function PageEditor({
       {tab === "settings" ? (
         <PageSettingsPanel data={data} page={page} context={context} filters={filters} />
       ) : (
-        <form action={saveCmsDraftAction} className="cmsEditorForm">
+        <form action={saveCmsDraftAction} autoComplete="off" className="cmsEditorForm">
           <input type="hidden" name="pageId" value={page.pageId} />
           <input type="hidden" name="locale" value={filters.locale ?? context.locale} />
           <input type="hidden" name="tab" value={tab} />
@@ -524,19 +606,22 @@ function PageEditor({
           {tab === "page" ? <PageMetadataFields page={page} version={version} /> : null}
           {tab === "blocks" ? (
             <CmsBlockEditorClient
+              disabled={!canEditDraft}
               initialBlocks={blocks}
               locale={filters.locale ?? context.locale}
               moduleSlots={moduleSlots}
               pageId={page.pageId}
               publishVisualModuleAction={saveCmsVisualModuleDefinitionAction}
+              resolvedLayout={resolved?.layout ?? null}
+              resolvedModules={resolved?.modules ?? []}
+              tokens={resolved?.tokens ?? null}
               visualModules={data.visualModules.data}
             />
           ) : null}
-          {tab === "plp" ? <PlpBasePanel version={version} /> : null}
           {tab === "seo" ? <SeoFields page={page} version={version} /> : null}
           {tab === "preview" ? <PreviewPanel resolved={data.resolvedPageSettings.data} version={version} /> : null}
 
-          {tab !== "blocks" && tab !== "plp" && tab !== "preview" ? (
+          {tab !== "blocks" && tab !== "preview" ? (
             <input type="hidden" name="blocksJson" value={blocksToJson(blocks)} />
           ) : null}
           {!canEditDraft ? (
@@ -572,10 +657,8 @@ function PageSettingsPanel({
   const pageSettingsResponse = data.pageSettings.data;
   const resolved = data.resolvedPageSettings.data;
   const pageSettings = pageSettingsResponse?.settings;
-  const templates = data.templates.data.items;
   const pageSettingsError = resultMessage(data.pageSettings);
   const resolvedError = resultMessage(data.resolvedPageSettings);
-  const templatesError = resultMessage(data.templates);
 
   if (!pageSettingsResponse || !pageSettings || !resolved) {
     return (
@@ -592,10 +675,6 @@ function PageSettingsPanel({
   const settingsMode = pageSettings.inheritGlobalSettings && !hasPageOverrides(pageSettingsResponse) ? "inherit" : "custom";
   const pageMaxWidth = overrideMaxWidth(overrides, resolved.tokens.maxWidth);
   const editableLayout = overrideLayout(overrides, resolved.layout);
-  const templateChoices = selectableTemplates(templates, pageSettings.templateId);
-  const inactiveTemplates = templates.filter((template) => template.status !== "ACTIVE" && template.templateId !== pageSettings.templateId);
-  const activeTemplateCount = templates.filter((template) => template.status === "ACTIVE").length;
-  const templatesSettingsHref = `/admin/cms/ajustes-basicos?tab=templates&locale=${encodeURIComponent(filters.locale ?? context.locale)}&pageType=${encodeURIComponent(page.pageType)}&status=all`;
 
   return (
     <form action={saveCmsPageSettingsAction} className="cmsEditorForm cmsPageSettingsForm">
@@ -609,27 +688,26 @@ function PageSettingsPanel({
         <div><span>Slots</span><strong>{resolved.moduleSlots.length}</strong></div>
       </section>
 
+      {settingsMode === "custom" ? (
+        <section className="adminBanner adminBannerWarning">
+          <strong>Esta pagina usa configuracion propia.</strong>
+          <p>Los valores propios de esta página tienen prioridad sobre los valores heredados.</p>
+        </section>
+      ) : (
+        <section className="adminBanner adminBannerInfo">
+          <strong>Esta pagina hereda configuracion.</strong>
+          <p>Los valores heredados se reflejan en la configuración resuelta de esta página.</p>
+        </section>
+      )}
+
       <section className="pricingPanel cmsEditorPanel">
         <div className="pricingPanelHeader">
           <div>
-            <h2>Herencia y plantilla</h2>
-            <p>La pagina guarda solo la plantilla elegida y los overrides propios.</p>
+            <h2>Configuración de página</h2>
+            <p>La página conserva sus ajustes propios.</p>
           </div>
           <span className="adminBadge">{pageTypeLabel(page.pageType)}</span>
         </div>
-        {templatesError ? <div className="adminBanner adminBannerError"><p>{templatesError}</p></div> : null}
-        {!templatesError && templates.length === 0 ? (
-          <div className="adminBanner adminBannerWarning">
-            <p>No hay plantillas {pageTypeLabel(page.pageType)} disponibles para este locale.</p>
-            <Link className="adminButton adminButtonTiny" href={templatesSettingsHref}>Ir a plantillas</Link>
-          </div>
-        ) : null}
-        {!templatesError && templates.length > 0 && activeTemplateCount === 0 ? (
-          <div className="adminBanner adminBannerWarning">
-            <p>Hay plantillas {pageTypeLabel(page.pageType)}, pero ninguna esta activa.</p>
-            <Link className="adminButton adminButtonTiny" href={templatesSettingsHref}>Revisar estado</Link>
-          </div>
-        ) : null}
         <div className="cmsFieldGrid">
           <label className="adminField">
             <span>Modo</span>
@@ -637,23 +715,6 @@ function PageSettingsPanel({
               <option value="inherit">Heredar configuracion global</option>
               <option value="custom">Personalizar esta pagina</option>
             </select>
-          </label>
-          <label className="adminField">
-            <span>Plantilla</span>
-            <select name="templateId" defaultValue={pageSettings.templateId ?? ""}>
-              <option value="">Sin plantilla</option>
-              {templateChoices.map((template) => (
-                <option key={template.templateId} value={template.templateId}>{templateOptionLabel(template)}</option>
-              ))}
-              {inactiveTemplates.length > 0 ? (
-                <optgroup label="No activas">
-                  {inactiveTemplates.map((template) => (
-                    <option disabled key={template.templateId} value={template.templateId}>{templateOptionLabel(template)}</option>
-                  ))}
-                </optgroup>
-              ) : null}
-            </select>
-            <small>{activeTemplateCount} activas / {templates.length} total</small>
           </label>
           <label className="adminField">
             <span>Override max width</span>
@@ -766,42 +827,6 @@ function SeoFields({ page, version }: { page: CmsPageDetail; version: CmsPageVer
   );
 }
 
-function PlpBasePanel({ version }: { version: CmsPageVersion | null }) {
-  const blocks = version?.blocks ?? [];
-  const summary = summarizePlpComposition(blocks);
-  const targets = summary.targets.length > 0 ? summary.targets.join(", ") : "Sin target PLP";
-
-  return (
-    <section className="pricingPanel cmsEditorPanel">
-      <div className="pricingPanelHeader">
-        <div>
-          <h2>Base PLP</h2>
-          <p>Define zonas CMS para listing; el grid, filtros y cards se pintaran en una fase posterior.</p>
-        </div>
-        <span className="adminBadge">storefront/plp</span>
-      </div>
-      <div className="cmsPlpSummaryGrid">
-        <article>
-          <span>Total bloques PLP</span>
-          <strong>{summary.total}</strong>
-        </article>
-        <article>
-          <span>Antes de lista</span>
-          <strong>{summary.beforeList}</strong>
-        </article>
-        <article>
-          <span>Despues de lista</span>
-          <strong>{summary.afterList}</strong>
-        </article>
-      </div>
-      <div className="adminBanner adminBannerInfo">
-        <p>Targets declarados: {targets}. Añade bloques desde la biblioteca PLP, completa URL o slug de categoria y guarda el draft.</p>
-      </div>
-      <CmsBlockEditorClient initialBlocks={blocks} mode="plp" />
-    </section>
-  );
-}
-
 const previewRegionOrder: Array<{ code: CmsRegionCode; label: string }> = [
   { code: "header", label: "Header" },
   { code: "main", label: "Main" },
@@ -828,113 +853,8 @@ function modulePlacementForBlock(
   return resolved?.modules.find((module) => module.blockId === block.blockId)?.placement ?? null;
 }
 
-function previewModulesForColumn(
-  blocks: CmsBlock[],
-  resolved: CmsResolvedPageSettings | null,
-  region: CmsRegionCode,
-  areaId: string,
-  columnIndex: number,
-) {
-  return blocks
-    .map((block, index) => ({ block, placement: modulePlacementForBlock(block, resolved, index + 1) }))
-    .filter((item): item is { block: CmsBlock; placement: CmsModulePlacement } => (
-      item.placement?.region === region
-      && item.placement.areaId === areaId
-      && item.placement.columnIndex === columnIndex
-    ))
-    .sort((left, right) => left.placement.order - right.placement.order);
-}
-
-function areaGridStyle(area: CmsArea): CSSProperties {
-  const columns = area.columns.length > 0 ? area.columns : ["100%"];
-  return {
-    columnGap: area.columnGap ?? undefined,
-    gridTemplateColumns: columns.map((column) => `minmax(0, ${column})`).join(" "),
-    rowGap: area.rowGap ?? undefined,
-  };
-}
-
-function visibilityLabel(visibility: CmsModulePlacement["visibility"] | undefined) {
-  const value = visibility ?? { mobile: true, tablet: true, desktop: true };
-  return [
-    value.mobile ? "M" : null,
-    value.tablet ? "T" : null,
-    value.desktop ? "D" : null,
-  ].filter(Boolean).join("/") || "Oculto";
-}
-
-function previewBlockTitle(block: CmsBlock) {
-  const props = block.props;
-  const candidates = [props.title, props.heading, props.label, props.name];
-  const title = candidates.find((value) => typeof value === "string" && value.trim());
-  return typeof title === "string" ? title : block.type;
-}
-
-function CmsResolvedModuleCard({ block, placement }: { block: CmsBlock; placement: CmsModulePlacement }) {
-  return (
-    <article className="cmsResolvedModuleCard">
-      <div>
-        <span>{block.type}</span>
-        <strong>{previewBlockTitle(block)}</strong>
-      </div>
-      <dl>
-        <div><dt>Orden</dt><dd>{placement.order}</dd></div>
-        <div><dt>Ancho</dt><dd>{placement.width ?? "auto"}</dd></div>
-        <div><dt>Align</dt><dd>{placement.align}</dd></div>
-        <div><dt>Container</dt><dd>{placement.containerMode}</dd></div>
-        <div><dt>Visible</dt><dd>{visibilityLabel(placement.visibility)}</dd></div>
-      </dl>
-    </article>
-  );
-}
-
-function CmsResolvedAreaPreview({
-  area,
-  blocks,
-  region,
-  resolved,
-}: {
-  area: CmsArea;
-  blocks: CmsBlock[];
-  region: CmsRegionCode;
-  resolved: CmsResolvedPageSettings | null;
-}) {
-  const columns = area.columnSlots.length > 0
-    ? area.columnSlots
-    : area.columns.map((width, index) => ({ columnIndex: index + 1, width, percentage: Number.parseFloat(width) || 0 }));
-
-  return (
-    <article className="cmsResolvedArea">
-      <header className="cmsResolvedAreaHeader">
-        <div>
-          <strong>{area.name ?? area.areaId}</strong>
-          <span>{area.containerMode} - {area.maxWidth ?? "max width heredado"}</span>
-        </div>
-        <span>{area.columns.join(" / ") || "100%"}</span>
-      </header>
-      <div className="cmsResolvedColumns" style={areaGridStyle(area)}>
-        {columns.map((column) => {
-          const modules = previewModulesForColumn(blocks, resolved, region, area.areaId, column.columnIndex);
-          return (
-            <section className="cmsResolvedColumn" key={`${area.areaId}-${column.columnIndex}`}>
-              <div className="cmsResolvedColumnHeader">
-                <span>Columna {column.columnIndex}</span>
-                <strong>{column.width}</strong>
-              </div>
-              {modules.length > 0 ? modules.map((item) => (
-                <CmsResolvedModuleCard block={item.block} key={item.block.blockId} placement={item.placement} />
-              )) : <div className="cmsResolvedSlotEmpty">Lista para modulos</div>}
-            </section>
-          );
-        })}
-      </div>
-    </article>
-  );
-}
-
 function PreviewPanel({ resolved, version }: { resolved: CmsResolvedPageSettings | null; version: CmsPageVersion | null }) {
   const blocks = version?.blocks ?? [];
-  const unresolvedBlocks = blocks.filter((block, index) => !modulePlacementForBlock(block, resolved, index + 1));
 
   return (
     <section className="pricingPanel cmsEditorPanel cmsResolvedPreview">
@@ -960,43 +880,20 @@ function PreviewPanel({ resolved, version }: { resolved: CmsResolvedPageSettings
       )}
 
       <div className="cmsResolvedFrame">
-        {previewRegionOrder.map((item) => {
-          const region = resolved?.layout.regions[item.code];
-          const areas = region?.areas ?? [];
-          return (
-            <section className="cmsResolvedRegion" key={item.code}>
-              <header>
-                <div>
-                  <span>{item.label}</span>
-                  <strong>{areas.length} areas</strong>
-                </div>
-                <small>{region?.source ?? "sin layout"}</small>
-              </header>
-              {areas.length > 0 ? areas.map((area) => (
-                <CmsResolvedAreaPreview area={area} blocks={blocks} key={area.areaId} region={item.code} resolved={resolved} />
-              )) : <div className="cmsResolvedSlotEmpty">Region sin areas configuradas</div>}
-            </section>
-          );
-        })}
+        <CmsLayoutPreview
+          blocks={blocks}
+          emptyLabel="La version actual no tiene bloques de pagina."
+          layout={resolved?.layout ?? null}
+          moduleSlots={resolved?.moduleSlots ?? []}
+          resolvedModules={resolved?.modules ?? []}
+          tokens={resolved?.tokens ?? null}
+        />
       </div>
-
-      {unresolvedBlocks.length > 0 ? (
-        <section className="cmsResolvedUnplaced">
-          <h3>Modulos sin area resuelta</h3>
-          <div>
-            {unresolvedBlocks.map((block) => (
-              <article className="cmsResolvedModuleCard" key={block.blockId}>
-                <div><span>{block.type}</span><strong>{previewBlockTitle(block)}</strong></div>
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
     </section>
   );
 }
 
-function PathDrawer({
+export function PathDrawer({
   page,
   context,
   filters,
@@ -1008,7 +905,7 @@ function PathDrawer({
   if (filters.drawer !== "path") return null;
   return (
     <div className="adminDrawerBackdrop">
-      <aside className="adminSideDrawer" aria-label="Cambiar path publicado">
+      <AdminResizableDrawer drawerId="cms-admin-page-cambiar-path-publicado-3" className="adminSideDrawer" aria-label="Cambiar path publicado">
         <div className="adminSideDrawerHeader">
           <div>
             <h2>Cambiar path publicado</h2>
@@ -1017,6 +914,7 @@ function PathDrawer({
           <Link className="adminButton adminButtonTiny" href={cmsHref(filters, { drawer: undefined })}>Cerrar</Link>
         </div>
         <form action={changeCmsPublishedPathAction} className="pricingDenseForm">
+          <PageLifecycleFields page={page} operation="CHANGE_PATH"/>
           <input type="hidden" name="pageId" value={page.pageId} />
           <input type="hidden" name="locale" value={filters.locale ?? context.locale} />
           <input type="hidden" name="tab" value={filters.tab ?? "seo"} />
@@ -1026,11 +924,11 @@ function PathDrawer({
           </label>
           <label className="adminField">
             <span>Nuevo path</span>
-            <input name="nextPath" defaultValue={page.path} />
+            <input name="nextPath" defaultValue={page.pendingOperation?.command.nextPath??page.path} readOnly={!!page.pendingOperation} />
           </label>
           <button className="adminButton adminButtonPrimary" type="submit">Cambiar path</button>
         </form>
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }
@@ -1040,7 +938,7 @@ export function CmsAdminPage({ context, data, filters }: CmsAdminPageProps) {
   const selectedPage = data.selectedPage.data;
 
   return (
-    <main className="adminPage cmsAdminPage">
+    <main className={`adminPage cmsAdminPage${filters.mode === "editor" ? "" : " productListPage cmsPagesListPage"}`}>
       <header className="adminPageHeader">
         <div>
           <div className="adminBreadcrumb">Admin / CMS</div>
@@ -1050,7 +948,7 @@ export function CmsAdminPage({ context, data, filters }: CmsAdminPageProps) {
           </p>
         </div>
         <div className="adminButtonRow">
-          <Link className="adminButton adminButtonPrimary" href={cmsHref(filters, { drawer: "create", mode: "list" })}>
+          <Link className="employeesTextAction" href={cmsHref(filters, { drawer: "create", mode: "list" })}>
             Crear pagina
           </Link>
         </div>
@@ -1072,13 +970,10 @@ export function CmsAdminPage({ context, data, filters }: CmsAdminPageProps) {
         ) : (
           <>
             <PageFilters filters={filters} context={context} />
-            <section className="pricingPanel">
-              <div className="pricingPanelHeader">
-                <div>
-                  <h2>Paginas</h2>
-                  <p>Drafts, publicaciones y paths por locale.</p>
-                </div>
-                <span className="adminBadge">{data.pages.data.total} registros</span>
+            <section className="productListGrid" aria-label="Listado de paginas CMS">
+              <div className="adminCardHeader productListGridHeader">
+                <div><h2>Paginas ({data.pages.data.total})</h2></div>
+                <span className="adminContextHint">{context.shopName || context.shopAlias || "Tienda sin contexto"} · {filters.locale ?? context.locale}</span>
               </div>
               <PagesTable pages={data.pages.data.items} filters={filters} />
             </section>
@@ -1087,6 +982,7 @@ export function CmsAdminPage({ context, data, filters }: CmsAdminPageProps) {
       </div>
 
       <CreatePageDrawer context={context} filters={filters} />
+      <DeletePageDrawer context={context} filters={filters} page={selectedPage} />
     </main>
   );
 }

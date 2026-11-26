@@ -1,8 +1,9 @@
+import {assessHealth,type ConfirmedHealthStatus} from "./health-assessment";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 import { requestAdminBff } from "../../shared/bff/admin-client";
 
-export type ServiceHealthStatus = "ok" | "degraded" | "unavailable" | "skipped";
+export type ServiceHealthStatus = ConfirmedHealthStatus | "skipped";
 
 export type ServiceHealth = {
   key: string;
@@ -39,22 +40,6 @@ function withContextQuery(endpoint: string, context: AdminContext) {
   return `${endpoint}?${params.toString()}`;
 }
 
-function normalizeHealthPayload(value: unknown) {
-  if (typeof value === "object" && value !== null && "status" in value) {
-    const status = String((value as { status: unknown }).status).toLowerCase();
-
-    if (status === "ok" || status === "healthy") {
-      return { status: "ok" as const, message: "Servicio operativo" };
-    }
-
-    if (status === "degraded" || status === "warning") {
-      return { status: "degraded" as const, message: "Servicio degradado" };
-    }
-  }
-
-  return { status: "ok" as const, message: "Respuesta recibida del BFF" };
-}
-
 async function checkHealth(
   endpoint: { key: string; label: string; endpoint: string },
   context: AdminContext,
@@ -62,14 +47,14 @@ async function checkHealth(
   const path = endpoint.key === "search" ? withContextQuery(endpoint.endpoint, context) : endpoint.endpoint;
   const result = await requestAdminBff(path, {
     context,
-    parse: normalizeHealthPayload,
+    parse: assessHealth,
   });
 
   if (!result.ok) {
     return {
       ...endpoint,
-      status: "unavailable",
-      message: result.error,
+      status: result.status===401||result.status===403||result.status===429 ? "unknown" : "unavailable",
+      message: result.status===401||result.status===403 ? "Sin permiso para verificar la salud del servicio." : result.status===429 ? "Consulta limitada; estado del servicio sin confirmar." : result.error,
       correlationId: result.correlationId,
     };
   }

@@ -1,5 +1,5 @@
 import { getAdminContext } from "../../../../../src/shared/config/admin-context";
-import { getAdminSession } from "../../../../../src/shared/auth/session";
+import { getCurrentAdminSession as getAdminSession } from "../../../../../src/modules/auth/current-admin-session";
 import { can } from "../../../../../src/shared/permissions/permissions";
 import { getCheckoutConfigurationAdminData } from "../../../../../src/modules/configuracion/checkout-configuration-admin";
 import { CheckoutConfigurationAdminPage } from "../../../../../src/modules/configuracion/checkout-configuration-admin-page";

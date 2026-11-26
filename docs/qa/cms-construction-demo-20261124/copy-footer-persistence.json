@@ -1,0 +1,21 @@
+{
+  "edits": [
+    {
+      "name": "Contacto",
+      "persisted": true
+    },
+    {
+      "name": "Enlaces de footer",
+      "persisted": true
+    },
+    {
+      "name": "Redes sociales",
+      "persisted": true
+    },
+    {
+      "name": "Información legal",
+      "persisted": true
+    }
+  ],
+  "otherNavigationCopiesUnchanged": true
+}

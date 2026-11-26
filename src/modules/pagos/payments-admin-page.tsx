@@ -1,3 +1,6 @@
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
+import {AdminMutationForm,MutationField} from "../../shared/ui/admin-mutation-form";
+import { AdminInfoTooltip } from "../../shared/ui/admin-info-tooltip";
 import { randomUUID } from "crypto";
 import Link from "next/link";
 import { CreditCard, GitBranch, Landmark, Radar, ReceiptText, RotateCcw, Search } from "lucide-react";
@@ -111,13 +114,20 @@ function badge(active: boolean) {
 }
 
 function transactionStatusBadge(status: string) {
-  if (["SETTLED", "PARTIALLY_REFUNDED", "REFUNDED"].includes(status)) {
-    return "adminBadge adminBadgeOk";
+  const base = "adminBadge paymentsTransactionStatus";
+  if (status === "SETTLED") {
+    return `${base} adminBadgeOk`;
   }
-  if (["FAILED", "CANCELLED", "REJECTED"].includes(status)) {
-    return "adminBadge adminBadgeWarn";
+  if (["AUTHORIZED", "PARTIALLY_REFUNDED", "REFUNDED"].includes(status)) {
+    return `${base} paymentsStatusInfo`;
   }
-  return "adminBadge";
+  if (["FAILED", "REJECTED"].includes(status)) {
+    return `${base} adminBadgeError`;
+  }
+  if (status === "PENDING") {
+    return `${base} adminBadgeWarn`;
+  }
+  return base;
 }
 
 function transactionStatusText(status: string) {
@@ -128,6 +138,7 @@ function transactionStatusText(status: string) {
     PARTIALLY_REFUNDED: "Reembolsado parcial",
     PENDING: "Pendiente",
     REFUNDED: "Reembolsado",
+    REJECTED: "Rechazado",
     SETTLED: "Capturado",
   };
   return labels[status] ?? status;
@@ -226,10 +237,6 @@ function PaymentsTabs({ current, includeInactive }: { current: PaymentsAdminTab;
   );
 }
 
-function isConfigurationTab(tab: PaymentsAdminTab) {
-  return tab === "metodos" || tab === "proveedores" || tab === "routing" || tab === "diagnostico";
-}
-
 function PaymentsToolbar({ current, includeInactive }: { current: PaymentsAdminTab; includeInactive: boolean }) {
   const nextParams = new URLSearchParams({ tab: current });
   if (!includeInactive) {
@@ -318,35 +325,6 @@ function PaymentsKpis({ data }: { data: PaymentsAdminData }) {
   );
 }
 
-function ConfigurationKpis({
-  items,
-}: {
-  items: Array<{ active: boolean }>;
-}) {
-  const active = items.filter((item) => item.active).length;
-  const inactive = items.length - active;
-
-  return (
-    <section className="adminKpiGrid paymentsConfigurationKpis">
-      <div className="adminKpi">
-        <span>Configurados</span>
-        <strong>{items.length}</strong>
-        <p>En esta tienda</p>
-      </div>
-      <div className="adminKpi">
-        <span>Activos</span>
-        <strong>{active}</strong>
-        <p>Disponibles para operar</p>
-      </div>
-      <div className="adminKpi">
-        <span>Inactivos</span>
-        <strong>{inactive}</strong>
-        <p>Fuera de la operación</p>
-      </div>
-    </section>
-  );
-}
-
 function OperationsKpis({ data }: { data: PaymentsAdminData }) {
   if (!data.transactions.ok) {
     return <ResultBanner result={data.transactions} />;
@@ -368,7 +346,7 @@ function OperationsKpis({ data }: { data: PaymentsAdminData }) {
 
 function OperationsFilters({ current, filters }: { current: "operaciones" | "reembolsos"; filters: PaymentsAdminFilters }) {
   return (
-    <form action="/admin/pagos" className="paymentsOperationsFilters" method="get">
+    <form action="/admin/pagos" aria-label={current === "operaciones" ? "Buscar operaciones" : "Buscar reembolsos"} className="productListSearchPanel paymentsOperationsSearchPanel" method="get">
       <input name="tab" type="hidden" value={current} />
       <label className="adminField"><span>Estado</span>
         <select defaultValue={filters.transactionStatus ?? ""} name="transactionStatus">
@@ -382,9 +360,9 @@ function OperationsFilters({ current, filters }: { current: "operaciones" | "ree
           <option value="CANCELLED">Cancelado</option>
         </select>
       </label>
-      <label className="adminField"><span>Referencia de compra</span><input defaultValue={filters.transactionReference ?? ""} name="transactionReference" placeholder="Buscar referencia" /></label>
-      <button className="adminButton adminButtonPrimary" type="submit"><Search aria-hidden="true" size={16} /> Aplicar filtros</button>
-      <Link className="adminButton" href={`/admin/pagos?tab=${current}`}>Limpiar</Link>
+      <label className="adminField"><span>Referencia de compra</span><input defaultValue={filters.transactionReference ?? ""} name="transactionReference" type="search" placeholder="Buscar referencia" /></label>
+      <button className="adminButton adminButtonPrimary" type="submit"><Search aria-hidden="true" size={16} /> Buscar</button>
+      <Link className="employeesTextAction" href={`/admin/pagos?tab=${current}`}>Limpiar filtros</Link>
     </form>
   );
 }
@@ -481,7 +459,11 @@ function ReimbursementActionForm({
   return (
     <div className="paymentsOperationAction paymentsOperationRestricted">
       <span>Cancelación de {moneyText(valueMinor, item.currency)}</span>
-      <span>La cancelación directa sigue bloqueada: solo aplica antes de una captura confirmada.</span>
+      <AdminInfoTooltip
+        icon="info"
+        label="Por qué está bloqueada la cancelación"
+        description="La cancelación directa sigue bloqueada: solo aplica antes de una captura confirmada."
+      />
     </div>
   );
 }
@@ -511,6 +493,7 @@ function RefundsTable({
                 <div className="paymentsOperationActions">
                   {item.refundsCount > 0 ? <Link className="adminButton" href={refundEvidenceHref(item.transactionId, filters)}>Ver evidencia</Link> : null}
                   <ReimbursementActionForm canManage={capabilities.canRefundPayments} item={item} kind="refund" />
+                  {item.cancelledMinor > 0 ? <span className="adminBadge paymentsTransactionStatus">Cancelación confirmada: {moneyText(item.cancelledMinor, item.currency)}</span> : null}
                   <ReimbursementActionForm canManage={capabilities.canProcessTransactions} item={item} kind="cancellation" />
                 </div>
               </td>
@@ -589,7 +572,7 @@ function RefundEvidencePanel({
   return (
     <div className="adminDrawerBackdrop paymentsRefundEvidenceBackdrop">
       <Link aria-label="Cerrar evidencia del reembolso" className="paymentsRefundEvidenceBackdropLink" href={`/admin/pagos?${closeParams.toString()}`} />
-      <aside aria-label="Evidencia del reembolso" aria-modal="true" className="adminSideDrawer paymentsRefundEvidenceDrawer" role="dialog">
+      <AdminResizableDrawer drawerId="payments-admin-page-evidencia-del-reembolso-1" aria-label="Evidencia del reembolso" aria-modal="true" className="adminSideDrawer paymentsRefundEvidenceDrawer" role="dialog">
       <div className="adminSideDrawerHeader">
         <div>
           <h2>Evidencia del reembolso</h2>
@@ -630,7 +613,7 @@ function RefundEvidencePanel({
         </section>
       ))}
       </div>
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }
@@ -638,14 +621,10 @@ function RefundEvidencePanel({
 function OperationsPanel({ data, filters }: { data: PaymentsAdminData; filters: PaymentsAdminFilters }) {
   const items = data.transactions.ok ? data.transactions.data.items : [];
   return (
-    <div className="paymentsOperationsLayout">
-      <section className="adminCard paymentsOperationsOverview">
-        <div className="adminCardHeader"><div><h2>Operaciones</h2><p>Consulta cobros y excepciones por tenant. Los KPIs reflejan solo los resultados cargados.</p></div></div>
-        <OperationsKpis data={data} />
-      </section>
-      <section className="adminCard paymentsOperationsTableCard">
-        <div className="adminCardHeader"><div><h2>Bandeja de operaciones</h2><p>{operationsResultText(data) ?? "No se ha podido consultar la bandeja."}</p></div></div>
-        <OperationsFilters current="operaciones" filters={filters} />
+    <div className="productListPage paymentsOperationsLayout paymentsOperationalList">
+      <OperationsFilters current="operaciones" filters={filters} />
+      <section className="productListGrid paymentsOperationsTableCard">
+        <div className="adminCardHeader productListGridHeader"><div><h2>Bandeja de operaciones</h2><p>{operationsResultText(data) ?? "No se ha podido consultar la bandeja."}</p></div></div>
         {!data.transactions.ok ? <ResultBanner result={data.transactions} /> : <OperationTable items={items} showManagementLink />}
       </section>
     </div>
@@ -658,14 +637,10 @@ function RefundsPanel({ capabilities, data, filters }: { capabilities: PaymentsA
     : [];
 
   return (
-    <div className="paymentsOperationsLayout">
-      <section className="adminCard paymentsOperationsOverview">
-        <div className="adminCardHeader"><div><h2>Reembolsos y cancelaciones</h2><p>Solicitudes financieras con confirmación explícita; el estado final se actualiza desde Payments.</p></div><RotateCcw aria-hidden="true" size={18} /></div>
-        <OperationsKpis data={data} />
-      </section>
-      <section className="adminCard paymentsOperationsTableCard">
-        <div className="adminCardHeader"><div><h2>Bandeja de postventa financiera</h2><p>Solo se muestran operaciones con reembolsos, cancelaciones o saldo pendiente de gestionar.</p></div></div>
-        <OperationsFilters current="reembolsos" filters={filters} />
+    <div className="productListPage paymentsOperationsLayout paymentsOperationalList">
+      <OperationsFilters current="reembolsos" filters={filters} />
+      <section className="productListGrid paymentsOperationsTableCard">
+        <div className="adminCardHeader productListGridHeader"><div><h2>Reembolsos y cancelaciones</h2><p>Solo se muestran operaciones con reembolsos, cancelaciones o saldo pendiente de gestionar.</p></div></div>
         {!data.transactions.ok ? <ResultBanner result={data.transactions} /> : !items.length ? <div className="adminEmptyState">No hay reembolsos ni cancelaciones para gestionar con estos filtros.</div> : <RefundsTable capabilities={capabilities} filters={filters} items={items} />}
       </section>
       {filters.drawer === "refund-evidence" && filters.transactionId ? !data.transactionEvidence.ok ? <ResultBanner result={data.transactionEvidence} /> : data.transactionEvidence.data ? <RefundEvidencePanel evidence={data.transactionEvidence.data} filters={filters} /> : null : null}
@@ -739,7 +714,7 @@ function PaymentSystemsTable({
 
   return (
     <div className="adminTableScroller">
-      <table className="adminTable pricingTable">
+      <table className="adminTable productListTable">
         <thead>
           <tr>
             <th>Método</th>
@@ -793,7 +768,7 @@ function AffiliationsTable({
 
   return (
     <div className="adminTableScroller">
-      <table className="adminTable pricingTable">
+      <table className="adminTable productListTable">
         <thead>
           <tr>
             <th>Proveedor</th>
@@ -849,7 +824,7 @@ function RulesTable({
 
   return (
     <div className="adminTableScroller">
-      <table className="adminTable pricingTable">
+      <table className="adminTable productListTable">
         <thead>
           <tr>
             <th>Regla</th>
@@ -894,7 +869,7 @@ function CreatePaymentSystemDrawer({ includeInactive }: { includeInactive: boole
   return (
     <div className="adminDrawerBackdrop">
       <Link aria-label="Cerrar creación de método" className="paymentsConfigurationDrawerBackdropLink" href={paymentConfigurationHref("metodos", includeInactive)} />
-      <aside aria-label="Añadir método de pago" aria-modal="true" className="adminSideDrawer paymentsConfigurationDrawer" role="dialog">
+      <AdminResizableDrawer drawerId="payments-admin-page-anadir-metodo-de-pago-2" aria-label="Añadir método de pago" aria-modal="true" className="adminSideDrawer paymentsConfigurationDrawer" role="dialog">
         <div className="adminSideDrawerHeader">
         <div>
           <h2>Añadir método</h2>
@@ -902,18 +877,17 @@ function CreatePaymentSystemDrawer({ includeInactive }: { includeInactive: boole
         </div>
           <Link className="adminButton adminButtonTiny" href={paymentConfigurationHref("metodos", includeInactive)}>Cerrar</Link>
         </div>
-        <form action={createPaymentSystemAction} className="pricingDenseForm">
-          <label className="adminField"><span>Identificador interno</span><input name="paymentSystemId" placeholder="stripe-card" required /></label>
-          <label className="adminField"><span>Nombre</span><input name="name" placeholder="Tarjeta" required /></label>
-          <label className="adminField"><span>Proveedor</span><select name="provider" required><option value="stripe">Stripe</option><option value="paypal">PayPal</option></select></label>
-          <label className="adminField"><span>Grupo</span><input name="groupName" placeholder="cards" /></label>
-          <label className="adminField"><span>Tipo</span><input name="methodType" placeholder="CREDIT_CARD" /></label>
-          <label className="adminField"><span>Máximo de cuotas</span><input name="maxInstallments" min="1" type="number" /></label>
+        <AdminMutationForm activationWarning="Activar esta configuración puede cambiar los métodos disponibles y el enrutamiento de pagos. ¿Continuar?" label="Crear método de pago" action={createPaymentSystemAction} className="pricingDenseForm">
+          <MutationField name="paymentSystemId" label="Identificador interno"><input name="paymentSystemId" placeholder="stripe-card" required /></MutationField>
+          <MutationField name="name" label="Nombre"><input name="name" placeholder="Tarjeta" required /></MutationField>
+          <MutationField name="group" label="Grupo"><input name="group" placeholder="creditCardPaymentGroup" required /></MutationField>
+          <MutationField name="type" label="Tipo"><input name="type" placeholder="credit-card" required /></MutationField>
+          <MutationField name="maxInstallments" label="Máximo de cuotas"><input name="maxInstallments" min="1" type="number" /></MutationField>
           <label className="adminCheckbox"><input name="supportsInstallments" type="checkbox" /> Permite cuotas</label>
-          <label className="adminCheckbox"><input defaultChecked name="active" type="checkbox" /> Activo</label>
+          <label className="adminCheckbox"><input name="active" type="checkbox" /> Activo</label>
           <button className="adminButton adminButtonPrimary" type="submit">Guardar método</button>
-        </form>
-      </aside>
+        </AdminMutationForm>
+      </AdminResizableDrawer>
     </div>
   );
 }
@@ -922,7 +896,7 @@ function CreateAffiliationDrawer({ includeInactive }: { includeInactive: boolean
   return (
     <div className="adminDrawerBackdrop">
       <Link aria-label="Cerrar creación de proveedor" className="paymentsConfigurationDrawerBackdropLink" href={paymentConfigurationHref("proveedores", includeInactive)} />
-      <aside aria-label="Añadir proveedor de pago" aria-modal="true" className="adminSideDrawer paymentsConfigurationDrawer" role="dialog">
+      <AdminResizableDrawer drawerId="payments-admin-page-anadir-proveedor-de-pago-3" aria-label="Añadir proveedor de pago" aria-modal="true" className="adminSideDrawer paymentsConfigurationDrawer" role="dialog">
         <div className="adminSideDrawerHeader">
         <div>
           <h2>Añadir proveedor</h2>
@@ -930,15 +904,15 @@ function CreateAffiliationDrawer({ includeInactive }: { includeInactive: boolean
         </div>
           <Link className="adminButton adminButtonTiny" href={paymentConfigurationHref("proveedores", includeInactive)}>Cerrar</Link>
         </div>
-        <form action={createPaymentAffiliationAction} className="pricingDenseForm">
-          <label className="adminField"><span>Identificador interno</span><input name="affiliationId" placeholder="stripe-main" required /></label>
-          <label className="adminField"><span>Nombre</span><input name="name" placeholder="Stripe principal" required /></label>
-          <label className="adminField"><span>Proveedor</span><select name="provider" required><option value="stripe">Stripe</option><option value="paypal">PayPal</option></select></label>
-          <label className="adminField"><span>Cuenta merchant</span><input name="merchantId" placeholder="acct_..." /></label>
-          <label className="adminCheckbox"><input defaultChecked name="active" type="checkbox" /> Activa</label>
+        <AdminMutationForm activationWarning="Activar esta configuración puede cambiar los métodos disponibles y el enrutamiento de pagos. ¿Continuar?" label="Crear proveedor de pago" action={createPaymentAffiliationAction} className="pricingDenseForm">
+          <MutationField name="affiliationId" label="Identificador interno"><input name="affiliationId" placeholder="stripe-main" required /></MutationField>
+          <MutationField name="name" label="Nombre"><input name="name" placeholder="Stripe principal" required /></MutationField>
+          <MutationField name="providerName" label="Proveedor"><select name="providerName" required><option value="stripe">Stripe</option><option value="paypal">PayPal</option></select></MutationField>
+          <MutationField name="merchantId" label="Cuenta merchant"><input name="merchantId" placeholder="acct_..." required /></MutationField>
+          <label className="adminCheckbox"><input name="active" type="checkbox" /> Activa</label>
           <button className="adminButton adminButtonPrimary" type="submit">Guardar proveedor</button>
-        </form>
-      </aside>
+        </AdminMutationForm>
+      </AdminResizableDrawer>
     </div>
   );
 }
@@ -950,7 +924,7 @@ function CreateRuleDrawer({ data, includeInactive }: { data: PaymentsAdminData; 
   return (
     <div className="adminDrawerBackdrop">
       <Link aria-label="Cerrar creación de regla" className="paymentsConfigurationDrawerBackdropLink" href={paymentConfigurationHref("routing", includeInactive)} />
-      <aside aria-label="Añadir regla de routing" aria-modal="true" className="adminSideDrawer paymentsConfigurationDrawer" role="dialog">
+      <AdminResizableDrawer drawerId="payments-admin-page-anadir-regla-de-routing-4" aria-label="Añadir regla de routing" aria-modal="true" className="adminSideDrawer paymentsConfigurationDrawer" role="dialog">
         <div className="adminSideDrawerHeader">
         <div>
           <h2>Añadir regla</h2>
@@ -958,20 +932,20 @@ function CreateRuleDrawer({ data, includeInactive }: { data: PaymentsAdminData; 
         </div>
           <Link className="adminButton adminButtonTiny" href={paymentConfigurationHref("routing", includeInactive)}>Cerrar</Link>
         </div>
-        <form action={createPaymentRuleAction} className="pricingDenseForm">
-          <label className="adminField"><span>Identificador interno</span><input name="ruleId" placeholder="stripe-es-eur" required /></label>
-          <label className="adminField"><span>Nombre</span><input name="name" placeholder="Stripe ES EUR" required /></label>
-          <label className="adminField"><span>Método</span><select name="paymentSystemId" required>{systems.map((item) => <option key={item.paymentSystemId} value={item.paymentSystemId}>{item.name}</option>)}</select></label>
-          <label className="adminField"><span>Proveedor</span><select name="affiliationId" required>{affiliations.map((item) => <option key={item.affiliationId} value={item.affiliationId}>{item.name}</option>)}</select></label>
-          <label className="adminField"><span>Prioridad</span><input defaultValue="100" name="priority" type="number" /></label>
-          <label className="adminField"><span>País</span><input defaultValue={data.context.country} name="country" /></label>
-          <label className="adminField"><span>Moneda</span><input defaultValue={data.context.currency} name="currency" /></label>
-          <label className="adminField"><span>Importe mínimo (céntimos)</span><input name="minValueMinor" type="number" /></label>
-          <label className="adminField"><span>Importe máximo (céntimos)</span><input name="maxValueMinor" type="number" /></label>
-          <label className="adminCheckbox"><input defaultChecked name="active" type="checkbox" /> Activa</label>
+        <AdminMutationForm activationWarning="Activar esta configuración puede cambiar los métodos disponibles y el enrutamiento de pagos. ¿Continuar?" label="Crear regla de pago" action={createPaymentRuleAction} className="pricingDenseForm">
+          <MutationField name="ruleId" label="Identificador interno"><input name="ruleId" placeholder="stripe-es-eur" required /></MutationField>
+          <MutationField name="name" label="Nombre"><input name="name" placeholder="Stripe ES EUR" required /></MutationField>
+          <MutationField name="paymentSystemId" label="Método"><select name="paymentSystemId" required>{systems.map((item) => <option key={item.paymentSystemId} value={item.paymentSystemId}>{item.name}</option>)}</select></MutationField>
+          <MutationField name="affiliationId" label="Proveedor"><select name="affiliationId" required>{affiliations.map((item) => <option key={item.affiliationId} value={item.affiliationId}>{item.name}</option>)}</select></MutationField>
+          <MutationField name="priority" label="Prioridad"><input defaultValue="100" name="priority" type="number" min="0" step="1" required /></MutationField>
+          <MutationField name="country" label="País"><input defaultValue={data.context.country} name="country" required maxLength={2} /></MutationField>
+          <MutationField name="currency" label="Moneda"><input defaultValue={data.context.currency} name="currency" required maxLength={3} /></MutationField>
+          <MutationField name="minValueMinor" label="Importe mínimo (céntimos)"><input name="minValueMinor" type="number" min="0" step="1" /></MutationField>
+          <MutationField name="maxValueMinor" label="Importe máximo (céntimos)"><input name="maxValueMinor" type="number" min="0" step="1" /></MutationField>
+          <label className="adminCheckbox"><input name="active" type="checkbox" /> Activa</label>
           <button className="adminButton adminButtonPrimary" type="submit">Guardar regla</button>
-        </form>
-      </aside>
+        </AdminMutationForm>
+      </AdminResizableDrawer>
     </div>
   );
 }
@@ -985,15 +959,13 @@ function MethodsPanel({
   data: PaymentsAdminData;
   includeInactive: boolean;
 }) {
-  const items = data.paymentSystems.ok ? data.paymentSystems.data : [];
-
   return (
-    <div className="paymentsConfigurationLayout">
-      <ConfigurationKpis items={items} />
-      <section className="adminCard paymentsConfigurationTable">
-        <div className="adminCardHeader">
+    <div className="productListPage paymentsConfigurationLayout paymentsConfigurationList">
+      {capabilities.canManagePayments ? <div className="paymentsConfigurationCreateAction"><Link className="employeesTextAction" href={paymentConfigurationHref("metodos", includeInactive, "create-payment-system")}>Nuevo método</Link></div> : null}
+      <section className="productListGrid paymentsConfigurationTable">
+        <div className="adminCardHeader productListGridHeader">
           <div><h2>Métodos de pago</h2><p>Storefront solo ofrece los métodos activos para esta tienda.</p></div>
-          {capabilities.canManagePayments ? <Link className="adminButton adminButtonPrimary" href={paymentConfigurationHref("metodos", includeInactive, "create-payment-system")}>Nuevo método</Link> : null}
+
         </div>
         {!data.paymentSystems.ok ? (
           <ResultBanner result={data.paymentSystems} />
@@ -1018,15 +990,14 @@ function AffiliationsPanel({
   data: PaymentsAdminData;
   includeInactive: boolean;
 }) {
-  const items = data.affiliations.ok ? data.affiliations.data : [];
 
   return (
-    <div className="paymentsConfigurationLayout">
-      <ConfigurationKpis items={items} />
-      <section className="adminCard paymentsConfigurationTable">
-        <div className="adminCardHeader">
+    <div className="productListPage paymentsConfigurationLayout paymentsConfigurationList">
+      {capabilities.canManagePayments ? <div className="paymentsConfigurationCreateAction"><Link className="employeesTextAction" href={paymentConfigurationHref("proveedores", includeInactive, "create-affiliation")}>Nuevo proveedor</Link></div> : null}
+      <section className="productListGrid paymentsConfigurationTable">
+        <div className="adminCardHeader productListGridHeader">
           <div><h2>Proveedores de pago</h2><p>Conectores operativos para Stripe, PayPal y futuros proveedores.</p></div>
-          {capabilities.canManagePayments ? <Link className="adminButton adminButtonPrimary" href={paymentConfigurationHref("proveedores", includeInactive, "create-affiliation")}>Nuevo proveedor</Link> : null}
+
         </div>
         {!data.affiliations.ok ? (
           <ResultBanner result={data.affiliations} />
@@ -1056,12 +1027,12 @@ function RulesPanel({
   const affiliations = data.affiliations.ok ? data.affiliations.data : [];
 
   return (
-    <div className="paymentsConfigurationLayout">
-      <ConfigurationKpis items={items} />
-      <section className="adminCard paymentsConfigurationTable">
-        <div className="adminCardHeader">
+    <div className="productListPage paymentsConfigurationLayout paymentsConfigurationList">
+      {capabilities.canManagePayments ? <div className="paymentsConfigurationCreateAction"><Link className="employeesTextAction" href={paymentConfigurationHref("routing", includeInactive, "create-payment-rule")}>Nueva regla</Link></div> : null}
+      <section className="productListGrid paymentsConfigurationTable">
+        <div className="adminCardHeader productListGridHeader">
           <div><h2>Reglas de routing</h2><p>Orden de selección por método, proveedor, país, moneda e importe.</p></div>
-          {capabilities.canManagePayments ? <Link className="adminButton adminButtonPrimary" href={paymentConfigurationHref("routing", includeInactive, "create-payment-rule")}>Nueva regla</Link> : null}
+
         </div>
         {!data.rules.ok ? (
           <ResultBanner result={data.rules} />
@@ -1086,9 +1057,9 @@ function DiagnosticsPanel({ data, filters }: { data: PaymentsAdminData; filters:
   const rules = data.rules.ok ? data.rules.data : [];
 
   return (
-    <div className="paymentsConfigurationLayout">
-      <section className="adminCard paymentsConfigurationTable">
-        <div className="adminCardHeader"><div><h2>Estado de configuración</h2><p>Comprueba que exista una ruta activa antes de habilitar un método en Storefront.</p></div></div>
+    <div className="productListPage paymentsConfigurationLayout paymentsConfigurationList">
+      <section className="productListGrid paymentsConfigurationTable">
+        <div className="adminCardHeader productListGridHeader"><div><h2>Estado de configuración</h2><p>Comprueba que exista una ruta activa antes de habilitar un método en Storefront.</p></div></div>
         <div className="adminTableScroller">
           <table className="adminTable pricingTable">
             <thead><tr><th>Dominio</th><th>Configurados</th><th>Activos</th><th>Comprobación</th></tr></thead>
@@ -1143,7 +1114,7 @@ export function PaymentsAdminPage({
   paymentsFilters,
 }: Props) {
   const current = activeTab(paymentsFilters);
-  const includeInactive = paymentsFilters.includeInactive === "true";
+  const includeInactive = current === "metodos" || paymentsFilters.includeInactive === "true";
 
   return (
     <main className="adminPage paymentsAdminPage">
@@ -1154,7 +1125,7 @@ export function PaymentsAdminPage({
         </div>
       ) : null}
       <PaymentsTabs current={current} includeInactive={includeInactive} />
-      {isConfigurationTab(current) ? <PaymentsToolbar current={current} includeInactive={includeInactive} /> : null}
+      {current === "diagnostico" ? <PaymentsToolbar current={current} includeInactive={includeInactive} /> : null}
       <div className="paymentsPageContent">
         {current === "resumen" ? <PaymentsSummaryPanel data={paymentsData} /> : null}
         {current === "operaciones" ? <OperationsPanel data={paymentsData} filters={paymentsFilters} /> : null}

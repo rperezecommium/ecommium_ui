@@ -1,8 +1,9 @@
+import { featureDeletionAvailable } from "../../../../../src/modules/catalogo/feature-deletion-actions";
+import { getCurrentAdminSession } from "../../../../../src/modules/auth/current-admin-session";
 import { getAdminContext } from "../../../../../src/shared/config/admin-context";
 import {
   addAttributeFeatureValueAction,
   createAttributeFeatureAction,
-  deactivateAttributeFeatureAction,
   removeAttributeFeatureValueAction,
   updateAttributeFeatureAction,
 } from "../../../../../src/modules/catalogo/catalog-attributes-features-actions";
@@ -22,6 +23,11 @@ type AtributosCaracteristicasPageProps = {
     status?: string;
     panel?: string;
     fieldId?: string;
+    createdFieldId?: string;
+    fieldDeleteOperation?: string;
+    mutationError?: string;
+    updatedFieldId?: string;
+    expectedActive?: string;
   }>;
 };
 
@@ -29,6 +35,18 @@ export default async function AtributosCaracteristicasPage({
   searchParams,
 }: AtributosCaracteristicasPageProps) {
   const context = await getAdminContext();
+  const session = await getCurrentAdminSession();
+  const hasDeletePermission = session?.permissions.some((p) =>
+    ["*", "admin:*", "system.admin", "catalog.specifications.delete"].includes(
+      p,
+    ),
+  );
+  const canDelete = hasDeletePermission && (await featureDeletionAvailable());
+  const canDeactivate = session?.permissions.some((p) =>
+    ["*", "admin:*", "system.admin", "catalog.specifications.write"].includes(
+      p,
+    ),
+  );
   const params = await searchParams;
   const filters: CatalogAttributeFeatureFilters = {
     tab: params?.tab === "attributes" ? "attributes" : "features",
@@ -36,7 +54,10 @@ export default async function AtributosCaracteristicasPage({
     q: params?.q ?? "",
     group: params?.group ?? "",
     status: params?.status ?? "active",
-    panel: params?.panel === "create" || params?.panel === "edit" ? params.panel : "",
+    panel:
+      params?.panel === "create" || params?.panel === "edit"
+        ? params.panel
+        : "",
     fieldId: params?.fieldId ?? "",
   };
   const [data, categories] = await Promise.all([
@@ -50,11 +71,36 @@ export default async function AtributosCaracteristicasPage({
 
   return (
     <CatalogAttributesFeaturesPage
+      deletionEnabled={Boolean(canDelete)}
+      deletionContext={
+        hasDeletePermission
+          ? {
+              organizationId: context.organizationId,
+              shopId: context.shopId,
+              locale: context.locale,
+              shopName: context.shopName || context.shopAlias,
+            }
+          : undefined
+      }
+      deletionOperationId={params?.fieldDeleteOperation}
+      updatedFieldId={params?.updatedFieldId}
+      expectedActive={params?.expectedActive}
+      mutationError={params?.mutationError}
       addValueAction={addAttributeFeatureValueAction}
       categories={categories}
+      createdFieldId={params?.createdFieldId}
       createAction={createAttributeFeatureAction}
       data={data}
-      deactivateAction={deactivateAttributeFeatureAction}
+      deactivationContext={
+        canDeactivate
+          ? {
+              organizationId: context.organizationId,
+              shopId: context.shopId,
+              locale: context.locale,
+              shopName: context.shopName || context.shopAlias,
+            }
+          : undefined
+      }
       filters={filters}
       removeValueAction={removeAttributeFeatureValueAction}
       updateAction={updateAttributeFeatureAction}

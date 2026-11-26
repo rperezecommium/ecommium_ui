@@ -135,7 +135,7 @@ test("customers admin route renders the module instead of the placeholder", () =
   assert.match(pageSource, /customerDetailTabs/);
   assert.match(pageSource, /Facturación/);
   assert.match(pageSource, /Backoffice/);
-  assert.match(pageSource, /adminSummaryGrid/);
+  assert.doesNotMatch(pageSource, /adminSummaryGrid/);
   assert.match(pageSource, /adminIconButton/);
   assert.match(pageSource, /Vista 360 de clientes/);
   assert.match(pageSource, /Todos los clientes/);
@@ -149,9 +149,7 @@ test("customers admin route renders the module instead of the placeholder", () =
   assert.match(pageSource, /Duplicados/);
   assert.match(pageSource, /section === "facturacion"/);
   assert.match(pageSource, /section === "privacidad"/);
-  assert.match(pageSource, /Notas de crédito/);
-  assert.match(pageSource, /Métodos de pago/);
-  assert.match(pageSource, /PurchasesKpiPanel/);
+  assert.doesNotMatch(pageSource, /PurchasesKpiPanel/);
   assert.match(pageSource, /CustomerDataTable/);
   assert.match(pageSource, /Estado del perfil/);
   assert.match(pageSource, /Estado de la cuenta/);
@@ -176,7 +174,7 @@ test("customers admin route renders the module instead of the placeholder", () =
   assert.match(pageSource, /CustomerSummaryPanel/);
   assert.match(pageSource, /Crear cliente/);
   assert.match(pageSource, /createCustomerAction/);
-  assert.match(pageSource, /updateCustomerProfileAction/);
+  assert.match(pageSource, /updateCustomerProfileFormAction/);
   assert.match(pageSource, /setCustomerAccountActivationAction/);
   assert.match(pageSource, /resendCustomerActivationAction/);
   assert.match(pageSource, /requestCustomerPasswordResetAction/);
@@ -197,7 +195,10 @@ test("customers admin route renders the module instead of the placeholder", () =
   assert.match(pageSource, /Guardar direccion/);
   assert.match(pageSource, /customers\.addresses\.write/);
   assert.match(pageSource, /customers\.purchases\.read/);
-  assert.match(pageSource, /Registrados/);
+  const listSource = pageSource.split("export function CustomersAdminPage")[1].split("export function CustomerDetailPage")[0];
+  assert.doesNotMatch(listSource, /adminSummaryGrid|pricingPanelHeader|data\.context\.organizationId/);
+  assert.match(listSource, /productListSearchPanel customersSearchPanel/);
+  assert.match(listSource, /className="employeesTextAction"/);
   assert.match(pageSource, /Paginacion de clientes/);
   assert.match(pageSource, /Abrir pedido/);
   assert.doesNotMatch(pageSource, /Ver producto/);
@@ -857,4 +858,140 @@ test("customers admin customer 360 actions use scoped BFF endpoints", async () =
   ]);
   assert.equal(calls[9].body.source, "ADMIN");
   assert.equal(calls[11].body.templateKey, "customer.notice");
+});
+
+for (const [name, groupCode, expectedRevision] of [["createCustomerAction", "vip", "0"], ["updateCustomerProfileAction", "b2b", "3"]]) {
+  test(`customers manual group is part of the same profile request: ${name}`, async () => {
+    const calls = [];
+    const actions = loadCustomersActionsModule({ requestAdminBff: async (url, options) => {
+      calls.push({ url, body: JSON.parse(options.init.body) });
+      return { ok: true, status: 200, data: { customerId: "customer-1" } };
+    } });
+    const form = new FormData();
+    for (const [key, value] of Object.entries({ customerId: "customer-1", email: "manual@example.com", firstName: "Ana", lastName: "Manual", buyerType: "BUSINESS_BUYER", commercialCurrentPassword: "qa-test-password", commercialMembershipIncluded: "true", commercialGroupCode: groupCode, commercialMembershipRevision: expectedRevision, commercialB2bApproved: "on" })) form.set(key, value);
+    await assert.rejects(() => actions[name](form), /redirect/);
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0].body.commercialMembership, { groupCode, b2bApproved: true, expectedRevision: Number(expectedRevision), reason: "Asignación manual desde el perfil Admin" });
+    assert.equal(calls[0].body.commercialMembership.actorId, undefined);
+  });
+}
+
+test("customers does not submit a forged membership revision", async () => {
+  let called = false;
+  const actions = loadCustomersActionsModule({ requestAdminBff: async () => { called = true; } });
+  const form = new FormData();
+  for (const [key, value] of Object.entries({ customerId: "c", firstName: "Ana", lastName: "Manual", commercialCurrentPassword: "qa-test-password", commercialMembershipIncluded: "true", commercialGroupCode: "vip", commercialMembershipRevision: "-1" })) form.set(key, value);
+  await assert.rejects(() => actions.updateCustomerProfileAction(form), /Revisión/);
+  assert.equal(called, false);
+});
+
+test("commercial fields validate the canonical BFF snapshot without guessing defaults", () => {
+  const source = readFileSync(path.resolve(root, "src/modules/clientes/customer-commercial-fields.tsx"), "utf8");
+  const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } });
+  const exports = {};
+  vm.runInNewContext(outputText, { exports, module: { exports }, require: () => ({}) });
+  const { parseCommercialGroups, parseCommercialMembership } = exports;
+  assert.deepEqual(JSON.parse(JSON.stringify(parseCommercialGroups({ items: [{ code: "vip", name: "VIP", active: true }, { code: "old", name: "Old", active: false }] }))), [{ code: "vip", name: "VIP" }]);
+  assert.throws(() => parseCommercialGroups({}), /inválida/);
+  assert.throws(() => parseCommercialGroups({ items: [{ code: "bad group", name: "Bad", active: true }] }), /inválido/);
+  const snapshot = { groupCode: "vip", b2bApproved: false, buyerType: "PRIVATE_BUYER", revision: 1 };
+  assert.equal(parseCommercialMembership(snapshot).revision, 1);
+  assert.equal(parseCommercialMembership({...snapshot,internalToken:"must not serialize"}).internalToken, undefined);
+  assert.throws(() => parseCommercialMembership({ ...snapshot, revision: undefined }), /inválida/);
+  assert.throws(() => parseCommercialMembership({ ...snapshot, buyerType: "unknown" }), /inválida/);
+});
+
+
+test("profile form preserves draft on conflict and never exposes raw BFF errors", async () => {
+  let calls = 0;
+  const actions = loadCustomersActionsModule({ requestAdminBff: async () => {
+    calls++; return { ok: false, status: 409, error: "private database trace" };
+  }});
+  const form = new FormData();
+  for (const [key, value] of Object.entries({customerId:"customer-1",firstName:"Edited",lastName:"Manual"})) form.set(key,value);
+  const state = await actions.updateCustomerProfileFormAction({}, form);
+  assert.match(state.error, /ha cambiado/);
+  assert.doesNotMatch(state.error, /database/);
+  assert.equal(calls, 1);
+  assert.equal(form.get("firstName"), "Edited");
+});
+
+for (const session of [null, {employeeId:"customer", scope:"storefront", permissions:["admin:*"]}, {employeeId:"reader",scope:"admin",permissions:["customers.read"]}]) {
+  test(`profile rejects unauthorized submission ${session?.employeeId ?? "anonymous"}`, async () => {
+    let calls = 0;
+    const actions = loadCustomersActionsModule({getAdminSession:async()=>session,requestAdminBff:async()=>{calls++;}});
+    const form = new FormData();
+    form.set("customerId","customer-1");form.set("firstName","Ana");form.set("lastName","Test");
+    const state = await actions.updateCustomerProfileFormAction({}, form);
+    assert.match(state.error,/Falta permiso/);
+    await assert.rejects(()=>actions.createCustomerAction(form), /redirect/);
+    assert.equal(calls,0);
+  });
+}
+
+test("unavailable commercial read cannot clear membership when personal fields are saved", async () => {
+  const bodies=[];
+  const actions=loadCustomersActionsModule({requestAdminBff:async(_,options)=>{bodies.push(JSON.parse(options.init.body));return {ok:true,data:{customerId:"c"}};}});
+  const form=new FormData();
+  for(const [key,value] of Object.entries({customerId:"c",firstName:"Ana",lastName:"Manual",commercialGroupCode:"",commercialB2bApproved:"on"}))form.set(key,value);
+  await assert.rejects(()=>actions.updateCustomerProfileAction(form),/redirect/);
+  assert.equal(bodies[0].commercialMembership,undefined);
+});
+
+test("commercial payload supports removal and uses a server-owned audit description",async()=>{
+  const bodies=[];
+  const actions=loadCustomersActionsModule({requestAdminBff:async(_,options)=>{bodies.push(JSON.parse(options.init.body));return {ok:true,data:{customerId:"c"}};}});
+  const form=new FormData();
+  for(const [key,value] of Object.entries({customerId:"c",firstName:"Ana",lastName:"Manual",commercialCurrentPassword:"qa-test-password",commercialMembershipIncluded:"true",commercialGroupCode:"",commercialMembershipRevision:"2",commercialMembershipReason:"Retirada solicitada"}))form.set(key,value);
+  await assert.rejects(()=>actions.updateCustomerProfileAction(form),/redirect/);
+  assert.deepEqual(bodies[0].commercialMembership,{groupCode:null,b2bApproved:false,expectedRevision:2,reason:"Asignación manual desde el perfil Admin"});
+  form.set("commercialMembershipReason","x".repeat(501));
+  await assert.rejects(()=>actions.updateCustomerProfileFormAction({},form),/redirect/);
+  assert.equal(bodies.length,2);
+  assert.equal(bodies[1].commercialMembership.reason,"Asignación manual desde el perfil Admin");
+});
+
+test("commercial diagnostics distinguish denied, missing, incompatible and unavailable reads",()=>{
+  const source=readFileSync(path.resolve(root,"src/modules/clientes/customer-commercial-fields.tsx"),"utf8");
+  const {outputText}=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}});
+  const exports={};vm.runInNewContext(outputText,{exports,module:{exports},require:()=>({})});
+  assert.match(exports.commercialReadFailure(403),/permiso/);
+  assert.match(exports.commercialReadFailure(404),/no está disponible en el BFF/);
+  assert.match(exports.commercialReadFailure(200),/incompatible/);
+  assert.match(exports.commercialReadFailure(),/servicio comercial no está disponible/);
+  assert.equal(exports.parseCommercialGroups({items:[]}).length,0);
+  assert.throws(()=>exports.parseCommercialGroups({items:[{code:"vip",name:"VIP"}]}),/inválido/);
+});
+
+
+test("profile write validates response identity and excludes unrelated response fields",async()=>{
+  let parse;
+  const actions=loadCustomersActionsModule({requestAdminBff:async(_,options)=>{parse=options.parse;return {ok:true,data:{customerId:"c"}};}});
+  const form=new FormData();for(const [key,value] of Object.entries({customerId:"c",firstName:"Ana",lastName:"Manual"}))form.set(key,value);
+  await assert.rejects(()=>actions.updateCustomerProfileAction(form),/redirect/);
+  assert.deepEqual(JSON.parse(JSON.stringify(parse({customerId:"c",privateField:"never rendered"}))),{customerId:"c"});
+  assert.throws(()=>parse({customerId:"other"}),/incompatible/);
+  assert.throws(()=>parse({}),/inválida/);
+});
+
+
+test("commercial server validation rejects B2B approval for private buyers before BFF",async()=>{
+  let calls=0;const actions=loadCustomersActionsModule({requestAdminBff:async()=>{calls++;}});
+  const form=new FormData();for(const [key,value] of Object.entries({customerId:"c",firstName:"Ana",lastName:"Manual",buyerType:"PRIVATE_BUYER",commercialCurrentPassword:"qa-test-password",commercialMembershipIncluded:"true",commercialMembershipRevision:"0",commercialB2bApproved:"on"}))form.set(key,value);
+  const state=await actions.updateCustomerProfileFormAction({},form);assert.match(state.error,/selecciona Empresa/);assert.equal(calls,0);
+});
+
+test("commercial writes require a password and personal edits never forward one", async()=>{
+  const bodies=[];
+  const actions=loadCustomersActionsModule({requestAdminBff:async(_,options)=>{bodies.push(JSON.parse(options.init.body));return {ok:true,data:{customerId:"c"}};}});
+  const form=new FormData();
+  for(const [key,value] of Object.entries({customerId:"c",firstName:"Ana",lastName:"Manual",commercialMembershipIncluded:"true",commercialGroupCode:"vip",commercialMembershipRevision:"0"}))form.set(key,value);
+  const state=await actions.updateCustomerProfileFormAction({},form);
+  assert.match(state.error,/contraseña/);assert.equal(bodies.length,0);
+  form.set("commercialCurrentPassword"," password with spaces ");
+  await assert.rejects(()=>actions.updateCustomerProfileFormAction({},form),/redirect/);
+  assert.equal(bodies[0].currentPassword," password with spaces ");
+  form.set("commercialMembershipIncluded","false");
+  await assert.rejects(()=>actions.updateCustomerProfileFormAction({},form),/redirect/);
+  assert.equal(bodies[1].currentPassword,undefined);
 });

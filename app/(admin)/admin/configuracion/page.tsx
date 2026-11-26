@@ -46,9 +46,6 @@ export default function ConfiguracionPage() {
           <Link className="adminButton" href="/admin/configuracion/consent">
             Abrir consentimiento
           </Link>
-          <Link className="adminButton" href="/admin/configuracion/seguridad">
-            Abrir seguridad de cuenta
-          </Link>
         </div>
       </section>
     </main>

@@ -1,3 +1,4 @@
+import { isPublicPageComposition, type CmsPageComposition } from "../cms/cms-page-composition";
 export const storefrontPublicPageKinds = ["PRODUCT", "CATEGORY", "CMS_PAGE", "REDIRECT"] as const;
 
 export type StorefrontPublicPageKind = (typeof storefrontPublicPageKinds)[number];
@@ -37,6 +38,17 @@ export type StorefrontCmsSeo = {
 export type StorefrontCmsBlock = {
   blockId: string;
   type: string;
+  placement?: {
+    region: "header" | "main" | "footer";
+    areaId: string;
+    columnIndex: number;
+    order?: number;
+    width?: string | null;
+    align?: "start" | "center" | "end" | "stretch";
+    spacing?: Record<string, string>;
+    visibility?: Partial<Record<"mobile" | "tablet" | "desktop", boolean>>;
+    containerMode?: "inherit" | "full-width" | "container";
+  };
   props: Record<string, unknown>;
   children?: StorefrontCmsBlock[];
 };
@@ -48,6 +60,7 @@ export type StorefrontCmsResolvedColumnSlot = {
 };
 
 export type StorefrontCmsResolvedArea = {
+  presentation?: import("../../../packages/cms-blocks/src").CmsPresentation;
   areaId: string;
   name?: string | null;
   containerMode?: "full-width" | "container" | string;
@@ -56,22 +69,34 @@ export type StorefrontCmsResolvedArea = {
   columnSlots?: StorefrontCmsResolvedColumnSlot[];
   columnGap?: string | null;
   rowGap?: string | null;
+  spacing?: Partial<Record<"marginTop" | "marginBottom" | "paddingTop" | "paddingBottom", string>>;
+  visibility?: Partial<Record<"mobile" | "tablet" | "desktop", boolean>>;
 };
 
-export type StorefrontCmsResolvedPageSettings = {
-  layout?: {
-    regions?: Partial<Record<"header" | "main" | "footer", {
-      areas?: StorefrontCmsResolvedArea[];
-    }>>;
-  };
+export type StorefrontCmsPublishedPageLayout = {
+  designSettings?: import('../../../packages/cms-blocks/src/design-settings').CmsDesignSettings;
+  styleSheet?: import("../../../packages/cms-blocks/src").CmsScopedStyleSheet;
+  inheritGlobalSettings?: boolean;
+  templateId?: string | null;
+  resolvedFrom?: string[];
+  regions?: Partial<Record<"header" | "main" | "footer", {
+    areas?: StorefrontCmsResolvedArea[];
+  }>>;
   tokens?: {
+    colors?: Record<string,string>;
     defaultColumnGap?: string;
     defaultModuleGap?: string;
     maxWidth?: string;
   };
 };
 
+export type StorefrontCmsLegacyResolvedPageSettings = {
+  layout?: Pick<StorefrontCmsPublishedPageLayout, "regions">;
+  tokens?: StorefrontCmsPublishedPageLayout["tokens"];
+};
+
 export type StorefrontCmsPublishedPage = {
+  composition?:CmsPageComposition;
   pageId: string;
   organizationId: string;
   shopId: string;
@@ -84,7 +109,8 @@ export type StorefrontCmsPublishedPage = {
   routeId: string;
   seo: StorefrontCmsSeo;
   blocks: StorefrontCmsBlock[];
-  resolvedPageSettings?: StorefrontCmsResolvedPageSettings | null;
+  layout?: StorefrontCmsPublishedPageLayout | null;
+  resolvedPageSettings?: StorefrontCmsLegacyResolvedPageSettings | null;
   version: number;
   publishedAt: string;
 };
@@ -213,6 +239,7 @@ export function isStorefrontPublicPageResponse(value: unknown): value is Storefr
     typeof page.pageType === "string" &&
     typeof page.canonicalPath === "string" &&
     Array.isArray(page.blocks) &&
+    (page.composition===undefined||isPublicPageComposition(page.composition)) &&
     Boolean(seo) &&
     typeof seo?.title === "string" &&
     typeof seo?.description === "string"

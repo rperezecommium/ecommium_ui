@@ -1,0 +1,10 @@
+PASS src/modules/product/application/use-cases/get-storefront-page-by-path.use-case.spec.ts
+[Nest] 45825  - 11/20/2026, 5:47:23 PM     LOG [BffTaggedCache] cache invalidation by tags completed: tags=1, invalidatedKeys=1
+[Nest] 45825  - 11/20/2026, 5:47:23 PM     LOG [BffTaggedCache] cache invalidation by tags completed: tags=1, invalidatedKeys=1
+PASS src/modules/cms/application/use-cases/preview-cms-page-composition.use-case.spec.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       11 passed, 11 total
+Snapshots:   0 total
+Time:        2.579 s, estimated 3 s
+Ran all test suites within paths "src/modules/cms/application/use-cases/preview-cms-page-composition.use-case.spec.ts", "src/modules/product/application/use-cases/get-storefront-page-by-path.use-case.spec.ts".

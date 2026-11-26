@@ -1,0 +1,164 @@
+{
+  "oldTemplateUrl": "http://localhost:5173/admin/cms/plantillas?kind=layout",
+  "redirectedTo": "http://localhost:5173/admin/cms/plantillas",
+  "legacyTemplateLinks": 0,
+  "templates": [
+    "NombreTipoIdiomaEstadoAcciones",
+    "Demostración CMS · Plantilla de landing · Demostración visual completaPáginaes-ESDisponibleCrear páginaArchivar",
+    "Demostración CMS · Plantilla de sección · Promociones en columnasSecciónes-ESDisponibleCrear secciónArchivar",
+    "ConfirmacionPáginaes-ESDisponibleCrear páginaArchivar",
+    "ProbandoPáginaes-ESDisponibleCrear páginaArchivar"
+  ],
+  "compositionTemplate": {
+    "url": "http://localhost:5173/admin/cms/plantillas?id=8d46d942-a8ba-4a7e-9c03-3fd22d666d28",
+    "tabs": [
+      "Composición",
+      "Categorías / PLP",
+      "Previsualizar"
+    ],
+    "sections": 6
+  },
+  "oldSettingsTabRedirect": "http://localhost:5173/admin/cms/plantillas",
+  "globalSettings": {
+    "fields": [
+      "locale",
+      "tokensJson",
+      "maxWidth",
+      "defaultModuleGap",
+      "defaultColumnGap",
+      "typographyBody",
+      "typographyHeading",
+      "typographyMono",
+      "colorPrimary",
+      "colorPrimaryText",
+      "colorBackground",
+      "colorBackgroundText",
+      "colorText",
+      "colorTextText",
+      "colorSurface",
+      "colorSurfaceText",
+      "spacingXs",
+      "spacingSm",
+      "spacingMd",
+      "spacingLg",
+      "spacingXl",
+      "breakpointMobile",
+      "breakpointTablet",
+      "breakpointDesktop"
+    ],
+    "hasLayoutInput": false,
+    "hasTemplateAssignment": false,
+    "headings": [
+      "Ajustes básicos",
+      "Tokens globales",
+      "Colores",
+      "Espaciado y responsive"
+    ]
+  },
+  "publishedLanding": {
+    "moduleInstances": 9,
+    "parts": [
+      {
+        "id": "f0b81f4e-f5e5-4f0d-b858-3956ad8420c8",
+        "revision": "72c915d1-a9b6-401d-9b70-ef6bc72e41a8"
+      },
+      {
+        "id": "1f4c2e56-5fc1-4416-a042-3bd3b4b36e60",
+        "revision": "803f9b24-f3db-4a8e-859d-36b7ac12c2b2"
+      }
+    ],
+    "sections": 7,
+    "title": "Demostración CMS · Cierre constructivo"
+  },
+  "originalPage": {
+    "url": "http://localhost:5173/module-test-page",
+    "title": "nueva pag",
+    "referenceHeading": true,
+    "siteParts": [
+      "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+      "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd"
+    ]
+  },
+  "sectionTemplate": {
+    "url": "http://localhost:5173/admin/cms/plantillas?id=bdb6a4c8-4ea1-40ae-8889-f2692a29f9a7",
+    "sectionEditor": 1,
+    "name": "Demostración CMS · Promociones en columnas"
+  },
+  "responsive": [
+    {
+      "target": "templates",
+      "requested": 1440,
+      "form": null,
+      "main": {
+        "scroll": 1440,
+        "width": 1440
+      },
+      "retiredControls": 0,
+      "viewport": 1440
+    },
+    {
+      "target": "templates",
+      "requested": 820,
+      "form": null,
+      "main": {
+        "scroll": 792,
+        "width": 792
+      },
+      "retiredControls": 0,
+      "viewport": 820
+    },
+    {
+      "target": "templates",
+      "requested": 390,
+      "form": null,
+      "main": {
+        "scroll": 362,
+        "width": 362
+      },
+      "retiredControls": 0,
+      "viewport": 390
+    },
+    {
+      "target": "globalSettings",
+      "requested": 1440,
+      "form": {
+        "scroll": 1392,
+        "width": 1392
+      },
+      "main": {
+        "scroll": 1440,
+        "width": 1440
+      },
+      "retiredControls": 0,
+      "viewport": 1440
+    },
+    {
+      "target": "globalSettings",
+      "requested": 820,
+      "form": {
+        "scroll": 729,
+        "width": 729
+      },
+      "main": {
+        "scroll": 777,
+        "width": 777
+      },
+      "retiredControls": 0,
+      "viewport": 805
+    },
+    {
+      "target": "globalSettings",
+      "requested": 390,
+      "form": {
+        "scroll": 315,
+        "width": 315
+      },
+      "main": {
+        "scroll": 347,
+        "width": 347
+      },
+      "retiredControls": 0,
+      "viewport": 375
+    }
+  ]
+}

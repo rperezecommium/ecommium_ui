@@ -1,3 +1,4 @@
+import {loadTs} from "./helpers/load-ts.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -41,6 +42,8 @@ function loadProductsModule(requestAdminBff) {
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
+      if (["./product-warehouses", "./product-variant-shipping"].includes(specifier)) return loadTs(`src/modules/catalogo/${specifier.slice(2)}.ts`);
+      if (specifier === "./product-specification-fields") return loadTs("src/modules/catalogo/product-specification-fields.ts");
       if (specifier.endsWith("/shared/bff/admin-client")) {
         return { requestAdminBff };
       }
@@ -281,29 +284,23 @@ test("product editor local drafts are keyed by active Admin context", () => {
   assert.match(source, /const editorInstanceKey = `\$\{contextIdentity\}:/);
   assert.match(source, /<ProductEditorClientInner\s+key=\{editorInstanceKey\}/);
   assert.match(source, /result\.blocks\.variants === "success"[\s\S]*setVariantMessage\(null\)/);
-  assert.match(source, /Precio del producto \/ defaultVariant/);
-  assert.match(source, /Variante adicional a editar/);
-  assert.match(source, /productVariantDefault se gestiona con el precio superior/);
-  assert.match(source, /Editar precio de/);
+  assert.match(source, /updateSelectedPanelPrice/);
+  assert.match(source, /netMinorFromPrice\(selectedPanelPrice, selectedPanelTax\)/);
+  assert.match(source, /grossMinorFromPrice\(selectedPanelPrice, selectedPanelTax\)/);
+  assert.doesNotMatch(source, /Override de variante adicional/);
   assert.match(source, /productSavingOverlay/);
   assert.match(source, /productSavingRing/);
   assert.match(source, /Guardando producto/);
-  assert.match(source, /Anadir imagenes/);
-  assert.match(source, /productMediaDeleteButton/);
+  assert.match(source, /Añadir imagen/);
+  assert.match(source, /onRemove=\{removeMedia\}/);
   assert.match(source, /Trash2/);
-  assert.match(source, /onClick=\{\(\) => removeMedia\(item\.localId\)\}/);
-  assert.match(source, /assigned\.length[\s\S]*draft\.media\.items\.filter\(\(item\) => item\.isMain\)\.slice\(0, 1\)/);
-  assert.match(source, /Usar stock propio/);
-  assert.match(source, /Heredar default/);
-  assert.match(source, /Stock propio guardado/);
-  assert.match(source, /Inventory no expone borrado de stock persistido todavia/);
-  assert.match(source, /Variantes heredando/);
-  assert.match(source, /disabled=\{!hasOwnStock\}/);
+  assert.match(source, /effectiveVariantImage\(draft, variantKey\)/);
   assert.match(source, /\{ id: "audit", label: "Auditoria" \}/);
   assert.match(source, /activeTab === "audit"/);
   assert.match(source, /draft\.clientDraftId/);
-  assert.match(source, /report\?\.operationId/);
-  assert.match(source, /report\.correlationIds\.map/);
+  assert.match(source, /Precios fijados del producto y variantes/);
+  assert.match(source, /Resumen de Routing y SEO/);
+  assert.doesNotMatch(source, /productAuditPanel|Operacion de guardado|Correlacion BFF/);
   assert.match(source, /fieldErrorSummary\(report\.fieldErrors\)/);
   assert.doesNotMatch(source, /auditProductAction/);
   assert.doesNotMatch(source, /\/admin\/products\/\$\{[^}]+}\}\/audit/);
@@ -330,16 +327,80 @@ test("product list exposes only backed actions and opens local preview through e
   assert.match(routeSource, /initialPreviewOpen=\{query\?\.preview === "1"\}/);
   assert.match(pageSource, /initialPreviewOpen = false/);
   assert.match(editorSource, /const \[previewOpen, setPreviewOpen\] = useState\(initialPreviewOpen\)/);
-  assert.match(editorSource, /function prepareProductPublication/);
-  assert.match(editorSource, /validateProductPublicationReadiness\(draft\)/);
-  assert.match(editorSource, /Guarda producto para persistir la activacion por BFF/);
-  assert.match(editorSource, /Quitar solicitud de publicacion/);
-  assert.match(editorSource, /variantFilterQuery/);
-  assert.match(editorSource, /function applyVariantBulkAction/);
-  assert.match(editorSource, /filteredDraftVariants\.map/);
-  assert.match(editorSource, /Guarda el producto para persistir el cambio/);
+  assert.match(editorSource, /function ProductSaveDecision/);
+  assert.match(editorSource, /validateProductPublicationReadiness\(savingDraft\)/);
+  assert.match(editorSource, /Guardar borrador/);
+  assert.match(editorSource, /Producto preparado para publicar/);
+  assert.doesNotMatch(editorSource, /variantFilterQuery/);
+  assert.doesNotMatch(editorSource, /function applyVariantBulkAction/);
+  assert.match(editorSource, /draft\.variants\.map/);
   assert.match(editorSource, /function handleRecoveryAction/);
   assert.match(editorSource, /recoveryActionShouldRetry/);
   assert.match(editorSource, /Continuar editando/);
   assert.doesNotMatch(editorSource, /<span className="adminBadge adminBadgeWarn" key=\{`\$\{action\.code\}/);
+});
+
+test("editor base price never takes the identity of a specific VIP rule returned first", async () => {
+  const { getAdminProductEditorData } = loadProductsModule(async (endpoint, options) => {
+    if (endpoint.includes('/editor-state?')) return ok({
+      product: { productId:'p',name:'QA' }, variants: [],
+      prices:{ product:{items:[
+        {pricingId:'vip-rule',targetType:'PRODUCT',basePrice:{amountMinor:12100,currency:'EUR'},fixedPrice:{amountMinor:9900,currency:'EUR'},customerGroup:'vip',source:'FIXED',active:true},
+        {pricingId:'base-price',targetType:'PRODUCT',basePrice:{amountMinor:12100,currency:'EUR'},source:'BASE',active:true},
+      ]}, specificPrices:[] },
+    }, options);
+    throw Error('Unexpected endpoint');
+  });
+  const result = await getAdminProductEditorData(context,'p');
+  assert.equal(result.ok,true);
+  assert.equal(result.data.productPrice.pricingId,'base-price');
+  assert.equal(result.data.productPrice.customerGroup,null);
+});
+
+test("editor retains legacy contextual BASE table identities, amounts and hidden metadata", async () => {
+  const legacy = {
+    pricingId: "legacy-base", targetType: "PRODUCT", productId: "p", source: "BASE", active: true,
+    basePriceMinor: 2000, currency: "EUR", taxIncluded: true,
+    priceTableId: "legacy-table", country: "FR", channel: "marketplace", tradePolicy: "b2b", customerGroup: "VIP",
+    validFrom: "2026-01-01T00:00:00Z", validUntil: "2027-01-01T00:00:00Z", timezone: "Europe/Madrid", priority: 37,
+  };
+  const { getAdminProductEditorData } = loadProductsModule(async (endpoint, options) => {
+    if (endpoint.includes("/editor-state?")) return ok({
+      product: { productId: "p", name: "Legacy" }, variants: [],
+      prices: { product: [legacy], variants: [{ ...legacy, pricingId: "legacy-own", targetType: "VARIANT", variantId: "v", basePriceMinor: 3500 }] },
+    }, options);
+    throw Error("Unexpected endpoint");
+  });
+  const result = await getAdminProductEditorData(context, "p");
+  assert.equal(result.ok, true);
+  assert.equal(result.data.productPrice, undefined);
+  assert.equal(result.data.variantPrices.v, undefined);
+  assert.equal(result.data.specificPrices.length, 2);
+  const preserved = result.data.specificPrices.find(price => price.pricingId === 'legacy-base');
+  for (const key of ['pricingId','basePriceMinor','currency','taxIncluded','priceTableId','country','channel','tradePolicy','customerGroup','validFrom','validUntil','priority','source']) {
+    assert.equal(preserved[key], legacy[key], key);
+  }
+  assert.equal(preserved.dirty, false);
+
+});
+
+test('normal price create/update never adds selectors from Admin defaults',async()=>{
+ const calls=[];const {makeProductGateway}=loadProductsModule(async(path,options)=>{calls.push(JSON.parse(options.init.body));return ok({pricingId:'regular'},options);});
+ const gateway=makeProductGateway(context);const price={priceKind:'REGULAR',source:'BASE',basePriceMinor:0,currency:'GBP',taxIncluded:false};
+ await gateway.createProductPrice({productId:'p',price});await gateway.updatePrice({pricingId:'regular',price});
+ for(const body of calls){assert.equal(body.priceKind,'REGULAR');assert.equal(body.currency,'GBP');assert.equal(body.basePriceMinor,0);for(const key of ['tradePolicy','channel','country','priceTableId','customerGroup'])assert.equal(body[key],null);}
+});
+
+
+test("price preview omits missing market dimensions instead of fabricating ES web EUR default", async () => {
+  let requested;
+  const { makeProductGateway } = loadProductsModule(async (endpoint, options) => {
+    requested = new URL(endpoint, "http://bff.test");
+    return ok({}, options);
+  });
+  await makeProductGateway({ ...context, currency: undefined, country: undefined, channel: undefined })
+    .previewAppliedPrice({ productId: "p" });
+  for (const key of ["currency", "country", "channel", "tradePolicy"]) {
+    assert.equal(requested.searchParams.has(key), false, key);
+  }
 });

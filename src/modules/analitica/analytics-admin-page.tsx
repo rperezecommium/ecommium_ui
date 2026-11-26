@@ -1,3 +1,5 @@
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
+import {assessHealth} from "../configuracion/health-assessment";
 import Link from "next/link";
 import Image from "next/image";
 import type { AdminContext } from "../../shared/config/admin-context";
@@ -167,6 +169,7 @@ function AnalyticsFilters({ data, filters }: Pick<Props, "data" | "filters">) {
 
 function AnalyticsSummary({ context, data }: Pick<Props, "context" | "data">) {
   const { health, summary } = data;
+  const healthState=health.ok ? health.data.assessment??assessHealth(health.data) : {status:"unavailable",message:health.message};
 
   if (!summary.ok) {
     return <section className="adminBanner adminBannerError">No se pudo cargar el resumen: {summary.message}</section>;
@@ -181,11 +184,11 @@ function AnalyticsSummary({ context, data }: Pick<Props, "context" | "data">) {
           <h2>Resumen</h2>
           <p>{summary.data.totalEvents} eventos en el periodo seleccionado.</p>
         </div>
-        <span className={`adminBadge${health.ok ? " adminBadgeOk" : " adminBadgeWarn"}`}>
-          {health.ok ? "Analytics disponible" : "Analytics no disponible"}
+        <span className={`adminBadge${healthState.status==="ok" ? " adminBadgeOk" : " adminBadgeWarn"}`}>
+          {healthState.status==="ok" ? "Analytics disponible" : healthState.status==="degraded" ? "Analytics degradado" : healthState.status==="unknown" ? "Analytics sin confirmar" : "Analytics no disponible"}
         </span>
       </div>
-      {!health.ok ? <div className="adminBanner adminBannerWarning">{health.message}</div> : null}
+      {healthState.status!=="ok" ? <div className="adminBanner adminBannerWarning">{healthState.message}</div> : null}
       <div className="adminKpiGrid">
         <article className="adminKpi"><span>Ingresos</span><strong>{moneyText(summary.data.revenue, context.currency)}</strong><small>Compras confirmadas</small></article>
         <article className="adminKpi"><span>Compras</span><strong>{numberText(summary.data.purchases)}</strong><small>purchase / purchase-complete</small></article>
@@ -242,7 +245,7 @@ function EventDrawer({ event, filters }: { event: AnalyticsEvent; filters: Analy
   return (
     <div className="adminDrawerBackdrop analyticsDrawerBackdrop">
       <Link aria-label="Cerrar detalle del evento" className="analyticsDrawerBackdropLink" href={closeHref} />
-      <aside aria-label={`Detalle de ${event.eventType}`} aria-modal="true" className="adminSideDrawer analyticsSideDrawer" role="dialog">
+      <AdminResizableDrawer drawerId="analytics-admin-page-eventdrawer-1" aria-label={`Detalle de ${event.eventType}`} aria-modal="true" className="adminSideDrawer analyticsSideDrawer" role="dialog">
         <div className="adminSideDrawerHeader">
           <div><h2>{event.eventType}</h2><p>Detalle del evento registrado.</p></div>
           <Link className="adminButton adminButtonTiny" href={closeHref}>Cerrar</Link>
@@ -264,7 +267,7 @@ function EventDrawer({ event, filters }: { event: AnalyticsEvent; filters: Analy
           </table>
           <pre className="analyticsPayload">{technicalPayload}</pre>
         </details>
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }

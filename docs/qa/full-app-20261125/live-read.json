@@ -1,0 +1,714 @@
+{
+  "mode": "real-browser-real-bff-read-only",
+  "checks": [
+    {
+      "route": "/admin/analitica",
+      "checkedAt": "2026-11-25T19:24:58.182Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/analitica",
+      "headings": [
+        "Analitica"
+      ],
+      "rows": 55,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 9641
+    },
+    {
+      "route": "/admin/products",
+      "checkedAt": "2026-11-25T19:25:07.823Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/products",
+      "headings": [
+        "Productos"
+      ],
+      "rows": 20,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 5221
+    },
+    {
+      "route": "/admin/catalogo/categorias",
+      "checkedAt": "2026-11-25T19:25:13.044Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/catalogo/categorias",
+      "headings": [
+        "Categorias"
+      ],
+      "rows": 17,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 2895
+    },
+    {
+      "route": "/admin/catalogo/marcas",
+      "checkedAt": "2026-11-25T19:25:15.939Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/catalogo/marcas",
+      "headings": [
+        "Marcas / Proveedores"
+      ],
+      "rows": 100,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 2726
+    },
+    {
+      "route": "/admin/catalogo/atributos-caracteristicas",
+      "checkedAt": "2026-11-25T19:25:18.665Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/catalogo/atributos-caracteristicas",
+      "headings": [
+        "Caracteristicas Tecnicas"
+      ],
+      "rows": 6,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 4241
+    },
+    {
+      "route": "/admin/catalogo/media",
+      "checkedAt": "2026-11-25T19:25:38.464Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/catalogo/media",
+      "headings": [
+        "Media / Archivos"
+      ],
+      "rows": 20,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 2715
+    },
+    {
+      "route": "/admin/catalogo/stock",
+      "checkedAt": "2026-11-25T19:25:41.179Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/catalogo/stock",
+      "headings": [
+        "Stock"
+      ],
+      "rows": 25,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 4333
+    },
+    {
+      "route": "/admin/catalogo/offerings",
+      "checkedAt": "2026-11-25T19:25:45.512Z",
+      "status": "FALLIDO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "failure": "Error",
+      "durationMs": 2554
+    },
+    {
+      "route": "/admin/catalogo/importar",
+      "checkedAt": "2026-11-25T19:25:48.066Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/catalogo/importar",
+      "headings": [
+        "Importar"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 6971
+    },
+    {
+      "route": "/admin/configuracion/precios",
+      "checkedAt": "2026-11-25T19:25:55.037Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/configuracion/precios",
+      "headings": [
+        "Configuracion de precios"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 2661
+    },
+    {
+      "route": "/admin/configuracion/transporte",
+      "checkedAt": "2026-11-25T19:25:57.698Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/configuracion/transporte",
+      "headings": [
+        "Transporte"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 4038
+    },
+    {
+      "route": "/admin/cms/ajustes-basicos",
+      "checkedAt": "2026-11-25T19:26:15.141Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/cms/ajustes-basicos",
+      "headings": [
+        "Ajustes básicos"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 5091
+    },
+    {
+      "route": "/admin/cms/modulos",
+      "checkedAt": "2026-11-25T19:26:20.232Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/cms/modulos",
+      "headings": [],
+      "rows": 24,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 5865
+    },
+    {
+      "route": "/admin/cms/secciones",
+      "checkedAt": "2026-11-25T19:26:26.097Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/cms/secciones",
+      "headings": [],
+      "rows": 14,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 6766
+    },
+    {
+      "route": "/admin/cms/plantillas",
+      "checkedAt": "2026-11-25T19:26:32.863Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/cms/plantillas",
+      "headings": [],
+      "rows": 4,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 4647
+    },
+    {
+      "route": "/admin/cms",
+      "checkedAt": "2026-11-25T19:26:37.510Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/cms",
+      "headings": [
+        "CMS"
+      ],
+      "rows": 16,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 4114
+    },
+    {
+      "route": "/admin/cms/headers",
+      "checkedAt": "2026-11-25T19:26:41.624Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/cms/headers",
+      "headings": [
+        "Headers"
+      ],
+      "rows": 7,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 6334
+    },
+    {
+      "route": "/admin/cms/footers",
+      "checkedAt": "2026-11-25T19:26:47.958Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/cms/footers",
+      "headings": [
+        "Footers"
+      ],
+      "rows": 4,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 3865
+    },
+    {
+      "route": "/admin/configuracion/equipo",
+      "checkedAt": "2026-11-25T19:27:17.912Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/configuracion/equipo",
+      "headings": [
+        "Equipo, perfiles y permisos"
+      ],
+      "rows": 18,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 5031
+    },
+    {
+      "route": "/admin/configuracion/seo",
+      "checkedAt": "2026-11-25T19:27:22.943Z",
+      "status": "FALLIDO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "failure": "Error",
+      "durationMs": 4228
+    },
+    {
+      "route": "/admin/catalogo/search",
+      "checkedAt": "2026-11-25T19:27:27.171Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/catalogo/search",
+      "headings": [
+        "Busqueda"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 8128
+    },
+    {
+      "route": "/admin/pagos",
+      "checkedAt": "2026-11-25T19:27:35.299Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/pagos",
+      "headings": [
+        "Pagos"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 6480
+    },
+    {
+      "route": "/admin/promociones",
+      "checkedAt": "2026-11-25T19:27:41.779Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/promociones",
+      "headings": [
+        "Promociones"
+      ],
+      "rows": 2,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 3802
+    },
+    {
+      "route": "/admin/clientes",
+      "checkedAt": "2026-11-25T19:27:45.581Z",
+      "status": "FALLIDO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/clientes",
+      "headings": [
+        "Clientes"
+      ],
+      "rows": 70,
+      "alerts": [],
+      "overflow": true,
+      "durationMs": 3283
+    },
+    {
+      "route": "/admin/pedidos",
+      "checkedAt": "2026-11-25T19:28:03.377Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/pedidos",
+      "headings": [
+        "Pedidos"
+      ],
+      "rows": 25,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 4832
+    },
+    {
+      "route": "/admin/postventa",
+      "checkedAt": "2026-11-25T19:28:08.209Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/postventa",
+      "headings": [
+        "Postventa y soporte"
+      ],
+      "rows": 25,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 3163
+    },
+    {
+      "route": "/admin/configuracion/comunicaciones",
+      "checkedAt": "2026-11-25T19:28:11.372Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/configuracion/comunicaciones",
+      "headings": [
+        "Comunicaciones email"
+      ],
+      "rows": 11,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 3625
+    },
+    {
+      "route": "/admin/configuracion/automatizacion",
+      "checkedAt": "2026-11-25T19:28:14.997Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/configuracion/automatizacion",
+      "headings": [
+        "Automatizacion"
+      ],
+      "rows": 57,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 3270
+    },
+    {
+      "route": "/admin/configuracion/checkout",
+      "checkedAt": "2026-11-25T19:28:18.267Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/configuracion/checkout",
+      "headings": [
+        "Configuración de Checkout"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 2799
+    },
+    {
+      "route": "/admin/configuracion/consent",
+      "checkedAt": "2026-11-25T19:28:21.066Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/configuracion/consent",
+      "headings": [
+        "Consentimiento de tecnologías"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 3841
+    },
+    {
+      "route": "/",
+      "checkedAt": "2026-11-25T19:29:03.676Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/",
+      "headings": [
+        "Home"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 3578
+    },
+    {
+      "route": "/module-test-page",
+      "checkedAt": "2026-11-25T19:29:07.254Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/module-test-page",
+      "headings": [
+        "para probar modulos"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 5177
+    },
+    {
+      "route": "/search",
+      "checkedAt": "2026-11-25T19:29:12.431Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/search",
+      "headings": [
+        "Search",
+        "No hay productos visibles"
+      ],
+      "rows": 0,
+      "alerts": [
+        "CategoriaNo hay productos visiblesEl BFF respondio correctamente, pero el listado no contiene items para esta categoria."
+      ],
+      "overflow": false,
+      "durationMs": 3965,
+      "originalHarnessStatus": "FALLIDO",
+      "emptyState": true,
+      "review": "Estado vacío válido; no acredita búsqueda con resultados."
+    },
+    {
+      "route": "/cart",
+      "checkedAt": "2026-11-25T19:29:16.396Z",
+      "status": "FALLIDO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "failure": "page.goto: net::ERR_ABORTED at http://localhost:5173/cart\nCall log:\n  - navigating to \"http://localhost:5173/cart\", waiting until \"domcontentloaded\"\n",
+      "durationMs": 1829
+    },
+    {
+      "route": "/checkout",
+      "checkedAt": "2026-11-25T19:29:18.225Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/checkout",
+      "headings": [
+        "Tu carrito esta vacio"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 15396
+    },
+    {
+      "route": "/account",
+      "checkedAt": "2026-11-25T19:29:33.621Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/account",
+      "headings": [
+        "Inicia sesion"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 7329
+    },
+    {
+      "route": "/qa-inexistente-20261125",
+      "checkedAt": "2026-11-25T19:29:40.950Z",
+      "status": "FALLIDO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "failure": "page.goto: net::ERR_ABORTED at http://localhost:5173/qa-inexistente-20261125\nCall log:\n  - navigating to \"http://localhost:5173/qa-inexistente-20261125\", waiting until \"domcontentloaded\"\n",
+      "durationMs": 3637
+    },
+    {
+      "route": "/plp/bike-brakes",
+      "checkedAt": "2026-11-25T19:30:28.606Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/plp/bike-brakes",
+      "headings": [
+        "Frenos"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 2866
+    },
+    {
+      "route": "/plp/qa-categoria-auditoria-20261111-a",
+      "checkedAt": "2026-11-25T19:30:31.472Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/plp/qa-categoria-auditoria-20261111-a",
+      "headings": [
+        "Qa Categoria Auditoria 20261111 A",
+        "No hay productos visibles"
+      ],
+      "rows": 0,
+      "alerts": [
+        "CategoriaNo hay productos visiblesEl BFF respondio correctamente, pero el listado no contiene items para esta categoria."
+      ],
+      "overflow": false,
+      "durationMs": 2229,
+      "originalHarnessStatus": "FALLIDO",
+      "emptyState": true,
+      "review": "Estado vacío válido; no acredita búsqueda con resultados."
+    },
+    {
+      "route": "/search?q=bici",
+      "checkedAt": "2026-11-25T19:30:33.701Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/search",
+      "headings": [
+        "Resultados de busqueda"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 4149
+    },
+    {
+      "route": "/cart",
+      "checkedAt": "2026-11-25T19:30:37.850Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/cart",
+      "headings": [
+        "Tu carrito esta vacio"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 1744
+    },
+    {
+      "route": "/admin/catalogo/offerings",
+      "checkedAt": "2026-11-25T19:30:39.594Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/catalogo/offerings",
+      "headings": [
+        "Offerings / Servicios adicionales"
+      ],
+      "rows": 27,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 2385
+    },
+    {
+      "route": "/admin/configuracion/seo",
+      "checkedAt": "2026-11-25T19:30:41.979Z",
+      "status": "APROBADO",
+      "level": "LECTURA",
+      "errors": [],
+      "httpErrors": [],
+      "httpStatus": 200,
+      "finalPath": "/admin/configuracion/seo",
+      "headings": [
+        "SEO"
+      ],
+      "rows": 0,
+      "alerts": [],
+      "overflow": false,
+      "durationMs": 1690
+    }
+  ]
+}

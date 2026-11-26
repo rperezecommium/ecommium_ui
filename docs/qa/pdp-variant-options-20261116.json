@@ -1,0 +1,38 @@
+{
+  "color": {
+    "selected": "Argon 18 bicicleta de gravel grey matter rival 1 - Serie 172 / gris\ncolor: gris",
+    "image": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/imported-media-080eb6a9-11e6-45c9-8719-fc326225452e-bac664c8/152b268e-3d18-4afe-aa99-9ca2fd0b1f9b/original.webp",
+    "price": "4196,12 €",
+    "selectedImageButton": "Seleccionar Argon 18 bicicleta de gravel grey matter rival 1 - Serie 172 / gris",
+    "pressed": [
+      "gris"
+    ]
+  },
+  "size": {
+    "selected": "Argon 18 bicicleta de gravel grey matter rival 1 - Serie 172 / S\nsize: s",
+    "image": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/imported-media-080eb6a9-11e6-45c9-8719-fc326225452e-6b0e50ef/2e4cb35c-dc9f-462c-a06b-429e46022e56/original.webp",
+    "price": "4196,12 €",
+    "selectedImageButton": "Seleccionar Argon 18 bicicleta de gravel grey matter rival 1 - Serie 172 / S",
+    "pressed": [
+      "s"
+    ]
+  },
+  "thumbnail": {
+    "selected": "Argon 18 bicicleta de gravel grey matter rival 1 - Serie 172 / gris\ncolor: gris",
+    "image": "https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/imported-media-080eb6a9-11e6-45c9-8719-fc326225452e-bac664c8/152b268e-3d18-4afe-aa99-9ca2fd0b1f9b/original.webp",
+    "price": "4196,12 €",
+    "selectedImageButton": "Seleccionar Argon 18 bicicleta de gravel grey matter rival 1 - Serie 172 / gris",
+    "pressed": [
+      "gris"
+    ]
+  },
+  "buttonAndThumbnailAgree": true,
+  "tablet": {
+    "before": 1260,
+    "withoutGroups": 1260
+  },
+  "accessibility": {
+    "violations": [],
+    "passes": 9
+  }
+}

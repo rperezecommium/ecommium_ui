@@ -1,5 +1,58 @@
 # Referencia local del composable Ecommium para UI
 
+## Recorrido comercial — 2026-11-16
+
+Cambio backend/UI explícitamente autorizado por Ricardo. ADR0318 añade commercialContext persistido y moneda canónica del carrito; Shop defaults no son país de entrega ni sustituyen Checkout.storeContext. Pricing conserva reglas actuales y grupo verificado Sessions ADR0317. Shipping exige peso Catalog y origen/stock reales; métodos exponen provider/environment seguros. Pago/pedido quedan vinculados por snapshot servidor y requieren liquidación + Inventory COMMITTED. Contrato completo sincronizado: `transactional-purchase-commercial-contract.md`. E2E **NO VALIDADO por configuración**, elegido por usuario; no se han aplicado migraciones comerciales ni probado PSP/pedido final con stack modificado. Evidencia: `../qa/commercial-purchase-20261116.md`.
+
+## Transporte por variante — contrato sincronizado 2026-11-11
+
+Revisión y ampliación del composable autorizadas explícitamente por Ricardo.
+La variante 0 edita `product.shipping.package`. Las adicionales envían solo
+campos propios en `draft.variants[].shippingPackage`; ausencia hereda, cero
+es válido y `{}` restaura. BFF resuelve localId a variantId y persiste el mapa
+`product.shipping.variantPackages` por UUID. Editor-state recupera ese mapa.
+Catálogo valida pertenencia, contexto y medidas enteras no negativas.
+Shipping consulta el paquete efectivo canónico para cotización de variantes
+reales. Costes, transportistas y plazos siguen siendo del producto.
+No requiere migración. ADR backend: ADR-0314.
+Evidencia y límites: `../qa/variant-shipping-inheritance-20261111.md`.
+
+## Servicios por variante: confirmación inmediata — 2026-11-11
+
+Una variante admite múltiples servicios. El PUT de asociación BFF devuelve
+`offerings` opcional con la lista canónica completa de Pricing; la UI actualiza
+la tabla desde esa respuesta. GET/batch usan una proyección y pueden ir
+retrasados, por lo que no acreditaban la asociación inmediata. Sin instantánea
+confirmada se conserva la tabla previa y se informa del problema. No hay
+migración. Evidencia: `../qa/variant-offering-refresh-diagnosis-20261111.md`.
+
+## Gap de registro de atributos de variantes — 2026-11-11
+
+Confirmado en UI: BICI-20260929-173 conserva `size: s` sin atributo size/Talla
+en el catálogo visible de Tienda Barcelona. El generador UI crea códigos libres
+color/size; las altas de definiciones son explícitas y separadas. El selector
+asistido convierte IDs a slugs de nombres, sin garantizar identidad estable.
+Pendiente sincronización explícita del contrato BFF para registro/resolución
+idempotente y validación de referencias antes de aceptar opciones, además de
+auditoría de datos heredados. No se modifica el contrato ni se reconcilian datos
+en este diagnóstico. Evidencia, límites y propuesta:
+`../qa/variant-attribute-registry-analysis-20261111.md`.
+
+## Gap de guardado de variantes observado — 2026-11-09
+
+La respuesta real de product-save-operations usa recoveryActions con
+actionId/block/kind; la UI ahora adapta esos campos a su representación interna.
+La clave de idempotencia identifica el comando multipart original: reintento
+sin cambios conserva payload/archivos; edición tras fallo parcial reconocido
+crea otra clave conservando los IDs confirmados.
+
+Pendiente de sincronización explícita con BFF: fallo de combinación tras crear
+variantId, patch de producto inactivo frente a editor-state activo/sin variantes,
+listado sin SKU y búsqueda exacta por referencia sin resultado. No se atribuye
+causa interna ni se considera rollback/éxito por una lectura desactualizada.
+Evidencia, cambios UI, contrato propuesto y gates:
+`../qa/variant-save-diagnosis-20261109.md`.
+
 ## Objetivo
 
 Editor de productos, 2026-09-29: `editor-state` sin `warehouseId` resuelve el
@@ -330,6 +383,7 @@ Estados UI obligatorios para multistore:
 - `GET /api/v1/admin/cms/pages?organizationId=:org&shopId=:shop&locale=:locale&status=:status&pageType=:pageType&limit=:limit&offset=:offset`
 - `POST /api/v1/admin/cms/pages?organizationId=:org&shopId=:shop&locale=:locale`
 - `GET /api/v1/admin/cms/pages/:pageId?organizationId=:org&shopId=:shop&locale=:locale`
+- `DELETE /api/v1/admin/cms/pages/:pageId?organizationId=:org&shopId=:shop&locale=:locale`
 - `PATCH /api/v1/admin/cms/pages/:pageId/draft?organizationId=:org&shopId=:shop&locale=:locale`
 - `POST /api/v1/admin/cms/pages/:pageId/publish?organizationId=:org&shopId=:shop&locale=:locale`
 - `POST /api/v1/admin/cms/pages/:pageId/unpublish?organizationId=:org&shopId=:shop&locale=:locale`
@@ -339,6 +393,11 @@ Estados UI obligatorios para multistore:
 - `GET /api/v1/admin/cms/pages/:pageId/settings?organizationId=:org&shopId=:shop&locale=:locale`
 - `PATCH /api/v1/admin/cms/pages/:pageId/settings?organizationId=:org&shopId=:shop&locale=:locale`
 - `GET /api/v1/admin/cms/pages/:pageId/resolved-settings?organizationId=:org&shopId=:shop&locale=:locale`
+
+`DELETE /admin/cms/pages/:pageId` exige `cms.pages.write`, devuelve
+`{ pageId, deleted: true }` y solo acepta paginas `DRAFT|UNPUBLISHED`. Una
+pagina `PUBLISHED` responde `409` hasta despublicarse. CMS desactiva su ruta
+canonica retenida, elimina versiones/settings por cascada e invalida cache.
 - `GET /api/v1/admin/cms/templates?organizationId=:org&shopId=:shop&locale=:locale&pageType=:optional&status=:optional`
 - `POST /api/v1/admin/cms/templates?organizationId=:org&shopId=:shop&locale=:locale`
 - `PATCH /api/v1/admin/cms/templates/:templateId?organizationId=:org&shopId=:shop&locale=:locale`
@@ -571,10 +630,33 @@ comprueba que el navegador no llama servicios internos. La grilla de Pricing
 usa columnas densas responsivas para evitar que tablas y formularios se
 superpongan sobre botones de accion.
 
-`Producto > Precio` consume esas mismas listas maestras como selects en el
-contexto avanzado de precio base, precios especificos y simulador aplicado.
+`Producto > Precio` consume esas mismas listas maestras como selects en
+precios especificos y simulador aplicado. Desde 2026-11-13 se retira únicamente
+el bloque visual «Contexto avanzado de precio base». Los precios se siguen
+editando desde Básico/Variantes; los registros BASE contextuales antiguos
+conservan identidad, importe, condiciones, vigencia, zona y prioridad al
+guardarse. No se convierten en habituales universales ni se migran datos.
 Los valores legacy se muestran como opcion actual si todavia no existen en
 `Configuracion > Precios`.
+
+Corrección autorizada de 2026-11-13: el simulador de producto completo evalúa
+la variante predeterminada y el específico de producto con la misma precedencia
+que la consulta de variante explícita. Las fechas del formulario usan la zona
+local del navegador; al reabrir conservan el instante original, incluida la
+segunda ocurrencia del cambio horario de Madrid. No se habilitan reducciones
+porcentuales. Evidencia y límites: [QA](../qa/product-pricing-editor-20261113.md).
+
+Presentación posterior del mismo día: los precios específicos se muestran en
+tabla independiente, con «Agregar precio específico» y edición en panel lateral.
+El formulario sigue modificando el borrador; guardar el producto persiste por el
+mismo BFF y conserva las mismas condiciones y fechas. [QA de tabla y lateral](../qa/specific-price-drawer-20261113.md).
+
+Vigencia opcional, 2026-11-13: se retira el check «Ilimitado» y ambos campos de
+fecha se habilitan independientemente. Vacío equivale a límite ausente;
+`unlimited` interno se deriva de la ausencia de final por compatibilidad. El BFF
+reenvía `null` explícito para retirar una fecha al editar y conserva omisiones
+de clientes antiguos. No cambia el motor de Pricing ni se convierten datos.
+[Pruebas y límites](../qa/specific-price-open-dates-20261113.md).
 
 ### Admin: Media, Shipping, Invoice y After Sales
 
@@ -891,3 +973,784 @@ Backend: ADR-0189, **BLOQUE 4 PERFORMANCE: PASS por aceptación explícita del u
 aceptado +10 ms y límite 56,8 ms. El FAIL automático original de 51,8 ms se
 conserva en la evidencia backend. Cobertura real 12/40; restantes sin ejecutar.
 Sin despliegue en esta aceptación. El flag sigue desactivado por defecto. No cambia PDP, búsqueda, Admin ni Checkout.
+
+
+## Newsletter del home (MVP local, 2026-10-02)
+
+El módulo existente usa `newsletterForm`, editable mediante Builder, con partes
+email/consent/privacy/feedback y estilos declarativos. El storefront recibe la
+política vigente desde Consent a través de BFF. Server Actions validan payload,
+contexto canónico y origen; nunca aceptan URLs de destino del visitante.
+Confirmación y baja requieren acción explícita, retiran fragmentos y no guardan
+tokens en storage. Admin publica políticas versionadas desde
+`/admin/configuracion/consent/newsletter`, con permisos BFF.
+
+Pruebas: `node --test tests/newsletter.test.mjs`, `npm run lint`, `npm run build`.
+Flujo local certificado: home → Mailpit (`http://localhost:8025`) → confirmación
+→ baja; sin campañas externas. Privacidad de pruebas, retención y despliegue
+productivo pendientes. Arranque backend: `./scripts/postman-services.sh`
+en el repositorio composable_ecommerce; UI: `npm run dev`.
+
+
+## Sincronización explícita O15 — 2026-10-21
+
+Integración entre repositorios autorizada por Ricardo en entregas1–7. ShopStatus
+vigente del servicio Organizations-Shops es ACTIVE|INACTIVE. El formulario UI
+ofrecía DRAFT/DISABLED y fallaba contra el servicio real; se alinea con ese
+contrato sin modificar backend. Crear usa INACTIVE por defecto para conservar
+la intención de no publicar; el operador puede elegir ACTIVE expresamente.
+Web y API se separan por host en perfil SEPARATED_V1; DTOs y guardas BFF siguen
+vigentes. ADR-0303 y plan20 residen en .docs del composable.
+
+
+2026-10-22 — O10 continuidad manual PO1–6 (ADR-0307): infraestructura y stack
+preceden al alta humana; no se debe exigir Organization/Shop/Storefront para
+arrancar exclusivamente Admin. El perfil ADMIN es opt-in, valida origen/BFF y
+sesión y rechaza rutas Storefront. PO no recibe correo, contraseña ni claim:
+enlaza a `/admin/installation` después del PASS; tras COMPLETED enlaza a login.
+No cambia contratos comerciales ni certifica MFA/DNS/despliegue público.
+
+Evaluación de esa continuidad1–6: **Cerrado local**, dos recorridos12/12 PASS
+con formulario y Admin BFF reales; sesión y login nuevo conservados tras
+reiniciar web/backend. Cero organizaciones/tiendas creadas por Admin0.
+Validación UI:45 pruebas focalizadas, build y lint PASS. Se conservan los gates
+productivos existentes del plan19 y los hallazgos de seguridad ajenos.
+
+2026-10-23 — Invitación Admin0 (ADR-0308, En curso): cambio explícitamente
+autorizado por Ricardo. Se reutiliza fresh-completion con claim/email/password;
+Employees vincula el código al destinatario y consume el bootstrap SYSTEM
+atómicamente. El formulario explica la invitación y no exige terminal al
+destinatario. La emisión/entrega de laboratorio pertenece a PO; la UI comercial
+no emite ni recupera códigos. Validación integrada pendiente.
+
+2026-10-23 — ADR-0308, invitación visual Admin0 Cerrado local: trece controles
+PASS en el backend canónico, recorrido PO → mensaje SIMULADO → formulario real
+→ login SYSTEM → reinicio. Employees comprueba el destinatario y consume la
+invitación atómicamente. Copy del formulario y errores habla de código temporal;
+correo/contraseña sólo pasan por Admin BFF. Build ADMIN y lint focalizado PASS.
+No cambia permisos SYSTEM ni contratos de fresh-completion, no añade SMTP ni
+habilita Live. Evidencia: composable_ecommerce/.docs/08-roadmap/evidence/platform-admin-zero-invitation-local.json.
+
+## Continuidad de alta manual y dominios — 2026-10-23
+
+ADR-0309 del backend: la primera Organization de un stack vacío puede conservar
+un UUID reservado por configuración del owner; la UI no lo inventa ni cambia el
+contrato de creación. Crear/editar Shop incluye `adminDomain` opcional, además de
+`primaryDomain`, mediante el mismo Admin BFF. Esos nombres se conservan al revisar
+las cuatro direcciones en PO. La incorporación a PO y aprobación/START son
+explícitas; crear una Shop no acredita que su web esté desplegada.
+
+
+### Corrección UI Pricing — 2026-10-30
+
+La carga simultánea de todos los paneles de Precios, aunque no estuvieran
+seleccionados, excedía la admisión por tenant de Commerce ReadIndex y causaba
+`503 READ_INDEX_BUSY`. Reproducción local: nueve consultas técnicas concurrentes,
+cuatro correctas y cinco rechazadas; impuestos consultado solo devolvió cinco
+registros. El fallo no demuestra falta de permisos del empleado.
+
+La UI carga únicamente el resultado de la pestaña seleccionada y las listas
+para filtros; difiere las tareas y limita cada carga a dos consultas en vuelo.
+El editor de producto reutiliza esa carga acotada para sus listas de Pricing.
+No hay retry, fallback al owner, ampliación del pool ni cambios de permisos o
+contratos BFF. Los errores de carga ya no se presentan como cero registros ni
+como ausencia de impuestos. Regresión: `node --test tests/pricing-admin.test.mjs`.
+
+
+Validación de la corrección: 12 regresiones PASS y build PASS. Controlador HTTP
+BFF aislado con guardias de permisos reales, identidad de prueba y conexión
+real a ReadIndex/PostgreSQL: 35 consultas, todas HTTP 200, máximo dos en vuelo.
+Impuestos: cinco registros; tablas: seis; parámetros: dos grupos; pipeline: tres.
+Las seis listas del editor se cargaron sin warnings. No se reutilizaron sesiones
+humanas ni se hicieron escrituras. Esta prueba no certifica la sesión del
+navegador de Ricardo ni producción. Lint focalizado sin errores ni advertencias;
+el lint general conserva tres advertencias preexistentes fuera de este cambio.
+
+
+### Transporte — patrón visual de Equipo, 2026-10-30
+
+Zonas, Transportistas, Servicios y Reglas de tarifa reutilizan los estilos de
+Equipo: fondo neutro, listados sin tarjeta o título duplicado, cabecera gris y
+celdas 5px × 8px. La acción Crear se sitúa a la derecha, como enlace subrayado,
+a 6px de la lista. Editar/guardar usa azul suave, activar verde y desactivar
+ámbar. Se conservan los formularios y acciones BFF existentes.
+
+El contenedor lateral de Transporte admite Escape, cierre por fondo, foco
+inicial y Tab contenido, bloqueo del scroll y restauración de foco al cerrar.
+Validación: build PASS, 11 pruebas `tests/shipping-admin.test.mjs` PASS y lint
+sin errores con tres advertencias preexistentes ajenas al cambio. Pendiente
+verificación visual e interacción con la sesión real en navegador.
+
+
+2026-10-30 — Transporte retira «Incluir inactivos», su filtro y la propagación
+de `includeInactive` por URL o formularios. La configuración BFF solo devuelve
+recursos activos; el parámetro retirado provoca HTTP 400. Desactivar retira el
+recurso del listado y no permite reactivarlo desde esa pantalla. La validación
+y gestión privadas de Shipping conservan los inactivos cuando los necesitan.
+
+
+2026-10-30 — SEO reutiliza el patrón de Equipo en Rutas, Redirects y Sitemap:
+superficie neutra, listas sin tarjeta ni encabezado duplicado, cabecera gris,
+celdas compactas y acciones suaves. Crear ruta/redirect son enlaces azules
+subrayados alineados a la derecha, a 6px del listado. Transporte y SEO comparten
+un contenedor lateral técnico con Escape, cierre por fondo y control del foco;
+los formularios, filtros, permisos y contratos BFF permanecen operativos.
+Revisión: `npm run dev` → Configuración → SEO; backend con el script canónico
+`./scripts/postman-services.sh up` desde el repositorio composable.
+
+
+2026-10-30 — El bloque de importación CSV de productos vive en
+`/admin/catalogo/importar`, accesible desde Catálogo → Importar, debajo de Stock.
+Productos deja de montar el importador. Se reutiliza el mismo componente,
+contexto y carga de categorías; se conservan los endpoints BFF y la recuperación
+del trabajo por tenant. La nueva pantalla exige contexto antes de montar el
+formulario. Revisión manual: `npm run dev` → Catálogo → Importar; backend
+con `./scripts/postman-services.sh up` desde composable.
+
+
+### Preparación de lectura de tiendas (2026-11-04)
+
+El BFF incorpora `GET` y `POST /admin/organizations-shops/shops/:shopId/read-preparation`
+con Organization/Shop y contexto explícito (`locale`, `currency`, `country`, `channel`).
+GET exige `organizations-shops.read`; POST exige `organizations-shops.manage` y
+acepta únicamente `{ "retry": true|false }`. Ambos conservan permisos y alcance tenant.
+La respuesta expone `requestId`, `organizationId`, `shopId`, `state`, `phase`,
+`attempts`, `updatedAt`, `code` y `context`; los estados son PENDING/RUNNING/READY/FAILED/BLOCKED.
+Crear tienda solicita la preparación después de guardar su identidad comercial:
+un fallo técnico no invalida el alta ni obliga a repetirla.
+La composición local requiere un coordinador privado de Platform Operations;
+sin adapter autorizado devuelve BLOCKED. La UI solo consulta/ordena por BFF;
+no accede a recursos, fuentes, SQL ni credenciales de infraestructura.
+Configuración > Contexto muestra estado y reintento con permiso de gestión.
+
+
+### Altas Admin: categorías, marcas y configuración de pagos (2026-11-04)
+
+Contrastos verificados contra BFF real, sin modificar servicios de dominio:
+
+- Categoría POST `/admin/categories`: `name`, `slug`, `title`, `description`,
+  `keywords` no vacíos y `isActive` booleano. Organization/Shop/locale via contexto.
+- Marca POST `/admin/brands`: `name`, `text`, `siteTitle`, `keywords` no vacíos e
+  `isActive`. No envía slug ni campos de categoría.
+- Método POST `/admin/payments/payment-systems`: `paymentSystemId`, `name`,
+  `group`, `type`, `active`, `supportsInstallments`; `maxInstallments` entero
+  positivo cuando se permiten cuotas. No envía provider/groupName/methodType.
+- Afiliación POST `/admin/payments/affiliations`: `affiliationId`, `name`,
+  `providerName`, `merchantId`, `active`. No sustituir providerName por provider.
+- Regla POST `/admin/payments/rules`: identificadores, `name`, `priority`,
+  `country`, `currency`, `minValueMinor`, `maxValueMinor`, `active`; canal opcional.
+  Importes/priority enteros no negativos, máximo >= mínimo o null sin máximo.
+
+Gap sincronizado con autorización explícita de Ricardo: el BFF descartaba
+`includeInactive`; ahora lo propaga en métodos/afiliaciones/reglas. ReadIndex ya
+admitía el campo: no se cambió su implementación. Default false; true permite
+listar/seleccionar registros inactivos; valor inválido devuelve 400.
+
+Las cinco altas muestran errores y conservan campos tras rechazo; solo anuncian
+éxito tras aceptación y respuesta validada. Pagos crea inactivo por defecto y
+pide confirmación si se elige activar. Las pruebas reales usaron solo registros
+QA inactivos, sin transacciones ni PSP. Ver `../qa/form-create-contracts-20261104.md`.
+
+
+### Sesión y permisos Admin (2026-11-04)
+
+La UI usa auth/me como snapshot de permisos/roles/credentialState por render;
+arrays vacíos revocan el snapshot previo y no recuperan permisos del JWT/login.
+Equipo distingue employees.manage de employees.security; Payments configuración
+usa payments.configuration.read/write. La cookie conserva transporte HttpOnly,
+pero no sustituye al BFF para decidir autorización. Tras password_changed con
+sesión retenida se verifica auth/me y se persiste NORMAL; si es necesario se
+renuevan tokens y se reintenta. Si no se confirma estado/identidad, se pide login.
+RSC deriva renovación de cookie a una ruta técnica UI, sin backend paralelo.
+Evidencia: `../qa/admin-permissions-session-20261104.md`.
+
+### Indicador de salud (2026-11-04)
+
+La UI exige estado explícito ok/healthy sin señales de fallo. Un HTTP 200 con
+error/readiness falsa no es OK. Respuestas vacías o solo configuración quedan
+Sin confirmar. Search devuelve actualmente configuración sin estado operativo;
+no se infiere disponibilidad de esos campos. Sin cambio de contrato backend.
+Evidencia: `../qa/admin-health-indicator-20261104.md`.
+
+### Subidas CMS/Media (2026-11-04)
+
+Create collection y append items conservan400 del owner para imágenes corruptas
+y validación rechazada; indisponibilidad conserva503. Media decodifica antes de
+almacenar y compensa fallos capturados posteriores. CMS vacío en locale sin
+contenido devuelve listas vacías200 y settings INITIAL.
+Evidencia y límites: `../qa/cms-media-validation-20261104.md`.
+
+### Preparación integrada en el alta UI (2026-11-05)
+
+La pestaña Contexto deja de montar el panel y de consultar periódicamente su
+estado. Tras crear una Shop, la UI abre el paso «Completar el alta de la tienda»
+en Crear tienda, con la identidad devuelta por el BFF, incluso si no se marca
+como contexto activo. Este paso conserva seguimiento y reintento explícito sin
+repetir el POST de alta. Editar tienda conserva el acceso a recuperación para
+una tienda existente. Cada consulta/reintento con destino explícito resuelve
+su contexto efectivo mediante BFF; no utiliza los valores regionales de otra
+tienda ni modifica la selección activa.
+
+Verificación autorizada del código backend: el alta solicita preparación y
+existe entrega durable; el coordinador reanuda PENDING/RUNNING tras reinicio,
+pero FAILED exige retry explícito. Por ello no se elimina esa capacidad ni se
+introducen reintentos automáticos en la UI. No cambia el contrato BFF.
+Evidencia y límites: `docs/qa/shop-creation-preparation-20261105.md`.
+
+### Seguridad personal dentro de Equipo (2026-11-05)
+
+La UI reúne dispositivos, cambio de contraseña propia y step-up en
+`/admin/configuracion/equipo?tab=security`. Los formularios se abren en paneles
+laterales mediante `securityDrawer=password|step-up`. La ruta anterior de
+Seguridad es solo una redirección compatible que conserva avisos/errores; no se
+alteran endpoints BFF, autorización, refresh ni flujos de credencial obligatoria.
+No se exige gestionar empleados para acceder a la seguridad personal. Evidencia:
+`docs/qa/team-security-20261105.md`.
+
+### Creación de características: confirmación y lectura — 2026-11-06
+
+Contraste autorizado en lectura con backend y prueba PW real: POST
+`/admin/specifications/groups` devuelve el grupo canónico; las lecturas Admin
+correspondientes se apoyan en ReadIndex. Una respuesta de alta válida no garantiza
+que la siguiente lectura del listado ya incluya el campo. La UI conserva datos y
+muestra el fallo ante rechazo; tras confirmación distingue el registro ya visible
+del que aún no está en el listado, sin repetir el POST ni sustituir la proyección.
+La tienda Barcelona presentó confirmación de alta y lectura desactualizada; la
+causa operativa y la sincronización ReadIndex siguen pendientes. Evidencia,
+alcance y comandos: `docs/qa/catalog-feature-create-20261106.md`.
+
+## Sincronización autorizada del editor — 2026-11-06
+
+Consulta de backend y correcciones autorizadas expresamente por Ricardo. El BFF
+resuelve warehouseId ausente del draft con el contexto comercial; editor-state
+entrega cantidades onHand/reserved/safety/available desde ReadIndex. Preview de
+Pricing admite quantity/priceTableId, evalúa tramos/vigencia/contexto/impuestos y
+conserva el precio de defaultVariant para producto simple importado. Media items
+admite metadataDirty opcional para guardar captions/portada/actividad de assets
+persistidos; se limpia tras confirmación. Estado SEO inactivo debe conservarse en
+el draftPatch tras creación. Guardado confirmado no implica proyección actualizada.
+Evidencia: `../qa/product-editor-repair-20261106.md`.
+
+### Grupos de características por categoría — 2026-11-06
+
+La UI conserva categoryId/linkedCategoryIds del grupo al preparar los lookups del
+producto. La sugerencia de grupos usa esos vínculos explícitos, sin herencia
+inventada. Compartir un grupo usa PATCH BFF de especificaciones conservando los
+campos y relaciones previos. Nuevas definiciones y valores se incorporan al editor
+solo tras confirmación del BFF; no guardan automáticamente el producto. Los campos
+SKU/inactivos no se convierten en descriptivos. Sin contratos backend nuevos.
+Ver `../qa/product-feature-flow-20261106.md`.
+
+### Baja de características y lectura pendiente — 2026-11-07
+
+PATCH de especificaciones confirmó isActive=false para las tres características
+QA PW 20261106 de Tienda Barcelona; GET sigue mostrándolas activas. La UI exige
+confirmación del estado y avisa de lectura pendiente, sin ocultar datos ni
+repetir mutaciones al refrescar. La convergencia y limpieza visible no están
+certificadas; se solicita autorización de sincronización backend conforme a
+AGENTS.md. Evidencia: `../qa/catalog-feature-cleanup-20261107.md`.
+
+Cierre2026-11-07 tras autorización explícita: causa local confirmada, relay Catalog
+y consumidor ReadIndex detenidos; recuperación con custodia existente, sin parche
+backend. UI/BFF: cero QA activas, tres QA inactivas y ficha técnica de bicicletas
+sin grupos de prueba. Baja lógica verificada; no eliminación física. Los workers
+recuperados quedan activos; pendientes históricos globales conservados. Evidencia:
+`../qa/catalog-feature-cleanup-20261107.md`.
+
+### Desactivación revisada de características — 2026-11-07
+
+Sincronización backend autorizada: GET
+`/admin/specifications/groups/:groupId/fields/:fieldId/deactivation-impact` y POST
+`.../deactivate` con expectedVersion. Resumen canónico, preservación de asignaciones,
+permiso sobre todos los scopes compartidos y revalidación transaccional. La baja
+ya no se envía por PATCH genérico; UI comprueba la convergencia por el detalle
+ReadIndex existente. Contrato backend47 y Postman alineados. Pruebas/evidencia:
+`../qa/feature-deactivation-20261107.md`.
+
+2026-11-07 — Eliminación permanente individual de características implementada en UI/backend autorizado: permiso `catalog.specifications.delete`, revisión canónica destructiva, operación durable con auditoría/targets/outbox, retry de sincronización y comprobación de productos/definiciones en todos los contextos activos ReadIndex. Capacidad opt-in en BFF, oculta hasta migrar/habilitar Catalog. Catalog actual usa Neon aunque API sea local; activación real pendiente de aprobación del destino. Contrato backend48 y [QA y límites](../qa/feature-deletion-20261107.md). Complementa la desactivación; no cambia su preservación de asignaciones ni autoriza borrar grupos.
+
+2026-11-07 — Activación posterior autorizada: migración aditiva Catalog/Neon e índice RI en4 schemas aplicados, opt-in habilitado, API/worker/BFF/Employees recargados. UI Employee abre/cancela revisión desde listado/formulario, sin eliminación real. El consumidor recupera también referencias obsoletas del índice y contextos activos adicionales del scope; BFF admite seguimiento multicontexto. Se conservan pendientes históricos ajenos. Véase sección Activación completada de [QA](../qa/feature-deletion-20261107.md) y contrato48.
+
+
+### Cierre local autorizado de BFF/ReadIndex — 2026-11-09
+
+Se resolvieron los gaps pendientes descritos anteriormente: runtime de proyección detenido, duplicación de opciones sin ID, desactivación durante guardado parcial y búsqueda sin SKU. Playwright real confirma BICI-20260929-172 en listado por SKU padre/variante, reapertura y segundo guardado sin duplicar, PDP con selección QA, imagen cargada, stock1 y precio4196,12 EUR. Se reutilizó la variante existente; no se creó otra. Backend: 52 pruebas BFF +14 ReadIndex +3 runtime PASS y builds BFF/ReadIndex PASS. Evidencia detallada en composable_ecommerce/.docs/qa/variant-publication-recovery-20261109.md. Sin nueva certificación de Lighthouse/a11y/checkout ni despliegue productivo.
+
+
+### Sincronización autorizada de eliminación — 2026-11-09
+
+Ricardo autoriza el contrato nuevo de eliminación revisada de variantes y lo amplía a producto completo, Routing/SEO y sitemap. Contrato local: [variant-deletion-gap-20261109.md](../contracts/variant-deletion-gap-20261109.md); espejo backend contrato49 y ADR-0313. Propuesto/autorizado no significa implementado: los endpoints de coordinación siguen pendientes y no deben sustituirse por DELETE soft de Catalog. La UI actual no sirve XML público de sitemap; se conserva este gap en el alcance de la implementación. No se han eliminado productos, variantes ni recursos con esta ampliación.
+
+
+## Eliminación revisada — 2026-11-09
+
+Implementación y pruebas locales: [evidencia](../qa/catalog-retirement-20261109.md). Activación pendiente de autorización para seis migraciones remotas; ninguna aplicada. Validación de permiso/contexto y rechazo de identidad de borrador remoto incompatible añadidos. Los hallazgos de seguridad pendientes existentes permanecen abiertos.
+
+
+Actualización 2026-11-09: autorización remota recibida, seis migraciones APPLIED y flags locales activos. Playwright real completó eliminación de variante y producto QA; BICI-20260929-172 preservado. Evidencia: catalog-retirement-20261109.md en QA. Sustituye el estado previo de activación bloqueada.
+
+### Actualización autorizada: eliminación asíncrona (2026-11-09)
+
+Confirmación BFF devuelve202 con `asynchronous:true`, `operationId`, `status:PENDING`, tras persistir y retirar lógicamente en Catalog. UI cierra el modal y retira fila/editor; seguimiento existente consulta GET sin avanzar pasos. Worker Catalog independiente reutiliza los quince pasos, Rabbit/outbox y recibos persistentes. BLOCKED exige revisión y no es éxito. Registro final en Log existente. Nueva migración aditiva Catalog remota todavía PENDING; async no está activado en ese entorno. Las seis migraciones anteriores y el modo síncrono ya activo no sustituyen este requisito. Contrato canónico49 del backend y evidencia QA describen flags, scope, recuperación y límites.
+
+2026-11-09 — Activación asíncrona autorizada por Ricardo: migración adicional Catalog APPLIED, worker integrado al supervisor existente y pruebas Playwright conectadas de variante/producto, cierre de navegador y reinicios PASS. Tres operaciones QA COMPLETED; seis owner proofs correctos; ReadIndex dos contextos/remaining0; Log verificable; original y tres miniaturas Google404; PDP404/noindex y sitemap sin QA. Se corrigieron prefijos internos faltantes de Pricing/Media y preflight404 durante PENDING. BICI preservado. Sustituye el estado previo PENDING de activación; no certifica producción/CDN ni recuperación Search entre hosts. Evidencia: QA catalog-retirement-20261109. Los pendientes de seguridad ajenos permanecen abiertos.
+
+## UI de asignación de imágenes de variantes — 2026-11-10
+
+La UI separa colección de imágenes y asignaciones: no elige la primera imagen
+subida como portada. Portada activa única = imagen de variante 0; las adicionales
+sin override activo heredan esa imagen. Desactivar una imagen propia limpia su
+asignación. Cambiar portada no copia asignaciones a las variantes herederas.
+Se reutiliza el draft de POST /admin/product-save-operations, normalizando las
+claves default/defaultVariantId y localId/variantId. Sin endpoints nuevos.
+Mapa de conexiones, reglas y comprobaciones BFF pendientes:
+`../product-variant-images.md`. El guardado real contra BFF aún debe confirmar
+que no materializa la herencia como override ni fuerza portada al crear colección.
+
+## Editor de variante seleccionada y gap de opciones default — 2026-11-10
+
+Tabla compacta y paneles por selección, catálogo de atributos habituales creado
+solo por acción explícita vía BFF. No hay slugs por variante en el draft actual;
+la PDP selecciona variantId sin cambiar la ruta pública del producto.
+
+Pendiente de sincronización explícita: admitir atributos en variante 0 requiere
+contrato para defaultVariant.options, persistencia por defaultVariantId,
+rehidratación y validación de combinaciones únicas. La UI no envía esa propiedad
+no documentada ni presenta como guardable una asignación que se perdería.
+Análisis, distribución, permisos de altas y pruebas: `../product-variants-workflow.md`.
+
+
+
+## Inventario integrado y almacenes — 2026-11-11
+
+- `GET /api/v1/admin/shipping/warehouses?organizationId&shopId&includeInactive=true|false`: `{warehouses:[{warehouseId,name,dockId,countries,active}]}`, máximo 500 ordenados por nombre. Employee + catalog.products.read. Metadatos canónicos del propietario, no proyección eventual.
+- `PUT /api/v1/admin/shipping/warehouses?organizationId&shopId`: `{warehouse:{warehouseId?,name,dockId,countries:["ES"],active?}}` -> `{warehouse}`. Employee + shipping.logistics.write. Identidad generada si se omite, upsert scoped si se proporciona. Nombre/muelle obligatorios (máx. 200), países ISO alpha-2, active booleano. La creación se gestiona en Configuración → Transporte; el editor de producto selecciona almacenes existentes y no ofrece alta ni eliminación.
+- `GET /api/v1/admin/inventory/stock-levels?organizationId&shopId&variantId&warehouseId`: `{stockLevel: registro|null}`. Employee + catalog.products.read; cantidades exactas del propietario Inventory, sin fallback a otro almacén. No modifica datos.
+- El draft marca `readOnlySelection:true` al consultar otro almacén. El bloque inventory omite esas entradas. Editar cantidades lo cambia a false; el guardado confirmado marca persisted:true y availabilityEstimated:false. Los campos son metadata de orquestación UI, no nuevos campos del agregado Inventory.
+- Selector y editor mantienen un almacén por variante a la vez; cambiar no traslada existencias. Campos pendientes bloquean el cambio hasta guardar. Tras reabrir, el contexto comercial determina la selección inicial.
+- Restaurar stock propio ya persistido sigue sin contrato de retirada y no se promete desde UI. La disponibilidad durante edición es estimada; después del guardado/lectura se usa la confirmada.
+
+Decisión: ADR-0315. Migración compatible shipping_warehouses aplicada en la base configurada con autorización explícita; sin despliegue remoto de servicios.
+
+QA: `../qa/product-inventory-integration-20261111.md`.
+
+
+## Correcciones controladas del editor — 2026-11-12
+
+Contrato sincronizado con BFF/Pricing/ReadIndex dentro de la implementación autorizada: las mutaciones de relaciones devuelven snapshot `offerings` opcional del primario, con `relationActive` separado del `active` global; includeInactive conserva relaciones inactivas en Admin. ReadIndex busca `localizedName[].value`. El guardado declara HTML explícito para descripción; no cambia el formato por defecto de Catalog. Detalle de producto ausente es404 si la generación está preparada y503 si no lo está. La UI resuelve marca asignada por ID, permite búsqueda/paginación y recuperación fiscal sin perder borrador. No hay migración ni backend paralelo. Evidencia, comandos y límites: [auditoría actualizada](../qa/products-audit-20261111.md#correcciones-controladas-2026-11-12).
+
+Rectificación de alcance del 2026-11-12: se retiraron los dos campos de búsqueda añadidos bajo Categoría/Marca. Se conservan los desplegables y la resolución por ID de la marca asignada, incluso si está fuera del lote inicial. No se añaden controles alternativos.
+
+
+## Grupo comercial manual en perfil Customer — 2026-11-12
+
+Sincronización explícita con ADR-0317/contrato50 del backend, dentro de los pasos1–5 autorizados. El administrador asigna un único groupCode al crear/editar el perfil; no se calcula VIP por compras ni se trata como rol de acceso.
+
+GET `/admin/customers/:customerId/commercial-membership?organizationId&shopId` devuelve grupo, aprobación B2B, buyerType y revisión canónicos. POST/PATCH de cliente aceptan `commercialMembership:{groupCode:string|null,b2bApproved:boolean,expectedRevision:number,reason:string}`; perfil/grupo/auditoría se confirman en una transacción del owner. El actor lo establece BFF. Conflictos de revisión:409 sin guardado parcial.
+
+Las opciones del selector proceden de `/admin/pricing/customer-groups`, solo grupos activos. La asignación requiere el permiso vigente de edición de perfil `customers.addresses.write`; la lectura usa `customers.read`. El registro Storefront no concede grupos privilegiados. Error de lectura del grupo impide enviarlo/modificarlo y se informa; no se sustituye por otro grupo. El tipo comprador del formulario se toma del mismo snapshot canónico cuando está disponible para no mezclarlo con un perfil proyectado anterior.
+
+Para que los precios consuman la pertenencia se requieren las migraciones aditivas Customers/Sessions, política del scope y flags coordinados BFF/Checkout del contrato50. La UI no contiene tokens internos ni llama a owners. Las pruebas aisladas no activan el entorno comercial existente.
+
+Las lecturas públicas personalizadas requieren también `ECOMMIUM_UI_VERIFIED_COMMERCIAL_CONTEXT_ENABLED=true`, coordinado con BFF/Checkout. Solo se reenvía el bearer Customer, con fetch no-store y x-commercial-context-required. PLP autenticada usa la lectura canónica, sin cards de invitados. Validación final y límites: `../qa/customer-commercial-segmentation-20261112.md`.
+
+
+2026-11-16 — Selección de política comercial por despliegue canónico (sin default implícito), filtrado de moneda Shipping, reintentos Orders sobre snapshot histórico tras verificar propietario e Inventory sale commit transaccional. Autorización expresa del usuario para default en esta tienda y datos sandbox simulados. La prueba pagada10050 reveló reservas duplicadas; corrección SQL aislada PASS y segundo E2E pendiente de aprobación PayPal. No declarar éxito integral. Ver `../qa/paypal-purchase-resumption-20261116.md`.
+
+
+Actualización final de compra sandbox2026-11-16:10052 VALIDADO con datos simulados, captura/pedido/reserva únicos, stock1→0, snapshot pagado conservado y reintentos sin duplicados. UI rota al nuevo carrito sin borrar el pagado;409 de pedido no es éxito. BFF soporta el DTO GET Orders plano real. Evidencias y límites históricos en `../qa/paypal-purchase-resumption-20261116.md`; no cierra Stripe ni compra invitada completa.
+
+
+## PLP y política comercial explícita — 2026-11-16
+
+La vista compacta cards no admite tradePolicy/priceTableId/customerGroup. Se resuelve la política de despliegue antes de elegir la vista; con selección comercial explícita se usa PLP completo conservando esa selección. BFF real rechaza cards+tradePolicy con403 PLP_CARDS_PRIVATE_CONTEXT_UNSUPPORTED. No se elimina política ni se realiza fallback tras un rechazo. Validación: `../qa/category-listing-policy-20261116.md`.
+
+## Precio normal y reglas específicas — sincronización 2026-11-16
+
+[Contrato local actualizado](regular-and-specific-prices-contract.md): ADR-0316 reutilizado, normal sin política obligatoria, específicos opcionales, moneda explícita y guardado conservador de legacy. No se añaden endpoints ni lógica de dominio a Next. Migración exacta de1.211 BASE autorizada y E2E10055/10056 verificados; [QA](../qa/regular-pricing-20261116.md).
+
+## PDP: selectores por atributo — 2026-11-16
+
+La UI agrupa `variants[].options` por `attributeCode`, con botones por `valueCode` debajo de la combinación seleccionada. Reutiliza la selección de miniaturas y solo elige combinaciones existentes; no requiere cambios BFF ni datos comerciales nuevos. Los agotados conservan la restricción actual de miniaturas. Compartido con preview Admin. Evidencia: [QA](../qa/pdp-variant-options-20261116.md).
+
+## Postventa: recuperación operativa — 2026-11-16
+
+Sin cambios de contrato: After Sales conserva casos/tareas y BFF lee Admin desde ReadIndex. El arranque canónico ahora incluye los relays After Sales/Communications; nueva migración corrige persistencia de intentos Communications. Caso y dos avisos verificados tras reinicio completo; no calcular el testigo inventando tareas desde casos. El correo original ambiguo sigue pendiente de confirmación, sin reenvío. [Evidencia](../qa/after-sales-recovery-20261116.md).
+
+### Impuestos: eliminación definitiva sincronizada — 2026-11-17
+
+Con autorización explícita de Ricardo se verificó que DELETE taxes solo da de
+baja el maestro. Se añade DELETE
+`/api/v1/admin/pricing/taxes/:taxCode/permanent?organizationId=:org&shopId=:shop&detachPrices=true`,
+Employee + pricing.admin.write y scope autorizado. Sin acuse400; endpoint viejo
+no es fallback. Pricing elimina la definición y retira tax_json/tax_included en
+los Price asignados del scope, conserva importes guardados y bloquea reasignación
+del código con tombstone. No altera pedidos/facturas ni otros owners.
+Recibo validable: `{mode:"hard",deleted:true,code:"IVA",detachedPrices:12,remainingAssignments:0}`.
+Reintento devuelve deleted=false y contador original; inexistente contador0.
+La advertencia informa que los precios quedan sin impuesto y el cálculo puede
+cambiar. Migración aditiva `20261117120000_tax_removal` probada en PostgreSQL
+local desechable; activación configurada externa pendiente. ADR-0319 backend y
+[QA UI](../qa/tax-removal-20261117.md).
+
+2026-11-17 — Migración fiscal anterior activada con autorización exacta de
+Ricardo; Pricing/BFF Admin reiniciados y healthy. Precios/asignaciones/referencias
+conservados y tombstones0. Sustituye activación pendiente, sin borrar impuestos
+comerciales. [QA](../qa/tax-removal-20261117.md).
+
+### Price tables: borrado con desactivación — 2026-11-17
+
+Elección explícita de Ricardo: desactivar precios/reglas asociados al eliminar.
+DELETE `/api/v1/admin/pricing/price-tables/:id/permanent?organizationId=:org&shopId=:shop&deactivatePrices=true`.
+Employee + pricing.admin.write + scope permitido; sin acuse400. Recibo
+`{mode:"hard",deleted:true,code:"vip",affectedPrices:4,remainingAssignments:0,activePricesRemaining:0}`.
+Se retiran maestro/asignaciones; Price permanece inactivo con importes/impuestos
+conservados. Fences rechazan nuevas asignaciones al código eliminado y
+reactivaciones sin elegir otra tabla. Pedidos/facturas y otros scopes intactos.
+Legacy DELETE no cambia ni sirve de fallback. PATCH activation sincroniza maestro
+y precios incluso con tabla vacía. Migración aditiva20261117140000_price_table_removal
+probada en PostgreSQL desechable, activación configurada pendiente. ADR-0320 y
+[QA UI](../qa/price-table-list-actions-20261117.md).
+
+2026-11-17 — Price tables: migración20261117140000_price_table_removal activada
+con autorización exacta de Ricardo y reinicio selectivo Pricing/BFF Admin.
+Health200/200, datos comerciales conservados (2589 precios,335 asignaciones de
+tabla), tombstones0. Sustituye activación pendiente. No se eliminaron tablas
+comerciales. [QA](../qa/price-table-list-actions-20261117.md).
+
+## Eliminación revisada de Pricing — 2026-11-17
+
+Contrato nuevo autorizado (ADR-0321 del composable), pendiente de activar en la base configurada. POST `/admin/pricing/:kind/:code/removal-review|removal-confirm|removal-status`, kind taxes o price-tables. Employee + pricing.admin.write + tenant autorizado. Review acepta replacementCode y reviewOffset; confirm/status impactVersion SHA256 más el mismo sustituto. Review devuelve impacto paginado de50, opciones y bloqueos; sin prueba de cobertura canConfirm=false. BFF obtiene herencia Catalog. Impuestos reemplazan snapshots conservando importe/taxIncluded; tabla destino recibe precios/reglas preservando estado y condiciones. Sin destino solo se retira con respaldo probado. Status solo lee recibo durable y prueba ReadIndex; no confirma de nuevo. PENDING o COMPLETE más contexts; COMPLETE requiere todas las generaciones/contextos y precios proyectados frescos. Receipt incluye kind/code/replacementCode/impactVersion, reviewed/deleted/mode, affectedPrices y remainingAssignments0. No usar las antiguas acciones de desvinculación como fallback. [Pruebas y límites](../qa/reviewed-removal-20261117.md).
+
+2026-11-17 — Activación posterior de eliminación revisada autorizada y aplicada:20261117160000_reviewed_removal y reinicio selectivo Pricing/BFF Admin/ReadIndex. Health200 y datos comerciales intactos. La prueba manual de tienda queda pendiente de contexto Employee; ver `../qa/reviewed-removal-20261117.md`.
+
+## Condiciones comerciales en perfil Admin — 2026-11-18
+
+UI conserva el contrato ADR-0317 de un grupo manual por cliente/contexto. Separa
+condiciones comerciales de datos personales, muestra revisión grupo/aprobación,
+acepta motivo manual acotado y conserva borrador en conflicto409. Lectura fallida
+no modifica pertenencia; diagnóstico por recurso/status y recuperación explícita.
+Employee lector dispone de vista comercial de solo lectura. No cambia flags ni
+reglas de precios. El motivo/actor siguen bajo persistencia y autoridad del BFF.
+
+La causa del aviso del entorno comercial y el recorrido real de precios/checkout
+no están certificados. Tampoco hay DTO local garantizado para leer el historial
+comercial con actor/motivo/before-after: se documenta propuesta para sincronización,
+sin implementar endpoints alternativos. [QA](../qa/customer-commercial-profile-20261118.md)
+y [dependencias](../gaps/2026-11-18-customer-commercial-operational-validation.md).
+
+### Activación comercial y auditoría sincronizadas — 2026-11-18
+
+Ricardo autorizó las dos migraciones comerciales aditivas, credenciales/flags,
+auditoría y ajustes UI. Activación local instalada y health verificado; política
+por BFF con Employee real para Tienda Barcelona: allowedGroups vip/b2b-pro,
+registeredGroup=null, b2bGroup=b2b-pro. No asigna grupos automáticamente ni añade
+reglas de importes. Customers presenta PERSON como PRIVATE_BUYER únicamente en
+lectura comercial; no reescribe perfiles ni adivina otros códigos históricos.
+
+GET `/admin/customers/:customerId/commercial-membership/history?organizationId&shopId&limit=20&offset=0`:
+Employee/admin+customers.read+tenant, privado/no-store. DTO `{items,total,limit,offset}`;
+items `{auditId:string,revision:number,actorId:string,reason:string,occurredAt:ISO,before:null|membership,after:membership}`,
+membership `{groupCode:string|null,b2bApproved:boolean,revision:number}`. Límite1–100,
+offset0–1000000. Actor de BFF, snapshot SQL del owner y proyección allowlisted.
+
+La política existente se edita en Configuración/Precios/Parámetros, vía
+`GET|PUT /admin/customers/commercial-segment-policy`, revisión/actor/permisos del
+contrato50. UI omite commercialMembership sin cambios y valida Empresa para B2B.
+El perfil real ya carga sin el aviso. SQL/HTTP/Playwright valida precios y
+revalidación de carrito en laboratorio aislado; no certifica compra/cobro real.
+[Evidencia, comandos y reversión](../qa/customer-commercial-activation-20261118.md).
+
+### Consulta UI de auditoría comercial (2026-11-18)
+
+El perfil de cliente deja de pedir motivo manual y de mostrar el historial.
+`/admin/logs?customerId=...&offset=...` reutiliza el GET paginado de auditoría
+comercial ya documentado, sin nuevo contrato ni agregador global. El motivo de
+las escrituras UI es automático; el actor sigue siendo responsabilidad del BFF.
+
+## Confirmación comercial por contraseña — 2026-11-18
+
+Sincronizado con ADR-0322: las escrituras comerciales POST/PATCH de cliente y PUT
+de membresía exigen `currentPassword` por petición; el BFF verifica en Sessions
+con el empleado conectado y elimina el secreto antes de invocar Customers.
+No se acepta un step-up general previo como autorización del cambio. Campos
+personales sin modificación comercial no requieren contraseña. Auditoría añade
+reauthentication opcional (verificationId, PASSWORD, verifiedAt, sessionId) y tipo
+comprador en snapshots nuevos. Históricos sin evidencia permanecen legibles.
+403 rechaza confirmación,429 limita intentos y503 falla cerrado si Sessions no
+puede confirmar. Ver `../qa/commercial-change-reauthentication-20261118.md`.
+
+### Corrección del destino de logs comerciales — 2026-11-18
+
+Se retiran el menú/ruta `/admin/logs` y el enlace desde Actividad: solo consultaban el historial de Customers y no representaban el servicio central. El backend autorizado entrega ahora el evento a `services/log` desde la auditoría transaccional, con reintentos. Se conserva el endpoint de historial por compatibilidad; la UI no lo usa. No se modifican autenticación ni confirmación con contraseña. Esta entrada sustituye las referencias anteriores a ese menú; no cierra pendientes de seguridad generales. Evidencia: `docs/qa/customer-commercial-log-delivery-20261118.md`.
+
+
+### Eliminación de site parts — 2026-11-19
+
+Autorizado e implementado DELETE /api/v1/admin/cms/site-parts/:sitePartId por
+Organization/Shop/locale, Employee Admin y cms.settings.write. Recibo estricto
+{sitePartId,deleted:true};409 asignado,404 ajeno/inexistente. No sustituye archive.
+Revisiones en cascada, FK RESTRICT y guardado sin upsert contra editor obsoleto.
+POST shell-assignments acepta null para liberar; fila vacía AUTO se retira.
+QA local: ../qa/cms-site-part-deletion-20261119.md. Sin borrados reales.
+
+### Unificación visual Builder / Headers / Footers (2026-11-19)
+
+Contrato sincronizado con CMS/BFF local: los bloques de sistema aceptan
+`props.presentation` y las áreas `presentation`, ambos con la gramática visual
+v2 existente (styles por scope, visibility, animation, interactions, assetRefs).
+El servicio normaliza estos campos y el BFF valida el borde. Sin estos campos,
+los documentos existentes mantienen su comportamiento. Shell resolve hidrata
+referencias `visual.module` ACTIVE con sus valores por instancia; omite
+referencias no disponibles como en páginas. `assetRefs[].src` opcional conserva
+URLs públicas HTTPS o `/assets/`; se descarta el proxy privado Admin.
+No se añaden endpoints ni almacenamiento alternativo.
+QA: `../qa/cms-builder-unification-20261119.md`.
+
+### Hoja CSS única de site parts — 2026-11-19
+
+Contrato local sincronizado: `revision.layout.styleSheet` opcional con scopes
+base/desktop/tablet/mobile; cada scope contiene reglas `{selector, styles}`.
+`styles` reutiliza las propiedades/valores del registro visual Builder. CMS
+normaliza/conserva esta propiedad en draft/publicación/shell; BFF valida el borde.
+UI ofrece una sola caja CSS y convierte a ese modelo canónico. Selectores siempre
+acotados a la pieza; no CSS global, URLs ni at-rules. Sin rutas/migraciones nuevas.
+Evidencia: `../qa/cms-single-block-stylesheet-20261119.md`.
+
+
+### CMS composición independiente — Fase1,2026-11-20
+
+ADR0324/contrato61 del backend: definición de copia independiente, módulos tipados,
+árbol de secciones, páginas y plantillas copiables. Fase1 CERTIFICADA como contrato
+y compatibilidad; capacidades nuevas NO IMPLEMENTADAS. Rutas legacy intactas.
+Schemas, matriz y aceptación en `../contracts/cms-phase-1-contracts-and-compatibility.md`.
+No interpretar la definición como disponibilidad de endpoints nuevos.
+
+## CMS MODULE — actualización local Fase2, 2026-11-20
+
+Extensión de cierre constructivo autorizada el 2026-11-24: el mismo contrato
+de estilos admite `top`/`left` opcionales como una única longitud CSS explícita
+segura; `transform` conserva su gramática owner y se expone en el inspector.
+Los tres schemas UI/BFF/CMS están sincronizados. No cambia endpoints, permisos,
+persistencia, copias independientes ni publicaciones existentes. Seguimiento
+vigente: `docs/qa/cms-construction-demo-20261124/closure-status.md`.
+
+Implementación con verificación parcial; aún sin activación en la base operativa.
+La familia BFF `admin/cms/visual-modules` admite `contractVersion=1` en lecturas y
+`contractVersion:1,resourceKind:MODULE` en comandos. Recibos incluyen status
+DRAFT/ARCHIVED y revisionToken; archivo también exige expectedRevision.
+Creación con operationId persistido materializa copia independiente. Listado y
+detalle siguen ReadIndex, con independentModules separado del DTO legacy.
+El BFF conserva sesión Employee, permisos y validación Media; UI no llama al owner.
+Ruta `/admin/cms/modulos` con Biblioteca/Diseño aprobada. Builder legacy conservado.
+Contrato normativo: `docs/contracts/cms-composition-boundary.schema.json` y
+contrato61/ADR0324 del composable.
+Evidencias y pendientes: [informe Fase2](../qa/cms-phase-2-implementation-20261120.md).
+
+Actualización Fase2 tras autorización: migración CMS aplicada en Neon y procesos
+CMS/BFF/ReadIndex activados; relay CMS incorporado al supervisor existente.
+Copia, reapertura, conflicto y archivo comprobados por Employee/UI. Media bloquea
+crear colección sin productId: owner exige UUID. No se modifica ese contrato sin
+autorización ni se inventa un producto. Detalle en informe QA de Fase2.
+
+
+2026-11-20 — Extensión Media sin producto autorizada y activada. Multipart omite
+productId; respuesta nullable explícita. Productos conservan UUID/uniquidad.
+Subida, copia compartida, sustitución independiente y URLs200 verificadas por
+Employee/UI, SQL y HTTP. Sustituye el bloqueo Media anterior. Fase2 continúa
+VERIFICACIÓN PARCIAL. Ver [informe y pendientes](../qa/cms-phase-2-implementation-20261120.md).
+
+## CMS SECTION — actualización 2026-11-20
+
+Fase3 implementada y activada con verificación parcial: rutas BFF SECTION,
+locale obligatorio, permisos cms.pages.read/write, validación Media reutilizada,
+CAS e idempotencia owner; lectura exclusiva ReadIndex. No altera autenticación
+ni cierra hallazgos previos. Pendiente probar perfiles Employee solo lectura y
+scope/locale ajenos en integración real. Informe: [Fase3](../qa/cms-phase-3-implementation-20261120.md).
+
+### CMS Fase4 — preview de composición (2026-11-20)
+
+Implementado, todavía sin certificación integrada: POST
+`/admin/cms/pages/preview?organizationId=…&shopId=…&locale=…`, body composition v1,
+respuesta200 `{context,document}`. Requiere Employee y `cms.pages.read`; no-store.
+Valida Media y reutiliza hidratación pública; no guarda ni publica. La UI mantiene
+el resultado separado del borrador editable. [Contrato y estado](../contracts/cms-phase-4-page-commands.md).
+La extensión de coordinación fue aprobada e implementada. Migración aplicada y
+CMS/BFF Admin/BFF Storefront activados. Operaciones ambiguas de Routing permanecen
+reservadas sin reenvío automático. E2E real de composición, Media, preview dinámico, publicación, conflictos, cambio de ruta y despublicación comprobado. Eliminación definitiva QA autorizada y comprobada. Pendiente Employee lector; Fase4 no certificada.
+
+### CMS Fase5 — Plantillas copiables (2026-11-20)
+
+TEMPLATE SECTION/PAGE separado de templates settings. GET/POST
+`/admin/cms/composition-templates`; GET/PATCH/:id; POST/:id/archive con
+expectedRevision. Locale/contexto y cms.pages.read/write obligatorios. Recibo
+status DRAFT|ARCHIVED; listado por status y paginación. ReadIndex para lectura,
+CMS para escritura; no vínculo vivo al aplicar. Implementado con verificación
+parcial: [estado/evidencias](../qa/cms-phase-5-status-20261120.md).
+
+
+## CMS composición independiente — Fase6 (2026-11-20)
+
+Implementado con verificación parcial; A10 no certificado. Autorizadas UX explícita,
+dos endpoints y coordinación persistente acotada de mutaciones legacy.
+
+- POST `/admin/cms/pages/:pageId/migration-preview` (cms.pages.read):
+  `{pageId,sourceRevision,convertible,issues:[{code,blockId,message}],document?}`.
+  Consulta owner sin escritura; `sourceRevision` SHA256 de página/versiones,
+  settings efectivos y definiciones visuales referenciadas.
+- POST `/admin/cms/pages/:pageId/migrate` (cms.pages.write):
+  `{contractVersion:1,operationId:UUID,expectedSourceRevision:string}`.
+  CMS deriva el documento. Devuelve recibo de página/composición existente.
+  Contexto organizationId/shopId/locale obligatorio. Fuente alterada o mutación
+  competidora409; incompatibilidad400. No se acepta documento arbitrario UI.
+- MIGRATE atómico en persistencia existente. Conserva snapshot publicado, path,
+  routeId y SEO; activar la composición exige Publicar explícito. Replay conserva
+  una única conversión. Borrador nuevo y publicación legacy pueden coexistir.
+- Mutaciones legacy de draft/settings/publicar/ruta/despublicar/borrar reservan
+  la coordinación existente antes de efectos. Mantienen endpoints/payloads.
+  Una operación con efectos inciertos conserva reserva; no se libera por tiempo.
+- Preview visual reutiliza hidratación pública de Fase4 y validación Media.
+  No se amplía ReadIndex ni se crea almacenamiento Next.js o tabla nueva.
+- Home/PLP/slider y layouts multicolumna, visibilidad/presentación o CSS legacy
+  sin equivalencia demostrada permanecen legacy con diagnóstico. Builder sigue
+  disponible para ellos; páginas convertidas redirigen al compositor.
+
+Evidencia: CMS44/44, BFF11/11, UI5/5; builds CMS/BFF/UI PASS; PostgreSQL aislado
+coordinación y migración PASS (Routing controlado). E2E real QA: migrar/reabrir,
+snapshot público idéntico antes de Publicar, publicación explícita, responsive
+1440/768/390, Media, acordeón y archivo del origen sin alterar copia. QA finalmente
+despublicada/404. Falta perfil Employee lector y filas completas A10; no declarar
+certificada la fase. Informe detallado en repo UI docs/qa/cms-phase-6-status-20261120.md.
+
+## Header/Footer con secciones independientes — 2026-11-23
+
+Extensión BFF/CMS autorizada explícitamente por Ricardo. ADR0325 y contrato63
+admiten 13 tipos registered de configuración shell y el bloque cms.section dentro
+de revisiones site part existentes. Envelope props cerrado contractVersion1 +
+document SECTION; BFF valida módulo/presentación/Media anidados. No hay migración
+ni nuevo backend/endpoint. Páginas rechazan módulos exclusivos de shell.
+Reproducción crea otra pieza DRAFT sin asignar, conserva layout/placements y
+usa el editor de Secciones con renderers funcionales existentes. Originales y
+publicaciones conservados. Newsletter mantiene newsletterForm visual; no se
+habilita footer.newsletter antiguo. Herencia completa y CAS atómico de site parts
+siguen pendientes. Evidencia: ../qa/cms-shell-independent-sections-20261123.md.
+
+
+2026-11-23 — Continuación CMS: guardado atómico/CAS Header/Footer y revisión
+confirmada al publicar, creación estable y recuperación por lectura, campos
+registered declarados, herencia visual y layout/targeting PLP independiente.
+La comprobación de CAS previa UI se sustituye por validación transaccional owner
+para el flujo nuevo. No cierra hallazgos generales ni certifica producción;
+no cambia sesiones ni permisos y no se han publicado originales. Evidencia,
+contratos y límites: docs/qa/cms-builder-retirement-implementation-20261123.md.
+
+
+Comprobación final de compatibilidad2026-11-23: contentBinding V1 explícito se
+preserva sin aliases contradictorios; color/textAlign de contenedores heredan.
+store.logo conserva href HTTPS como dato sin cambiar el fallback del renderer.
+Home y checkout tienen nuevas copias DRAFT, documentadas en
+`docs/qa/cms-builder-retirement-implementation-20261123.md`.
+La página de pruebas conserva un bloqueo Media por fondo url(...) antiguo;
+no se retiró el Builder ni se publicaron/alteraron originales.
+
+
+### Reparación Media explícita en migración CMS — 2026-11-24
+
+Autorizada para cierre en laboratorio. Preview y comando de migración admiten
+`assetMappings?: [{sourceUrl,mediaAssetId,src}]` (máximo32). SourceUrl local
+identifica exactamente el fondo antiguo; src es HTTPS y debe corresponder al
+asset activo del mismo scope comprobado por BFF/Media. CMS aplica sobre copia,
+conserva publicación anterior, incorpora el mapa a revisión/hash de replay y
+rechaza duplicados, URL insegura o sustitución sin coincidencia. La UI reutiliza
+subida Media y el fondo queda editable. No certifica todavía retirada Builder.
+
+
+### Recuperación de publicación durante retirada — 2026-11-24
+
+El comando PUBLISH admite `restorePublished:true` junto con versionId histórico,
+operationId y expectedRevision. CMS exige página publicada, snapshot del mismo
+pageId ya publicado anteriormente, revisión vigente y coordinador sin otra
+operación pendiente. No acepta contenido del cliente ni restaura otra ruta.
+Reutiliza reserva durable, Routing, replay y outbox de publicación; conserva el
+borrador independiente y vuelve a permitir publicarlo explícitamente después.
+BFF exige cms.pages.publish. La excepción solo selecciona un snapshot previamente
+publicado del owner; no permite publicar un draft antiguo ni saltar contexto.
+PostgreSQL real desechable: restore legacy→lectura pública legacy→borrador
+independiente conservado→replay→republish independiente PASS; ID ajeno rechazado.
+No requiere DDL ni otro servicio.
+
+### Cierre de laboratorio y reintento previo a efectos — 2026-11-24
+
+CMS clasifica como `CmsRoutingSeoBeforeEffectsError` únicamente el rechazo de la
+consulta canónica anterior a POST/PATCH Routing. El coordinador devuelve esa
+misma reserva RUNNING a PREPARED bajo lock y revisión/hash/contexto idénticos;
+no lo hace después de una escritura intentada ni de un resultado Routing
+registrado. Los fallos inciertos conservan la reserva. La cuenta escritora de
+ensayo obtuvo explícitamente `routing-seo.routes.write`, ya requerido por el
+contrato Routing; no se relajaron guards ni permisos humanos.
+
+Publicación real en Barcelona/es-ES: cuatro páginas originales y cuatro site
+parts convertidos sobre las mismas identidades; nueve superficies mantienen sus
+asignaciones. Los dos QA negativos conservan historial y avisos editables, sin
+publicación. Recuperación/replay/republicación de Privacidad acreditados contra
+Admin, CMS, Routing y BFF público. Builder exclusivo retirado de UI; catálogo,
+lectores de versiones históricas y edición visual compartida conservados.
+Seguimiento único: `ecommium_ui/docs/qa/cms-builder-retirement-closure-20261124.md`.
+Esto acredita el laboratorio autorizado, no otros tenants ni producción.
+
+Cierre constructivo CMS 2026-11-24: la edición avanzada de una copia reutiliza el inspector de Módulos y configura campos locales; no muta la biblioteca ni otras composiciones. Los comandos de módulos/secciones esperan de forma acotada a observar su revisionToken mediante el BFF de lectura antes de anunciar la reapertura lista. La sincronización pendiente conserva el recibo de escritura confirmado y no repite el comando. Evidencias en docs/qa/cms-construction-demo-20261124/closure-status.md.
+
+Headers/footers vacíos usan el mismo compositor de Secciones y sus bibliotecas.
+Asignación PAGE utiliza los endpoints existentes, un selector paginado de páginas
+reales y permiso Employee de escritura. El propietario CMS admite `flexWrap` en
+presentaciones, igual que UI/BFF. `cms.section` conserva su envoltura estricta
+durante lectura→guardado, sin añadir props legacy. No se han creado endpoints,
+almacenamientos ni migraciones de base de datos para este cierre.
+El editor exclusivo antiguo de shell y sus mutaciones UI sin consumidores se
+retiran; las piezas QA archivadas conservan consulta y preview compartido. Los
+lectores y contratos históricos compartidos permanecen. El seguimiento vigente
+es `../qa/cms-construction-demo-20261124/closure-status.md`.
+
+
+### Retirada de la pantalla Transición — 2026-11-24
+
+Por decisión del usuario se eliminan /admin/cms/transicion, su navegación y los
+controles/acciones UI exclusivos de revisión, reproducción y conversión antiguos.
+Páginas abre directamente su editor; Headers/Footers mantienen el compositor de
+secciones. El listado paginado de páginas para asignaciones PAGE se conserva
+bajo el nombre listCmsShellAssignmentPages. No cambian endpoints BFF, datos,
+publicaciones, asignaciones ni contratos de lectura histórica compartidos.
+Evidencia en ../qa/cms-construction-demo-20261124/closure-status.md.
+
+
+### Retirada de plantillas de layout heredadas en UI — 2026-11-24
+
+La UI retira la administración antigua de templates por tipo de página:
+listado/alta/edición/eliminación, asignación desde settings de página y sus
+Server Actions/clientes exclusivos. Plantillas ofrece solo composiciones
+PAGE/SECTION. ?kind=layout y Ajustes básicos ?tab=templates redirigen a esa
+biblioteca, sin consultar el catálogo de plantillas heredadas. Los endpoints
+backend documentados anteriormente permanecen como compatibilidad; no se
+modifican ni se ejecutan borrados de datos.
+
+Ajustes básicos mantiene tokens globales y fuentes BFF; retira «Layout base».
+PATCH global envía solo {tokens}, exige cms.settings.write y conserva layout
+existente por omisión. PATCH de settings de página omite templateId: no asigna
+ni retira referencias históricas desde valores del formulario. Las lecturas de
+settings resueltos siguen interpretando esas referencias. El editor compartido
+de áreas se conserva en las composiciones nuevas. Evidencia y límites en
+../qa/cms-construction-demo-20261124/closure-status.md.
+
+## Sincronización funcional QA autorizada — 2026-11-25
+
+Referencia backend: `ADR-0326-functional-qa-draft-contact-employee-identities.md`.
+Se limita a QA-006, QA-005 y QA-010 del informe existente.
+
+- Catalog: borrador/inactivo admite `brandId:null`. Activo/publicación requiere marca válida. PATCH omitiendo conserva; null explícito elimina solo en inactivo. DTOs y proyección conservan ausencia real, sin marca predeterminada. Migración Catalog/Neon aplicada con autorización expresa y marcas de los 1.780 productos existentes preservadas.
+- Checkout contacto: documento personal y tipo opcionales conjuntamente; una pareja parcial devuelve 400. Requisitos corporativos/fiscales se mantienen. `checkout/context.contact` devuelve documento/tipo y prevalecen los datos guardados para el pedido sobre el perfil customer, sin cambiar el perfil. La UI elimina errores locales anteriores al enviar datos válidos.
+- Postventa: BFF resuelve el principal autenticado a `Employees.employeeId` antes de usar un actor operativo; una sesión SYSTEM sin organización usa el contexto explícito autorizado. UI conserva el alias `principalId` para leer asignaciones históricas sin reescribirlas. Las referencias de auditoría explícitas conservan su semántica.
+
+Certificación individual e historial en `../qa/full-app-20261125/report.html`.
+No se intervienen estilos, CMS, otros módulos ni los casos pendientes de la auditoría.
+
+Certificación 2026-11-25: borradores y Postventa certificadas; Checkout invitado certificado para contacto y avance a Entrega, rama autenticada bloqueada por falta de sesión Customer confirmada por Ricardo. La carga Postventa aprobada usa dos grupos (máximo tres lecturas indexadas simultáneas), manteniendo las mismas peticiones y límites del BFF/ReadIndex. No se ejecutan compras/pagos ni la auditoría global.

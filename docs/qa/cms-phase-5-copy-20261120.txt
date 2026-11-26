@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: independent page copies remap section/node/module identities and page CSS
+ok 1 - independent page copies remap section/node/module identities and page CSS
+  ---
+  duration_ms: 1.118666
+  type: 'test'
+  ...
+# Subtest: section copies carry only document data with no template reference
+ok 2 - section copies carry only document data with no template reference
+  ---
+  duration_ms: 0.85625
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 223.781375

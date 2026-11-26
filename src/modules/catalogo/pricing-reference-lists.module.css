@@ -1,0 +1,29 @@
+.sections { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.list { padding: 0; min-width: 0; }
+.list .table { width: 100%; min-width: 640px; }
+.drawer :global(.pricingDenseForm) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.drawer :global(.adminField) { min-width: 0; }
+.drawer input, .drawer select { width: 100%; min-width: 0; min-height: 40px; box-sizing: border-box; }
+.list .table { table-layout: fixed; }
+.list .table th:nth-child(1), .list .table td:nth-child(1) { width: 12%; }
+.list .table th:nth-child(2), .list .table td:nth-child(2) { width: 18%; }
+.list .table th:nth-child(3), .list .table td:nth-child(3) { width: 40%; }
+.list .table th:nth-child(4), .list .table td:nth-child(4) { width: 8%; }
+.list .table th:nth-child(5), .list .table td:nth-child(5) { width: 22%; }
+.list .table :global(.pricingInlineForm) { flex-wrap: wrap; }
+.list .table th, .list .table td { min-width: 0; max-width: none; white-space: normal; overflow-wrap: anywhere; }
+.list .table :global(.pricingInlineForm) input { min-width: 0; width: 100px; }
+.rulesTable { width: 100%; min-width: 1100px; }
+.rulesTable :global(.pricingActionStack) { min-width: 0; }
+.rulesTable :global(.pricingInlineForm) {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.rulesTable :global(.pricingInlineForm) > :is(input:not([type="hidden"]), select) {
+  width: 100px;
+  min-width: 0;
+  flex: 1 1 100px;
+}
+.rulesTable :global(.pricingInlineForm) > button { flex: 0 0 auto; }

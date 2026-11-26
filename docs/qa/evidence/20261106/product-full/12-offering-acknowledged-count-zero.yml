@@ -1,0 +1,553 @@
+- generic [active] [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - complementary "Navegacion Admin" [ref=f7e3]:
+      - generic [ref=f7e4]:
+        - generic [ref=f7e5]: E
+        - generic [ref=f7e6]:
+          - strong [ref=f7e7]: Ecommium
+          - generic [ref=f7e8]: Admin backoffice
+      - navigation [ref=f7e9]:
+        - generic [ref=f7e10]: Vender
+        - link [ref=f7e11] [cursor=pointer]:
+          - /url: /admin
+          - strong [ref=f7e16]: Inicio
+        - group [ref=f7e17]:
+          - generic [ref=f7e18] [cursor=pointer]:
+            - strong [ref=f7e23]: Configuracion
+            - generic [aria-hidden] [ref=f7e24]: ⌄
+        - group [ref=f7e25]:
+          - generic [ref=f7e26] [cursor=pointer]:
+            - strong [ref=f7e34]: Catalogo
+            - generic [aria-hidden] [ref=f7e35]: ⌄
+          - generic [ref=f7e36]:
+            - link "Resumen" [ref=f7e37] [cursor=pointer]:
+              - /url: /admin/catalogo
+            - link "Productos" [ref=f7e39] [cursor=pointer]:
+              - /url: /admin/products
+            - link "Categorias" [ref=f7e41] [cursor=pointer]:
+              - /url: /admin/catalogo/categorias
+            - link "Caracteristicas" [ref=f7e43] [cursor=pointer]:
+              - /url: /admin/catalogo/atributos-caracteristicas
+            - link "Busqueda" [ref=f7e45] [cursor=pointer]:
+              - /url: /admin/catalogo/search
+            - link "Marcas / Proveedores" [ref=f7e47] [cursor=pointer]:
+              - /url: /admin/catalogo/marcas
+            - link "Media / Archivos" [ref=f7e49] [cursor=pointer]:
+              - /url: /admin/catalogo/media
+            - link "Offerings / Servicios adicionales" [ref=f7e51] [cursor=pointer]:
+              - /url: /admin/catalogo/offerings
+            - link "Stock" [ref=f7e53] [cursor=pointer]:
+              - /url: /admin/catalogo/stock
+            - link "Importar" [ref=f7e55] [cursor=pointer]:
+              - /url: /admin/catalogo/importar
+        - group [ref=f7e57]:
+          - generic [ref=f7e58] [cursor=pointer]:
+            - strong [ref=f7e63]: CMS
+            - generic [aria-hidden] [ref=f7e64]: ⌄
+        - link [ref=f7e65] [cursor=pointer]:
+          - /url: /admin/promociones
+          - strong [ref=f7e70]: Promociones
+        - link [ref=f7e71] [cursor=pointer]:
+          - /url: /admin/analitica
+          - strong [ref=f7e75]: Analitica
+        - link [ref=f7e76] [cursor=pointer]:
+          - /url: /admin/pedidos
+          - strong [ref=f7e88]: Pedidos
+        - link [ref=f7e89] [cursor=pointer]:
+          - /url: /admin/postventa
+          - strong [ref=f7e98]: Postventa
+        - link [ref=f7e99] [cursor=pointer]:
+          - /url: /admin/clientes
+          - strong [ref=f7e105]: Clientes
+        - link [ref=f7e106] [cursor=pointer]:
+          - /url: /admin/pagos
+          - strong [ref=f7e110]: Pagos
+      - generic [ref=f7e111]:
+        - strong [ref=f7e112]: Perfil
+        - paragraph [ref=f7e113]: Operator
+        - strong [ref=f7e114]: Contexto
+        - paragraph [ref=f7e115]: 11111111-1111-4111-8111-111111111111 / 22222222-2222-4222-8222-222222222222
+    - generic [ref=f7e116]:
+      - generic [ref=f7e117]:
+        - form "Selector de contexto Admin" [ref=f7e118]:
+          - combobox "Organization" [ref=f7e119]:
+            - option "Organization"
+            - option "READPREP-20261104 Organización"
+            - option "QA-20261104 Integracion UI"
+            - option "ReadIndex Live b"
+            - option "ReadIndex Live a"
+            - option "Read Path Baseline b"
+            - option "Read Path Baseline a"
+            - option "Ecommium Default Organization" [selected]
+            - option "Ecommium UI Smoke 1780565751104"
+          - combobox "Shop" [ref=f7e120]:
+            - option "Shop"
+            - option "READPREP-20261104 Interrupción"
+            - option "READPREP-20261104 Tienda existente"
+            - option "Tienda UI 1780565845946"
+            - option "Activa - Tienda Barcelona" [selected]
+          - textbox "Shop alias" [ref=f7e121]:
+            - /placeholder: shopAlias
+            - text: tienda-barcelona
+          - combobox "Locale" [ref=f7e122]:
+            - option "es-ES" [selected]
+            - option "en-US"
+            - option "pt-PT"
+          - button "Aplicar" [ref=f7e123] [cursor=pointer]
+        - generic [ref=f7e124]:
+          - generic [aria-hidden] [ref=f7e125]: r
+          - generic [ref=f7e126]:
+            - strong [ref=f7e127]: [employee-email-redacted]
+            - generic [ref=f7e128]: [employee-email-redacted]
+          - button "Salir" [ref=f7e130] [cursor=pointer]
+      - main [ref=f7e131]:
+        - generic [ref=f7e132]:
+          - link "Admin" [ref=f7e133] [cursor=pointer]:
+            - /url: /admin
+          - text: /
+          - link "Catalogo" [ref=f7e134] [cursor=pointer]:
+            - /url: /admin/catalogo
+          - text: /
+          - link "Productos" [ref=f7e135] [cursor=pointer]:
+            - /url: /admin/products
+          - text: / Editar
+        - generic [ref=f7e136]:
+          - generic [ref=f7e137]:
+            - textbox "Nombre del producto" [ref=f7e138]:
+              - /placeholder: Nuevo producto
+              - text: Casco QA integral PW 20261106
+            - generic [ref=f7e139]:
+              - generic [ref=f7e140]: Sin publicar
+              - generic [ref=f7e141]: Producto con variantes
+              - generic [ref=f7e142]: es-ES / EUR
+          - generic [ref=f7e143]:
+            - link "Volver al catálogo" [ref=f7e144] [cursor=pointer]:
+              - /url: /admin/products
+            - generic "Tipo de producto" [ref=f7e145]:
+              - button "Producto simple" [ref=f7e146] [cursor=pointer]
+              - button "Producto con variantes" [ref=f7e147] [cursor=pointer]
+        - generic [ref=f7e1302]:
+          - paragraph [ref=f7e1303]: Producto actualizado.
+          - paragraph [ref=f7e1304]: Variantes guardadas.
+          - paragraph [ref=f7e1305]: Caracteristicas guardadas.
+          - paragraph [ref=f7e1306]: Precios guardados.
+          - paragraph [ref=f7e1307]: Stock guardado.
+          - paragraph [ref=f7e1308]: SEO de producto guardado.
+          - generic "Acciones de recuperacion recomendadas" [ref=f7e1309]:
+            - button "Continuar editando" [ref=f7e1310] [cursor=pointer]
+            - button "Continuar editando" [ref=f7e1311] [cursor=pointer]
+          - paragraph [ref=f7e1312]: "Correlation: ui-1793972797640-067704ff9afed"
+        - generic [ref=f7e148]:
+          - paragraph [ref=f7e1510]: "Caracteristicas: contrato BFF no disponible o sin permisos (El servicio no está disponible temporalmente.)."
+          - paragraph [ref=f7e150]: "Transporte: configuracion BFF no disponible o sin permisos (La solicitud no es válida.)."
+        - navigation "Pestanas de producto" [ref=f7e151]:
+          - button "Ajustes basicos" [ref=f7e152] [cursor=pointer]
+          - button "Imagenes" [ref=f7e153] [cursor=pointer]
+          - button "Variantes" [ref=f7e154] [cursor=pointer]
+          - button "Precio" [ref=f7e155] [cursor=pointer]
+          - button "Inventario" [ref=f7e156] [cursor=pointer]
+          - button "Transporte" [ref=f7e157] [cursor=pointer]
+          - button "SEO" [ref=f7e158] [cursor=pointer]
+          - button "Auditoria" [ref=f7e159] [cursor=pointer]
+        - generic [ref=f7e160]:
+          - generic [ref=f7e161]:
+            - generic [ref=f7e1575]:
+              - generic [ref=f7e1576]:
+                - generic [ref=f7e1577]:
+                  - heading "Producto y variantes" [level=2] [ref=f7e1578]
+                  - paragraph [ref=f7e1579]: Gestiona producto y variantes vendibles con SKU, EAN, precio, stock, imagenes y estado propios.
+                - generic [ref=f7e1580]:
+                  - group [ref=f7e1581]:
+                    - generic "Filtros" [ref=f7e1582] [cursor=pointer]
+                    - option "Todas" [selected]
+                    - option "Activas"
+                    - option "Inactivas"
+                    - option "Todas" [selected]
+                    - option "Visibles"
+                    - option "Ocultas"
+                  - group [ref=f7e1583]:
+                    - generic "Acciones masivas" [ref=f7e1584] [cursor=pointer]
+                  - button "Anadir variante" [ref=f7e1585] [cursor=pointer]
+              - generic [ref=f7e1586]:
+                - generic [ref=f7e1587]:
+                  - strong [ref=f7e1588]: Generador rapido desde atributos
+                  - paragraph [ref=f7e1589]: Usalo solo cuando cada resultado generado sea una variante vendible.
+                - generic [ref=f7e1590]:
+                  - generic [ref=f7e1591]:
+                    - generic [ref=f7e1592]: Color
+                    - textbox "Color" [ref=f7e1593]:
+                      - /placeholder: rojo, azul
+                      - text: negro
+                  - generic [ref=f7e1594]:
+                    - generic [ref=f7e1595]: Talla
+                    - textbox "Talla" [ref=f7e1596]:
+                      - /placeholder: S, M, L
+                      - text: M, L
+                - button "Generar variantes" [ref=f7e1597] [cursor=pointer]
+              - table [ref=f7e1599]:
+                - rowgroup [ref=f7e1600]:
+                  - row [ref=f7e1601]:
+                    - columnheader "Seleccion" [ref=f7e1602]: Sel.
+                    - columnheader "Imagen" [ref=f7e1603]
+                    - columnheader "Producto / variante" [ref=f7e1604]
+                    - columnheader "SKU / referencia" [ref=f7e1605]
+                    - columnheader "EAN" [ref=f7e1606]
+                    - columnheader "Precio" [ref=f7e1607]
+                    - columnheader "Stock" [ref=f7e1608]
+                    - columnheader "Configuracion" [ref=f7e1609]
+                    - columnheader "Accion" [ref=f7e1610]
+                - rowgroup [ref=f7e1611]:
+                  - row [ref=f7e1612]:
+                    - cell [ref=f7e1613]:
+                      - radio "Seleccionar producto" [ref=f7e1614]
+                    - cell "Portada producto" [ref=f7e1615]
+                    - cell "Casco QA integral PW 20261106 variantId 5a77ecf9-e4e1-4669-8a6d-40c88641787b Producto - Casco QA integral PW 20261106" [ref=f7e1619]:
+                      - textbox "Nombre del producto" [ref=f7e1620]: Casco QA integral PW 20261106
+                      - generic [ref=f7e1621]: variantId 5a77ecf9-e4e1-4669-8a6d-40c88641787b
+                      - generic [ref=f7e1622]: Producto - Casco QA integral PW 20261106
+                    - cell [ref=f7e1623]:
+                      - textbox "Referencia principal" [ref=f7e1624]: QA-PW-20261106-CASCO
+                    - cell [ref=f7e1625]:
+                      - textbox "EAN principal" [ref=f7e1626]: "2000000000015"
+                    - cell "121.00 Precio del producto" [ref=f7e1627]:
+                      - generic [ref=f7e1628]:
+                        - textbox "Precio del producto / defaultVariant" [ref=f7e1629]: "121.00"
+                        - generic [ref=f7e1630]: Precio del producto
+                    - cell [ref=f7e1631]:
+                      - textbox "Stock principal" [ref=f7e1632]: "10"
+                    - cell "Inactiva Visible" [ref=f7e1633]:
+                      - generic [ref=f7e1634]:
+                        - generic [ref=f7e1635]: Inactiva
+                        - generic [ref=f7e1636]: Visible
+                    - cell [ref=f7e1637]:
+                      - button "Editar base" [ref=f7e1638] [cursor=pointer]
+                  - row [ref=f7e1639]:
+                    - cell [ref=f7e1640]:
+                      - radio "Seleccionar CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M" [checked] [ref=f7e1641]
+                    - cell "Heredada" [ref=f7e1642]
+                    - 'cell "Casco QA integral PW 20261106 / negro / M variantId fb263385-63b6-4d5a-baa5-3afbe8534ced Atributos: color: negro, size: m" [ref=f7e1646]':
+                      - textbox "Nombre variante 1" [ref=f7e1647]: Casco QA integral PW 20261106 / negro / M
+                      - generic [ref=f7e1648]: variantId fb263385-63b6-4d5a-baa5-3afbe8534ced
+                      - generic [ref=f7e1649]: "Atributos: color: negro, size: m"
+                    - cell [ref=f7e1650]:
+                      - textbox "Referencia variante 1" [ref=f7e1651]: CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M
+                    - cell [ref=f7e1652]:
+                      - textbox "EAN variante 1" [ref=f7e1653]: "2000000000022"
+                    - cell "Heredar Usa precio del producto" [ref=f7e1654]:
+                      - generic [ref=f7e1655]:
+                        - spinbutton "Precio variante 1" [ref=f7e1656]
+                        - button "Heredar" [disabled] [ref=f7e1657]
+                        - generic [ref=f7e1658]: Usa precio del producto
+                    - cell [ref=f7e1659]:
+                      - spinbutton "Stock variante 1" [ref=f7e1660]: "8"
+                    - cell "Activa Activa variante 1 Activa Visible variante 1 Visible" [ref=f7e1661]:
+                      - generic [ref=f7e1662]:
+                        - generic [ref=f7e1663]: Activa
+                        - generic [ref=f7e1664]:
+                          - checkbox "Activa variante 1" [checked] [ref=f7e1665]
+                          - text: Activa
+                        - generic [ref=f7e1666]:
+                          - checkbox "Visible variante 1" [checked] [ref=f7e1667]
+                          - text: Visible
+                    - cell [ref=f7e1668]:
+                      - button "Desactivar" [ref=f7e1670] [cursor=pointer]
+                  - row [ref=f7e1671]:
+                    - cell [ref=f7e1672]:
+                      - radio "Seleccionar CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L" [ref=f7e1673]
+                    - cell "Heredada" [ref=f7e1674]
+                    - 'cell "Casco QA integral PW 20261106 / negro / L variantId cc38bf37-e361-4fb4-8262-76b5905ec049 Atributos: color: negro, size: l" [ref=f7e1678]':
+                      - textbox "Nombre variante 2" [ref=f7e1679]: Casco QA integral PW 20261106 / negro / L
+                      - generic [ref=f7e1680]: variantId cc38bf37-e361-4fb4-8262-76b5905ec049
+                      - generic [ref=f7e1681]: "Atributos: color: negro, size: l"
+                    - cell [ref=f7e1682]:
+                      - textbox "Referencia variante 2" [ref=f7e1683]: CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L
+                    - cell [ref=f7e1684]:
+                      - textbox "EAN variante 2" [ref=f7e1685]: "2000000000039"
+                    - cell "Heredar Usa precio del producto" [ref=f7e1686]:
+                      - generic [ref=f7e1687]:
+                        - spinbutton "Precio variante 2" [ref=f7e1688]
+                        - button "Heredar" [disabled] [ref=f7e1689]
+                        - generic [ref=f7e1690]: Usa precio del producto
+                    - cell [ref=f7e1691]:
+                      - spinbutton "Stock variante 2" [ref=f7e1692]: "5"
+                    - cell "Activa Activa variante 2 Activa Visible variante 2 Visible" [ref=f7e1693]:
+                      - generic [ref=f7e1694]:
+                        - generic [ref=f7e1695]: Activa
+                        - generic [ref=f7e1696]:
+                          - checkbox "Activa variante 2" [checked] [ref=f7e1697]
+                          - text: Activa
+                        - generic [ref=f7e1698]:
+                          - checkbox "Visible variante 2" [checked] [ref=f7e1699]
+                          - text: Visible
+                    - cell [ref=f7e1700]:
+                      - button "Desactivar" [ref=f7e1702] [cursor=pointer]
+            - generic [ref=f7e1703]:
+              - generic [ref=f7e1704]:
+                - generic [ref=f7e1705]:
+                  - heading "Servicios adicionales" [level=2] [ref=f7e1706]
+                  - paragraph [ref=f7e1707]: Variante 1 - Casco QA integral PW 20261106 / negro / M (CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M)
+                - button "Servicios adicionales" [ref=f7e1708] [cursor=pointer]
+              - paragraph [ref=f7e1913]: offering attached to variant
+              - paragraph [ref=f7e1710]: No hay servicios adicionales asociados a esta variante.
+            - generic [ref=f7e1711]:
+              - generic [ref=f7e1712]:
+                - generic [ref=f7e1713]:
+                  - heading "Atributos de combinacion" [level=2] [ref=f7e1714]
+                  - paragraph [ref=f7e1715]: Casco QA integral PW 20261106 / negro / M
+                - generic [ref=f7e1716]:
+                  - generic [ref=f7e1717]: 2 asociados
+                  - button "Atributos de combinacion" [ref=f7e1718] [cursor=pointer]
+              - generic [ref=f7e1719]:
+                - paragraph [ref=f7e1720]: Los atributos guardados se actualizaran al guardar la ficha. Quitar un atributo persistido lo desactiva de forma segura.
+                - button "Cerrar aviso de atributos guardados" [ref=f7e1721] [cursor=pointer]
+              - generic [ref=f7e1725]:
+                - paragraph [ref=f7e1726]: Estos atributos identifican esta variante vendible. Si un color o talla necesita stock o imagen propia, crea una variante separada.
+                - button "Cerrar ayuda de atributos de combinacion" [ref=f7e1727] [cursor=pointer]
+              - generic [ref=f7e1732]:
+                - generic [ref=f7e1733]:
+                  - generic [ref=f7e1734]:
+                    - generic [ref=f7e1735]: Atributo
+                    - textbox "Atributo de combinacion 1" [ref=f7e1736]:
+                      - /placeholder: color
+                      - text: color
+                  - textbox "Valor de combinacion 1" [ref=f7e1738]:
+                    - /placeholder: negro
+                    - text: negro
+                  - generic [ref=f7e1739]: Guardado
+                  - button "Quitar" [ref=f7e1741] [cursor=pointer]
+                - generic [ref=f7e1742]:
+                  - generic [ref=f7e1743]:
+                    - generic [ref=f7e1744]: Atributo
+                    - textbox "Atributo de combinacion 2" [ref=f7e1745]:
+                      - /placeholder: color
+                      - text: size
+                  - textbox "Valor de combinacion 2" [ref=f7e1747]:
+                    - /placeholder: negro
+                    - text: m
+                  - generic [ref=f7e1748]: Guardado
+                  - button "Quitar" [ref=f7e1750] [cursor=pointer]
+              - button "Anadir manual" [ref=f7e1751] [cursor=pointer]
+          - complementary [ref=f7e260]:
+            - generic [ref=f7e261]:
+              - heading "Resumen" [level=2] [ref=f7e262]
+              - generic [ref=f7e265]:
+                - generic [ref=f7e266]:
+                  - term [ref=f7e267]: Tipo
+                  - definition [ref=f7e268]: Con variantes
+                - generic [ref=f7e269]:
+                  - term [ref=f7e270]: Precio base
+                  - definition [ref=f7e271]: 121.00 EUR
+                - generic [ref=f7e272]:
+                  - term [ref=f7e273]: Variantes
+                  - definition [ref=f7e274]: "2"
+                - generic [ref=f7e275]:
+                  - term [ref=f7e276]: Imagenes
+                  - definition [ref=f7e277]: "2"
+            - generic [ref=f7e1554]:
+              - heading "Imagenes de variante" [level=2] [ref=f7e1555]
+              - generic [ref=f7e1556]:
+                - generic [ref=f7e1557]: Variante seleccionada
+                - combobox "Variante seleccionada" [ref=f7e1558]:
+                  - option "Producto - Casco QA integral PW 20261106 (QA-PW-20261106-CASCO)"
+                  - option "Variante 1 - Casco QA integral PW 20261106 / negro / M (CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M)" [selected]
+                  - option "Variante 2 - Casco QA integral PW 20261106 / negro / L (CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L)"
+              - generic [ref=f7e1559]:
+                - generic [ref=f7e1560]:
+                  - button [ref=f7e1561] [cursor=pointer]:
+                    - img "Imagen de cascos utilizada para la prueba QA PW 20261106" [ref=f7e1562]
+                  - generic [ref=f7e1563]:
+                    - checkbox "Asignada" [ref=f7e1564]
+                    - text: Asignada
+                  - generic [ref=f7e1565]:
+                    - radio "Portada" [ref=f7e1566]
+                    - text: Portada
+                - generic [ref=f7e1567]:
+                  - button [ref=f7e1568] [cursor=pointer]:
+                    - img "Casco QA integral PW 20261106 imagen 2" [ref=f7e1569]
+                  - generic [ref=f7e1570]:
+                    - checkbox "Asignada" [ref=f7e1571]
+                    - text: Asignada
+                  - generic [ref=f7e1572]:
+                    - radio "Portada" [ref=f7e1573]
+                    - text: Portada
+              - button "Limpiar imagenes y heredar producto" [ref=f7e1574] [cursor=pointer]
+        - dialog [ref=f7e1914]:
+          - generic [ref=f7e1753]:
+            - generic [ref=f7e1754]:
+              - generic [ref=f7e1755]: 0 asociados
+              - heading "Servicios adicionales" [level=2] [ref=f7e1915]
+            - button "Cerrar" [ref=f7e1916] [cursor=pointer]
+          - generic [ref=f7e1758]:
+            - paragraph [ref=f7e1918]: offering attached to variant
+            - generic [ref=f7e1919]:
+              - generic [ref=f7e1920]:
+                - heading "Todos los servicios" [level=3] [ref=f7e1921]
+                - link "Gestionar servicios" [ref=f7e1922] [cursor=pointer]:
+                  - /url: /admin/catalogo/offerings
+              - generic [ref=f7e1923]:
+                - button "serviceEnsamblaje 10.55 EUR Elegir" [ref=f7e1924] [cursor=pointer]:
+                  - generic [ref=f7e1925]:
+                    - text: service
+                    - strong [ref=f7e1926]: Ensamblaje
+                  - generic [ref=f7e1927]: 10.55 EUR
+                  - generic [ref=f7e1928]: Elegir
+                - button "warrantyOffering QA 20260623 19.95 EUR Elegir" [ref=f7e1929] [cursor=pointer]:
+                  - generic [ref=f7e1930]:
+                    - text: warranty
+                    - strong [ref=f7e1931]: Offering QA 20260623
+                  - generic [ref=f7e1932]: 19.95 EUR
+                  - generic [ref=f7e1933]: Elegir
+                - button "serviceGarantia extendida E2E Codex 0.01 EUR Elegir" [ref=f7e1934] [cursor=pointer]:
+                  - generic [ref=f7e1935]:
+                    - text: service
+                    - strong [ref=f7e1936]: Garantia extendida E2E Codex
+                  - generic [ref=f7e1937]: 0.01 EUR
+                  - generic [ref=f7e1938]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1939] [cursor=pointer]:
+                  - generic [ref=f7e1940]:
+                    - text: service
+                    - strong [ref=f7e1941]: Garantia extendida
+                  - generic [ref=f7e1942]: 5.00 USD
+                  - generic [ref=f7e1943]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1944] [cursor=pointer]:
+                  - generic [ref=f7e1945]:
+                    - text: service
+                    - strong [ref=f7e1946]: Garantia extendida
+                  - generic [ref=f7e1947]: 5.00 USD
+                  - generic [ref=f7e1948]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1949] [cursor=pointer]:
+                  - generic [ref=f7e1950]:
+                    - text: service
+                    - strong [ref=f7e1951]: Garantia extendida
+                  - generic [ref=f7e1952]: 5.00 USD
+                  - generic [ref=f7e1953]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1954] [cursor=pointer]:
+                  - generic [ref=f7e1955]:
+                    - text: service
+                    - strong [ref=f7e1956]: Garantia extendida
+                  - generic [ref=f7e1957]: 5.00 USD
+                  - generic [ref=f7e1958]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1959] [cursor=pointer]:
+                  - generic [ref=f7e1960]:
+                    - text: service
+                    - strong [ref=f7e1961]: Garantia extendida
+                  - generic [ref=f7e1962]: 5.00 USD
+                  - generic [ref=f7e1963]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1964] [cursor=pointer]:
+                  - generic [ref=f7e1965]:
+                    - text: service
+                    - strong [ref=f7e1966]: Garantia extendida
+                  - generic [ref=f7e1967]: 5.00 USD
+                  - generic [ref=f7e1968]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1969] [cursor=pointer]:
+                  - generic [ref=f7e1970]:
+                    - text: service
+                    - strong [ref=f7e1971]: Garantia extendida
+                  - generic [ref=f7e1972]: 5.00 USD
+                  - generic [ref=f7e1973]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1974] [cursor=pointer]:
+                  - generic [ref=f7e1975]:
+                    - text: service
+                    - strong [ref=f7e1976]: Garantia extendida
+                  - generic [ref=f7e1977]: 5.00 USD
+                  - generic [ref=f7e1978]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1979] [cursor=pointer]:
+                  - generic [ref=f7e1980]:
+                    - text: service
+                    - strong [ref=f7e1981]: Garantia extendida
+                  - generic [ref=f7e1982]: 5.00 USD
+                  - generic [ref=f7e1983]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1984] [cursor=pointer]:
+                  - generic [ref=f7e1985]:
+                    - text: service
+                    - strong [ref=f7e1986]: Garantia extendida
+                  - generic [ref=f7e1987]: 5.00 USD
+                  - generic [ref=f7e1988]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1989] [cursor=pointer]:
+                  - generic [ref=f7e1990]:
+                    - text: service
+                    - strong [ref=f7e1991]: Garantia extendida
+                  - generic [ref=f7e1992]: 5.00 USD
+                  - generic [ref=f7e1993]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1994] [cursor=pointer]:
+                  - generic [ref=f7e1995]:
+                    - text: service
+                    - strong [ref=f7e1996]: Garantia extendida
+                  - generic [ref=f7e1997]: 5.00 USD
+                  - generic [ref=f7e1998]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e1999] [cursor=pointer]:
+                  - generic [ref=f7e2000]:
+                    - text: service
+                    - strong [ref=f7e2001]: Garantia extendida
+                  - generic [ref=f7e2002]: 5.00 USD
+                  - generic [ref=f7e2003]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e2004] [cursor=pointer]:
+                  - generic [ref=f7e2005]:
+                    - text: service
+                    - strong [ref=f7e2006]: Garantia extendida
+                  - generic [ref=f7e2007]: 5.00 USD
+                  - generic [ref=f7e2008]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e2009] [cursor=pointer]:
+                  - generic [ref=f7e2010]:
+                    - text: service
+                    - strong [ref=f7e2011]: Garantia extendida
+                  - generic [ref=f7e2012]: 5.00 USD
+                  - generic [ref=f7e2013]: Elegir
+                - button "serviceSoporte prioritario 9.99 USD Elegir" [ref=f7e2014] [cursor=pointer]:
+                  - generic [ref=f7e2015]:
+                    - text: service
+                    - strong [ref=f7e2016]: Soporte prioritario
+                  - generic [ref=f7e2017]: 9.99 USD
+                  - generic [ref=f7e2018]: Elegir
+                - button "warrantyGarantia extendida 18.99 USD Elegir" [ref=f7e2019] [cursor=pointer]:
+                  - generic [ref=f7e2020]:
+                    - text: warranty
+                    - strong [ref=f7e2021]: Garantia extendida
+                  - generic [ref=f7e2022]: 18.99 USD
+                  - generic [ref=f7e2023]: Elegir
+                - button "serviceInstalacion pro 24.99 USD Elegir" [ref=f7e2024] [cursor=pointer]:
+                  - generic [ref=f7e2025]:
+                    - text: service
+                    - strong [ref=f7e2026]: Instalacion pro
+                  - generic [ref=f7e2027]: 24.99 USD
+                  - generic [ref=f7e2028]: Elegir
+                - button "serviceInstalacion basica 14.99 USD Elegir" [ref=f7e2029] [cursor=pointer]:
+                  - generic [ref=f7e2030]:
+                    - text: service
+                    - strong [ref=f7e2031]: Instalacion basica
+                  - generic [ref=f7e2032]: 14.99 USD
+                  - generic [ref=f7e2033]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e2034] [cursor=pointer]:
+                  - generic [ref=f7e2035]:
+                    - text: service
+                    - strong [ref=f7e2036]: Garantia extendida
+                  - generic [ref=f7e2037]: 5.00 USD
+                  - generic [ref=f7e2038]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e2039] [cursor=pointer]:
+                  - generic [ref=f7e2040]:
+                    - text: service
+                    - strong [ref=f7e2041]: Garantia extendida
+                  - generic [ref=f7e2042]: 5.00 USD
+                  - generic [ref=f7e2043]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e2044] [cursor=pointer]:
+                  - generic [ref=f7e2045]:
+                    - text: service
+                    - strong [ref=f7e2046]: Garantia extendida
+                  - generic [ref=f7e2047]: 5.00 USD
+                  - generic [ref=f7e2048]: Elegir
+                - button "serviceGarantia extendida 5.00 USD Elegir" [ref=f7e2049] [cursor=pointer]:
+                  - generic [ref=f7e2050]:
+                    - text: service
+                    - strong [ref=f7e2051]: Garantia extendida
+                  - generic [ref=f7e2052]: 5.00 USD
+                  - generic [ref=f7e2053]: Elegir
+        - group "Acciones del producto" [ref=f7e278]:
+          - status [ref=f7e279]:
+            - generic [ref=f7e280]: Sin publicar
+            - generic [ref=f7e281]: Guardado
+          - generic [ref=f7e282]:
+            - button "Vista previa" [ref=f7e283] [cursor=pointer]
+            - button "Guardar" [ref=f7e1323] [cursor=pointer]
+            - button "Más acciones del producto" [ref=f7e288] [cursor=pointer]: ⋯
+  - button "Open Next.js Dev Tools" [ref=f7e294] [cursor=pointer]
+  - alert [ref=f7e317]

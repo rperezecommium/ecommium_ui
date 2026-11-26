@@ -52,11 +52,8 @@ function scopedPath(path: string, organizationId: string, shopId: string) {
   return `${path}?${new URLSearchParams({ organizationId, shopId }).toString()}`;
 }
 
-function finish(tab: ShippingAdminTab, message?: string, includeInactive?: boolean): never {
+function finish(tab: ShippingAdminTab, message?: string): never {
   const params = new URLSearchParams({ tab });
-  if (includeInactive) {
-    params.set("includeInactive", "true");
-  }
   if (message) {
     params.set("shippingMessage", message);
   }
@@ -230,10 +227,9 @@ export async function setShippingResourceActiveAction(formData: FormData) {
   const resource = asString(formData.get("resource"));
   const id = asString(formData.get("id"));
   const active = asOptionalBoolean(formData.get("active"));
-  const includeInactive = asString(formData.get("includeInactive")) === "true";
 
   if (!tab || !resource || !id || typeof active !== "boolean") {
-    finish(tab ?? "summary", "Falta recurso, id o estado activo.", includeInactive);
+    finish(tab ?? "summary", "Falta recurso, id o estado activo.");
   }
 
   const result = await patchShippingActive(
@@ -241,7 +237,7 @@ export async function setShippingResourceActiveAction(formData: FormData) {
     scopedPath(`/admin/shipping/${resource}/${encodeURIComponent(id)}/active`, context.organizationId, context.shopId),
     active,
   );
-  finish(tab, mutationMessage(result, active ? "Recurso reactivado." : "Recurso desactivado."), includeInactive);
+  finish(tab, mutationMessage(result, active ? "Recurso reactivado." : "Recurso desactivado."));
 }
 
 export async function transitionShippingFulfillmentAction(formData: FormData) {

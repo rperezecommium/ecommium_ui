@@ -1,0 +1,209 @@
+[
+  {
+    "size": {
+      "width": 1440,
+      "height": 900
+    },
+    "page": {
+      "viewport": 1425,
+      "width": 1425
+    },
+    "shell": [
+      {
+        "id": "f0b81f4e-f5e5-4f0d-b858-3956ad8420c8",
+        "scroll": 1425,
+        "width": 1425
+      },
+      {
+        "id": "1f4c2e56-5fc1-4416-a042-3bd3b4b36e60",
+        "scroll": 1425,
+        "width": 1425
+      }
+    ],
+    "sections": [
+      {
+        "name": "Demostración CMS · Header · Tres franjas",
+        "scroll": 1345,
+        "width": 1345
+      },
+      {
+        "name": "Demostración CMS · Presentación",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Ayuda",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Descarga destacada",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Consulta y trabajos",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Destacados",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Promociones en columnas",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Slider de prueba",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Footer · Columnas y cierre",
+        "scroll": 1160,
+        "width": 1160
+      }
+    ]
+  },
+  {
+    "size": {
+      "width": 820,
+      "height": 1024
+    },
+    "page": {
+      "viewport": 805,
+      "width": 1280
+    },
+    "shell": [
+      {
+        "id": "f0b81f4e-f5e5-4f0d-b858-3956ad8420c8",
+        "scroll": 1280,
+        "width": 805
+      },
+      {
+        "id": "1f4c2e56-5fc1-4416-a042-3bd3b4b36e60",
+        "scroll": 805,
+        "width": 805
+      }
+    ],
+    "sections": [
+      {
+        "name": "Demostración CMS · Header · Tres franjas",
+        "scroll": 1240,
+        "width": 725
+      },
+      {
+        "name": "Demostración CMS · Presentación",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Ayuda",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Descarga destacada",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Consulta y trabajos",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Destacados",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Promociones en columnas",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Slider de prueba",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Footer · Columnas y cierre",
+        "scroll": 685,
+        "width": 684.5
+      }
+    ]
+  },
+  {
+    "size": {
+      "width": 390,
+      "height": 844
+    },
+    "page": {
+      "viewport": 375,
+      "width": 424
+    },
+    "shell": [
+      {
+        "id": "f0b81f4e-f5e5-4f0d-b858-3956ad8420c8",
+        "scroll": 424,
+        "width": 375
+      },
+      {
+        "id": "1f4c2e56-5fc1-4416-a042-3bd3b4b36e60",
+        "scroll": 375,
+        "width": 375
+      }
+    ],
+    "sections": [
+      {
+        "name": "Demostración CMS · Header · Tres franjas",
+        "scroll": 392,
+        "width": 311
+      },
+      {
+        "name": "Demostración CMS · Presentación",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Ayuda",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Descarga destacada",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Consulta y trabajos",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Destacados",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Promociones en columnas",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Slider de prueba",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Footer · Columnas y cierre",
+        "scroll": 298,
+        "width": 297.5
+      }
+    ]
+  }
+]

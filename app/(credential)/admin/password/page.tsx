@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { changeOwnAdminPasswordAction } from "../../../../src/modules/auth/admin-credential-actions";
-import { refreshAdminEmployeeSession } from "../../../../src/modules/auth/admin-session-actions";
+import { getCurrentAdminSession as refreshAdminEmployeeSession } from "../../../../src/modules/auth/current-admin-session";
 
 type AdminPasswordPageProps = {
   searchParams?: Promise<{ error?: string; notice?: string }>;

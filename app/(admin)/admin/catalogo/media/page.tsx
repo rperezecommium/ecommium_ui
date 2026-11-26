@@ -1,3 +1,4 @@
+import { getCurrentAdminSession } from "../../../../../src/modules/auth/current-admin-session";
 import {
   addMediaCollectionItemsAction,
   createMediaCollectionAction,
@@ -18,6 +19,7 @@ type CatalogoMediaPageProps = {
     mediaMessage?: string;
     limit?: string;
     offset?: string;
+    drawer?: string;
   }>;
 };
 
@@ -29,7 +31,10 @@ function numberParam(value: string | undefined, fallback: number) {
 export default async function CatalogoMediaPage({ searchParams }: CatalogoMediaPageProps) {
   const params = await searchParams;
   const context = await getAdminContext();
+  const session = await getCurrentAdminSession();
+  const canManage = Boolean(session?.permissions.some(permission => ["*","admin:*","system.admin","media.assets.write"].includes(permission)));
   const filters = {
+    drawer: params?.drawer === "create" ? "create" as const : undefined,
     q: params?.q ?? "",
     status: params?.status === "all" ? "all" as const : "active" as const,
     collectionId: params?.collectionId ?? "",
@@ -49,6 +54,7 @@ export default async function CatalogoMediaPage({ searchParams }: CatalogoMediaP
 
   return (
     <MediaAdminPage
+      canManage={canManage}
       collections={collections}
       context={context}
       filters={filters}

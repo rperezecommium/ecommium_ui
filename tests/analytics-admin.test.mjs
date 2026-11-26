@@ -1,3 +1,4 @@
+import {loadTs} from "./helpers/load-ts.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -28,6 +29,7 @@ function loadModule(requestAdminBff) {
     exports,
     module: { exports },
     require(specifier) {
+      if(specifier==="../configuracion/health-assessment")return loadTs("src/modules/configuracion/health-assessment.ts");
       if (specifier.endsWith("/shared/bff/admin-client")) return { requestAdminBff };
       if (specifier.endsWith("/shared/config/admin-context")) {
         return { hasRequiredAdminContext: (value) => Boolean(value.organizationId && value.shopId) };

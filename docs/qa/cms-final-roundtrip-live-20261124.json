@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "checks": [
+    "Removed Builder URL reaches the not-found boundary; no editor is mounted",
+    "Real Admin creates and saves a page with two independently remapped section copies",
+    "Reopened Admin edits and saves persisted independent page",
+    "Real Admin publishes through the coordinated BFF command after Builder removal",
+    "Storefront renders the newly created, edited and published document without old editor",
+    "UI despublication confirmed by final BFF receipt; certification-only document retained UNPUBLISHED with history"
+  ],
+  "removedUrlHttpStatus": 200,
+  "pageId": "65cc92ed-6f56-4912-b46d-54120e6b61f7"
+}

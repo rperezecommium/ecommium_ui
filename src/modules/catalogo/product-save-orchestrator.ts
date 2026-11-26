@@ -86,7 +86,7 @@ function findVariantForDraft(
 function hasPositivePrice(draft: ProductDraft) {
   return Boolean(
     draft.pricing.productPrice &&
-      draft.pricing.productPrice.basePriceMinor > 0 &&
+      (draft.pricing.productPrice.basePriceMinor > 0 || (draft.pricing.productPrice.basePriceMinor === 0 && (draft.pricing.productPrice.priceKind === "REGULAR" || Boolean(draft.pricing.productPrice.pricingId)))) &&
       !draft.pricing.productPrice.markedForDeletion,
   );
 }
@@ -621,9 +621,9 @@ export async function saveProductDraft({
 
       const priceResult = price.markedForDeletion && price.pricingId
         ? await gateway.deletePrice({ pricingId: price.pricingId })
-        : price.basePriceMinor > 0 && price.pricingId
+        : (price.basePriceMinor > 0 || (price.basePriceMinor === 0 && price.priceKind === "REGULAR")) && price.pricingId
           ? await gateway.updatePrice({ pricingId: price.pricingId, price })
-          : price.basePriceMinor > 0
+          : (price.basePriceMinor > 0 || (price.basePriceMinor === 0 && price.priceKind === "REGULAR"))
             ? await gateway.createVariantPrice({ productId, variantId, price })
             : { ok: true as const, data: {}, status: 200 };
 

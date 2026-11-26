@@ -30,3 +30,12 @@ pnpm-debug.log*
 
 # macOS
 .DS_Store
+
+/artifacts/products-audit/
+/artifacts/products-live-audit/
+
+# Local controlled QA evidence
+/artifacts/forensic-20261112/
+
+# Local temporary QA files and working copies
+/.tmp/

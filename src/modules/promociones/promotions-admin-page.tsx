@@ -1,4 +1,6 @@
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
 import Link from "next/link";
+import { Search } from "lucide-react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 import {
@@ -189,7 +191,7 @@ function CouponDrawer({
 
   return (
     <div className="adminDrawerBackdrop">
-      <aside className="adminSideDrawer" aria-label={isEditing ? "Editar cupon" : "Crear cupon"}>
+      <AdminResizableDrawer drawerId="promotions-admin-page-coupondrawer-1" className="adminSideDrawer" aria-label={isEditing ? "Editar cupon" : "Crear cupon"}>
         <div className="adminSideDrawerHeader">
           <div>
             <h2>{isEditing ? "Editar cupon" : "Crear cupon"}</h2>
@@ -202,7 +204,7 @@ function CouponDrawer({
         ) : (
           <CouponForm coupon={coupon} filters={filters} />
         )}
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }
@@ -224,7 +226,7 @@ function CouponRows({
 
   return (
     <div className="adminTableScroller">
-      <table className="adminTable seoTable promotionsCouponTable">
+      <table className="adminTable productListTable promotionsCouponTable">
         <colgroup>
           <col className="promotionsCouponCodeColumn" />
           <col className="promotionsCouponNameColumn" />
@@ -346,16 +348,16 @@ export function PromotionsAdminPage({ context, data, filters }: PromotionsAdminP
   const canUseTenant = hasRequiredAdminContext(context);
 
   return (
-    <main className="adminPage seoAdminPage">
+    <main className="adminPage productListPage promotionsAdminPage">
       <div className="adminBreadcrumb">Admin / Promociones</div>
       <div className="adminPageHeader">
         <div>
           <h1 className="adminPageTitle">Promociones</h1>
           <p className="adminPageIntro">
-            Cupones, reglas de carrito y descuentos promocionales gestionados por Promotions.
+            Gestiona cupones, descuentos y vigencia de las reglas de carrito.
           </p>
         </div>
-        <Link className="adminButton adminButtonPrimary" href={promotionsHref(filters, { drawer: "create", couponCode: undefined })}>
+        <Link className="employeesTextAction" href={promotionsHref(filters, { drawer: "create", couponCode: undefined })}>
           Crear cupon
         </Link>
       </div>
@@ -372,71 +374,32 @@ export function PromotionsAdminPage({ context, data, filters }: PromotionsAdminP
       ) : null}
       <ResultBanner data={data} />
 
-      <section className="adminSummaryGrid" aria-label="Resumen promociones">
-        <div>
-          <span>Total</span>
-          <strong>{data.coupons.data.total}</strong>
-        </div>
-        <div>
-          <span>Activos</span>
-          <strong>{activeCount}</strong>
-        </div>
-        <div>
-          <span>Inactivos</span>
-          <strong>{inactiveCount}</strong>
-        </div>
-        <div>
-          <span>Contexto</span>
-          <strong>{context.shopAlias || context.shopId || "Pendiente"}</strong>
-        </div>
-      </section>
+      <form aria-label="Filtros promociones" className="productListSearchPanel" action="/admin/promociones" method="get">
+        <input aria-label="Buscar cupones por codigo o nombre" name="q" type="search" defaultValue={filters.q ?? ""} placeholder="Buscar cupones" />
+        <select aria-label="Filtrar por estado" name="status" defaultValue={filters.status ?? "active"}>
+          <option value="active">Activos</option>
+          <option value="all">Todos los estados</option>
+        </select>
+        <button className="adminButton adminButtonPrimary" type="submit"><Search aria-hidden="true" size={16} />Buscar</button>
+        <Link className="employeesTextAction" href="/admin/promociones">Limpiar filtros</Link>
+      </form>
 
-      <section className="pricingPanel">
-        <div className="pricingPanelHeader">
-          <div>
-            <h2>Reglas de carrito</h2>
-            <p>
-              Equivalente operativo a los cart rules de PrestaShop: cupones por codigo, importe fijo o porcentaje,
-              compra minima, moneda, vigencia y activacion.
-            </p>
+      <section className="productListGrid" aria-label="Listado de promociones">
+        <div className="adminCardHeader productListGridHeader">
+          <div><h2>Reglas de carrito ({data.coupons.data.total})</h2></div>
+          <div className="adminButtonRow promotionsListContext">
+            <span>{activeCount} activos · {inactiveCount} inactivos en esta lista</span>
+            <span>Tienda: {context.shopName || context.shopAlias || "Pendiente"} · {context.locale || "Sin locale"}</span>
           </div>
-          <span className="adminStatusBadge adminStatusBadgeNeutral">BFF Admin</span>
         </div>
-        <form aria-label="Filtros promociones" className="pricingFilterBar promotionsFilterBar" method="get">
-          <label className="adminField">
-            <span>Buscar</span>
-            <input name="q" defaultValue={filters.q ?? ""} placeholder="Codigo o nombre" />
-          </label>
-          <label className="adminField">
-            <span>Estado</span>
-            <select name="status" defaultValue={filters.status ?? "active"}>
-              <option value="active">Activos</option>
-              <option value="all">Todos</option>
-            </select>
-          </label>
-          <button className="adminButton adminButtonPrimary" type="submit">Aplicar</button>
-          <Link className="adminButton" href="/admin/promociones">Limpiar</Link>
-        </form>
         <CouponRows coupons={coupons} context={context} filters={filters} />
       </section>
 
-      <section className="pricingPanel">
-        <div className="pricingPanelHeader">
-          <div>
-            <h2>Reglas de precio de catalogo</h2>
-            <p>
-              Los precios especificos por producto, variante, grupo, pais o cantidad no se editan aqui. En Ecommium
-              pertenecen a Pricing y se gobiernan desde Configuracion &gt; Precios.
-            </p>
-          </div>
-          <Link className="adminButton adminButtonTiny" href="/admin/configuracion/precios?tab=fixed">
-            Ver fixed prices
-          </Link>
-        </div>
-        <div className="adminEmptyState">
-          Usa Configuracion &gt; Precios para price tables, rules, fixed prices y computed-auto.
-        </div>
-      </section>
+      <details className="promotionsPricingHelp">
+        <summary>Reglas de precio de catalogo</summary>
+        <p>Los precios por producto, variante, grupo, pais o cantidad se gestionan desde Configuracion &gt; Precios.</p>
+        <Link className="employeesTextAction" href="/admin/configuracion/precios?tab=fixed">Ver fixed prices</Link>
+      </details>
       <CouponDrawer filters={filters} coupon={selectedCoupon} />
     </main>
   );

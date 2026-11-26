@@ -1,0 +1,319 @@
+{
+  "date": "2026-11-16",
+  "overall": "PAYPAL REGISTRADO E INVITADO Y STRIPE INVITADO VALIDADOS SANDBOX; HISTORICOS PARCIALMENTE PENDIENTES",
+  "unit_tests": {
+    "ui": 677,
+    "bff": 1029,
+    "checkout": 66,
+    "shipping": 42,
+    "payments": 74,
+    "orders": 30,
+    "inventory": 44
+  },
+  "unit_total": 1962,
+  "unit_result": "PASS",
+  "builds": "PASS affected packages and UI",
+  "ui_lint": "PASS, 3 existing warnings",
+  "backend_lint": "NOT FULL PASS; existing errors and missing Shipping/Inventory config",
+  "guest_cart_browser": "PASS add and quantity1/2/1 without Customer cookie",
+  "postgres_inventory_concurrency": "PASS real isolated PostgreSQL",
+  "first_purchase": {
+    "reference": "10050",
+    "paypal_capture": "COMPLETED",
+    "order_count": 1,
+    "settlement_count": 1,
+    "reservation_count": 2,
+    "on_hand_before": 3,
+    "on_hand_after": 1,
+    "expected_on_hand_after": 2,
+    "result": "FAILED_INVENTORY_UNIQUENESS",
+    "historical_reconciliation": "STOCK COMPENSATED +1 VIA ADMIN; DUPLICATE CONFIRMED RESERVATIONS PRESERVED; FORMAL RECONCILIATION UNRESOLVED"
+  },
+  "second_purchase": {
+    "transactionId": "eeaac384-4dee-48db-acbd-3550c376c90d",
+    "cartId": "of_17b2011d-a3ef-4f8c-89a8-cf0c46561c51",
+    "paymentStatus": "SETTLED",
+    "amountMinor": 419673,
+    "currency": "EUR",
+    "result": "PAYMENT_AND_ORDER_CREATED_BUT_PAID_CART_EMPTIED",
+    "orderReference": "10051",
+    "providerCaptureId": "07754293A3795792J",
+    "historical_recovery": "NO AUTHENTIC FULL SNAPSHOT FOUND; NOT RESTORED"
+  },
+  "production_certification": false,
+  "stripe": "VALIDADO EUR SANDBOX INVITADO",
+  "final_purchase": {
+    "result": "PASS_SANDBOX_WITH_SIMULATED_DATA",
+    "orderReference": "10052",
+    "orderId": "c5f89706-efaf-4d75-902e-49c7f72fcb9c",
+    "transactionId": "c5f89706-efaf-4d75-902e-49c7f72fcb9c",
+    "cartId": "of_4311c255-4f20-434c-a1c1-48571133a8f2",
+    "currency": "EUR",
+    "amountMinor": 419673,
+    "productMinor": 419612,
+    "shippingMinor": 61,
+    "pricingRuleId": "582250c8-69ec-4712-89b4-faf945403edb",
+    "context": {
+      "locale": "es-ES",
+      "channel": "web",
+      "country": "ES",
+      "currency": "EUR",
+      "tradePolicy": "default",
+      "countrySource": "DELIVERY_ADDRESS"
+    },
+    "orderCount": 1,
+    "settlementCount": 1,
+    "provider": "paypal",
+    "providerEnvironment": "sandbox",
+    "providerCaptureId": "7TF501019R947402H",
+    "providerCaptureStatus": "COMPLETED",
+    "providerShippingMatchesCart": true,
+    "inventoryCommit": "COMMITTED",
+    "reservationCount": 1,
+    "stockMatchesExpectedDecrement": true,
+    "unitsCommitted": 1,
+    "expectedUnits": 1,
+    "testWarehouseOnHandBefore": 1,
+    "testWarehouseOnHandAfter": 0,
+    "simulatedData": [
+      "product package",
+      "warehouse stock",
+      "delivery address",
+      "order-only document",
+      "SANDBOX_BUYER"
+    ],
+    "limitations": [
+      "Full browser guest purchase not validated",
+      "Stripe not validated",
+      "Not a production certification"
+    ],
+    "paidCartSnapshotPreserved": "VERIFIED_BY_SHA256_MATCH"
+  },
+  "concurrent_order_replays": {
+    "statuses": [
+      201,
+      201
+    ],
+    "sameOrderReference": "10052",
+    "sameEventId": "3b7b6020-629d-50b0-a737-94c06189706b",
+    "postReplayVerification": "PASS same single order/settlement/reservation and stock0"
+  },
+  "guest_purchase": {
+    "result": "PASS_SANDBOX_WITH_SIMULATED_DATA",
+    "orderReference": "10053",
+    "orderId": "fae52554-e803-4d5a-9e47-85c9886ff147",
+    "transactionId": "fae52554-e803-4d5a-9e47-85c9886ff147",
+    "cartId": "of_e93dd98a-dd28-43a4-bd88-8831071df23a",
+    "currency": "EUR",
+    "amountMinor": 419673,
+    "productMinor": 419612,
+    "shippingMinor": 61,
+    "pricingRuleId": "582250c8-69ec-4712-89b4-faf945403edb",
+    "context": {
+      "locale": "es-ES",
+      "channel": "web",
+      "country": "ES",
+      "currency": "EUR",
+      "tradePolicy": "default",
+      "countrySource": "DELIVERY_ADDRESS"
+    },
+    "orderCount": 1,
+    "settlementCount": 1,
+    "provider": "paypal",
+    "providerEnvironment": "sandbox",
+    "providerCaptureId": "7AS57939C5788162H",
+    "providerCaptureStatus": "COMPLETED",
+    "providerShippingMatchesCart": true,
+    "inventoryCommit": "COMMITTED",
+    "reservationCount": 1,
+    "stockMatchesExpectedDecrement": true,
+    "unitsCommitted": 1,
+    "expectedUnits": 1,
+    "testWarehouseOnHandBefore": 1,
+    "testWarehouseOnHandAfter": 0,
+    "simulatedData": [
+      "product package",
+      "warehouse stock",
+      "delivery address",
+      "order-only document",
+      "SANDBOX_BUYER"
+    ],
+    "ownerScriptLimitationsAtRun": [
+      "Full browser guest purchase not validated",
+      "Stripe not validated",
+      "Not a production certification"
+    ],
+    "browserActor": "guest",
+    "customerCookiePresent": false,
+    "guestIdentityVerified": true,
+    "paidCartSnapshotPreserved": "VERIFIED_BY_SHA256_MATCH",
+    "newCurrentCart": {
+      "differentFromPaid": true,
+      "items": 0
+    },
+    "tracking": {
+      "path": "/pedido/10053/seguimiento",
+      "confirmed": true
+    },
+    "concurrentOrderReplays": {
+      "statuses": [
+        201,
+        201
+      ],
+      "sameOrderReference": "10053",
+      "postReplayOwnerVerification": "PASS single order/settlement/reservation; stock0"
+    },
+    "limitations": [
+      "Not a production certification",
+      "Guest authorization/security backlog remains open"
+    ]
+  },
+  "stripe_purchase": {
+    "result": "PASS_SANDBOX_WITH_SIMULATED_DATA",
+    "orderReference": "10054",
+    "orderId": "ac8564e4-19b2-406b-83a5-8880cb74398a",
+    "transactionId": "ac8564e4-19b2-406b-83a5-8880cb74398a",
+    "cartId": "of_8cf06bff-e4d0-43d8-9280-a1ab1a314031",
+    "currency": "EUR",
+    "amountMinor": 419673,
+    "productMinor": 419612,
+    "shippingMinor": 61,
+    "pricingRuleId": "582250c8-69ec-4712-89b4-faf945403edb",
+    "context": {
+      "locale": "es-ES",
+      "channel": "web",
+      "country": "ES",
+      "currency": "EUR",
+      "tradePolicy": "default",
+      "countrySource": "DELIVERY_ADDRESS"
+    },
+    "orderCount": 1,
+    "settlementCount": 1,
+    "provider": "stripe",
+    "providerEnvironment": "sandbox",
+    "livemode": false,
+    "providerPaymentIntentId": "pi_3UcQk4CAxhBYlrpM09KbImPk",
+    "providerAuthorizedAmountMinor": 419673,
+    "providerCapturedAmountMinor": 419673,
+    "providerAmountReceivedMinor": 419673,
+    "guestIdentityVerified": true,
+    "providerCaptureId": "ch_3UcQk4CAxhBYlrpM0fy1EoLH",
+    "providerCaptureStatus": "succeeded",
+    "providerShippingMatchesCart": null,
+    "inventoryCommit": "COMMITTED",
+    "reservationCount": 1,
+    "stockMatchesExpectedDecrement": true,
+    "unitsCommitted": 1,
+    "expectedUnits": 1,
+    "testWarehouseOnHandBefore": 1,
+    "testWarehouseOnHandAfter": 0,
+    "simulatedData": [
+      "product package",
+      "warehouse stock",
+      "delivery address",
+      "order-only document",
+      "STRIPE_OFFICIAL_TEST_CARD"
+    ],
+    "limitations": [
+      "Not a production certification",
+      "Stripe shipping address not collected; Checkout/Orders retain validated delivery address"
+    ],
+    "browserActor": "guest",
+    "customerCookiePresent": false,
+    "paidCartSnapshotPreserved": "VERIFIED_BY_SHA256_MATCH",
+    "tracking": {
+      "path": "/pedido/10054/seguimiento",
+      "confirmed": true
+    },
+    "concurrentOrderReplays": {
+      "statuses": [
+        201,
+        201
+      ],
+      "sameOrderReference": "10054",
+      "postReplayOwnerVerification": "PASS single order/settlement/reservation; stock0"
+    }
+  },
+  "historical_followup": {
+    "compensation": {
+      "method": "Admin/BFF stock-level upsert",
+      "stockBefore": 0,
+      "stockAfterAdjustment": 1,
+      "quantity": 1,
+      "duplicateReservationsPreserved": true,
+      "events": [
+        {
+          "eventId": "af7a738e-0e2b-4d1d-a822-50a06dcf3385",
+          "eventType": "inventory.stock-level.upserted.v1",
+          "occurredAt": "2026-11-16T14:08:31.316Z",
+          "payload": {
+            "tags": [
+              "inventory.availability",
+              "domain:storefront.plp",
+              "domain:storefront.listing",
+              "domain:storefront.search-hydration",
+              "org:11111111-1111-4111-8111-111111111111",
+              "tenant:11111111-1111-4111-8111-111111111111",
+              "organization:11111111-1111-4111-8111-111111111111",
+              "shop:22222222-2222-4222-8222-222222222222",
+              "variant:f03e68e1-2690-4be7-8d32-feb82b580e9c",
+              "warehouse:8df995ce-cae9-4a4f-b63a-85c7f453edf5"
+            ],
+            "available": true,
+            "updatedAt": "2026-11-16T14:08:31.252Z",
+            "variantId": "f03e68e1-2690-4be7-8d32-feb82b580e9c",
+            "warehouseId": "8df995ce-cae9-4a4f-b63a-85c7f453edf5",
+            "onHandQuantity": 1,
+            "reservedQuantity": 0,
+            "availableQuantity": 1,
+            "quarantineQuantity": 0,
+            "safetyStockQuantity": 0
+          }
+        }
+      ]
+    },
+    "orders": [
+      {
+        "orderId": "85f83766-9d40-439e-aef9-6aee9584d818",
+        "orderReference": "10050",
+        "paymentTransactionId": "85f83766-9d40-439e-aef9-6aee9584d818",
+        "status": "PAYMENT_SETTLED",
+        "currency": "EUR",
+        "totalAmountMinor": 419673,
+        "itemsCount": 1,
+        "customerPresent": true,
+        "guestSessionPresent": false
+      },
+      {
+        "orderId": "eeaac384-4dee-48db-acbd-3550c376c90d",
+        "orderReference": "10051",
+        "paymentTransactionId": "eeaac384-4dee-48db-acbd-3550c376c90d",
+        "status": "PAYMENT_SETTLED",
+        "currency": "EUR",
+        "totalAmountMinor": 419673,
+        "itemsCount": 1,
+        "customerPresent": true,
+        "guestSessionPresent": false
+      },
+      {
+        "orderId": "fae52554-e803-4d5a-9e47-85c9886ff147",
+        "orderReference": "10053",
+        "paymentTransactionId": "fae52554-e803-4d5a-9e47-85c9886ff147",
+        "status": "PAYMENT_SETTLED",
+        "currency": "EUR",
+        "totalAmountMinor": 419673,
+        "itemsCount": 1,
+        "customerPresent": false,
+        "guestSessionPresent": true
+      }
+    ],
+    "guestIdentityVerified": true,
+    "historical10051": {
+      "cartId": "of_17b2011d-a3ef-4f8c-89a8-cf0c46561c51",
+      "items": 0,
+      "totalMinor": 0,
+      "recovery": "NO_AUTHENTIC_FULL_SNAPSHOT_FOUND_IN_AVAILABLE_LOGS_OR_ARTIFACTS",
+      "status": "UNRECOVERED_HISTORY_PRESERVED"
+    }
+  }
+}

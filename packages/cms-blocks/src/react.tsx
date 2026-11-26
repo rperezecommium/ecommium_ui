@@ -1,5 +1,11 @@
-import { createElement, type CSSProperties, type ReactNode } from "react";
+import {resolveCmsDesignSettings,cmsDesignPresentation,emptyCmsDesign,type CmsDesignSettings,type CmsResolvedDesign} from './design-settings';
+import {CmsCompositionLayoutView,type CmsCompositionLayout} from './page-layout';
+import { createElement, Fragment, type CSSProperties, type ReactNode } from "react";
+import { sanitizeRichTextHtml } from "./rich-text";
+import { findCmsIcon } from "./icons";
+import { CmsNewsletterForm } from "./newsletter-form";
 import {
+  cmsStyleSelectorSafe,
   getCmsBlockDefinition,
   getCmsBlockPlacement,
   getCmsBlockPlpTarget,
@@ -19,6 +25,7 @@ import {
   type CmsVisualPanel,
   type CmsVisualStyleDeclaration,
   type CmsVisualStylesByScope,
+  type CmsPresentation,
 } from "./index";
 
 export const maximumItemsPerBlock = 12;
@@ -32,6 +39,7 @@ export type CmsBlockLinkRendererProps = {
   href: string;
   label: string;
   className: string;
+  children?: ReactNode;
   rel?: string;
   style?: CSSProperties;
   target?: "_blank" | "_self" | "_parent" | "_top";
@@ -54,8 +62,25 @@ export type CmsBlockRendererProps = {
   visualViewport?: CmsVisualBreakpoint;
 };
 
+const systemBlockLabels: Record<string, string> = {
+  "store.logo": "Logo de tienda",
+  "store.market": "Mercado e idioma",
+  "store.assurances": "Servicios y confianza",
+  "commerce.search": "Buscador",
+  "commerce.cart": "Carrito",
+  "customer.account": "Cuenta de cliente",
+  "catalog.navigation": "Navegacion de catalogo",
+  "content.announcementBar": "Barra de anuncio",
+  "footer.navigation": "Enlaces de footer",
+  "footer.legal": "Informacion legal",
+  "footer.contact": "Contacto",
+  "footer.newsletter": "Newsletter",
+  "footer.payments": "Metodos de pago",
+  "footer.social": "Redes sociales",
+};
+
 export function isSupportedCmsBlockType(type: string) {
-  return Boolean(getCmsBlockDefinition(type));
+  return Boolean(getCmsBlockDefinition(type) || systemBlockLabels[type]);
 }
 
 export function CmsBlockRenderer({
@@ -158,12 +183,105 @@ function renderStorefrontBlock(
 ) {
   if (block.type === "banner.hero") return <HeroBlock block={block} renderImage={renderImage} renderLink={renderLink} />;
   if (block.type === "slider.fullWidth") return <SliderBlock block={block} renderImage={renderImage} renderLink={renderLink} />;
+  if (block.type === "category.imageTiles") return <CategoryImageTilesBlock block={block} renderImage={renderImage} renderLink={renderLink} />;
   if (block.type === "plp.categoryIntro") return <CategoryIntroBlock block={block} renderImage={renderImage} />;
   if (block.type === "plp.subcategoryTiles") return <SubcategoryTilesBlock block={block} renderImage={renderImage} renderLink={renderLink} />;
   if (block.type === "accordion") return <AccordionBlock block={block} />;
   if (block.type === "carousel") return <CarouselBlock block={block} renderImage={renderImage} renderLink={renderLink} />;
+  if (block.type === "commerce.productGrid") return <CommerceProductGridBlock block={block} renderImage={renderImage} renderLink={renderLink} />;
   if (block.type === "visual.module") return <VisualModuleBlock block={block} renderImage={renderImage} renderLink={renderLink} visualViewport={visualViewport} />;
   return null;
+}
+
+function CategoryImageTilesBlock({
+  block,
+  renderImage,
+  renderLink,
+}: {
+  block: CmsBlock;
+  renderImage: CmsBlockRendererProps["renderImage"];
+  renderLink: CmsBlockRendererProps["renderLink"];
+}) {
+  const blockItems = items(block.props.items).slice(0, 6);
+  if (blockItems.length === 0) return null;
+  const style = {
+    "--cms-category-columns": boundedInteger(block.props.columns, 2, 1, 4),
+    "--cms-category-gap": `${boundedInteger(block.props.gap, 24, 0, 64)}px`,
+    "--cms-category-height": `${boundedInteger(block.props.tileHeight, 320, 180, 560)}px`,
+    "--cms-category-overlay": boundedInteger(block.props.overlayOpacity, 24, 0, 70) / 100,
+    marginBottom: `${boundedInteger(block.props.marginBottom, 24, 0, 160)}px`,
+    marginTop: `${boundedInteger(block.props.marginTop, 24, 0, 160)}px`,
+    width: `${boundedInteger(block.props.widthPercent, 90, 60, 100)}%`,
+  } as CSSProperties;
+  const heading = text(block.props.heading, 120);
+
+  return (
+    <section className="storefrontCmsCategoryTiles" style={style}>
+      {heading ? <h2>{heading}</h2> : null}
+      <div className="storefrontCmsCategoryTilesGrid">
+        {blockItems.map((item, index) => {
+          const title = text(item.title, 120) ?? `Categoria ${index + 1}`;
+          const imageUrl = safeMediaUrl(item.imageUrl);
+          const href = safeLinkHref(item.href);
+          if (!imageUrl || !href) return null;
+          const content = (
+            <>
+              <CmsImage
+                alt={text(item.imageAlt, 200) ?? title}
+                className="storefrontCmsCategoryTileMedia"
+                renderImage={renderImage}
+                sizes={`(max-width: 760px) 90vw, ${Math.round(90 / boundedInteger(block.props.columns, 2, 1, 4))}vw`}
+                src={imageUrl}
+              />
+              <span className="storefrontCmsCategoryTileShade" aria-hidden="true" />
+              <strong>{title}</strong>
+            </>
+          );
+          return renderLink ? (
+            <Fragment key={`${title}-${index}`}>
+              {renderLink({
+                children: content,
+                className: "storefrontCmsCategoryTile",
+                href,
+                label: title,
+                title: `Ver ${title}`,
+              })}
+            </Fragment>
+          ) : (
+            <a className="storefrontCmsCategoryTile" href={href} key={`${title}-${index}`} title={`Ver ${title}`}>
+              {content}
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function CommerceProductGridBlock({ block, renderImage }: { block: CmsBlock; renderImage: CmsBlockRendererProps["renderImage"]; renderLink: CmsBlockRendererProps["renderLink"] }) {
+  const products = productItems(block.props.hydratedProducts);
+  const heading = text(block.props.heading, 120);
+  const subtitle = text(block.props.subtitle, 240);
+  const style = {width: `${boundedInteger(block.props.widthPercent,90,60,100)}%`, "--cms-product-columns": boundedInteger(block.props.columns,4,1,6), "--cms-product-mobile-columns": boundedInteger(block.props.mobileColumns,2,1,2), "--cms-product-gap": `${boundedInteger(block.props.gap,24,0,64)}px`} as CSSProperties;
+  return <section className="storefrontCmsProductCollection" style={style} aria-label={heading ?? "Productos"} data-cms-product-source={text(recordValues(block.props.source).kind, 40) ?? "UNKNOWN"}>
+    {heading || subtitle ? <header className="cmsProductGridHeading">{heading ? <h2>{heading}</h2> : null}{subtitle ? <p>{subtitle}</p> : null}</header> : null}
+    {products.length > 0 ? <div className="cmsCategoryProductGrid">{products.map((product, index) => {
+      const name = text(product.name, 200) ?? `Producto ${index + 1}`;
+      const imageUrl = safeMediaUrl(product.imageUrl);
+      const href = safeLinkHref(product.href);
+      const discount = typeof product.discountPercent === "number" && product.discountPercent > 0 && product.discountPercent <= 100 ? product.discountPercent : null;
+      const sizes = Array.isArray(product.sizeLabels) ? product.sizeLabels.filter((v): v is string => typeof v === "string").slice(0,12) : [];
+      return <article className="cmsCategoryProductCard" key={`${text(product.productId, 100) ?? index}-${text(product.variantId,100) ?? "product"}`}>
+        {imageUrl ? (href ? <a className="cmsCategoryProductImage" href={href} aria-label={name}><CmsImage alt={text(product.imageAlt,200) ?? name} renderImage={renderImage} src={imageUrl} sizes="(max-width: 680px) 45vw, (max-width: 1024px) 30vw, 25vw" /></a> : <div className="cmsCategoryProductImage"><CmsImage alt={name} renderImage={renderImage} src={imageUrl} /></div>) : <div className="cmsCategoryProductImage cmsCategoryProductImageEmpty" aria-label="Imagen no disponible" />}
+        <div className="cmsCategoryProductDetails">
+        {text(product.brand,120) ? <strong className="cmsCategoryProductBrand">{text(product.brand,120)}</strong> : null}
+        {href ? <a className="cmsCategoryProductName" href={href}>{name}</a> : <span className="cmsCategoryProductName">{name}</span>}
+        <div className="cmsCategoryProductPrices">{text(product.priceLabel,80) ? <strong>{text(product.priceLabel,80)}</strong> : <span>Precio no disponible</span>}{text(product.previousPriceLabel,80) ? <del>{text(product.previousPriceLabel,80)}</del> : null}{discount ? <span className="cmsCategoryProductDiscount">− {discount}%</span> : null}</div>
+        {sizes.length ? <p className="cmsCategoryProductSizes"><span>Talla:</span> {sizes.join(" · ")}</p> : null}
+        </div>
+      </article>;
+    })}</div> : <p className="storefrontCmsProductGridEmpty">{recordValues(block.props.hydration).status === "UNAVAILABLE" ? "Los productos no están disponibles ahora. Inténtalo de nuevo en unos instantes." : "No hay productos disponibles para esta seleccion."}</p>}
+  </section>;
 }
 
 function HeroBlock({
@@ -248,6 +366,18 @@ function CategoryIntroBlock({
 }) {
   const heading = text(block.props.heading) ?? text(block.props.title);
   const imageUrl = safeMediaUrl(block.props.imageUrl);
+  if (block.props.backgroundMode === true) {
+    const color = text(block.props.textColor);
+    const position = text(block.props.backgroundPosition);
+    const Heading = block.props.headingLevel === 1 ? "h1" : "h2";
+    return <section className="storefrontCmsCategoryBanner" style={{
+      minHeight: boundedInteger(block.props.height, 240, 160, 600),
+      color: color && /^#[a-f0-9]{3,8}$/i.test(color) ? color : "#ffffff",
+      backgroundImage: imageUrl ? `linear-gradient(rgba(0,0,0,${boundedInteger(block.props.overlayOpacity, 55, 0, 90) / 100}),rgba(0,0,0,${boundedInteger(block.props.overlayOpacity, 55, 0, 90) / 100})),url(${JSON.stringify(imageUrl)})` : undefined,
+      backgroundPosition: position && /^(center|top|bottom|left|right)( (center|top|bottom|left|right))?$/.test(position) ? position : "center",
+    }}><div className="storefrontCmsCopy">{heading ? <Heading>{heading}</Heading> : null}{text(block.props.body, 2000) ? <p>{text(block.props.body, 2000)}</p> : null}</div></section>;
+  }
+
   return (
     <section className={`storefrontCmsIntro${imageUrl ? " storefrontCmsWithMedia" : ""}`}>
       <div className="storefrontCmsCopy">
@@ -385,12 +515,14 @@ function VisualModuleBlock({
 }
 
 function VisualModuleV2Block({
+  independentIdentity = false,
   blockProps,
   moduleProps,
   renderImage,
   renderLink,
   visualViewport,
 }: {
+  independentIdentity?: boolean;
   blockProps: Record<string, unknown>;
   moduleProps: CmsVisualModuleV2Props;
   renderImage?: CmsBlockRendererProps["renderImage"];
@@ -402,6 +534,10 @@ function VisualModuleV2Block({
     ...recordValues(blockProps.contentValues),
   };
   const rootNode = visualModuleV2RootNode(moduleProps, blockProps);
+  if (independentIdentity) {
+    const mark = (node: CmsVisualNode) => { (node as CmsVisualNode & { renderDomId: string }).renderDomId = node.nodeId; node.children?.forEach(mark); };
+    mark(rootNode);
+  }
   return (
     <section
       aria-label={text(moduleProps.name, 120) ?? "Modulo visual CMS"}
@@ -557,7 +693,38 @@ function visualElementToNode(
   };
 }
 
-function VisualNodeRenderer({
+export function CmsPresentationView({ presentation, children, visualViewport }: { presentation?: CmsPresentation; children: ReactNode; visualViewport?: CmsVisualBreakpoint }) {
+  if (!presentation) return <>{children}</>;
+  const node: CmsVisualNode = { nodeId: "presentation", type: "container",
+    ...visualStylesToNodeStyles(presentation.styles, presentation.assetRefs ?? []),
+    visibility: presentation.visibility, animation: presentation.animation, interactions: presentation.interactions };
+  return <VisualNodeRenderer node={node} assetRefs={presentation.assetRefs} visualViewport={visualViewport} content={children} />;
+}
+
+function visualStyleId(node: CmsVisualNode, assetRefs: CmsVisualAssetRef[] = [], contentValues = {}) {
+  const raw = JSON.stringify([node.nodeId, node.styles, node.responsiveStyles, assetRefs, contentValues]);
+  let hash = 2166136261;
+  for (let i = 0; i < raw.length; i++) hash = Math.imul(hash ^ raw.charCodeAt(i), 16777619);
+  return `cms-${(hash >>> 0).toString(36)}`;
+}
+
+function VisualNodeRenderer(props: Parameters<typeof VisualNodeContentRenderer>[0]) {
+  const { node, visualViewport, assetRefs = [], contentValues = {} } = props;
+  let css = "";
+  if (!visualViewport && node.responsiveStyles) {
+    for (const [viewport, width] of [["tablet", 1023], ["mobile", 767]] as const) {
+      const declarations = visualStyleVariableKeys.flatMap(key => {
+        const raw = visualViewportStyleValue(node.styles, node.responsiveStyles, viewport, key);
+        const value = raw ? visualStyleValueForCss(key, raw, assetRefs, contentValues) : null;
+        return value ? [`${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}:${value} !important`] : [];
+      });
+      css += `@media(max-width:${width}px){[data-cms-style-id="${visualStyleId(node, assetRefs, contentValues)}"]{${declarations.join(";")}}}`;
+    }
+  }
+  return <>{css ? <style>{css}</style> : null}<VisualNodeContentRenderer {...props} /></>;
+}
+
+function VisualNodeContentRenderer({
   assetRefs = [],
   contentValues = {},
   depth = 0,
@@ -565,6 +732,8 @@ function VisualNodeRenderer({
   renderImage,
   renderLink,
   visualViewport,
+  content,
+  spaceAttributes,
 }: {
   assetRefs?: CmsVisualAssetRef[];
   contentValues?: Record<string, unknown>;
@@ -573,6 +742,8 @@ function VisualNodeRenderer({
   renderImage?: CmsBlockRendererProps["renderImage"];
   renderLink?: CmsBlockRendererProps["renderLink"];
   visualViewport?: CmsVisualBreakpoint;
+  content?: ReactNode;
+  spaceAttributes?: {id:string;"data-cms-node-id":string;"data-cms-space-owner":string};
 }) {
   if (depth > maximumVisualNodeDepth) return null;
 
@@ -584,13 +755,33 @@ function VisualNodeRenderer({
     return null;
   }
   const children = renderVisualNodeChildren(renderNode, depth, renderImage, renderLink, visualViewport, assetRefs, contentValues);
-  const className = visualNodeClassName(renderNode);
+  const className = visualNodeClassName(visualViewport ? { ...renderNode, visibility: undefined } : renderNode);
   const style = {
     ...visualNodeStyle(renderNode.styles, renderNode.responsiveStyles, visualViewport, assetRefs, contentValues),
     ...visualAnimationStyleVariables(renderNode.animation),
     ...visualInteractionStyleVariables(renderNode.interactions, assetRefs, contentValues),
   };
-  const accessibilityProps = visualAccessibilityProps(renderNode);
+  const accessibilityProps = { ...visualAccessibilityProps(renderNode), "data-cms-style-id": visualStyleId(node, assetRefs, contentValues) };
+  if (content !== undefined) {
+    // Structural/inherited spacing must not erase the system block's own type scale.
+    const declares = (key: "color" | "fontFamily" | "fontSize") =>
+      [renderNode.styles, ...Object.values(renderNode.responsiveStyles ?? {})].some(values => values?.[key] !== undefined);
+    return <div className={`${className} cmsVisualPresentation`} style={style}
+      data-cms-presentation-color={declares("color") || undefined}
+      data-cms-presentation-font-family={declares("fontFamily") || undefined}
+      data-cms-presentation-font-size={declares("fontSize") || undefined}
+      {...accessibilityProps} {...spaceAttributes}>{content}</div>;
+  }
+
+  if (renderNode.type === "newsletterForm") {
+    const part = (name: string) => renderNode.children?.find(child => child.props?.newsletterPart === name);
+    const partStyle = (name: string) => {
+      const child = part(name);
+      return child ? visualNodeStyle(child.styles, child.responsiveStyles, visualViewport, assetRefs, contentValues) : undefined;
+    };
+    const newsletter = <CmsNewsletterForm label={text(renderNode.props?.ariaLabel, 160) ?? "Correo electrónico"} placeholder={text(renderNode.props?.title, 160) ?? "Tu correo electrónico"} submitLabel={text(renderNode.props?.text, 160) ?? "SUSCRIBIR"} style={style} inputStyle={partStyle("email")} consentStyle={partStyle("consent")} privacyStyle={partStyle("privacy")} feedbackStyle={partStyle("feedback")} privacyLabel={text(part("privacy")?.props?.text,160) ?? "Política de Privacidad"} />;
+    return (renderNode as CmsVisualNode & {renderDomId?:string}).renderDomId ? <div {...accessibilityProps}>{newsletter}</div> : newsletter;
+  }
 
   if (renderNode.type === "heading") {
     return createElement(
@@ -609,15 +800,19 @@ function VisualNodeRenderer({
   }
 
   if (renderNode.type === "richText") {
-    return (
+    const html = typeof renderNode.props?.html === "string" ? renderNode.props.html : undefined;
+    return html !== undefined ? (
+      <div className={className} style={style} {...accessibilityProps}
+        dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(html) }} />
+    ) : (
       <div className={className} style={style} {...accessibilityProps}>
-        {text(renderNode.props?.text, 4000) ?? text(renderNode.props?.html, 4000) ?? children}
+        {text(renderNode.props?.text, 4000) ?? children}
       </div>
     );
   }
 
   if (renderNode.type === "image") {
-    return <VisualImage assetRefs={assetRefs} node={renderNode} renderImage={renderImage} style={style} />;
+    return <VisualImage assetRefs={assetRefs} node={renderNode} renderImage={renderImage} style={style} styleId={accessibilityProps["data-cms-style-id"]} />;
   }
 
   if (renderNode.type === "button" || renderNode.type === "link") {
@@ -631,6 +826,13 @@ function VisualNodeRenderer({
   }
 
   if (renderNode.type === "icon") {
+    const icon = findCmsIcon(renderNode.props?.text);
+    if (icon) {
+      const Icon = icon.Icon;
+      return <span className={className} style={style} {...accessibilityProps}>
+        <Icon width="1em" height="1em" aria-hidden="true" style={{ verticalAlign: "middle" }} />
+      </span>;
+    }
     return (
       <span className={className} style={style} {...accessibilityProps}>
         {text(renderNode.props?.text, 80) ?? text(renderNode.props?.title, 80)}
@@ -639,7 +841,7 @@ function VisualNodeRenderer({
   }
 
   if (renderNode.type === "spacer") {
-    return <div aria-hidden="true" className={className} style={style} />;
+    return <div aria-hidden="true" className={className} style={style} {...accessibilityProps} />;
   }
 
   if (renderNode.type === "video") {
@@ -699,19 +901,28 @@ function VisualImage({
   node,
   renderImage,
   style,
+  styleId,
 }: {
   assetRefs: CmsVisualAssetRef[];
   node: CmsVisualNode;
   renderImage?: CmsBlockRendererProps["renderImage"];
   style: CSSProperties;
+  styleId: string;
 }) {
   const src = visualAssetUrl(node.props?.src, assetRefs);
   const alt = text(node.props?.alt, 200) ?? text(node.props?.title, 200) ?? "";
   if (!src) return null;
+  // Keep image geometry when the legacy variable rules resolve to initial values.
+  // Explicit module styles and the generated responsive rules still take precedence.
+  const imageStyle: CSSProperties = {
+    display: "block", position: "relative", overflow: "hidden", width: "100%",
+    minHeight: "180px", height: "490px", backgroundPosition: "center",
+    backgroundRepeat: "no-repeat", backgroundSize: "cover", ...style,
+  };
 
   if (renderImage) {
     return (
-      <span className={visualNodeClassName(node)} style={style}>
+      <span data-cms-style-id={styleId} {...((node as CmsVisualNode & {renderDomId?:string}).renderDomId ? visualAccessibilityProps(node) : {})} className={visualNodeClassName(node)} style={imageStyle}>
         {renderImage({
           alt,
           className: "cmsVisualImageMedia",
@@ -724,10 +935,12 @@ function VisualImage({
 
   return (
     <span
+      data-cms-style-id={styleId}
+      {...((node as CmsVisualNode & {renderDomId?:string}).renderDomId ? visualAccessibilityProps(node) : {})}
       aria-label={alt}
       className={`${visualNodeClassName(node)} cmsVisualImageMedia`}
       role="img"
-      style={{ ...style, backgroundImage: `url(${src})` }}
+      style={{ ...imageStyle, backgroundImage: `url(${src})` }}
     />
   );
 }
@@ -741,7 +954,9 @@ function VisualAction({
   renderLink?: CmsBlockRendererProps["renderLink"];
   style: CSSProperties;
 }) {
-  const href = safeLinkHref(node.props?.href);
+  const independent = Boolean((node as CmsVisualNode & {renderDomId?:string}).renderDomId);
+  const href = independent && /^#cms-[A-Za-z0-9_-]+$/.test(node.props?.href ?? '') ? node.props!.href! : safeLinkHref(node.props?.href);
+  const accessibility = independent ? visualAccessibilityProps(node) : {};
   const label = text(node.props?.text, 160) ?? text(node.props?.title, 160);
   const className = visualNodeClassName(node);
   if (!label) return null;
@@ -761,6 +976,7 @@ function VisualAction({
   if (href) {
     return (
       <a
+        {...accessibility}
         className={className}
         href={href}
         rel={safeRel(node.props?.rel, node.props?.target)}
@@ -774,7 +990,7 @@ function VisualAction({
   }
 
   return (
-    <span className={`${className} cmsVisualActionStatic`} style={style}>
+    <span {...accessibility} className={`${className} cmsVisualActionStatic`} style={style}>
       {label}
     </span>
   );
@@ -786,6 +1002,7 @@ function VisualMediaLink({ node, style }: { node: CmsVisualNode; style: CSSPrope
   if (!href) return null;
   return (
     <a
+      {...((node as CmsVisualNode & {renderDomId?:string}).renderDomId ? visualAccessibilityProps(node) : {})}
       className={visualNodeClassName(node)}
       href={href}
       rel="noreferrer"
@@ -810,7 +1027,11 @@ function visualNodeClassName(node: CmsVisualNode) {
 }
 
 function visualAccessibilityProps(node: CmsVisualNode) {
+  const domId = (node as CmsVisualNode & { renderDomId?: string }).renderDomId;
   return {
+    id: domId,
+    "aria-labelledby": domId ? node.props?.ariaLabelledBy : undefined,
+    "aria-describedby": domId ? node.props?.ariaDescribedBy : undefined,
     "aria-label": text(node.props?.ariaLabel, 200) ?? undefined,
     "data-cms-node-id": node.nodeId,
     "data-cms-node-type": node.type,
@@ -901,6 +1122,7 @@ const visualStyleVariableKeys = [
   "gridTemplateColumns",
   "height",
   "justifyContent",
+  "left",
   "letterSpacing",
   "lineHeight",
   "margin",
@@ -923,6 +1145,7 @@ const visualStyleVariableKeys = [
   "position",
   "rowGap",
   "textAlign",
+  "top",
   "transform",
   "width",
 ] as const;
@@ -1037,7 +1260,11 @@ function visualStyleValueForCss(
   const resolvedValue = value.startsWith("binding:")
     ? visualStyleBindingValue(value, contentValues)
     : value;
-  if (!resolvedValue) return null;
+  if (!resolvedValue || /(?:javascript:|expression\s*\(|@import|[{};<>\\\x00-\x1f])/i.test(resolvedValue)) return null;
+  if (/url\s*\(/i.test(resolvedValue)) {
+    const match = /^url\(["']?([^()"']+)["']?\)$/.exec(resolvedValue);
+    if (key !== "backgroundImage" || !match || !safeMediaUrl(match[1])) return null;
+  }
   if (key === "gridTemplateColumns" && value.startsWith("binding:")) {
     const leftRatio = Number(resolvedValue);
     if (Number.isFinite(leftRatio) && leftRatio >= 20 && leftRatio <= 80) {
@@ -1046,7 +1273,8 @@ function visualStyleValueForCss(
   }
   if (key === "backgroundImage" && resolvedValue.startsWith("asset:")) {
     const src = visualAssetUrl(resolvedValue, assetRefs);
-    return src ? `url(${src})` : null;
+    const cssSrc = src?.replace(/[\s"'()\\{};<>]/g, character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
+    return cssSrc ? `url(${cssSrc})` : null;
   }
   if (resolvedValue.startsWith("var:")) return visualTokenValueForCss(resolvedValue);
   if (value.startsWith("binding:") && !visualRuntimeStyleValueIsSafe(key, resolvedValue)) return null;
@@ -1148,7 +1376,10 @@ function visualNodeTypeFromValue(value: string, fallback: CmsVisualNode["type"])
 function visualNodePropsFromRecord(value: unknown): NonNullable<CmsVisualNode["props"]> {
   const record = recordValues(value);
   return {
+    ...(["email", "consent", "privacy", "feedback"].includes(String(record.newsletterPart)) ? { newsletterPart: String(record.newsletterPart) } : {}),
     ...(text(record.alt, 200) ? { alt: text(record.alt, 200) ?? undefined } : {}),
+    ...(text(record.ariaLabelledBy, 2048) ? { ariaLabelledBy: text(record.ariaLabelledBy, 2048)! } : {}),
+    ...(text(record.ariaDescribedBy, 2048) ? { ariaDescribedBy: text(record.ariaDescribedBy, 2048)! } : {}),
     ...(text(record.ariaLabel, 200) ? { ariaLabel: text(record.ariaLabel, 200) ?? undefined } : {}),
     ...(text(record.headingLevel, 2) ? { headingLevel: text(record.headingLevel, 2) ?? undefined } : {}),
     ...(text(record.href, 2048) ? { href: text(record.href, 2048) ?? undefined } : {}),
@@ -1252,25 +1483,29 @@ function CmsCard({
 
 function CmsImage({
   alt,
+  className = "storefrontCmsMedia",
   renderImage,
+  sizes = "(max-width: 680px) 100vw, 50vw",
   src,
 }: {
   alt: string;
+  className?: string;
   renderImage: CmsBlockRendererProps["renderImage"];
+  sizes?: string;
   src: string;
 }) {
   if (renderImage) {
     return renderImage({
       alt,
-      className: "storefrontCmsMedia",
-      sizes: "(max-width: 680px) 100vw, 50vw",
+      className,
+      sizes,
       src,
     });
   }
   return (
     <div
       aria-label={alt}
-      className="storefrontCmsMedia"
+      className={className}
       role="img"
       style={{ backgroundImage: `url(${src})` }}
     />
@@ -1308,6 +1543,19 @@ function renderAdminPreviewBlock(block: CmsBlock, visualViewport?: CmsVisualBrea
     ? `${placement === "beforeList" ? "Antes PLP" : "Despues PLP"} · ${target.routePath || target.categorySlug || "sin target"}`
     : "Pagina CMS";
 
+  if (systemBlockLabels[block.type]) {
+    const detail = previewTextProp(block, "label")
+      || previewTextProp(block, "title")
+      || previewTextProp(block, "text")
+      || previewTextProp(block, "placeholder");
+    return <section className={`${wrapperClass} cmsPreviewSystemBlock`}><small>Modulo de sistema</small><h3>{systemBlockLabels[block.type]}</h3>{detail ? <p>{detail}</p> : null}</section>;
+  }
+
+  if (block.type === "commerce.productGrid") {
+    const source = recordValues(block.props.source);
+    return <section className={`${wrapperClass} cmsPreviewProductGrid`}><small>{wrapperLabel}</small><h3 style={{textAlign:"center"}}>{previewTextProp(block, "heading", "Productos destacados")}</h3><p style={{textAlign:"center"}}>{previewTextProp(block,"subtitle")}</p><p>{String(source.kind ?? "CATEGORY")} · maximo {Math.min(20, Number(block.props.limit) || 20)} productos</p><div className="cmsPlpProductGrid"><PreviewProductCard name="Producto dinamico" oldPrice="" price="--" /><PreviewProductCard name="Hidratado por BFF" oldPrice="" price="--" /></div></section>;
+  }
+
   if (block.type === "banner.hero") {
     return (
       <section className={`${wrapperClass} cmsPreviewHero`}>
@@ -1341,7 +1589,30 @@ function renderAdminPreviewBlock(block: CmsBlock, visualViewport?: CmsVisualBrea
     );
   }
 
+  if (block.type === "category.imageTiles") {
+    const blockItems = previewArrayProp(block, "items");
+    return (
+      <section className={`${wrapperClass} cmsPreviewCategoryTiles`}>
+        <small>{wrapperLabel}</small>
+        {previewTextProp(block, "heading") ? <h3>{previewTextProp(block, "heading")}</h3> : null}
+        <div style={{ gridTemplateColumns: `repeat(${boundedInteger(block.props.columns, 2, 1, 4)}, minmax(0, 1fr))` }}>
+          {blockItems.map((item, index) => {
+            const record = typeof item === "object" && item !== null ? item as Record<string, unknown> : {};
+            return (
+              <article key={index}>
+                <PreviewMedia label="Category tile image" value={String(record.imageUrl ?? "")} />
+                <strong>{String(record.title ?? `Categoria ${index + 1}`)}</strong>
+                <span>{String(record.href ?? "/")}</span>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
+
   if (block.type === "plp.categoryIntro") {
+    if (block.props.backgroundMode === true) return <div className={wrapperClass}><small>{wrapperLabel}</small><CategoryIntroBlock block={block} renderImage={undefined} /></div>;
     return (
       <section className={`${wrapperClass} cmsPreviewCategoryIntro`}>
         <small>{wrapperLabel}</small>
@@ -1494,11 +1765,26 @@ function text(value: unknown, maximumLength = 300) {
     : null;
 }
 
+function boundedInteger(value: unknown, fallback: number, minimum: number, maximum: number) {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed)
+    ? Math.min(maximum, Math.max(minimum, Math.round(parsed)))
+    : fallback;
+}
+
 function items(value: unknown) {
   return Array.isArray(value)
     ? value
       .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
       .slice(0, maximumItemsPerBlock)
+    : [];
+}
+
+function productItems(value: unknown) {
+  return Array.isArray(value)
+    ? value
+      .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+      .slice(0, 20)
     : [];
 }
 
@@ -1510,4 +1796,113 @@ function previewTextProp(block: CmsBlock, key: string, fallback = "") {
 function previewArrayProp(block: CmsBlock, key: string) {
   const value = block.props[key];
   return Array.isArray(value) ? value : [];
+}
+
+/** Render a block stylesheet through the same value resolver as visual modules. */
+export function cmsBlockStyleSheetCss(sheet: import("./index").CmsScopedStyleSheet, id: string, viewport?: CmsVisualBreakpoint, spaceOwner?: string) {
+  const order = ["base", "desktop", "tablet", "mobile"] as const;
+  return order.map(scope => {
+    if (viewport === "desktop" && (scope === "tablet" || scope === "mobile")) return "";
+    if (viewport === "tablet" && scope === "mobile") return "";
+    const rules = (sheet[scope] ?? []).map(rule => {
+      if (!cmsStyleSelectorSafe(rule.selector)) return "";
+      const target = rule.selector + (spaceOwner ? `[data-cms-space-owner="${spaceOwner}"]` : "");
+      const selector = target.startsWith(":scope") ? `#${id}${target.slice(6)}` : `#${id} ${target}`;
+      const declarations = Object.entries(rule.styles).flatMap(([key, raw]) => {
+        if (!visualStyleVariableKeys.includes(key as typeof visualStyleVariableKeys[number]) || typeof raw !== "string") return [];
+        const value = visualStyleValueForCss(key as typeof visualStyleVariableKeys[number], raw, []);
+        return value ? [`${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}:${value} !important`] : [];
+      });
+      return `${selector}{${declarations.join(";")}}`;
+    }).join("");
+    return !viewport && (scope === "tablet" || scope === "mobile") ? `@media(max-width:${scope === "tablet" ? 1023 : 767}px){${rules}}` : rules;
+  }).join("");
+}
+
+// The independent editor and future composition renderer share this view.
+export type CmsRegisteredModuleRenderer = (block: CmsBlock) => ReactNode;
+export function CmsIndependentModuleView({ document, visualViewport, renderRegistered, inheritedDesign = emptyCmsDesign }: {
+  inheritedDesign?: CmsResolvedDesign;
+  renderRegistered?: CmsRegisteredModuleRenderer;
+  document: {designSettings?:CmsDesignSettings;instanceId:string;name:string;body:{kind:'visual';value:CmsVisualModuleV2Props}|{kind:'registered';type:string;props:Record<string,unknown>};styleSheet?:import('./index').CmsScopedStyleSheet};
+  visualViewport?:CmsVisualBreakpoint;
+}) {
+  const scoped = scopeIndependentModule(document);
+  const design = cmsDesignPresentation(resolveCmsDesignSettings(inheritedDesign,document.designSettings));
+  // Color naturally inherits through the DOM unless this module customizes it.
+  for (const values of Object.values(design)) for (const key of ['color','backgroundColor'])
+    if (!Object.values(document.designSettings??{}).some(value=>value?.[key as 'color'|'backgroundColor']!==undefined)) delete values[key];
+  if(scoped.body.kind==='visual') {
+    const own = scoped.body.value.styles;
+    scoped.body.value.styles = Object.fromEntries(['base','desktop','tablet','mobile'].map(scope=>[scope,{...design[scope as keyof typeof design],...own?.base,...own?.[scope as keyof typeof own]}]));
+  }
+  const ownPresentation=scoped.body.kind==='registered'?scoped.body.props.presentation as CmsPresentation|undefined:undefined;
+  const registeredPresentation={...ownPresentation,styles:Object.fromEntries(['base','desktop','tablet','mobile'].map(scope=>[scope,{...design[scope as keyof typeof design],...ownPresentation?.styles?.base,...ownPresentation?.styles?.[scope as keyof CmsVisualStylesByScope]}]))};
+  const scopeId = `cms-piece-${safeIdentity(document.instanceId)}`;
+  return <section id={scopeId} aria-label={`Módulo: ${document.name}`}>
+    <style>{cmsBlockStyleSheetCss(scoped.styleSheet ?? {}, scopeId, visualViewport)}</style>
+    {scoped.body.kind === 'visual'
+      ? <VisualModuleV2Block independentIdentity blockProps={scoped.body.value as unknown as Record<string,unknown>} moduleProps={scoped.body.value} visualViewport={visualViewport} />
+      : <CmsPresentationView presentation={registeredPresentation} visualViewport={visualViewport}>{renderRegistered ? renderRegistered({blockId:scoped.instanceId,type:scoped.body.type,props:scoped.body.props}) : <CmsBlockRenderer block={{blockId:scoped.instanceId,type:scoped.body.type,props:scoped.body.props}} visualViewport={visualViewport} />}</CmsPresentationView>}
+  </section>;
+}
+function safeIdentity(value:string) { return value.replace(/[^A-Za-z0-9-]/g,char=>`_${char.charCodeAt(0).toString(16)}_`); }
+function scopeIndependentModule<T extends {instanceId:string;body:{kind:'visual';value:CmsVisualModuleV2Props}|{kind:'registered';type:string;props:Record<string,unknown>};styleSheet?:import('./index').CmsScopedStyleSheet}>(document:T):T {
+  const copy=structuredClone(document), ids=new Map<string,string>();
+  const visit=(node:Record<string,unknown>,fn:(node:Record<string,unknown>)=>void)=>{fn(node);for(const key of ['panels','elements','children'])if(Array.isArray(node[key]))(node[key] as Record<string,unknown>[]).forEach(child=>visit(child,fn));};
+  if(copy.body.kind==='visual'){
+    const value=copy.body.value as unknown as Record<string,unknown>;
+    visit(value,node=>{for(const key of ['moduleId','panelId','elementId'])if(typeof node[key]==='string')ids.set(node[key],`cms-${safeIdentity(copy.instanceId)}--${safeIdentity(node[key])}`);});
+    const fragment=(value:string)=>value.startsWith('#')&&ids.has(value.slice(1))?'#'+ids.get(value.slice(1)):value;
+    visit(value,node=>{
+      for(const key of ['moduleId','panelId','elementId'])if(typeof node[key]==='string')node[key]=ids.get(node[key]);
+      const props=node.props as Record<string,unknown>|undefined;
+      if(props){for(const key of ['ariaLabelledBy','ariaDescribedBy'])if(typeof props[key]==='string')props[key]=props[key].split(' ').map(id=>ids.get(id)??id).join(' ');if(typeof props.href==='string')props.href=fragment(props.href);}
+    });
+    for(const [key,field] of Object.entries(copy.body.value.contentSchema))if(field.type==='url'){
+      const values=copy.body.value.contentValues;if(values&&typeof values[key]==='string')values[key]=fragment(values[key]);
+      if(typeof field.defaultValue==='string')field.defaultValue=fragment(field.defaultValue);
+    }
+  }
+  if(copy.styleSheet)for(const rules of Object.values(copy.styleSheet))for(const rule of rules??[])rule.selector=rule.selector.replace(/\[[^\]]+\]|#[\w-]+/g,token=>token===`#${copy.instanceId}`?':scope':token.startsWith('#')?'#'+(ids.get(token.slice(1))??token.slice(1)):token.replace(/^(\[(?:data-cms-node-id|data-cms-visual-module|aria-labelledby|aria-describedby|id)=)(["']?)([\w.:-]+)\2\]$/,(_,start,quote,id)=>start==='[id='&&id===copy.instanceId?':scope':`${start}${quote}${ids.get(id)??id}${quote}]`));
+  return copy;
+}
+
+
+export type CmsSectionViewDocument = {
+ placement?:import('./index').CmsBlockModulePlacement;
+ sectionId:string;name:string;designSettings?:CmsDesignSettings;styleSheet?:import('./index').CmsScopedStyleSheet;
+ root:CmsSectionViewNode;
+};
+export type CmsSectionViewNode = {nodeId:string;kind:'container';layout:'stack'|'flex'|'grid';presentation:CmsPresentation;children:CmsSectionViewNode[]}|{nodeId:string;kind:'module';module:Parameters<typeof CmsIndependentModuleView>[0]['document']};
+export function CmsSectionView({document,visualViewport,renderRegistered,inheritedDesign=emptyCmsDesign}:{document:CmsSectionViewDocument;visualViewport?:CmsVisualBreakpoint;renderRegistered?:CmsRegisteredModuleRenderer;inheritedDesign?:CmsResolvedDesign}) {
+ const design=resolveCmsDesignSettings(inheritedDesign,document.designSettings);
+ const inheritedStyles=cmsDesignPresentation(design);
+ for(const values of Object.values(inheritedStyles))for(const key of ['color','backgroundColor'])
+  if(!Object.values(document.designSettings??{}).some(value=>value?.[key as 'color'|'backgroundColor']!==undefined))delete values[key];
+ const scopeId=`cms-space-${safeIdentity(document.sectionId)}`;
+ const ids=new Map<string,string>([[document.sectionId,scopeId]]);
+ const collect=(node:CmsSectionViewNode)=>{ids.set(node.nodeId,`${scopeId}-${safeIdentity(node.nodeId)}`);if(node.kind==='container')node.children.forEach(collect);};collect(document.root);
+ const sheet=structuredClone(document.styleSheet??{});
+ for(const rules of Object.values(sheet))for(const rule of rules??[])rule.selector=rule.selector.replace(/\[[^\]]+\]|#[\w-]+/g,token=>token.startsWith('#')?'#'+(ids.get(token.slice(1))??token.slice(1)):token);
+ const render=(node:CmsSectionViewNode):ReactNode=>{
+  const attributes={id:ids.get(node.nodeId)!,"data-cms-node-id":node.nodeId,"data-cms-space-owner":scopeId};
+  if(node.kind==='module')return <div key={node.nodeId} {...attributes} style={{minWidth:0}} data-cms-block-type={node.module.body.kind==='registered'?node.module.body.type:'visual.module'}><CmsIndependentModuleView document={node.module} visualViewport={visualViewport} renderRegistered={renderRegistered} inheritedDesign={design}/></div>;
+  const presentation=node.presentation;
+  const base={display:node.layout==='grid'?'grid':'flex',flexDirection:node.layout==='stack'?'column':'row',...(node.layout==='grid'?{gridTemplateColumns:'repeat(2, minmax(0, 1fr))'}:{}),...(design.desktop.moduleGap!==undefined?{gap:design.desktop.moduleGap}:{}),...(node.layout==='grid'&&design.desktop.columnGap!==undefined?{columnGap:design.desktop.columnGap}:{}),...presentation.styles?.base};
+  const visual:CmsVisualNode={nodeId:attributes.id,type:'container',...visualStylesToNodeStyles({...Object.fromEntries(['desktop','tablet','mobile'].map(scope=>[scope,{...(design[scope as keyof CmsResolvedDesign].moduleGap!==undefined?{gap:design[scope as keyof CmsResolvedDesign].moduleGap}:{}),...(node.layout==='grid'&&design[scope as keyof CmsResolvedDesign].columnGap!==undefined?{columnGap:design[scope as keyof CmsResolvedDesign].columnGap}:{}),...presentation.styles?.base,...presentation.styles?.[scope as keyof CmsVisualStylesByScope]}])),base} as CmsVisualStylesByScope,presentation.assetRefs??[]),visibility:presentation.visibility,animation:presentation.animation,interactions:presentation.interactions};
+  return <VisualNodeRenderer key={node.nodeId} node={visual} assetRefs={presentation.assetRefs} visualViewport={visualViewport} spaceAttributes={attributes} content={node.children.map(render)}/>;
+ };
+ return <CmsPresentationView presentation={{styles:inheritedStyles}} visualViewport={visualViewport}><section id={scopeId} data-cms-space-owner={scopeId} aria-label={document.name}><style>{cmsBlockStyleSheetCss(sheet,scopeId,visualViewport,scopeId)}</style>{render(document.root)}</section></CmsPresentationView>;
+}
+
+// Page CSS owns only the composition root and section wrappers, never module internals.
+export function CmsPageCompositionView({document,visualViewport,identity='preview',inheritedDesign=emptyCmsDesign,renderRegistered}:{renderRegistered?:CmsRegisteredModuleRenderer;inheritedDesign?:CmsResolvedDesign;document:{layout?:CmsCompositionLayout;designSettings?:CmsDesignSettings;compositionSchemaVersion:1;sections:CmsSectionViewDocument[];styleSheet?:import('./index').CmsScopedStyleSheet};visualViewport?:CmsVisualBreakpoint;identity?:string}) {
+ const design=resolveCmsDesignSettings(inheritedDesign,document.designSettings);
+ const scopeId=`cms-page-${safeIdentity(identity)}`;
+ const ids=new Map(document.sections.map(section=>[section.sectionId,`${scopeId}-${safeIdentity(section.sectionId)}`]));
+ const renderSection=(section:CmsSectionViewDocument)=><div key={section.sectionId} id={ids.get(section.sectionId)} data-cms-node-id={section.sectionId} data-cms-space-owner={scopeId}><CmsSectionView document={section} visualViewport={visualViewport} inheritedDesign={design} renderRegistered={renderRegistered}/></div>;
+ const sheet=structuredClone(document.styleSheet??{});
+ for(const rules of Object.values(sheet))for(const rule of rules??[])rule.selector=rule.selector.replace(/\[[^\]]+\]|#[\w-]+/g,token=>token.startsWith('#')?'#'+(ids.get(token.slice(1))??token.slice(1)):token);
+ return <CmsPresentationView presentation={{styles:cmsDesignPresentation(design)}} visualViewport={visualViewport}><div id={scopeId} data-cms-space-owner={scopeId}><style>{cmsBlockStyleSheetCss(sheet,scopeId,visualViewport,scopeId)}</style>{document.layout?.styleSheet?<style>{cmsBlockStyleSheetCss(document.layout.styleSheet,scopeId,visualViewport,scopeId)}</style>:null}{document.layout?<CmsCompositionLayoutView ownerId={scopeId} layout={document.layout} sections={document.sections} renderSection={renderSection} viewport={visualViewport} moduleGap={design[visualViewport??'desktop'].moduleGap} columnGap={design[visualViewport??'desktop'].columnGap}/>:document.sections.map(renderSection)}</div></CmsPresentationView>;
 }

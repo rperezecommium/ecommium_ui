@@ -1,0 +1,10 @@
+.toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:12px; }
+.reference { min-height:2.8em; margin:8px 0; font-size:12px; color:var(--admin-text-muted); }
+.canvas { position:relative; min-width:0; }
+.canvas [data-preview-boundary] { outline:1px dashed var(--admin-text-muted); outline-offset:-1px; min-height:20px; }
+.canvas [data-preview-selected] { outline:2px solid var(--admin-primary); outline-offset:-2px; }
+.canvas [data-preview-hover] { outline:2px solid var(--admin-focus-ring); outline-offset:-2px; }
+.canvas[data-picking="true"], .canvas[data-picking="true"] * { cursor:crosshair; }
+.canvas [data-preview-selected]:empty { min-height:20px; }
+
+.canvas [data-preview-pickable]:empty { min-height: 20px; }

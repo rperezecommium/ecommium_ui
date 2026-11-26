@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { StorefrontCheckoutClient } from "../../src/modules/storefront/checkout-client";
-import { StorefrontHeader } from "../../src/modules/storefront/plp-page";
+import { StorefrontPageShell } from "../../src/modules/storefront/storefront-header";
 
 export default function StorefrontCheckoutPage() {
   return (
     <main className="storefrontPage">
-      <StorefrontHeader />
+      <StorefrontPageShell surface="CHECKOUT">
       <div className="storefrontShell">
         <nav className="storefrontBreadcrumb">
           <Link href="/">Inicio</Link>
@@ -16,6 +16,7 @@ export default function StorefrontCheckoutPage() {
         </nav>
         <StorefrontCheckoutClient />
       </div>
+      </StorefrontPageShell>
     </main>
   );
 }

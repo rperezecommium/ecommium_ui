@@ -1,0 +1,11 @@
+{
+  "path": "/privacidad-newsletter",
+  "sitePartIds": [
+    "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+    "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd"
+  ],
+  "expected": [
+    "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+    "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd"
+  ]
+}

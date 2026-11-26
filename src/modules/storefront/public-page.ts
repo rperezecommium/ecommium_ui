@@ -1,3 +1,6 @@
+import {validatePageContract} from "../cms/cms-page-composition-validation";
+import {pageCompositionWithoutHydration} from "../cms/cms-page-composition";
+import { getStorefrontCommercialReadOptions } from "./storefront-commercial-context";
 import { requestStorefrontBff } from "../../shared/bff/storefront-client";
 import type { BffResult } from "../../shared/bff/types";
 import {
@@ -51,11 +54,14 @@ export async function getStorefrontPublicPage(
     offset: String(offset),
   });
 
+  const commercialReadOptions = await getStorefrontCommercialReadOptions();
   const result = await requestStorefrontBff<unknown>(`/storefront/page?${params.toString()}`, {
     withAuth: false,
     context: { locale: context.locale },
     init: {
+      ...commercialReadOptions.init,
       headers: {
+        ...commercialReadOptions.init?.headers,
         "x-visitor-id": normalizeStorefrontVisitorId(options.visitorId),
       },
     },
@@ -72,6 +78,10 @@ export async function getStorefrontPublicPage(
     };
   }
 
+  if(result.data.kind==='CMS_PAGE'&&result.data.page.composition){
+    try{validatePageContract('composition',pageCompositionWithoutHydration(result.data.page.composition));}
+    catch{return {ok:false,status:502,error:"El BFF devolvió una composición pública no válida.",correlationId:result.correlationId};}
+  }
   return {
     ...result,
     data: result.data,

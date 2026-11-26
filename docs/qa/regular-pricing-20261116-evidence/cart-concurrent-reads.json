@@ -1,0 +1,41 @@
+{
+  "before": {
+    "status": 200,
+    "updatedAt": "2026-11-16T15:52:58.204Z",
+    "cartId": "of_466857ee-ca83-4515-b95d-619b26d3916e",
+    "total": 2662
+  },
+  "concurrentReads": [
+    {
+      "status": 200,
+      "updatedAt": "2026-11-16T15:52:58.204Z",
+      "cartId": "of_466857ee-ca83-4515-b95d-619b26d3916e",
+      "total": 2662
+    },
+    {
+      "status": 200,
+      "updatedAt": "2026-11-16T15:52:58.204Z",
+      "cartId": "of_466857ee-ca83-4515-b95d-619b26d3916e",
+      "total": 2662
+    },
+    {
+      "status": 200,
+      "updatedAt": "2026-11-16T15:52:58.204Z",
+      "cartId": "of_466857ee-ca83-4515-b95d-619b26d3916e",
+      "total": 2662
+    },
+    {
+      "status": 200,
+      "updatedAt": "2026-11-16T15:52:58.204Z",
+      "cartId": "of_466857ee-ca83-4515-b95d-619b26d3916e",
+      "total": 2662
+    },
+    {
+      "status": 200,
+      "updatedAt": "2026-11-16T15:52:58.204Z",
+      "cartId": "of_466857ee-ca83-4515-b95d-619b26d3916e",
+      "total": 2662
+    }
+  ],
+  "result": "PASS_NO_SPURIOUS_WRITE_OR_CONFLICT"
+}

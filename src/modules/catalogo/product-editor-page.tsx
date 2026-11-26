@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getCurrentAdminSession as getAdminSession } from "../auth/current-admin-session";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 import { createEmptyProductDraft, draftFromEditorData, duplicateDraftFromEditorData } from "./product-editor-draft";
@@ -43,11 +45,13 @@ export async function ProductEditorPage({
     );
   }
 
+  const session = await getAdminSession();
+  const canCreateEntity = (kind: "categories" | "brands") => Boolean(session?.permissions.some(permission => ["*", "admin:*", "system.admin", `catalog.${kind}.write`].includes(permission)));
+  const entityPermissions = { canManageWarehouses: Boolean(session?.permissions.some(permission => ["*", "admin:*", "system.admin", "shipping.logistics.write"].includes(permission))), canDeleteProducts: Boolean(session?.permissions.some(p=>["*","system.admin","catalog.products.delete"].includes(p))), deletionContext: {organizationId:context.organizationId,shopId:context.shopId,locale:context.locale}, canManageFeatures: Boolean(session?.permissions.some(permission => ["*", "admin:*", "system.admin", "catalog.specifications.write"].includes(permission))), canCreateCategories: canCreateEntity("categories"), canCreateBrands: canCreateEntity("brands") };
+
   if (!productId && duplicateFromProductId) {
-    const [result, lookups] = await Promise.all([
-      getAdminProductEditorData(context, duplicateFromProductId),
-      getProductEditorLookups(context),
-    ]);
+    const lookups = await getProductEditorLookups(context);
+    const result = await getAdminProductEditorData(context, duplicateFromProductId);
 
     if (!result.ok) {
       return (
@@ -67,6 +71,7 @@ export async function ProductEditorPage({
 
     return (
       <ProductEditorClient
+        {...entityPermissions}
         contextIdentity={productEditorContextIdentity(context)}
         initialDraft={duplicateDraftFromEditorData(result.data, context.locale, context.currency)}
         locale={context.locale}
@@ -83,6 +88,7 @@ export async function ProductEditorPage({
 
     return (
       <ProductEditorClient
+        {...entityPermissions}
         contextIdentity={productEditorContextIdentity(context)}
         initialDraft={createEmptyProductDraft(context.locale, context.currency)}
         locale={context.locale}
@@ -93,12 +99,10 @@ export async function ProductEditorPage({
     );
   }
 
-  const [result, lookups] = await Promise.all([
-    getAdminProductEditorData(context, productId),
-    getProductEditorLookups(context),
-  ]);
+  const result = await getAdminProductEditorData(context, productId);
 
   if (!result.ok) {
+    if (result.status === 404) notFound();
     return (
       <main className="adminPage">
         <div className="adminBreadcrumb">Admin / Catalogo / Productos / Editar</div>
@@ -114,6 +118,8 @@ export async function ProductEditorPage({
     );
   }
 
+  const lookups = await getProductEditorLookups(context);
+
   return (
     <>
       {result.data.warnings.length > 0 ? (
@@ -122,6 +128,7 @@ export async function ProductEditorPage({
         </div>
       ) : null}
       <ProductEditorClient
+        {...entityPermissions}
         contextIdentity={productEditorContextIdentity(context)}
         initialDraft={draftFromEditorData(result.data, context.locale, context.currency)}
         initialVariantRows={result.data.variantRows}

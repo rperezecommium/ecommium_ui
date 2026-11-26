@@ -1,0 +1,421 @@
+- generic [active] [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - complementary "Navegacion Admin" [ref=f7e3]:
+      - generic [ref=f7e4]:
+        - generic [ref=f7e5]: E
+        - generic [ref=f7e6]:
+          - strong [ref=f7e7]: Ecommium
+          - generic [ref=f7e8]: Admin backoffice
+      - navigation [ref=f7e9]:
+        - generic [ref=f7e10]: Vender
+        - link [ref=f7e11] [cursor=pointer]:
+          - /url: /admin
+          - strong [ref=f7e16]: Inicio
+        - group [ref=f7e17]:
+          - generic [ref=f7e18] [cursor=pointer]:
+            - strong [ref=f7e23]: Configuracion
+            - generic [aria-hidden] [ref=f7e24]: ⌄
+        - group [ref=f7e25]:
+          - generic [ref=f7e26] [cursor=pointer]:
+            - strong [ref=f7e34]: Catalogo
+            - generic [aria-hidden] [ref=f7e35]: ⌄
+          - generic [ref=f7e36]:
+            - link "Resumen" [ref=f7e37] [cursor=pointer]:
+              - /url: /admin/catalogo
+            - link "Productos" [ref=f7e39] [cursor=pointer]:
+              - /url: /admin/products
+            - link "Categorias" [ref=f7e41] [cursor=pointer]:
+              - /url: /admin/catalogo/categorias
+            - link "Caracteristicas" [ref=f7e43] [cursor=pointer]:
+              - /url: /admin/catalogo/atributos-caracteristicas
+            - link "Busqueda" [ref=f7e45] [cursor=pointer]:
+              - /url: /admin/catalogo/search
+            - link "Marcas / Proveedores" [ref=f7e47] [cursor=pointer]:
+              - /url: /admin/catalogo/marcas
+            - link "Media / Archivos" [ref=f7e49] [cursor=pointer]:
+              - /url: /admin/catalogo/media
+            - link "Offerings / Servicios adicionales" [ref=f7e51] [cursor=pointer]:
+              - /url: /admin/catalogo/offerings
+            - link "Stock" [ref=f7e53] [cursor=pointer]:
+              - /url: /admin/catalogo/stock
+            - link "Importar" [ref=f7e55] [cursor=pointer]:
+              - /url: /admin/catalogo/importar
+        - group [ref=f7e57]:
+          - generic [ref=f7e58] [cursor=pointer]:
+            - strong [ref=f7e63]: CMS
+            - generic [aria-hidden] [ref=f7e64]: ⌄
+        - link [ref=f7e65] [cursor=pointer]:
+          - /url: /admin/promociones
+          - strong [ref=f7e70]: Promociones
+        - link [ref=f7e71] [cursor=pointer]:
+          - /url: /admin/analitica
+          - strong [ref=f7e75]: Analitica
+        - link [ref=f7e76] [cursor=pointer]:
+          - /url: /admin/pedidos
+          - strong [ref=f7e88]: Pedidos
+        - link [ref=f7e89] [cursor=pointer]:
+          - /url: /admin/postventa
+          - strong [ref=f7e98]: Postventa
+        - link [ref=f7e99] [cursor=pointer]:
+          - /url: /admin/clientes
+          - strong [ref=f7e105]: Clientes
+        - link [ref=f7e106] [cursor=pointer]:
+          - /url: /admin/pagos
+          - strong [ref=f7e110]: Pagos
+      - generic [ref=f7e111]:
+        - strong [ref=f7e112]: Perfil
+        - paragraph [ref=f7e113]: Operator
+        - strong [ref=f7e114]: Contexto
+        - paragraph [ref=f7e115]: 11111111-1111-4111-8111-111111111111 / 22222222-2222-4222-8222-222222222222
+    - generic [ref=f7e116]:
+      - generic [ref=f7e117]:
+        - form "Selector de contexto Admin" [ref=f7e118]:
+          - combobox "Organization" [ref=f7e119]:
+            - option "Organization"
+            - option "READPREP-20261104 Organización"
+            - option "QA-20261104 Integracion UI"
+            - option "ReadIndex Live b"
+            - option "ReadIndex Live a"
+            - option "Read Path Baseline b"
+            - option "Read Path Baseline a"
+            - option "Ecommium Default Organization" [selected]
+            - option "Ecommium UI Smoke 1780565751104"
+          - combobox "Shop" [ref=f7e120]:
+            - option "Shop"
+            - option "READPREP-20261104 Interrupción"
+            - option "READPREP-20261104 Tienda existente"
+            - option "Tienda UI 1780565845946"
+            - option "Activa - Tienda Barcelona" [selected]
+          - textbox "Shop alias" [ref=f7e121]:
+            - /placeholder: shopAlias
+            - text: tienda-barcelona
+          - combobox "Locale" [ref=f7e122]:
+            - option "es-ES" [selected]
+            - option "en-US"
+            - option "pt-PT"
+          - button "Aplicar" [ref=f7e123] [cursor=pointer]
+        - generic [ref=f7e124]:
+          - generic [aria-hidden] [ref=f7e125]: r
+          - generic [ref=f7e126]:
+            - strong [ref=f7e127]: [employee-email-redacted]
+            - generic [ref=f7e128]: [employee-email-redacted]
+          - button "Salir" [ref=f7e130] [cursor=pointer]
+      - main [ref=f7e131]:
+        - generic [ref=f7e132]:
+          - link "Admin" [ref=f7e133] [cursor=pointer]:
+            - /url: /admin
+          - text: /
+          - link "Catalogo" [ref=f7e134] [cursor=pointer]:
+            - /url: /admin/catalogo
+          - text: /
+          - link "Productos" [ref=f7e135] [cursor=pointer]:
+            - /url: /admin/products
+          - text: / Nuevo
+        - generic [ref=f7e136]:
+          - generic [ref=f7e137]:
+            - textbox "Nombre del producto" [ref=f7e138]:
+              - /placeholder: Nuevo producto
+              - text: Casco QA integral PW 20261106
+            - generic [ref=f7e139]:
+              - generic [ref=f7e140]: Borrador
+              - generic [ref=f7e141]: Producto simple
+              - generic [ref=f7e142]: es-ES / EUR
+          - generic [ref=f7e143]:
+            - link "Volver al catálogo" [ref=f7e144] [cursor=pointer]:
+              - /url: /admin/products
+            - generic "Tipo de producto" [ref=f7e145]:
+              - button "Producto simple" [ref=f7e146] [cursor=pointer]
+              - button "Producto con variantes" [ref=f7e147] [cursor=pointer]
+        - generic [ref=f7e148]:
+          - paragraph [ref=f7e149]: "Pricing taxes: El servicio no está disponible temporalmente."
+          - paragraph [ref=f7e150]: "Transporte: configuracion BFF no disponible o sin permisos (La solicitud no es válida.)."
+        - navigation "Pestanas de producto" [ref=f7e151]:
+          - button "Ajustes basicos" [ref=f7e152] [cursor=pointer]
+          - button "Imagenes" [ref=f7e153] [cursor=pointer]
+          - button "Variantes" [ref=f7e154] [cursor=pointer]
+          - button "Precio" [ref=f7e155] [cursor=pointer]
+          - button "Inventario" [ref=f7e156] [cursor=pointer]
+          - button "Transporte" [ref=f7e157] [cursor=pointer]
+          - button "SEO" [ref=f7e158] [cursor=pointer]
+          - button "Auditoria" [ref=f7e159] [cursor=pointer]
+        - generic [ref=f7e160]:
+          - generic [ref=f7e162]:
+            - group [ref=f7e163]:
+              - generic "Datos principales ⌄" [ref=f7e164] [cursor=pointer]
+              - generic [ref=f7e165]:
+                - generic [ref=f7e166]:
+                  - generic [ref=f7e167]:
+                    - generic [ref=f7e168]: Nombre
+                    - textbox "Nombre" [ref=f7e169]: Casco QA integral PW 20261106
+                  - generic [ref=f7e170]:
+                    - generic [ref=f7e171]: URL amigable
+                    - textbox "URL amigable" [ref=f7e172]: casco-qa-integral-pw-20261106
+                  - generic [ref=f7e173]:
+                    - generic [ref=f7e174]: Referencia / SKU
+                    - textbox "Referencia / SKU Código interno de la variante predeterminada." [ref=f7e175]: QA-PW-20261106-CASCO
+                    - generic [ref=f7e176]: Código interno de la variante predeterminada.
+                  - generic [ref=f7e177]:
+                    - generic [ref=f7e178]: EAN
+                    - textbox "EAN" [ref=f7e179]: "2000000000015"
+                - generic [ref=f7e180]:
+                  - generic [ref=f7e181]: Resumen
+                  - generic [ref=f7e182]:
+                    - toolbar "Herramientas de Resumen" [ref=f7e183]:
+                      - combobox "Formato de bloque" [ref=f7e184]:
+                        - option "Parrafo" [selected]
+                        - option "Titulo H2"
+                        - option "Titulo H3"
+                        - option "Cita"
+                        - option "Codigo"
+                      - button "Negrita" [ref=f7e185] [cursor=pointer]
+                      - button "Cursiva" [ref=f7e188] [cursor=pointer]
+                      - button "Tachado" [ref=f7e191] [cursor=pointer]
+                      - button "Lista con vinetas" [ref=f7e195] [cursor=pointer]
+                      - button "Lista numerada" [ref=f7e197] [cursor=pointer]
+                      - button "Limpiar formato" [ref=f7e201] [cursor=pointer]
+                      - button "Deshacer" [ref=f7e207] [cursor=pointer]
+                      - button "Rehacer" [disabled] [ref=f7e211]
+                    - textbox "Resumen" [ref=f7e299]:
+                      - paragraph [ref=f7e300]: Casco de prueba para verificar el editor completo, precios y disponibilidad.
+                    - button "Mostrar código HTML" [ref=f7e216] [cursor=pointer]
+                - generic [ref=f7e217]:
+                  - generic [ref=f7e218]: Descripcion
+                  - generic [ref=f7e219]:
+                    - toolbar "Herramientas de Descripcion" [ref=f7e220]:
+                      - combobox "Formato de bloque" [ref=f7e221]:
+                        - option "Parrafo" [selected]
+                        - option "Titulo H2"
+                        - option "Titulo H3"
+                        - option "Cita"
+                        - option "Codigo"
+                      - button "Negrita" [ref=f7e222] [cursor=pointer]
+                      - button "Cursiva" [ref=f7e225] [cursor=pointer]
+                      - button "Tachado" [ref=f7e228] [cursor=pointer]
+                      - button "Lista con vinetas" [ref=f7e232] [cursor=pointer]
+                      - button "Lista numerada" [ref=f7e234] [cursor=pointer]
+                      - button "Limpiar formato" [ref=f7e238] [cursor=pointer]
+                      - button "Deshacer" [ref=f7e244] [cursor=pointer]
+                      - button "Rehacer" [disabled] [ref=f7e248]
+                    - textbox "Descripcion" [ref=f7e302]:
+                      - paragraph [ref=f7e303]: Producto de control QA PW 20261106. Verifica características, imágenes, variantes, precio base, precio específico, inventario, transporte y SEO. No corresponde a una oferta comercial real.
+                    - button "Mostrar código HTML" [ref=f7e253] [cursor=pointer]
+            - group [ref=f7e254]:
+              - generic "Categoría y marca / proveedor ⌄" [ref=f7e255] [cursor=pointer]
+              - generic [ref=f7e304]:
+                - generic [ref=f7e305]:
+                  - generic [ref=f7e306]: Categoria principal
+                  - generic [ref=f7e307]:
+                    - combobox "Categoria principal" [ref=f7e308]:
+                      - option "Selecciona"
+                      - option "Bike Brakes"
+                      - option "Bike Cockpit"
+                      - option "Bike Drivetrain"
+                      - option "Bike Workshop"
+                      - option "BikerShop"
+                      - option "Electrónica bike"
+                      - option "Nutritiom-pro"
+                      - option "nutritions"
+                      - option "Ropa ciclismo"
+                      - option "Accesorios y componentes" [selected]
+                      - option "Zapatillas carretera"
+                      - option "Electrónica bike"
+                      - option "BikerShop"
+                      - option "Zapatillas MTB"
+                      - option "bicicletas"
+                      - option "componentes"
+                    - button "Crear categoría" [ref=f7e309] [cursor=pointer]
+                - generic [ref=f7e311]:
+                  - generic [ref=f7e312]: Marca / proveedor
+                  - generic [ref=f7e313]:
+                    - combobox "Marca / proveedor" [ref=f7e314]:
+                      - option "Selecciona"
+                      - option "226ers"
+                      - option "Adidas"
+                      - option "Alpinestars"
+                      - option "Amazfit"
+                      - option "Argon 18"
+                      - option "Assos"
+                      - option "Bergamont"
+                      - option "Bh"
+                      - option "Bianchi"
+                      - option "Bioracer"
+                      - option "Bont"
+                      - option "Brandit"
+                      - option "Brn"
+                      - option "Bryton"
+                      - option "Bryton"
+                      - option "Campagnolo"
+                      - option "Cannondale"
+                      - option "Castelli"
+                      - option "Cateye"
+                      - option "Cateye"
+                      - option "Catlike"
+                      - option "Cervelo"
+                      - option "Chrome"
+                      - option "Cinelli"
+                      - option "Cobalt Race Lab"
+                      - option "Craft"
+                      - option "Crankbrothers"
+                      - option "Cross"
+                      - option "DMT"
+                      - option "Dare2b"
+                      - option "Dino Bikes"
+                      - option "Disney"
+                      - option "Dt Swiss"
+                      - option "Eleven"
+                      - option "Endura"
+                      - option "Endura"
+                      - option "Esigrips"
+                      - option "Etxeondo"
+                      - option "Exa Form"
+                      - option "Factor"
+                      - option "Favero"
+                      - option "Fitbit"
+                      - option "Fitbit"
+                      - option "Five Ten"
+                      - option "Fizik"
+                      - option "Fizik"
+                      - option "Floky"
+                      - option "Focus"
+                      - option "Fox"
+                      - option "GES"
+                      - option "Gaerne"
+                      - option "Garmin"
+                      - option "Garmin"
+                      - option "Giant"
+                      - option "Giro" [selected]
+                      - option "Giro"
+                      - option "Gobik"
+                      - option "Hama"
+                      - option "Hammerhead"
+                      - option "Hammerhead"
+                      - option "Helly"
+                      - option "Huffy"
+                      - option "Icebreaker"
+                      - option "Imported"
+                      - option "Inuteq"
+                      - option "Ion"
+                      - option "Joma"
+                      - option "Jrc"
+                      - option "Knog"
+                      - option "Kross"
+                      - option "Lapierre"
+                      - option "Liv"
+                      - option "Loeffler"
+                      - option "Look"
+                      - option "Lurbel"
+                      - option "Magene"
+                      - option "Magene"
+                      - option "Mahle"
+                      - option "Mahle"
+                      - option "Marin"
+                      - option "Mavic"
+                      - option "Megamo"
+                      - option "Merach"
+                      - option "Merida Bikes"
+                      - option "Mibro"
+                      - option "Mibro"
+                      - option "Microshift"
+                      - option "Motorola"
+                      - option "Mvtek"
+                      - option "Nike"
+                      - option "Northline Components"
+                      - option "Northwave"
+                      - option "Oakley"
+                      - option "Odlo"
+                      - option "Odyssey"
+                      - option "Orbea"
+                      - option "POC"
+                      - option "Pearl"
+                      - option "Pinarello"
+                      - option "Polar"
+                    - button "Crear marca o proveedor" [ref=f7e315] [cursor=pointer]
+            - group [ref=f7e256]:
+              - generic "Características y especificaciones ⌄" [ref=f7e257] [cursor=pointer]
+              - generic [ref=f7e318]:
+                - generic [ref=f7e319]:
+                  - generic [ref=f7e320]:
+                    - heading "Características del producto" [level=3] [ref=f7e321]
+                    - paragraph [ref=f7e322]: Agrega valores tecnicos propios del producto desde la lista maestra.
+                  - button "Caracteristicas" [ref=f7e323] [cursor=pointer]
+                - generic [ref=f7e363]:
+                  - generic [ref=f7e364]:
+                    - generic [ref=f7e365]: Garantias
+                    - strong [ref=f7e366]: Tiempo de garantia
+                  - generic [ref=f7e367]: 3 años
+                  - generic [ref=f7e368]:
+                    - button "Cambiar" [ref=f7e369] [cursor=pointer]
+                    - button "Quitar" [ref=f7e370] [cursor=pointer]
+            - group [ref=f7e258]:
+              - generic "Precio base ⌄" [ref=f7e259] [cursor=pointer]
+              - option "Sin reglas fiscales cargadas" [selected]
+          - complementary [ref=f7e260]:
+            - generic [ref=f7e261]:
+              - heading "Resumen" [level=2] [ref=f7e262]
+              - generic [ref=f7e263]: Sin portada
+              - generic [ref=f7e265]:
+                - generic [ref=f7e266]:
+                  - term [ref=f7e267]: Tipo
+                  - definition [ref=f7e268]: Producto simple
+                - generic [ref=f7e269]:
+                  - term [ref=f7e270]: Precio base
+                  - definition [ref=f7e271]: "0.00"
+                - generic [ref=f7e272]:
+                  - term [ref=f7e273]: Variantes
+                  - definition [ref=f7e274]: "0"
+                - generic [ref=f7e275]:
+                  - term [ref=f7e276]: Imagenes
+                  - definition [ref=f7e277]: "0"
+        - dialog [ref=f7e371]:
+          - generic [ref=f7e327]:
+            - generic [ref=f7e328]:
+              - generic [ref=f7e329]: 1 seleccionada
+              - heading "Agregar otra caracteristica" [level=2] [ref=f7e372]
+            - button "Cerrar" [ref=f7e373] [cursor=pointer]
+          - generic [ref=f7e332]:
+            - generic [ref=f7e333]:
+              - heading "Seleccionadas" [level=3] [ref=f7e374]
+              - generic [ref=f7e375]:
+                - generic [ref=f7e376]:
+                  - generic [ref=f7e377]: Garantias
+                  - strong [ref=f7e378]: Tiempo de garantia
+                - generic [ref=f7e379]: 3 años
+                - generic [ref=f7e380]:
+                  - button "Cambiar" [ref=f7e381] [cursor=pointer]
+                  - button "Quitar" [ref=f7e382] [cursor=pointer]
+            - generic [ref=f7e383]:
+              - generic [ref=f7e384]:
+                - heading "Todas las caracteristicas" [level=3] [ref=f7e385]
+                - link "Administrar valores" [ref=f7e386] [cursor=pointer]:
+                  - /url: /admin/catalogo/atributos-caracteristicas?tab=features
+              - generic [ref=f7e387]:
+                - button "GarantiasTiempo de garantia 3 años" [ref=f7e388] [cursor=pointer]:
+                  - generic [ref=f7e389]:
+                    - text: Garantias
+                    - strong [ref=f7e390]: Tiempo de garantia
+                  - generic [ref=f7e391]: 3 años
+                - button "materialdurabilidad Elegir valor" [ref=f7e392] [cursor=pointer]:
+                  - generic [ref=f7e393]:
+                    - text: material
+                    - strong [ref=f7e394]: durabilidad
+                  - generic [ref=f7e395]: Elegir valor
+                - button "materialelasticidad Elegir valor" [ref=f7e396] [cursor=pointer]:
+                  - generic [ref=f7e397]:
+                    - text: material
+                    - strong [ref=f7e398]: elasticidad
+                  - generic [ref=f7e399]: Elegir valor
+                - button "ruidonivel de ruido Elegir valor" [ref=f7e400] [cursor=pointer]:
+                  - generic [ref=f7e401]:
+                    - text: ruido
+                    - strong [ref=f7e402]: nivel de ruido
+                  - generic [ref=f7e403]: Elegir valor
+        - group "Acciones del producto" [ref=f7e278]:
+          - status [ref=f7e279]:
+            - generic [ref=f7e280]: Borrador
+            - generic [ref=f7e281]: Cambios sin guardar
+          - generic [ref=f7e282]:
+            - button "Vista previa" [ref=f7e283] [cursor=pointer]
+            - button "Guardar" [ref=f7e287] [cursor=pointer]
+            - button "Más acciones del producto" [ref=f7e288] [cursor=pointer]: ⋯
+  - button "Open Next.js Dev Tools" [ref=f7e294] [cursor=pointer]
+  - alert [ref=f7e317]

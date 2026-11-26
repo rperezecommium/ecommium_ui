@@ -1,0 +1,13 @@
+
+> catalog@0.0.1 test
+> jest --runInBand product.aggregate.spec.ts product.create.use-case.spec.ts product.update.use-case.spec.ts
+
+PASS src/application/use-cases/product/update/product.update.use-case.spec.ts
+PASS src/application/use-cases/product/create/product.create.use-case.spec.ts
+PASS src/domain/product/product.aggregate.spec.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        1.982 s, estimated 2 s
+Ran all test suites matching /product.aggregate.spec.ts|product.create.use-case.spec.ts|product.update.use-case.spec.ts/i.

@@ -75,6 +75,11 @@ function localizedText(value: unknown, locale: string) {
   );
 }
 
+function localizedHtml(value: unknown, locale: string) {
+  const record = asRecord(value);
+  return asString(value) ?? asString(record[locale]) ?? asString(record["es-ES"]) ?? asString(record.es) ?? asString(record.default);
+}
+
 function listItems(value: unknown): unknown[] {
   const record = asRecord(value);
   const items = record.items ?? record.products ?? record.variants ?? record.images ?? value;
@@ -230,8 +235,8 @@ export function parseStorefrontPdp(
     title:
       localizedText(product.name ?? product.title ?? root.name ?? root.title, locale) ??
       "Producto Storefront",
-    shortDescription: localizedText(product.shortDescription ?? product.summary ?? root.shortDescription, locale),
-    description: localizedText(product.description ?? root.description, locale),
+    shortDescription: localizedHtml(product.shortDescription ?? product.summary ?? root.shortDescription, locale),
+    description: localizedHtml(product.description ?? root.description, locale),
     brand: nestedName(product.brand ?? root.brand, locale) ?? localizedText(brand.slug, locale),
     category: nestedName(product.category ?? root.category, locale) ?? localizedText(category.slug, locale),
     imageUrl: image.imageUrl,

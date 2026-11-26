@@ -1,3 +1,4 @@
+import {loadTs} from "./helpers/load-ts.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -61,39 +62,10 @@ function loadPaymentsActionsModule({
   requestAdminBff,
   revalidatePath = () => undefined,
 }) {
-  const source = readFileSync(path.resolve(root, "src/modules/pagos/payments-admin-actions.ts"), "utf8");
-  const { outputText } = ts.transpileModule(source, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2022,
-      esModuleInterop: true,
-    },
+  return loadTs(path.resolve(root,"src/modules/pagos/payments-admin-actions.ts"),{
+    "next/cache":{revalidatePath},"next/navigation":{redirect},
+    "../../shared/bff/admin-client":{requestAdminBff},"../../shared/config/admin-context":{getAdminContext},
   });
-  const commonJsExports = {};
-  const moduleContext = {
-    FormData,
-    URLSearchParams,
-    exports: commonJsExports,
-    module: { exports: commonJsExports },
-    require(specifier) {
-      if (specifier === "next/cache") {
-        return { revalidatePath };
-      }
-      if (specifier === "next/navigation") {
-        return { redirect };
-      }
-      if (specifier.endsWith("/shared/bff/admin-client")) {
-        return { requestAdminBff };
-      }
-      if (specifier.endsWith("/shared/config/admin-context")) {
-        return { getAdminContext };
-      }
-      return {};
-    },
-  };
-
-  vm.runInNewContext(outputText, moduleContext);
-  return moduleContext.module.exports;
 }
 
 test("payments admin route separates payment operation from configuration", () => {
@@ -124,7 +96,7 @@ test("payments admin route separates payment operation from configuration", () =
   assert.match(pageSource, /PaymentRefundRequestForm/);
   assert.match(pageSource, /randomUUID/);
   assert.match(refundFormSource, /Solicitar reembolso/);
-  assert.match(refundFormSource, /Confirmo que este importe se devolverá al método de pago original/);
+  assert.match(refundFormSource, /Confirmar reembolso/);
   assert.match(refundRefreshSource, /router\.refresh/);
   assert.match(refundRefreshSource, /2000/);
   assert.match(refundRefreshSource, /Confirmación en curso/);
@@ -149,7 +121,7 @@ test("payments admin route separates payment operation from configuration", () =
   assert.match(pageSource, /Mostrar inactivos/);
   assert.match(pageSource, /Desactivar/);
   assert.match(pageSource, /Reactivar/);
-  assert.match(pageSource, /ConfigurationKpis/);
+  assert.doesNotMatch(pageSource, /ConfigurationKpis/);
   assert.match(pageSource, /paymentsConfigurationTable/);
   assert.match(pageSource, /paymentSystemName/);
   assert.match(pageSource, /affiliationName/);
@@ -176,9 +148,9 @@ test("payments admin capabilities map payments permissions", () => {
   const { getPaymentsAdminCapabilities } = loadPaymentsAdminModule(async () => ({ ok: true, data: {} }));
 
   const empty = getPaymentsAdminCapabilities(null);
-  const viewer = getPaymentsAdminCapabilities({ scope: "admin", permissions: ["admin:payments:view"] });
-  const manager = getPaymentsAdminCapabilities({ scope: "admin", permissions: ["payments.manage"] });
-  const storefront = getPaymentsAdminCapabilities({ scope: "storefront", permissions: ["payments.manage"] });
+  const viewer = getPaymentsAdminCapabilities({ scope: "admin", permissions: ["payments.configuration.read"] });
+  const manager = getPaymentsAdminCapabilities({ scope: "admin", permissions: ["payments.configuration.write"] });
+  const storefront = getPaymentsAdminCapabilities({ scope: "storefront", permissions: ["payments.configuration.write"] });
 
   assert.equal(empty.canManagePayments, false);
   assert.equal(empty.canViewPayments, false);
@@ -356,16 +328,16 @@ test("payments admin create actions post canonical scoped payloads", async () =>
   const method = new FormData();
   method.set("paymentSystemId", "stripe-card");
   method.set("name", "Tarjeta");
-  method.set("provider", "stripe");
-  method.set("groupName", "cards");
-  method.set("methodType", "CREDIT_CARD");
+
+  method.set("group", "cards");
+  method.set("type", "credit-card");
   method.set("supportsInstallments", "on");
   method.set("maxInstallments", "3");
   method.set("active", "on");
   const affiliation = new FormData();
   affiliation.set("affiliationId", "stripe-main");
   affiliation.set("name", "Stripe");
-  affiliation.set("provider", "stripe");
+  affiliation.set("providerName", "stripe");
   affiliation.set("merchantId", "acct_1");
   affiliation.set("active", "on");
   const rule = new FormData();
@@ -389,7 +361,9 @@ test("payments admin create actions post canonical scoped payloads", async () =>
     { path: "/admin/payments/affiliations?organizationId=org-1&shopId=shop-1", method: "POST" },
     { path: "/admin/payments/rules?organizationId=org-1&shopId=shop-1", method: "POST" },
   ]);
-  assert.equal(calls[0].body.provider, "stripe");
+  assert.equal(calls[0].body.group, "cards");
+  assert.equal(calls[0].body.type, "credit-card");
+  assert.equal(calls[1].body.providerName, "stripe");
   assert.equal(calls[0].body.maxInstallments, 3);
   assert.equal(calls[1].body.merchantId, "acct_1");
   assert.equal(calls[2].body.priority, 100);

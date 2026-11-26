@@ -1,0 +1,17 @@
+{
+  "checks": [
+    {
+      "kind": "archived",
+      "pageId": "c856e902-e250-4858-9e38-cd55a5910a46",
+      "blocked": true,
+      "sourceUnchanged": true
+    },
+    {
+      "kind": "missing",
+      "pageId": "596f8a71-636d-417b-859e-153782ce5884",
+      "blocked": true,
+      "sourceUnchanged": true
+    }
+  ],
+  "status": "PASS"
+}

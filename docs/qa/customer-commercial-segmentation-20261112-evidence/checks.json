@@ -1,0 +1,18 @@
+{
+  "status": "LOCAL_ISOLATED_VERIFIED_NOT_DEPLOYED",
+  "fullUiPassed": 660,
+  "uiBuild": true,
+  "uiLintErrors": 0,
+  "uiLintWarnings": 3,
+  "playwrightAdminCreateEdit": true,
+  "sourceHashes": {
+    "src/modules/clientes/customer-commercial-fields.tsx": "e246295b5485fa51564c80c6edfa61bec54525f10e58e499901ddbc6a2769954",
+    "src/modules/clientes/customers-admin-actions.ts": "94e8874e78ab0b844c58d4305eb616298dc3be8415f8a296a4f499a786bb9546",
+    "src/modules/clientes/customers-admin-page.tsx": "cb526cdaa7379e11265455cb6d187c74aaeb9b401eb0241b591889dac68b5b54",
+    "src/modules/storefront/storefront-commercial-context.ts": "936394a176c400bec849111fea6692089c1486cd10486990af38c2b165e74ffd",
+    "src/modules/storefront/pdp.ts": "4df144cbdc277ce0df327272cdcf99e47c295c88d6dab613130f956d704ec563",
+    "src/modules/storefront/plp.ts": "3bca82af94005f36c33954cba20d7bb9f59c6401236ac68c9c99ac91d8b4b719",
+    "src/modules/storefront/public-page.ts": "a1dd4f44a45e559691e4e2b38f895d689ea64109fd4821fa27af483c62732e2e",
+    "tests/customer-commercial-browser.mjs": "4e6bafa13c413fe487da23d316d1f2cb1016f180c9dc2c7dd3924367c3ce8dcc"
+  }
+}

@@ -1,11 +1,14 @@
+import {CatalogDeletionOperations} from "./catalog-deletion-operations";
+import {CatalogDeletionButton} from "./catalog-deletion-button";
 import Link from "next/link";
+import { productPublicationLabel } from "./product-status";
+import { ProductListToolbarMenu } from "./product-list-toolbar-menu";
 import {
   Columns3,
   Copy,
   Eye,
   ExternalLink,
   Pencil,
-  PlusCircle,
   Search,
   Settings,
   Trash2,
@@ -13,8 +16,9 @@ import {
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 import { bulkDeactivateProductsAction, deactivateProductAction } from "./product-actions";
+import { pinProductListViewAction, resetProductListViewAction } from "./product-list-view-actions";
+import type { ProductListView } from "./product-list-view";
 import type { ProductListFilters, ProductListResult, ProductLookupOption, ProductSummary } from "./product-editor-types";
-import { CatalogCsvImportClient } from "./catalog-csv-import-client";
 
 type ProductListColumnKey =
   | "id"
@@ -47,10 +51,12 @@ const productListOptionalColumns: ProductListColumnDefinition[] = [
 const productListDefaultColumnKeys = productListOptionalColumns.map((column) => column.key);
 
 type ProductListPageProps = {
+  canDeleteProducts?:boolean;
   context: AdminContext;
   products: ProductListResult;
   categories: ProductLookupOption[];
   productMessage?: string;
+  pinnedView?: ProductListView | null;
 };
 
 export function normalizeProductListColumns(columns: string[] | undefined): ProductListColumnKey[] {
@@ -60,10 +66,6 @@ export function normalizeProductListColumns(columns: string[] | undefined): Prod
     .filter((key) => requested.has(key));
 
   return selected.length > 0 ? selected : [...productListDefaultColumnKeys];
-}
-
-function sameColumns(left: ProductListColumnKey[], right: ProductListColumnKey[]) {
-  return left.length === right.length && left.every((column, index) => column === right[index]);
 }
 
 function productListHref(
@@ -87,9 +89,7 @@ function productListHref(
   params.set("limit", String(limit));
   params.set("offset", String(Math.max(0, offset)));
 
-  if (!sameColumns(columns, productListDefaultColumnKeys)) {
-    params.set("columns", columns.join(","));
-  }
+  params.set("columns", columns.join(","));
 
   return `/admin/products?${params.toString()}`;
 }
@@ -151,10 +151,14 @@ function formatQuantity(product: ProductSummary) {
 }
 
 function categoryLabelForProduct(product: ProductSummary, categoryLabels: Map<string, string>) {
-  return product.categoryName ?? (product.categoryId ? categoryLabels.get(product.categoryId) : undefined) ?? "-";
+  const id = product.categoryId;
+  const label = id ? categoryLabels.get(id) : undefined;
+  if (label && label !== id) return label;
+  const name = product.categoryName?.trim();
+  return name && name !== id ? name : id ? "Categoría no disponible" : "-";
 }
 
-export function ProductListPage({ context, products, categories, productMessage }: ProductListPageProps) {
+export function ProductListPage({ canDeleteProducts=false,context, products, categories, productMessage, pinnedView }: ProductListPageProps) {
   const hasContext = hasRequiredAdminContext(context);
   const filters = products.filters ?? {};
   const limit = products.limit || 100;
@@ -174,6 +178,8 @@ export function ProductListPage({ context, products, categories, productMessage 
 
   return (
     <main className="adminPage productListPage">
+      {canDeleteProducts?<CatalogDeletionOperations context={{organizationId:context.organizationId,shopId:context.shopId,locale:context.locale}}/>:null}
+
       <div className="adminBreadcrumb">Admin / Catalogo / Productos</div>
       <div className="adminPageHeader">
         <div>
@@ -183,8 +189,7 @@ export function ProductListPage({ context, products, categories, productMessage 
           </p>
         </div>
         <div className="adminButtonRow">
-          <Link className="adminButton adminButtonPrimary" href="/admin/products/new">
-            <PlusCircle aria-hidden="true" size={16} />
+          <Link className="employeesTextAction" href="/admin/products/new">
             Anadir producto
           </Link>
         </div>
@@ -213,22 +218,30 @@ export function ProductListPage({ context, products, categories, productMessage 
         </div>
       ) : null}
 
-      {hasContext ? <CatalogCsvImportClient context={context} categories={categories} /> : null}
+      <form className="productListSearchPanel" id="product-list-filter-form" action="/admin/products" aria-label="Buscar productos">
+        <input aria-label="Filtrar por nombre" defaultValue={filters.q ?? ""} name="q" placeholder="Buscar productos" type="search" />
+        <select aria-label="Filtrar por categoria" defaultValue={filters.categoryId ?? ""} name="categoryId">
+          <option value="">Todas las categorías</option>
+          {categories.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+        </select>
+        <label className="productListPageSize">Por página
+          <input aria-label="Productos por pagina" defaultValue={filters.limit ?? products.limit} max={200} min={1} name="limit" type="number" />
+        </label>
+        <label className="productListFilterCheckbox">
+          <input defaultChecked={filters.isActive === true} name="isActive" type="checkbox" value="true" />
+          Activo
+        </label>
+        <input name="columns" type="hidden" value={activeColumns.join(",")} />
+        <button className="adminButton adminButtonPrimary" type="submit"><Search aria-hidden="true" size={16} />Buscar</button>
+      </form>
 
-      <section className="adminCard productListGrid">
+      <section className="productListGrid" aria-label="Listado de productos">
         <div className="adminCardHeader productListGridHeader">
           <div>
             <h2>Productos ({products.total})</h2>
-            <p>
-              {context.organizationId} / {context.shopId} · {locale} · {currency}
-            </p>
           </div>
           <div className="adminButtonRow" aria-label="Filtros de productos">
-            <details className="productListToolbarMenu">
-              <summary className="adminButton">
-                <Columns3 aria-hidden="true" size={16} />
-                Columnas
-              </summary>
+            <ProductListToolbarMenu label="Columnas" icon={<Columns3 aria-hidden="true" size={16} />}>
               <div className="productListToolbarPanel">
                 {productListOptionalColumns.map((column) => {
                   const selected = isColumnVisible(column.key);
@@ -251,12 +264,8 @@ export function ProductListPage({ context, products, categories, productMessage 
                   );
                 })}
               </div>
-            </details>
-            <details className="productListToolbarMenu">
-              <summary className="adminButton">
-                <Trash2 aria-hidden="true" size={16} />
-                Acciones agrupadas
-              </summary>
+            </ProductListToolbarMenu>
+            <ProductListToolbarMenu label="Acciones agrupadas" icon={<Trash2 aria-hidden="true" size={16} />}>
               <div className="productListToolbarPanel productListBulkPanel">
                 <strong>Desactivar seleccionados</strong>
                 <p>Oculta los productos marcados, los deja fuera de linea e intenta sacar sus rutas SEO del sitemap.</p>
@@ -268,12 +277,8 @@ export function ProductListPage({ context, products, categories, productMessage 
                   Desactivar seleccionados
                 </button>
               </div>
-            </details>
-            <details className="productListToolbarMenu">
-              <summary className="adminButton">
-                <Settings aria-hidden="true" size={16} />
-                Ajustes
-              </summary>
+            </ProductListToolbarMenu>
+            <ProductListToolbarMenu label="Ajustes" icon={<Settings aria-hidden="true" size={16} />}>
               <div className="productListToolbarPanel">
                 {[20, 50, 100, 200].map((pageSize) => (
                   <Link
@@ -290,10 +295,22 @@ export function ProductListPage({ context, products, categories, productMessage 
                   Limpiar filtros
                 </Link>
               </div>
-            </details>
+            </ProductListToolbarMenu>
+            <form action={pinProductListViewAction} data-session-recovery="off">
+              <input name="columns" type="hidden" value={activeColumns.join(",")} />
+              <input name="limit" type="hidden" value={limit} />
+              <button className="adminButton employeesActionInfo productListViewButton" type="submit">Fijar vista</button>
+            </form>
+            <form action={resetProductListViewAction} data-session-recovery="off">
+              <button className="adminButton employeesActionInfo productListViewButton" type="submit">Restablecer vista original</button>
+            </form>
+            {pinnedView ? <span className="adminContextHint" role="status">{pinnedView.limit === limit && pinnedView.columns.join(",") === activeColumns.join(",") ? "Vista fijada" : "Vista modificada sin fijar"}</span> : null}
           </div>
         </div>
 
+        <form action={bulkDeactivateProductsAction} id="product-list-bulk-form">
+          <input name="returnTo" type="hidden" value={currentListHref} />
+        </form>
         {products.items.length === 0 ? (
           <div className="adminEmptyState">
             <h2>No hay productos para este contexto</h2>
@@ -304,10 +321,6 @@ export function ProductListPage({ context, products, categories, productMessage 
           </div>
         ) : (
           <div className="adminTableScroller productListTableScroller">
-            <form id="product-list-filter-form" action="/admin/products" />
-            <form action={bulkDeactivateProductsAction} id="product-list-bulk-form">
-              <input name="returnTo" type="hidden" value={currentListHref} />
-            </form>
             <table className="adminTable productListTable">
                 <thead>
                   <tr>
@@ -325,68 +338,6 @@ export function ProductListPage({ context, products, categories, productMessage 
                     {isColumnVisible("status") ? <th scope="col">Estado</th> : null}
                     {isColumnVisible("media") ? <th scope="col">Media</th> : null}
                     <th scope="col">Acciones</th>
-                  </tr>
-                  <tr className="productListFilterRow">
-                    <th />
-                    {isColumnVisible("id") ? <th /> : null}
-                    {isColumnVisible("image") ? <th /> : null}
-                    <th>
-                      <input
-                        aria-label="Filtrar por nombre"
-                        defaultValue={filters.q ?? ""}
-                        form="product-list-filter-form"
-                        name="q"
-                        placeholder="Buscar"
-                        type="search"
-                      />
-                    </th>
-                    {isColumnVisible("reference") ? <th /> : null}
-                    {isColumnVisible("category") ? (
-                      <th>
-                      <select aria-label="Filtrar por categoria" defaultValue={filters.categoryId ?? ""} form="product-list-filter-form" name="categoryId">
-                        <option value="">Todas</option>
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.label}
-                          </option>
-                        ))}
-                      </select>
-                      </th>
-                    ) : null}
-                    {isColumnVisible("price") ? <th /> : null}
-                    {isColumnVisible("quantity") ? (
-                      <th>
-                        <input aria-label="Productos por pagina" defaultValue={filters.limit ?? products.limit} form="product-list-filter-form" max={200} min={1} name="limit" type="number" />
-                      </th>
-                    ) : null}
-                    {isColumnVisible("visibility") ? <th /> : null}
-                    {isColumnVisible("status") ? (
-                      <th>
-                        <label className="productListFilterCheckbox">
-                          <input defaultChecked={filters.isActive === true} form="product-list-filter-form" name="isActive" type="checkbox" value="true" />
-                          Activo
-                        </label>
-                      </th>
-                    ) : null}
-                    {isColumnVisible("media") ? <th /> : null}
-                    <th>
-                      {!isColumnVisible("category") && filters.categoryId ? (
-                        <input form="product-list-filter-form" name="categoryId" type="hidden" value={filters.categoryId} />
-                      ) : null}
-                      {!isColumnVisible("quantity") ? (
-                        <input form="product-list-filter-form" name="limit" type="hidden" value={filters.limit ?? products.limit} />
-                      ) : null}
-                      {!isColumnVisible("status") && filters.isActive ? (
-                        <input form="product-list-filter-form" name="isActive" type="hidden" value="true" />
-                      ) : null}
-                      {!sameColumns(activeColumns, productListDefaultColumnKeys) ? (
-                        <input form="product-list-filter-form" name="columns" type="hidden" value={activeColumns.join(",")} />
-                      ) : null}
-                      <button className="adminButton adminButtonPrimary productListSearchButton" form="product-list-filter-form" type="submit">
-                        <Search aria-hidden="true" size={16} />
-                        <span className="adminVisuallyHidden">Buscar</span>
-                      </button>
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -421,9 +372,8 @@ export function ProductListPage({ context, products, categories, productMessage 
                         ) : null}
                         <td className="productListNameCell">
                           <Link href={`/admin/products/${product.productId}`}>{product.name}</Link>
-                          <div className="adminContextHint">{product.slug}</div>
                         </td>
-                        {isColumnVisible("reference") ? <td>{product.reference ?? product.defaultVariantId ?? "-"}</td> : null}
+                        {isColumnVisible("reference") ? <td>{product.reference ?? "No disponible"}</td> : null}
                         {isColumnVisible("category") ? <td>{categoryLabelForProduct(product, categoryLabels)}</td> : null}
                         {isColumnVisible("price") ? <td className="productListNumericCell">{formatMoney(product.priceTaxIncludedMinor, product.priceTaxIncludedDisplay, rowCurrency, locale)}</td> : null}
                         {isColumnVisible("quantity") ? <td className="productListNumericCell">{formatQuantity(product)}</td> : null}
@@ -437,31 +387,32 @@ export function ProductListPage({ context, products, categories, productMessage 
                         {isColumnVisible("status") ? (
                           <td>
                             <span className={`adminBadge ${product.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>
-                              {product.isActive ? "Activo" : "Fuera de linea"}
+                              {productPublicationLabel(product.productId, product.isActive)}
                             </span>
                           </td>
                         ) : null}
                         {isColumnVisible("media") ? <td>{hasMedia ? product.mediaCount ? `${product.mediaCount} media` : "Coleccion" : "-"}</td> : null}
                         <td>
                           <div className="productListActions">
-                            <Link className="adminIconButton" href={`/admin/products/${product.productId}`} title="Editar">
+                            {canDeleteProducts?<CatalogDeletionButton target={{organizationId:context.organizationId,shopId:context.shopId,locale:context.locale,productId:product.productId}} name={product.name}/>:null}
+                            <Link className="adminButton employeesActionInfo" href={`/admin/products/${product.productId}`} title="Editar">
                               <Pencil aria-hidden="true" size={16} />
                               <span className="adminVisuallyHidden">Editar {product.name}</span>
                             </Link>
-                            <Link className="adminIconButton" href={`/admin/products/${product.productId}?preview=1`} title="Previsualizar en editor">
+                            <Link className="adminButton employeesActionInfo" href={`/admin/products/${product.productId}?preview=1`} title="Previsualizar en editor">
                               <Eye aria-hidden="true" size={16} />
                               <span className="adminVisuallyHidden">Previsualizar {product.name}</span>
                             </Link>
-                            <Link className="adminIconButton" href={`/admin/products/${product.productId}/storefront-preview`} title="Preview Storefront real">
+                            <Link className="adminButton employeesActionInfo" href={`/admin/products/${product.productId}/storefront-preview`} title="Preview Storefront real">
                               <ExternalLink aria-hidden="true" size={16} />
                               <span className="adminVisuallyHidden">Preview Storefront {product.name}</span>
                             </Link>
-                            <Link className="adminIconButton" href={`/admin/products/new?duplicateFrom=${encodeURIComponent(product.productId)}`} title="Duplicar como borrador">
+                            <Link className="adminButton employeesActionInfo" href={`/admin/products/new?duplicateFrom=${encodeURIComponent(product.productId)}`} title="Duplicar como borrador">
                               <Copy aria-hidden="true" size={16} />
                               <span className="adminVisuallyHidden">Duplicar {product.name}</span>
                             </Link>
                             <details className="productDangerMenu">
-                              <summary className="adminIconButton adminIconButtonDanger" title="Desactivar de forma segura">
+                              <summary className="adminButton employeesActionWarning" title="Desactivar de forma segura">
                                 <Trash2 aria-hidden="true" size={16} />
                                 <span className="adminVisuallyHidden">Desactivar {product.name}</span>
                               </summary>

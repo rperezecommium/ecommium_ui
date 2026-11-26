@@ -1,0 +1,55 @@
+{
+  "unitTests": {
+    "ui": 683,
+    "bff": 1031,
+    "pricing": 171,
+    "checkout": 68,
+    "commerceReadIndex": 86
+  },
+  "postgresActualSocketHttp": "PASS",
+  "uiBuild": "PASS",
+  "uiLint": {
+    "errors": 0,
+    "preexistingWarnings": 3
+  },
+  "negativeStockQuantity": {
+    "httpStatus": 400,
+    "quantityBefore": 1,
+    "quantityAfter": 1,
+    "totalBefore": 2662,
+    "totalAfter": 2662
+  },
+  "responsive": [
+    {
+      "viewportWidth": 1440,
+      "documentWidth": 1425
+    },
+    {
+      "viewportWidth": 1024,
+      "documentWidth": 1009
+    },
+    {
+      "viewportWidth": 390,
+      "documentWidth": 375
+    }
+  ],
+  "categoryGuest": {
+    "renderedProducts": 16,
+    "total": 500
+  },
+  "orders": [
+    "10055",
+    "10056"
+  ],
+  "qaUnitsAddedWithUserApproval": 2,
+  "qaUnitsRemaining": 0,
+  "remainingLimitations": [
+    "Existing shared Admin contrast violations",
+    "No new Lighthouse certification",
+    "No production or physical stock certification",
+    "Historical incidents outside scope"
+  ],
+  "registeredAccountOrderVisible": true,
+  "scopedBackendRuntimeLint": "PASS",
+  "taskIntroducedTrailingWhitespace": false
+}

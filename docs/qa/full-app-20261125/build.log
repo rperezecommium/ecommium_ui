@@ -1,0 +1,146 @@
+
+> ecommium_ui@0.1.0 build
+> next build
+
+▲ Next.js 16.3.0 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.ts took 13ms
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 782ms
+  Running TypeScript ...
+  Finished TypeScript in 1621ms ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/88) ...
+  Generating static pages using 11 workers (22/88) 
+  Generating static pages using 11 workers (44/88) 
+  Generating static pages using 11 workers (66/88) 
+✓ Generating static pages using 11 workers (88/88) in 205ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /[...pathSegments]
+├ ƒ /account
+├ ƒ /account/activate
+├ ƒ /account/after-sales/cases/[caseId]/evidences/[privateEvidenceId]/content
+├ ƒ /account/invoices
+├ ƒ /account/invoices/[invoiceId]/document
+├ ƒ /account/password-reset
+├ ƒ /admin
+├ ƒ /admin/analitica
+├ ƒ /admin/catalogo
+├ ƒ /admin/catalogo/atributos-caracteristicas
+├ ƒ /admin/catalogo/categorias
+├ ƒ /admin/catalogo/eliminaciones
+├ ƒ /admin/catalogo/importar
+├ ƒ /admin/catalogo/marcas
+├ ƒ /admin/catalogo/media
+├ ƒ /admin/catalogo/offerings
+├ ƒ /admin/catalogo/precios
+├ ƒ /admin/catalogo/search
+├ ƒ /admin/catalogo/stock
+├ ƒ /admin/clientes
+├ ƒ /admin/clientes/[customerReference]
+├ ƒ /admin/cms
+├ ƒ /admin/cms/ajustes-basicos
+├ ƒ /admin/cms/footers
+├ ƒ /admin/cms/headers
+├ ƒ /admin/cms/modulos
+├ ƒ /admin/cms/plantillas
+├ ƒ /admin/cms/secciones
+├ ƒ /admin/configuracion
+├ ƒ /admin/configuracion/automatizacion
+├ ƒ /admin/configuracion/checkout
+├ ƒ /admin/configuracion/comunicaciones
+├ ƒ /admin/configuracion/consent
+├ ƒ /admin/configuracion/consent/newsletter
+├ ƒ /admin/configuracion/contexto
+├ ƒ /admin/configuracion/equipo
+├ ƒ /admin/configuracion/precios
+├ ƒ /admin/configuracion/seguridad
+├ ƒ /admin/configuracion/seo
+├ ƒ /admin/configuracion/transporte
+├ ƒ /admin/installation
+├ ƒ /admin/pagos
+├ ƒ /admin/pagos/facturas/[invoiceId]
+├ ƒ /admin/pagos/invoices/[invoiceId]/document
+├ ƒ /admin/password
+├ ƒ /admin/pedidos
+├ ƒ /admin/postventa
+├ ƒ /admin/postventa/cases/[caseId]/evidences/[privateEvidenceId]/content
+├ ƒ /admin/products
+├ ƒ /admin/products/[productId]
+├ ƒ /admin/products/[productId]/storefront-preview
+├ ƒ /admin/products/new
+├ ƒ /admin/promociones
+├ ƒ /admin/seo
+├ ƒ /admin/transporte
+├ ƒ /api/admin/catalog-import-jobs/[importJobId]
+├ ƒ /api/admin/catalog-import-jobs/[importJobId]/apply
+├ ƒ /api/admin/catalog-import-jobs/[importJobId]/outcomes
+├ ƒ /api/admin/catalog-import-jobs/[importJobId]/publication/apply
+├ ƒ /api/admin/catalog-import-jobs/[importJobId]/resume
+├ ƒ /api/admin/catalog-import-jobs/csv
+├ ƒ /api/admin/catalog-import-jobs/readiness
+├ ƒ /api/admin/inventory/import-bulk-jobs
+├ ƒ /api/admin/inventory/import-bulk-jobs/[jobId]
+├ ƒ /api/admin/media-assets/[mediaAssetId]/content
+├ ƒ /api/admin/pricing/bulk-jobs
+├ ƒ /api/admin/pricing/bulk-jobs/[jobId]
+├ ƒ /api/admin/session/clear
+├ ƒ /api/admin/session/close
+├ ƒ /api/admin/session/continue
+├ ƒ /api/admin/session/refresh
+├ ƒ /api/admin/session/state
+├ ƒ /api/health
+├ ƒ /api/storefront/cart
+├ ƒ /api/storefront/cart/items
+├ ƒ /api/storefront/cart/offerings
+├ ƒ /api/storefront/checkout
+├ ƒ /api/storefront/checkout/context
+├ ƒ /api/storefront/me/addresses
+├ ƒ /api/storefront/orders/[orderId]/tracking-link
+├ ƒ /api/storefront/payments/payment-systems
+├ ƒ /api/storefront/payments/transactions
+├ ƒ /api/storefront/payments/transactions/[transactionId]
+├ ƒ /api/storefront/payments/transactions/[transactionId]/[provider]/complete-return
+├ ƒ /api/storefront/payments/transactions/[transactionId]/cancel
+├ ƒ /api/storefront/search/events
+├ ƒ /api/v1/storefront/consent/decisions
+├ ƒ /api/v1/storefront/consent/policy
+├ ƒ /auth/activate
+├ ƒ /auth/admin/password-recovery
+├ ƒ /auth/admin/password-recovery/complete
+├ ƒ /auth/admin/password-recovery/consume
+├ ƒ /auth/admin/session-renew
+├ ƒ /auth/login
+├ ƒ /auth/password-reset
+├ ƒ /cart
+├ ƒ /checkout
+├ ƒ /checkout/confirmation
+├ ƒ /checkout/payments/paypal/cancel
+├ ƒ /checkout/payments/paypal/return
+├ ƒ /checkout/payments/stripe/cancel
+├ ƒ /checkout/payments/stripe/return
+├ ○ /icon.svg
+├ ƒ /newsletter/confirm
+├ ƒ /newsletter/unsubscribe
+├ ƒ /pdp/[productSlug]
+├ ƒ /pedido/[orderReference]/seguimiento
+├ ƒ /plp/[categorySlug]
+├ ƒ /public-system/not-found
+├ ƒ /public-system/storefront-unavailable
+├ ○ /robots.txt
+├ ƒ /search
+└ ƒ /sitemap.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

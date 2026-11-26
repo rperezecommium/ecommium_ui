@@ -1,11 +1,12 @@
 "use client";
 
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, Info } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 type AdminInfoTooltipProps = {
   label: string;
+  icon?: "help" | "info";
   title?: string;
   description: string;
   example?: string;
@@ -17,7 +18,7 @@ type TooltipPosition = {
   width: number;
 };
 
-export function AdminInfoTooltip({ label, title, description, example }: AdminInfoTooltipProps) {
+export function AdminInfoTooltip({ label, title, description, example, icon = "help" }: AdminInfoTooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<TooltipPosition | null>(null);
   const tooltipId = useId();
@@ -113,7 +114,7 @@ export function AdminInfoTooltip({ label, title, description, example }: AdminIn
         onFocus={() => setIsOpen(true)}
         type="button"
       >
-        <CircleHelp aria-hidden="true" size={17} strokeWidth={2.25} />
+        {icon === "info" ? <Info aria-hidden="true" size={17} strokeWidth={2.25} /> : <CircleHelp aria-hidden="true" size={17} strokeWidth={2.25} />}
       </button>
       {isOpen && position ? createPortal(
         <span

@@ -1,0 +1,13 @@
+PASS src/modules/cms/application/use-cases/manage-cms-page-composition.spec.ts
+  ✓ validates Media before page creation and checks canonical receipt scope (7 ms)
+  ✓ does not forward a page whose nested Media is unavailable (1 ms)
+  ✓ publication validates the exact current version before the owner command
+  ✓ a changed revision reaches only owner replay or CAS rejection without validating a different draft (1 ms)
+  ✓ rejects a legacy-shaped receipt for a composition command
+  ✓ forwards coordinated lifecycle commands unchanged and rejects incomplete commands (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        1.585 s
+Ran all test suites within paths "src/modules/cms/application/use-cases/manage-cms-page-composition.spec.ts".

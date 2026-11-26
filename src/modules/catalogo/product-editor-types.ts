@@ -5,6 +5,7 @@ export type ProductMode = "simple" | "variants";
 export type SaveBlockStatus = "pending" | "running" | "success" | "failed" | "skipped" | "blocked";
 
 export type PriceDraft = {
+  priceKind?: "REGULAR" | "SPECIFIC";
   pricingId?: string;
   basePriceMinor: number;
   listPriceMinor?: number | null;
@@ -19,10 +20,17 @@ export type PriceDraft = {
   customerGroup?: string | null;
   country?: string;
   source?: string;
+  validFrom?: string | null;
+  validUntil?: string | null;
+  timezone?: string;
+  active?: boolean;
+  priority?: number;
   markedForDeletion?: boolean;
 };
 
 export type SpecificPriceDraft = {
+  dirty?: boolean;
+  source?: string;
   pricingId?: string;
   targetType: "PRODUCT" | "VARIANT";
   productId?: string;
@@ -51,6 +59,9 @@ export type SpecificPriceDraft = {
 };
 
 export type StockDraft = {
+  availabilityEstimated?: boolean;
+  readOnlySelection?: boolean;
+  persisted?: boolean;
   warehouseId: string;
   onHandQuantity: number;
   reservedQuantity: number;
@@ -61,6 +72,7 @@ export type StockDraft = {
 };
 
 export type ProductShippingDraft = {
+  variantPackages?: Record<string, Partial<ProductShippingDraft["package"]>>;
   package: {
     weightGrams?: number | null;
     widthMm?: number | null;
@@ -86,6 +98,7 @@ export type ProductSpecificationSelectionDraft = {
 };
 
 export type ProductSpecificationLookupField = {
+  categoryIds?: string[];
   fieldId: string;
   groupId: string;
   groupName: string;
@@ -113,6 +126,7 @@ export type ProductDraftMediaItem = {
   title: Record<string, string>;
   mediaAssetId?: string;
   persisted?: boolean;
+  metadataDirty?: boolean;
 };
 
 export type ProductDraftMediaFile = {
@@ -121,6 +135,7 @@ export type ProductDraftMediaFile = {
 };
 
 export type ProductDraftVariant = {
+  shippingPackage?: Partial<ProductShippingDraft["package"]>;
   localId: string;
   variantId?: string;
   name: string;
@@ -176,7 +191,7 @@ export type ProductAppliedPricePreviewCondition = {
 
 export type ProductAppliedPricePreview = {
   ok: boolean;
-  status: "APPLIED" | "NOT_APPLIED";
+  status: "APPLIED" | "NOT_APPLIED" | "ERROR";
   reason: string | null;
   requested: Required<Pick<ProductAppliedPricePreviewInput, "productId" | "variantId" | "defaultVariantId" | "currency" | "country" | "tradePolicy" | "channel" | "customerGroup" | "priceTableId" | "at">> & {
     quantity: number;
@@ -427,6 +442,7 @@ export type ProductEditorData = {
 };
 
 export type ProductLookupOption = {
+  isActive?: boolean;
   id: string;
   label: string;
   slug?: string;
@@ -446,6 +462,8 @@ export type ProductTaxLookupOption = ProductLookupOption & {
 };
 
 export type ProductEditorLookups = {
+  warehouses?: ProductLookupOption[];
+  warehouseLoadError?: string;
   categories: ProductLookupOption[];
   brands: ProductLookupOption[];
   taxes: ProductTaxLookupOption[];
@@ -457,6 +475,8 @@ export type ProductEditorLookups = {
   carriers: ProductLookupOption[];
   variantAttributeFields: ProductSpecificationLookupField[];
   specificationFields: ProductSpecificationLookupField[];
+  specificationGroups?: Array<{ groupId: string; name: string; categoryIds: string[] }>;
+  specificationLoadError?: string;
   offerings: ProductOfferingRecord[];
   warnings: string[];
 };
@@ -687,16 +707,16 @@ export type ProductGateway = {
   attachOfferingToVariant(input: {
     offeringId: string;
     variantId: string;
-  }): Promise<BffResult<{ offeringId: string; variantId: string; message?: string }>>;
+  }): Promise<BffResult<{ offeringId: string; variantId: string; offerings?: ProductOfferingRecord[]; message?: string }>>;
   detachOfferingFromVariant(input: {
     offeringId: string;
     variantId: string;
-  }): Promise<BffResult<{ offeringId: string; variantId: string; detached?: boolean; message?: string }>>;
+  }): Promise<BffResult<{ offeringId: string; variantId: string; offerings?: ProductOfferingRecord[]; detached?: boolean; message?: string }>>;
   setOfferingVariantActivation(input: {
     offeringId: string;
     variantId: string;
     active: boolean;
-  }): Promise<BffResult<{ offeringId: string; variantId: string; active?: boolean; message?: string }>>;
+  }): Promise<BffResult<{ offeringId: string; variantId: string; offerings?: ProductOfferingRecord[]; active?: boolean; updated?: boolean; message?: string }>>;
   listOfferingsByVariant(variantId: string): Promise<BffResult<ProductOfferingRecord[]>>;
   resolveOfferingsBatchByVariants(variantIds: string[]): Promise<BffResult<Record<string, ProductOfferingRecord[]>>>;
   putStockLevel(input: {

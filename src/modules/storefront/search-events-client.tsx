@@ -128,7 +128,7 @@ function sendAuthorizedStorefrontSearchEvent(payload: Record<string, unknown>) {
  * si puede emitir; sin autorización el callback descarta el payload y la
  * cookie de visitante se retira. No hay cola previa al consentimiento.
  */
-export function useStorefrontAnalytics() {
+export function useStorefrontAnalytics(enabled = true) {
   const allowed = useSyncExternalStore(
     subscribeAnalyticsConsent,
     analyticsConsentSnapshot,
@@ -136,16 +136,16 @@ export function useStorefrontAnalytics() {
   );
 
   useEffect(() => {
-    if (!allowed) {
+    if (enabled && !allowed) {
       clearStorefrontVisitorId();
     }
-  }, [allowed]);
+  }, [allowed, enabled]);
 
   return useCallback((payload: Record<string, unknown>) => {
-    if (allowed) {
+    if (enabled && allowed) {
       sendAuthorizedStorefrontSearchEvent(payload);
     }
-  }, [allowed]);
+  }, [allowed, enabled]);
 }
 
 export function StorefrontConsentAnalyticsLifecycle() {

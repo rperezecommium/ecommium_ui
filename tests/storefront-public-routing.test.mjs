@@ -27,6 +27,10 @@ const metadata = readFileSync(
 const proxy = readFileSync(path.resolve(root, "proxy.ts"), "utf8");
 const rootLayout = readFileSync(path.resolve(root, "app/layout.tsx"), "utf8");
 const globalsCss = readFileSync(path.resolve(root, "app/globals.css"), "utf8");
+const cmsSlider = readFileSync(
+  path.resolve(root, "src/modules/storefront/storefront-cms-slider.tsx"),
+  "utf8",
+);
 const commerceAdapter = readFileSync(
   path.resolve(root, "src/modules/storefront/public-commerce-page.ts"),
   "utf8",
@@ -205,6 +209,7 @@ test("published CMS pages render all supported block families", () => {
   for (const blockType of [
     "banner.hero",
     "slider.fullWidth",
+    "category.imageTiles",
     "plp.categoryIntro",
     "plp.subcategoryTiles",
     "accordion",
@@ -252,7 +257,11 @@ test("CMS rendering ignores unsafe content and PLP-only placements", () => {
 });
 
 test("CMS page keeps storefront navigation and the PLP shares the safe renderer", () => {
-  assert.match(cmsPage, /<StorefrontHeader/);
+  assert.match(cmsPage, /<StorefrontPageShell/);
+  assert.match(cmsPage, /pageId=\{page\.pageId\}/);
+  assert.match(cmsPage, /surface=\{isHome \? "HOME" : "CMS"\}/);
+  assert.match(cmsPage, /storefrontCmsPageHome/);
+  assert.match(cmsPage, /isHome \? <h1 className="storefrontVisuallyHidden">/);
   assert.match(cmsPage, /className="storefrontBreadcrumb"/);
   assert.match(cmsPage, /<h1>\{page\.title\}<\/h1>/);
   assert.match(plpPage, /StorefrontCmsBlockRenderer/);
@@ -260,17 +269,32 @@ test("CMS page keeps storefront navigation and the PLP shares the safe renderer"
   assert.doesNotMatch(publicView, /render definitivo se completa/);
 });
 
+test("CMS home slider renders Swiper with safe responsive presentation", () => {
+  assert.match(cmsPage, /block\.type === "slider\.fullWidth"/);
+  assert.match(cmsSlider, /modules=\{\[A11y, Autoplay, Keyboard\]\}/);
+  assert.match(cmsSlider, /pauseOnMouseEnter: true/);
+  assert.match(cmsSlider, /prefers-reduced-motion: reduce/);
+  assert.match(cmsSlider, /backgroundPositions\.has\(requestedPosition\)/);
+  assert.match(cmsSlider, /Mostrar diapositiva anterior/);
+  assert.match(cmsSlider, /Mostrar diapositiva siguiente/);
+  assert.match(globalsCss, /--cms-slider-height-desktop/);
+  assert.match(globalsCss, /storefrontCmsPageHome/);
+});
+
 test("CMS contract requires a complete published page before rendering", () => {
   assert.match(contract, /page\.status === "PUBLISHED"/);
   assert.match(contract, /Array\.isArray\(page\.blocks\)/);
-  assert.match(contract, /StorefrontCmsResolvedPageSettings/);
-  assert.match(contract, /resolvedPageSettings\?: StorefrontCmsResolvedPageSettings \| null/);
+  assert.match(contract, /StorefrontCmsPublishedPageLayout/);
+  assert.match(contract, /layout\?: StorefrontCmsPublishedPageLayout \| null/);
+  assert.match(cmsPage, /page\.layout\?\.regions \?\? page\.resolvedPageSettings\?\.layout\?\.regions/);
+  assert.match(cmsPage, /page\.layout\?\.tokens \?\? page\.resolvedPageSettings\?\.tokens/);
   assert.match(contract, /typeof seo\?\.title === "string"/);
   assert.match(contract, /typeof seo\?\.description === "string"/);
 });
 
-test("home resolves slash through the canonical page endpoint before legacy fallback", () => {
-  assert.match(home, /getStorefrontPublicPage\("\/"/);
+test("home resolves the published CMS home path before legacy fallback", () => {
+  assert.match(home, /const homeCmsPath = "\/home"/);
+  assert.match(home, /getStorefrontPublicPage\(homeCmsPath/);
   assert.match(home, /<StorefrontResolvedPublicPage/);
   assert.match(home, /buildStorefrontPublicMetadata\(result\.data\)/);
   assert.match(home, /getStorefrontPlp\(homeCategorySlug/);

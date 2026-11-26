@@ -261,14 +261,31 @@ export async function getPricingReferenceData(
   return getPricing(context, endpoint, [], normalizeList);
 }
 
+// ReadIndex aplica admisión acotada por tenant. Las tareas son diferidas para
+// no abrir todas las lecturas antes de que haya capacidad en esta carga.
+async function readPricingData<const T extends readonly (() => Promise<unknown>)[]>(
+  tasks: T,
+): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> {
+  const results: unknown[] = new Array(tasks.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < tasks.length) {
+      const index = next++;
+      results[index] = await tasks[index]();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(2, tasks.length) }, worker));
+  return results as { [K in keyof T]: Awaited<ReturnType<T[K]>> };
+}
+
 export async function getPricingEditorLookups(context: AdminContext) {
-  const [taxes, priceTables, customerGroups, channels, tradePolicies, countries] = await Promise.all([
-    getPricingTaxes(context),
-    getPricingPriceTables(context),
-    getPricingReferenceData(context, "customer-groups"),
-    getPricingReferenceData(context, "channels"),
-    getPricingReferenceData(context, "trade-policies"),
-    getPricingReferenceData(context, "countries"),
+  const [taxes, priceTables, customerGroups, channels, tradePolicies, countries] = await readPricingData([
+    () => getPricingTaxes(context),
+    () => getPricingPriceTables(context),
+    () => getPricingReferenceData(context, "customer-groups"),
+    () => getPricingReferenceData(context, "channels"),
+    () => getPricingReferenceData(context, "trade-policies"),
+    () => getPricingReferenceData(context, "countries"),
   ]);
   const warnings: string[] = [];
 
@@ -302,7 +319,7 @@ export async function getPricingEditorLookups(context: AdminContext) {
   };
 }
 
-function toTaxLookupOption(record: PricingRecord): ProductTaxLookupOption | null {
+export function toTaxLookupOption(record: PricingRecord): ProductTaxLookupOption | null {
   const taxCode = optionalString(record.taxCode ?? record.code);
   const calculationType = inferCalculationType(record);
   if (!taxCode || !calculationType) {
@@ -380,38 +397,44 @@ export async function getPricingGovernanceData(
     computedAutoBatch,
     pipeline,
     pipelineTable,
-  ] = await Promise.all([
-    getPricing(context, `/admin/pricing/config?${scoped()}`, {}, normalizeRecord),
-    getPricing(context, `/admin/pricing/migration?${scoped()}`, {}, normalizeRecord),
-    getPricingTaxes(context),
-    getPricingPriceTables(context),
-    getPricingReferenceData(context, "customer-groups"),
-    getPricingReferenceData(context, "channels"),
-    getPricingReferenceData(context, "trade-policies"),
-    getPricingReferenceData(context, "countries"),
-    priceTableId
+  ] = await readPricingData([
+    () => filters.tab === "summary"
+      ? getPricing(context, `/admin/pricing/config?${scoped()}`, {}, normalizeRecord)
+      : Promise.resolve(emptyRecord),
+    () => filters.tab === "summary"
+      ? getPricing(context, `/admin/pricing/migration?${scoped()}`, {}, normalizeRecord)
+      : Promise.resolve(emptyRecord),
+    () => filters.tab === "taxes" ? getPricingTaxes(context) : Promise.resolve(emptyList),
+    () => getPricingPriceTables(context),
+    () => getPricingReferenceData(context, "customer-groups"),
+    () => getPricingReferenceData(context, "channels"),
+    () => getPricingReferenceData(context, "trade-policies"),
+    () => getPricingReferenceData(context, "countries"),
+    () => filters.tab === "rules" && priceTableId
       ? getPricing(context, `/admin/pricing/price-tables/${encodeURIComponent(priceTableId)}?${scoped()}`, {}, normalizeRecord)
       : Promise.resolve(emptyRecord),
-    priceTableId
+    () => filters.tab === "rules" && priceTableId
       ? getPricing(context, `/admin/pricing/price-tables/${encodeURIComponent(priceTableId)}/rules?${scoped()}`, [], normalizeList)
       : Promise.resolve(emptyList),
-    itemId
+    () => filters.tab === "fixed" && itemId
       ? getPricing(context, `/admin/pricing/prices/${encodeURIComponent(itemId)}/fixed?${scoped()}`, [], normalizeList)
       : Promise.resolve(emptyList),
-    itemId && priceTableId
+    () => filters.tab === "computed" && itemId && priceTableId
       ? getPricing(context, `/admin/pricing/prices/${encodeURIComponent(itemId)}/computed/${encodeURIComponent(priceTableId)}?${scoped(pricingContext)}`, {}, normalizeRecord)
       : Promise.resolve(emptyRecord),
-    priceTableId && itemId
+    () => filters.tab === "computed" && priceTableId && itemId
       ? postPricing(context, `/admin/pricing/prices/computed/${encodeURIComponent(priceTableId)}/resolve-batch?${scoped(pricingContext)}`, [], { itemIds: [itemId] }, normalizeList)
       : Promise.resolve(emptyList),
-    itemId
+    () => filters.tab === "computed-auto" && itemId
       ? getPricing(context, `/admin/pricing/prices/${encodeURIComponent(itemId)}/computed-auto?${scoped(pricingContext)}`, {}, normalizeRecord)
       : Promise.resolve(emptyRecord),
-    itemId
+    () => filters.tab === "computed-auto" && itemId
       ? postPricing(context, `/admin/pricing/prices/computed-auto/resolve-batch?${scoped(pricingContext)}`, [], { itemIds: [itemId] }, normalizeList)
       : Promise.resolve(emptyList),
-    getPricing(context, `/admin/pricing/pipeline/catalog?${scoped()}`, [], normalizeList),
-    priceTableId
+    () => filters.tab === "pipeline"
+      ? getPricing(context, `/admin/pricing/pipeline/catalog?${scoped()}`, [], normalizeList)
+      : Promise.resolve(emptyList),
+    () => filters.tab === "pipeline" && priceTableId
       ? getPricing(context, `/admin/pricing/pipeline/catalog/${encodeURIComponent(priceTableId)}?${scoped()}`, {}, normalizeRecord)
       : Promise.resolve(emptyRecord),
   ]);

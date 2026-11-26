@@ -10,7 +10,7 @@ type Props = {
 export function StorefrontPdpPage({ result, productSlug }: Props) {
   return (
     <main className="storefrontPage">
-      <StorefrontPageShell>
+      <StorefrontPageShell surface="PDP">
         <div className="storefrontShell">
           {result.ok && result.data ? (
             <PdpContent data={result.data} />

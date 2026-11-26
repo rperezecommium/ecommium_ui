@@ -1,6 +1,9 @@
 "use client";
+import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
 
-import { useEffect, useMemo, useState } from "react";
+
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import type {
   EmployeePermissionRecord,
@@ -18,6 +21,8 @@ type EmployeesAdminPageProps = {
   initialTab?: EmployeesTab;
   notice?: string;
   canResetCredentials: boolean;
+  canManageEmployees: boolean;
+  canManageProfiles: boolean;
   resetEmployeeCredentialAction: (formData: FormData) => Promise<void>;
   updateEmployeeAction: (formData: FormData) => Promise<void>;
   updateEmployeeDefaultShopAction: (formData: FormData) => Promise<void>;
@@ -31,7 +36,6 @@ type EmployeesTab = "employees" | "create-employee" | "profiles" | "permissions"
 
 const tabs: Array<{ id: EmployeesTab; label: string }> = [
   { id: "employees", label: "Empleados" },
-  { id: "create-employee", label: "Crear empleado" },
   { id: "profiles", label: "Perfiles" },
   { id: "permissions", label: "Permisos" },
 ];
@@ -100,6 +104,8 @@ export function EmployeesAdminPage({
   createEmployeeAction,
   createProfileAction,
   canResetCredentials,
+  canManageEmployees,
+  canManageProfiles,
   data,
   error,
   initialTab = "employees",
@@ -112,9 +118,15 @@ export function EmployeesAdminPage({
   updateProfileAction,
   updateProfilePermissionsAction,
 }: EmployeesAdminPageProps) {
-  const [tab, setTab] = useState<EmployeesTab>(initialTab);
+  const [tab, setTab] = useState<EmployeesTab>(initialTab === "create-employee" ? "employees" : initialTab);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(employeeIdOf(data.employees[0] ?? {}));
   const [isEmployeeEditorOpen, setIsEmployeeEditorOpen] = useState(false);
+  const [isEmployeeCreateOpen, setIsEmployeeCreateOpen] = useState(initialTab === "create-employee");
+  const employeeCreateDrawerRef = useRef<HTMLElement | null>(null);
+  const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
+  const permissionsDrawerRef = useRef<HTMLElement | null>(null);
+  const [profileEditorMode, setProfileEditorMode] = useState<"create" | "edit" | null>(null);
+  const profileDrawerRef = useRef<HTMLElement | null>(null);
   const [selectedProfileId, setSelectedProfileId] = useState(profileIdOf(data.profiles[0] ?? {}));
   const [permissionsText, setPermissionsText] = useState(profilePermissionsText(data.profiles[0]));
   const canUseTenant = Boolean(context.organizationId && context.shopId);
@@ -134,6 +146,7 @@ export function EmployeesAdminPage({
   }
 
   function openEmployeeEditor(employeeId: string) {
+    if(!canManageEmployees&&!canResetCredentials)return;
     setSelectedEmployeeId(employeeId);
     setIsEmployeeEditorOpen(true);
   }
@@ -153,22 +166,48 @@ export function EmployeesAdminPage({
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [isEmployeeEditorOpen]);
 
+  useEffect(() => {
+    if (!profileEditorMode && !isEmployeeCreateOpen && !isPermissionsOpen) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const drawer = profileEditorMode ? profileDrawerRef.current : isEmployeeCreateOpen ? employeeCreateDrawerRef.current : permissionsDrawerRef.current;
+    const focusable = () => Array.from(drawer?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), a[href]',
+    ) ?? []);
+    (drawer?.querySelector<HTMLElement>('input[name="email"], input[name="name"], select[name="profileId"]') ?? drawer)?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setProfileEditorMode(null);
+        setIsEmployeeCreateOpen(false);
+        setIsPermissionsOpen(false);
+      }
+      if (event.key !== "Tab") return;
+      const controls = focusable();
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!first || !last) { event.preventDefault(); drawer?.focus(); return; }
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      previousFocus?.focus();
+    };
+  }, [profileEditorMode, isEmployeeCreateOpen, isPermissionsOpen]);
+
   return (
-    <main className="adminPage">
+    <main className="adminPage employeesAdminPage">
       <div className="adminPageHeader">
         <div>
           <div className="adminBreadcrumb">Admin / Configuracion / Equipo</div>
           <h1 className="adminPageTitle">Equipo, perfiles y permisos</h1>
           <p className="adminPageIntro">
-            Gestiona empleados de backoffice al estilo PrestaShop: cada persona
-            tiene cuenta propia, perfiles asignados y permisos efectivos por
-            Organization/Shop.
+            Gestiona los miembros del equipo, sus perfiles y los permisos de acceso a la administración.
           </p>
-        </div>
-        <div className="adminButtonRow">
-          <span className={data.health.ok ? "adminBadge adminBadgeOk" : "adminBadge adminBadgeError"}>
-            Employees {data.health.status}
-          </span>
         </div>
       </div>
 
@@ -197,54 +236,38 @@ export function EmployeesAdminPage({
         </div>
       ) : null}
 
-      <section className="adminKpiGrid" aria-label="Resumen de equipo">
-        <article className="adminKpi">
-          <span>Empleados</span>
-          <strong>{data.employees.length}</strong>
-          <div className="adminMuted">Cuentas de backoffice</div>
-        </article>
-        <article className="adminKpi">
-          <span>Perfiles</span>
-          <strong>{data.profiles.length}</strong>
-          <div className="adminMuted">Roles operativos</div>
-        </article>
-        <article className="adminKpi">
-          <span>Permisos</span>
-          <strong>{data.permissions.length}</strong>
-          <div className="adminMuted">Catalogo BFF</div>
-        </article>
-        <article className="adminKpi">
-          <span>Contexto</span>
-          <strong>{canUseTenant ? "Listo" : "Pendiente"}</strong>
-          <div className="adminMuted">{context.organizationId || "-"} / {context.shopId || "-"}</div>
-        </article>
-      </section>
-
-      <section className="adminCard">
+      <div className="employeesToolbar">
         <div className="adminTabs" role="tablist" aria-label="Equipo">
           {tabs.map((item) => (
             <button
+              aria-selected={tab === item.id}
+              role="tab"
               className={tab === item.id ? "adminTab adminTabActive" : "adminTab"}
               key={item.id}
-              onClick={() => setTab(item.id)}
+              onClick={() => { setTab(item.id); setProfileEditorMode(null); setIsEmployeeCreateOpen(false); setIsPermissionsOpen(false); }}
               type="button"
             >
               {item.label}
             </button>
           ))}
+          <Link role="tab" aria-selected={false} className="adminTab" href="/admin/configuracion/equipo?tab=security">Seguridad</Link>
         </div>
+        <div className="employeesToolbarAction">
+          {tab === "employees" && canManageEmployees ? (
+            <button className="employeesTextAction" disabled={!canUseTenant} onClick={() => setIsEmployeeCreateOpen(true)} type="button">Crear empleado</button>
+          ) : tab === "profiles" && canManageProfiles ? (
+            <button className="employeesTextAction" disabled={!canUseTenant} onClick={() => setProfileEditorMode("create")} type="button">Crear perfil</button>
+          ) : tab === "permissions" && canManageProfiles ? (
+            <button className="employeesTextAction" disabled={!canUseTenant} onClick={() => setIsPermissionsOpen(true)} type="button">Asignar permisos</button>
+          ) : null}
+        </div>
+      </div>
 
+      <section className="employeesWorkspace">
         {tab === "employees" ? (
           <div className="adminTabPanel">
             <section>
               <article>
-                <div className="adminCardHeader">
-                  <div>
-                    <h2>Empleados</h2>
-                    <p>Listado operativo con estado, perfiles y permisos efectivos.</p>
-                  </div>
-                  <span className="adminBadge">GET /admin/employees</span>
-                </div>
                 <div className="adminTableScroller">
                   <table className="adminTable">
                     <thead>
@@ -277,20 +300,23 @@ export function EmployeesAdminPage({
                               <td>{profileLabels || "-"}</td>
                               <td>
                                 <div className="adminButtonRow">
+{canManageEmployees||canResetCredentials?<>
                                   <button
-                                    className="adminButton"
+                                    className="adminButton employeesActionInfo"
                                     onClick={() => openEmployeeEditor(employeeId)}
                                     type="button"
                                   >
                                     Editar
                                   </button>
+</>:null}
+{canManageEmployees?<>
                                   <form action={updateEmployeeStatusAction}>
                                     <input name="employeeId" type="hidden" value={employeeId} />
                                     <input name="active" type="hidden" value={isActive ? "false" : "true"} />
-                                    <button className="adminButton" type="submit">
+                                    <button className={`adminButton ${isActive ? "employeesActionWarning" : "employeesActionPositive"}`} type="submit">
                                       {isActive ? "Desactivar" : "Activar"}
                                     </button>
-                                  </form>
+                                  </form></>:null}
                                 </div>
                               </td>
                             </tr>
@@ -304,13 +330,13 @@ export function EmployeesAdminPage({
 
             </section>
 
-            {isEmployeeEditorOpen ? (
+            {isEmployeeEditorOpen && (canManageEmployees||canResetCredentials) ? (
               <div
                 className="adminDrawerBackdrop"
                 onClick={() => setIsEmployeeEditorOpen(false)}
                 role="presentation"
               >
-                <aside
+                <AdminResizableDrawer drawerId="employees-admin-page-employee-editor-title-1"
                   aria-labelledby="employee-editor-title"
                   aria-modal="true"
                   className="adminSideDrawer"
@@ -371,7 +397,7 @@ export function EmployeesAdminPage({
                           );
                         })}
                       </fieldset>
-                      <button className="adminButton adminButtonPrimary" disabled={!canUseTenant} type="submit">
+                      <button className="adminButton adminButtonPrimary" disabled={!canUseTenant||!canManageEmployees} type="submit">
                         Guardar empleado
                       </button>
                     </>
@@ -405,7 +431,7 @@ export function EmployeesAdminPage({
                           })
                         )}
                       </fieldset>
-                      <button className="adminButton adminButtonPrimary" disabled={!canUseTenant} type="submit">
+                      <button className="adminButton adminButtonPrimary" disabled={!canUseTenant||!canManageEmployees} type="submit">
                         Guardar tiendas
                       </button>
                     </>
@@ -435,7 +461,7 @@ export function EmployeesAdminPage({
                       {selectedEmployeeAllowedShops.length === 0 ? (
                         <p className="adminMuted">Asigna al menos una tienda antes de definir la predeterminada.</p>
                       ) : null}
-                      <button className="adminButton adminButtonPrimary" disabled={!canUseTenant || selectedEmployeeAllowedShops.length === 0} type="submit">
+                      <button className="adminButton adminButtonPrimary" disabled={!canUseTenant || !canManageEmployees || selectedEmployeeAllowedShops.length === 0} type="submit">
                         Guardar tienda predeterminada
                       </button>
                     </>
@@ -451,30 +477,38 @@ export function EmployeesAdminPage({
                       su propia contraseña. No se genera ni se muestra una contraseña temporal.
                     </p>
                     <input name="employeeId" type="hidden" value={selectedEmployeeId} />
-                    <button className="adminButton adminButtonDanger" disabled={!canUseTenant} type="submit">
+                    <button className="adminButton employeesActionWarning" disabled={!canUseTenant||!canManageEmployees} type="submit">
                       Enviar invitación de credenciales
                     </button>
                   </form>
                 ) : null}
                   </div>
-                </aside>
+                </AdminResizableDrawer>
               </div>
             ) : null}
           </div>
         ) : null}
 
-        {tab === "create-employee" ? (
-          <div className="adminTabPanel">
-            <section className="adminSplit adminSplitFormFirst">
-              <article>
-                <div className="adminCardHeader">
-                  <div>
-                    <h2>Crear empleado</h2>
-                    <p>Alta de cuenta operativa de backoffice con perfiles iniciales.</p>
-                  </div>
-                  <span className="adminBadge">POST /admin/employees</span>
+        {tab === "employees" && isEmployeeCreateOpen && canManageEmployees ? (
+          <div className="adminDrawerBackdrop" onClick={() => setIsEmployeeCreateOpen(false)} role="presentation">
+            <AdminResizableDrawer drawerId="employees-admin-page-employee-create-title-2"
+              aria-labelledby="employee-create-title"
+              aria-modal="true"
+              className="adminSideDrawer employeesCreateDrawer"
+              onClick={(event) => event.stopPropagation()}
+              ref={employeeCreateDrawerRef}
+              role="dialog"
+              tabIndex={-1}
+            >
+              <div className="adminSideDrawerHeader">
+                <div>
+                  <h2 id="employee-create-title">Crear empleado</h2>
+                  <p>Se creará en la organización y tienda activas.</p>
                 </div>
-                <form action={createEmployeeAction} className="adminForm adminFormWide">
+                <button aria-label="Cerrar formulario de empleado" className="adminButton adminButtonTiny" onClick={() => setIsEmployeeCreateOpen(false)} type="button">Cerrar</button>
+              </div>
+              <div>
+                <form action={createEmployeeAction} className="adminForm" id="employee-create-form">
                   <label className="adminField">
                     <span>Email</span>
                     <input name="email" required type="email" />
@@ -537,37 +571,21 @@ export function EmployeesAdminPage({
                     )}
                   </fieldset>
                   <div className="adminButtonRow">
-                    <button className="adminButton adminButtonPrimary" disabled={!canUseTenant} type="submit">
+                    <button className="adminButton adminButtonPrimary" disabled={!canUseTenant||!canManageEmployees} type="submit">
                       Crear empleado
                     </button>
-                    <button className="adminButton" onClick={() => setTab("employees")} type="button">
+                    <button className="adminButton" onClick={() => setIsEmployeeCreateOpen(false)} type="button">
                       Cancelar
                     </button>
                   </div>
                 </form>
-              </article>
-
-              <aside className="adminEmptyState">
-                <h2>Contexto</h2>
-                <p>El empleado se crea para el contexto activo del Admin.</p>
-                <p>{context.organizationId || "Organization pendiente"}</p>
-                <p>{context.shopId || "Shop pendiente"}</p>
-              </aside>
-            </section>
+              </div>
+            </AdminResizableDrawer>
           </div>
         ) : null}
 
         {tab === "profiles" ? (
-          <div className="adminTabPanel">
-            <section className="adminSplit">
-              <article>
-                <div className="adminCardHeader">
-                  <div>
-                    <h2>Perfiles</h2>
-                    <p>Perfiles operativos que agrupan permisos del backoffice.</p>
-                  </div>
-                  <span className="adminBadge">GET /admin/employees/profiles</span>
-                </div>
+          <div className="adminTabPanel employeesProfilesPanel">
                 <div className="adminTableScroller">
                   <table className="adminTable">
                     <thead>
@@ -594,16 +612,18 @@ export function EmployeesAdminPage({
                               <td><span className={activeBadgeClass(profile)}>{statusLabel(profile)}</span></td>
                               <td>{profile.permissions?.length ?? 0}</td>
                               <td>
+{canManageProfiles?<>
                                 <button
-                                  className="adminButton"
+                                  className="adminButton employeesActionInfo"
                                   onClick={() => {
                                     setSelectedProfileId(profileId);
+                                    setProfileEditorMode("edit");
                                     setPermissionsText(profilePermissionsText(profile));
                                   }}
                                   type="button"
                                 >
                                   Editar
-                                </button>
+                                </button></>:null}
                               </td>
                             </tr>
                           );
@@ -612,11 +632,24 @@ export function EmployeesAdminPage({
                     </tbody>
                   </table>
                 </div>
-              </article>
-
-              <aside className="adminPanelStack">
+            {profileEditorMode && canManageProfiles ? (
+              <div className="adminDrawerBackdrop" onClick={() => setProfileEditorMode(null)} role="presentation">
+                <AdminResizableDrawer drawerId="employees-admin-page-profile-editor-title-3"
+                  aria-labelledby="profile-editor-title"
+                  aria-modal="true"
+                  className="adminSideDrawer employeesProfileDrawer"
+                  onClick={(event) => event.stopPropagation()}
+                  ref={profileDrawerRef}
+                  role="dialog"
+                  tabIndex={-1}
+                >
+                  <div className="adminSideDrawerHeader">
+                    <h2 id="profile-editor-title">{profileEditorMode === "create" ? "Crear perfil" : "Editar perfil"}</h2>
+                    <button aria-label="Cerrar formulario de perfil" className="adminButton adminButtonTiny" onClick={() => setProfileEditorMode(null)} type="button">Cerrar</button>
+                  </div>
+                  <div>
+                    {profileEditorMode === "create" ? (
                 <form action={createProfileAction} className="adminForm">
-                  <h3>Crear perfil</h3>
                   <label className="adminField">
                     <span>Nombre</span>
                     <input name="name" required />
@@ -629,13 +662,12 @@ export function EmployeesAdminPage({
                     <input defaultChecked name="active" type="checkbox" />
                     Activo
                   </label>
-                  <button className="adminButton adminButtonPrimary" disabled={!canUseTenant} type="submit">
+                  <button className="adminButton adminButtonPrimary" disabled={!canUseTenant||!canManageProfiles} type="submit">
                     Crear perfil
                   </button>
                 </form>
-
+                    ) : (
                 <form action={updateProfileAction} className="adminForm" key={selectedProfileId || "empty-profile"}>
-                  <h3>Editar perfil</h3>
                   {selectedProfile ? (
                     <>
                       <input name="profileId" type="hidden" value={selectedProfileId} />
@@ -655,7 +687,7 @@ export function EmployeesAdminPage({
                           <option value="ARCHIVED">ARCHIVED</option>
                         </select>
                       </label>
-                      <button className="adminButton adminButtonPrimary" disabled={!canUseTenant} type="submit">
+                      <button className="adminButton adminButtonPrimary" disabled={!canUseTenant||!canManageProfiles} type="submit">
                         Guardar perfil
                       </button>
                     </>
@@ -663,22 +695,16 @@ export function EmployeesAdminPage({
                     <div className="adminEmptyState">Selecciona un perfil de la tabla.</div>
                   )}
                 </form>
-              </aside>
-            </section>
+                    )}
+                  </div>
+                </AdminResizableDrawer>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
         {tab === "permissions" ? (
-          <div className="adminTabPanel">
-            <section className="adminSplit">
-              <article>
-                <div className="adminCardHeader">
-                  <div>
-                    <h2>Catalogo de permisos</h2>
-                    <p>Selecciona permisos y asignales al perfil activo.</p>
-                  </div>
-                  <span className="adminBadge">GET /admin/employees/permissions/catalog</span>
-                </div>
+          <div className="adminTabPanel employeesPermissionsPanel">
                 <div className="adminPermissionGrid">
                   {data.permissions.length === 0 ? (
                     <div className="adminEmptyState">El BFF no devolvio catalogo de permisos.</div>
@@ -687,6 +713,8 @@ export function EmployeesAdminPage({
                       const value = permissionValueOf(permission);
                       return (
                         <button
+                          aria-pressed={permissionsText.split(/\n|,/).map((item) => item.trim()).includes(value)}
+                          disabled={!canManageProfiles}
                           className="adminPermissionItem"
                           key={value}
                           onClick={() => {
@@ -701,17 +729,31 @@ export function EmployeesAdminPage({
                           type="button"
                         >
                           <strong>{value}</strong>
-                          <span>{permission.description || permission.category || "Permiso BFF"}</span>
+                          {permission.description || permission.category ? (
+                            <span>{permission.description || permission.category}</span>
+                          ) : null}
                         </button>
                       );
                     })
                   )}
                 </div>
-              </article>
-
-              <aside>
+            {isPermissionsOpen && canManageProfiles ? (
+              <div className="adminDrawerBackdrop" onClick={() => setIsPermissionsOpen(false)} role="presentation">
+                <AdminResizableDrawer drawerId="employees-admin-page-permissions-editor-title-4"
+                  aria-labelledby="permissions-editor-title"
+                  aria-modal="true"
+                  className="adminSideDrawer"
+                  onClick={(event) => event.stopPropagation()}
+                  ref={permissionsDrawerRef}
+                  role="dialog"
+                  tabIndex={-1}
+                >
+                  <div className="adminSideDrawerHeader">
+                    <h2 id="permissions-editor-title">Asignar permisos</h2>
+                    <button aria-label="Cerrar asignación de permisos" className="adminButton adminButtonTiny" onClick={() => setIsPermissionsOpen(false)} type="button">Cerrar</button>
+                  </div>
+                  <div>
                 <form action={updateProfilePermissionsAction} className="adminForm">
-                  <h3>Asignar permisos</h3>
                   <label className="adminField">
                     <span>Perfil</span>
                     <select
@@ -745,8 +787,10 @@ export function EmployeesAdminPage({
                     Guardar permisos
                   </button>
                 </form>
-              </aside>
-            </section>
+                  </div>
+                </AdminResizableDrawer>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>

@@ -37,6 +37,9 @@ const permissionAliases: Record<AdminPermission, string[]> = {
   "admin:employees:view": ["admin:employees:view", "employees.read", "employees.manage", "employees.security"],
   "admin:catalog:view": [
     "admin:catalog:view",
+    "catalog.products.read",
+    "catalog.categories.read",
+    "catalog.brands.read",
     "catalog.products.write",
     "catalog.categories.write",
     "catalog.brands.write",
@@ -52,7 +55,7 @@ const permissionAliases: Record<AdminPermission, string[]> = {
   "admin:orders:view": ["admin:orders:view", "orders.read", "checkout.configuration.write"],
   "admin:after-sales:view": ["admin:after-sales:view", "after-sales.manage", "after_sales.manage"],
   "admin:customers:view": ["admin:customers:view", "customers.read"],
-  "admin:payments:view": ["admin:payments:view", "payments.admin.write", "invoices.manage", "invoice.manage"],
+  "admin:payments:view": ["payments.configuration.read", "payments.configuration.write", "admin:payments:view", "payments.admin.write", "invoices.manage", "invoice.manage"],
   "admin:shipping:view": ["admin:shipping:view", "shipping.admin.write"],
   "admin:automation:view": ["admin:automation:view", "automation.manage"],
   "admin:communications:view": ["admin:communications:view", "communications.manage"],

@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-11-20T13:05:11.992Z",
+  "status": "PASS",
+  "scope": "Employee UI upload/copy/replacement corroborated by read-only CMS and Media SQL and public HTTP",
+  "beforeReplacement": {
+    "source": "434f1f41-cf12-454c-a968-18f6456c3559",
+    "copy": "e5aa1b8c-4149-4ce9-b0ce-cb29a449d5db",
+    "sharedMediaAssetId": "4c0ede21-b32a-4cbc-8e4d-33b6299e4fd3"
+  },
+  "afterReplacement": [
+    {
+      "id": "434f1f41-cf12-454c-a968-18f6456c3559",
+      "name": "QA Fase2 20261120 copia editor B",
+      "status": "DRAFT",
+      "mediaAssetId": "4c0ede21-b32a-4cbc-8e4d-33b6299e4fd3",
+      "assetKey": "ecommium-logo.png",
+      "productId": null,
+      "active": true,
+      "httpStatus": 200,
+      "mimeType": "image/jpeg"
+    },
+    {
+      "id": "e5aa1b8c-4149-4ce9-b0ce-cb29a449d5db",
+      "name": "QA Fase2 Media copia",
+      "status": "DRAFT",
+      "mediaAssetId": "fb2c599c-884b-47c0-ab02-8c197ca372aa",
+      "assetKey": "ecommium-logo.png",
+      "productId": null,
+      "active": true,
+      "httpStatus": 200,
+      "mimeType": "image/jpeg"
+    }
+  ]
+}

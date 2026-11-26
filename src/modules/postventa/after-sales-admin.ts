@@ -70,6 +70,7 @@ export type AfterSalesAdminWorkflowPresentation = {
 };
 
 export type AfterSalesAdminFilters = {
+  tab?: "cases" | "tasks";
   caseId?: string;
   caseReference?: string;
   /** Acepta tabs antiguas solo para redirigir su presentación de forma segura. */
@@ -96,6 +97,7 @@ export type AfterSalesAdminCapabilities = {
 
 export type AfterSalesAdminEmployee = {
   employeeId: string;
+  principalId?: string;
   label: string;
   active: boolean;
 };
@@ -1140,6 +1142,7 @@ function normalizeEmployees(value: unknown): AfterSalesAdminEmployee[] {
 
       return {
         employeeId,
+        principalId: asString(employee.principalId),
         label: [name || "Sin nombre", email].filter(Boolean).join(" · "),
         active,
       };
@@ -1277,7 +1280,9 @@ export async function getAfterSalesAdminData(
     offset: taskOffset,
   });
 
-  const [health, cases, taskSummary, tasks, selectedCase, employees] = await Promise.all([
+  // No agotar la admisión acotada de ReadIndex al abrir un expediente.
+  // El primer grupo realiza tres lecturas indexadas; el segundo, como máximo dos.
+  const [health, cases, taskSummary, tasks] = await Promise.all([
     requestAdminBff<AfterSalesAdminHealth>("/admin/after-sales/health", {
       context,
       parse: normalizeHealth,
@@ -1291,6 +1296,8 @@ export async function getAfterSalesAdminData(
       context,
       parse: normalizeTaskList,
     }),
+  ]);
+  const [selectedCase, employees] = await Promise.all([
     selectedPath
       ? requestAdminBff<AfterSalesAdminCase>(selectedPath, {
           context,

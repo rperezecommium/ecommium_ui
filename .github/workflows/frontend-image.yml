@@ -1,0 +1,35 @@
+name: Frontend OCI image
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['app/**', 'src/**', 'packages/**', 'public/**', 'Dockerfile', '.dockerignore', 'package*.json', 'next.config.ts', 'scripts/deployment-preflight.mjs', '.github/workflows/frontend-image.yml']
+permissions:
+  contents: read
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node --test tests/deployment-preflight.test.mjs tests/admin-login-action.test.mjs
+      - uses: docker/setup-buildx-action@v3
+      - name: Build Linux AMD64 OCI without deployment credentials
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          outputs: type=oci,dest=/tmp/frontend.oci.tar
+          tags: ecommium-frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-oci-${{ github.sha }}
+          path: /tmp/frontend.oci.tar
+          retention-days: 3

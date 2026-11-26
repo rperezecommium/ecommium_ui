@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requestAdminBff } from "../../shared/bff/admin-client";
 import { getAdminSession } from "../../shared/auth/session";
+import type { AdminFormState } from "../../shared/validation/admin-form-state";
 import { getAdminContext } from "../../shared/config/admin-context";
 
 function asString(value: FormDataEntryValue | null | undefined) {
@@ -29,6 +30,7 @@ function requiredString(value: FormDataEntryValue | null, label: string) {
 
 function buyerType(value: FormDataEntryValue | null) {
   const normalized = asString(value);
+  if (normalized && !["PRIVATE_BUYER", "BUSINESS_BUYER"].includes(normalized)) throw new Error("Tipo comprador inválido.");
   return normalized === "BUSINESS_BUYER" ? "BUSINESS_BUYER" : "PRIVATE_BUYER";
 }
 
@@ -75,6 +77,17 @@ function customersReturnPath(message: string, customerId?: string, returnTo?: Fo
 
 function mutationMessage(status: number | undefined, fallback: string) {
   return status === 403 ? "Falta permiso customers.addresses.write." : fallback;
+}
+
+function profileMutationMessage(status: number | undefined, fallback: string) {
+  if (status === 409) return "El perfil o su grupo comercial ha cambiado. No se ha guardado. Conserva tus cambios y recarga el perfil para revisar la versión actual.";
+  return mutationMessage(status, fallback);
+}
+
+async function canWriteCustomerProfile() {
+  const session = await getAdminSession();
+  return Boolean(session?.employeeId && session.scope === "admin" && session.permissions.some(permission =>
+    ["*", "admin:*", "system.admin", "customers.addresses.write"].includes(permission.trim().toLowerCase())));
 }
 
 function customerMutationMessage(status: number | undefined, fallback: string, permission: string) {
@@ -145,6 +158,13 @@ async function customerEmptyMutation(
   redirect(customersReturnPath(successMessage, customerId, formData.get("returnTo")));
 }
 
+function parseProfileWriteReceipt(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Recibo de perfil inválido.");
+  const data = value as Record<string, unknown>;
+  if (typeof data.customerId !== "string" || !data.customerId.trim() || data.customerId.length > 200) throw new Error("Identidad de perfil inválida.");
+  return { customerId: data.customerId };
+}
+
 function profilePayload(formData: FormData) {
   const preferences: { locale?: string; optinNewsLetter?: boolean } = {
     locale: asString(formData.get("locale")),
@@ -159,8 +179,24 @@ function profilePayload(formData: FormData) {
     documentNumber: asNullableString(formData.get("documentNumber")),
     phone: asNullableString(formData.get("phone")),
     buyerType: buyerType(formData.get("buyerType")),
+    ...commercialMembershipPayload(formData),
     clientPreferencesData: preferences,
   };
+}
+
+function commercialMembershipPayload(formData: FormData) {
+  if (formData.get("commercialMembershipIncluded") !== "true") return {};
+  const groupCode = asString(formData.get("commercialGroupCode")) ?? null;
+  if (groupCode !== null && !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$/.test(groupCode)) throw new Error("Grupo comercial inválido.");
+  const approval = formData.get("commercialB2bApproved");
+  if (approval !== null && !["on", "true", "false"].includes(String(approval))) throw new Error("Aprobación comercial inválida.");
+  if (asBoolean(approval) && buyerType(formData.get("buyerType")) !== "BUSINESS_BUYER") throw new Error("Para aprobar condiciones B2B, selecciona Empresa como tipo comprador.");
+  const rawRevision = formData.get("commercialMembershipRevision");
+  const expectedRevision = typeof rawRevision === "string" && /^\d+$/.test(rawRevision) ? Number(rawRevision) : NaN;
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new Error("Revisión del grupo inválida. Recarga el perfil.");
+  const password = formData.get("commercialCurrentPassword");
+  if (typeof password !== "string" || !password.trim() || password.length > 256) throw new Error("Confirma el cambio comercial con tu contraseña de administrador.");
+  return { currentPassword: password, commercialMembership: { groupCode, b2bApproved: asBoolean(formData.get("commercialB2bApproved")), expectedRevision, reason: "Asignación manual desde el perfil Admin" } };
 }
 
 function addressPayload(formData: FormData) {
@@ -201,6 +237,7 @@ export async function applyCustomersFiltersAction(formData: FormData): Promise<n
 }
 
 export async function createCustomerAction(formData: FormData): Promise<never> {
+  if (!await canWriteCustomerProfile()) redirect(customersReturnPath("Falta permiso customers.addresses.write."));
   const context = await getAdminContext();
   const email = requiredString(formData.get("email"), "Email").toLowerCase();
   const payload = {
@@ -214,6 +251,7 @@ export async function createCustomerAction(formData: FormData): Promise<never> {
     scopedPath("/admin/customers", context.organizationId, context.shopId),
     {
       context,
+      parse: parseProfileWriteReceipt,
       init: {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -230,27 +268,43 @@ export async function createCustomerAction(formData: FormData): Promise<never> {
   redirect(customersReturnPath("Cliente creado.", result.data.customerId));
 }
 
-export async function updateCustomerProfileAction(formData: FormData): Promise<never> {
+async function saveCustomerProfile(formData: FormData): Promise<AdminFormState> {
+  if (!await canWriteCustomerProfile()) return { error: "Falta permiso customers.addresses.write." };
+  let payload;
+  let customerId;
+  try {
+    customerId = requiredString(formData.get("customerId"), "customerId");
+    payload = profilePayload(formData);
+  } catch (error) {
+    if (error instanceof Error && ["Para aprobar condiciones B2B, selecciona Empresa como tipo comprador.", "Confirma el cambio comercial con tu contraseña de administrador."].includes(error.message)) return { error: error.message };
+    return { error: "Revisa nombre, apellido y datos comerciales. La revisión debe ser válida; recarga el perfil si ha cambiado." };
+  }
   const context = await getAdminContext();
-  const customerId = requiredString(formData.get("customerId"), "customerId");
   const result = await requestAdminBff<{ customerId?: string }>(
     scopedPath(`/admin/customers/${encodeURIComponent(customerId)}`, context.organizationId, context.shopId),
-    {
-      context,
-      init: {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(profilePayload(formData)),
-      },
-    },
+    { context, parse: value => {
+      const receipt = parseProfileWriteReceipt(value);
+      if (receipt.customerId !== customerId) throw new Error("Identidad de perfil incompatible.");
+      return receipt;
+    }, init: { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) } },
   );
-
+  if (!result.ok && payload.commercialMembership && result.status === 403) return { error: "No se ha podido confirmar el cambio comercial. Revisa tu contraseña y tus permisos. No se ha guardado el perfil." };
+  if (!result.ok && result.status === 429) return { error: "Demasiados intentos de confirmación. Espera antes de volver a intentarlo." };
+  if (!result.ok) return { error: profileMutationMessage(result.status, "No se ha podido confirmar el guardado del perfil. Comprueba su estado antes de volver a guardar.") };
   revalidatePath("/admin/clientes");
-  if (!result.ok) {
-    redirect(customersReturnPath(mutationMessage(result.status, result.error), customerId, formData.get("returnTo")));
-  }
+  return {};
+}
 
-  redirect(customersReturnPath("Cliente actualizado.", customerId, formData.get("returnTo")));
+export async function updateCustomerProfileAction(formData: FormData): Promise<never> {
+  profilePayload(formData);
+  const result = await saveCustomerProfile(formData);
+  redirect(customersReturnPath(result.error ?? "Cliente actualizado.", asString(formData.get("customerId")), formData.get("returnTo")));
+}
+
+export async function updateCustomerProfileFormAction(_state: AdminFormState, formData: FormData): Promise<AdminFormState> {
+  const result = await saveCustomerProfile(formData);
+  if (result.error) return result;
+  redirect(customersReturnPath("Cliente actualizado.", asString(formData.get("customerId")), formData.get("returnTo")));
 }
 
 export async function createCustomerAddressAction(formData: FormData): Promise<never> {

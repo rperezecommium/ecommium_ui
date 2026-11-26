@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-20",
+  "scope": "real Employee UI commands, owner SQL read-only corroboration",
+  "checks": [
+    "two independent resources persisted",
+    "original name content and CSS unchanged",
+    "copy name content CSS persisted",
+    "stale editor did not overwrite editor B",
+    "original archived through Employee UI; copy remains editable DRAFT after reload"
+  ],
+  "resourceIds": [
+    "22841e08-0ecf-4be8-8c52-df9c52af1a9e",
+    "434f1f41-cf12-454c-a968-18f6456c3559"
+  ],
+  "status": "PASS",
+  "resources": [
+    {
+      "resourceId": "434f1f41-cf12-454c-a968-18f6456c3559",
+      "name": "QA Fase2 20261120 copia editor B",
+      "status": "DRAFT"
+    },
+    {
+      "resourceId": "22841e08-0ecf-4be8-8c52-df9c52af1a9e",
+      "name": "QA Fase2 20261120 original",
+      "status": "ARCHIVED"
+    }
+  ],
+  "limitations": [
+    "Media upload rejected; existing collection creation requires productId",
+    "live read-only/foreign-scope Employee tests pending",
+    "published Storefront regression and Compacta computed-style comparison pending"
+  ]
+}

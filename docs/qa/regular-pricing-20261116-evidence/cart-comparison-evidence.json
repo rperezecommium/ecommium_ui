@@ -1,0 +1,23 @@
+{
+  "rawEqual": false,
+  "semanticEqual": true,
+  "changedFields": [
+    "items"
+  ],
+  "beforeOfferingKeys": [
+    "name",
+    "type",
+    "active",
+    "currency",
+    "offeringId",
+    "priceMinor"
+  ],
+  "afterOfferingKeys": [
+    "offeringId",
+    "name",
+    "priceMinor",
+    "type",
+    "currency",
+    "active"
+  ]
+}

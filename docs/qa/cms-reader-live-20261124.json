@@ -1,0 +1,48 @@
+{
+  "date": "2026-11-24T11:21:28.594Z",
+  "scope": {
+    "organizationId": "11111111-1111-4111-8111-111111111111",
+    "shopId": "22222222-2222-4222-8222-222222222222",
+    "locale": "es-ES"
+  },
+  "checks": [
+    {
+      "name": "Real Sessions Employee has CMS read permissions without mutation/publication",
+      "status": "PASS"
+    },
+    {
+      "name": "Real BFF page inventory allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "Real BFF shell inventory allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "Real BFF rejects page creation, migration, publication and shell mutation with 403",
+      "status": "PASS"
+    },
+    {
+      "name": "Real BFF rejects a shop outside Employee scope",
+      "status": "PASS"
+    },
+    {
+      "name": "Anonymous CMS access rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "Real Admin login/default context and transition inventory hide write controls",
+      "status": "PASS"
+    },
+    {
+      "name": "Real composition editor hides Save and Publish for reader",
+      "status": "PASS"
+    }
+  ],
+  "employeeId": "e6aec6a7-47e7-4871-b86f-c1da9507aff6",
+  "cleanup": true,
+  "reused": true,
+  "loginEmail": "cms-reader-85d660dd-db27-4d66-8203-6cc82270e5a2@example.invalid",
+  "logoutStatus": 200,
+  "status": "PASS"
+}

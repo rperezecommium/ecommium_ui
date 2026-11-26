@@ -1,0 +1,25 @@
+{
+  "migration": "20261120000400_page_composition",
+  "migrationApplied": true,
+  "checks": [
+    {
+      "check": "health",
+      "port": 3017,
+      "status": 200
+    },
+    {
+      "check": "health",
+      "port": 3026,
+      "status": 200
+    },
+    {
+      "check": "health",
+      "port": 3025,
+      "status": 200
+    },
+    {
+      "check": "anonymous preview denied",
+      "status": 401
+    }
+  ]
+}

@@ -178,6 +178,7 @@ export type CommunicationsAdminData = {
 };
 
 export type CommunicationsAdminFilters = {
+  tab?: "provider" | "templates" | "deliveries";
   drawer?: "provider" | "delivery" | "template";
   status?: CommunicationsTemplateStatus;
   templateId?: string;

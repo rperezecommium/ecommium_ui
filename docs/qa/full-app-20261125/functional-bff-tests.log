@@ -1,0 +1,16 @@
+
+> bff@0.0.1 test
+> jest --runInBand resolve-after-sales-employee.use-case.spec.ts admin-after-sales.controller.spec.ts manage-storefront-orderforms.use-case.spec.ts admin-product-save-operation.use-case.spec.ts admin-product-draft-media-upload.use-case.spec.ts http-admin-product-listing-read-index.reader.spec.ts
+
+PASS src/modules/product/application/save-operation/admin-product-save-operation.use-case.spec.ts
+PASS src/modules/after-sales/presentation/http/admin-after-sales.controller.spec.ts
+PASS src/modules/cart/application/use-cases/manage-storefront-orderforms.use-case.spec.ts
+PASS src/modules/product/infrastructure/admin-read-index/http-admin-product-listing-read-index.reader.spec.ts
+PASS src/modules/after-sales/application/resolve-after-sales-employee.use-case.spec.ts
+PASS src/modules/product/application/draft-media/admin-product-draft-media-upload.use-case.spec.ts
+
+Test Suites: 6 passed, 6 total
+Tests:       91 passed, 91 total
+Snapshots:   0 total
+Time:        2.95 s, estimated 4 s
+Ran all test suites matching /resolve-after-sales-employee.use-case.spec.ts|admin-after-sales.controller.spec.ts|manage-storefront-orderforms.use-case.spec.ts|admin-product-save-operation.use-case.spec.ts|admin-product-draft-media-upload.use-case.spec.ts|http-admin-product-listing-read-index.reader.spec.ts/i.

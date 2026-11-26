@@ -1,0 +1,15 @@
+[
+  {"resource":"Listado de productos","checks":["búsqueda y filtros","columnas, orden y paginación","vista guardada","acciones individuales y masivas"],"pattern":"product list|catalog product|product search"},
+  {"resource":"Producto y borradores","checks":["crear y editar","guardar y recargar","duplicar","publicar y desactivar","validación y conflictos","recuperación local e idempotencia"],"pattern":"product editor|product footer|active product|partial save|product basic"},
+  {"resource":"Eliminación de producto y variante","checks":["revisión de impacto","cancelar confirmación","referencia exacta","bloqueos por dependencias","progreso y ausencia final"],"pattern":"catalog retirement"},
+  {"resource":"Variantes y atributos","checks":["crear manual y desde atributos registrados","selección, nombre y SKU","editar combinaciones","asignar y retirar valores","aislamiento entre variantes"],"pattern":"variant|combination|attribute|product taxonomy"},
+  {"resource":"Categorías y marcas","checks":["crear","editar","asignar y cambiar","eliminar con confirmación","visibilidad con permisos"],"pattern":"category|brand|taxonomy"},
+  {"resource":"Características y grupos","checks":["crear grupos y valores","editar","asignar y retirar","desactivar y eliminar","refresco tras proyección y errores"],"pattern":"feature"},
+  {"resource":"Imágenes y medios","checks":["subir","portada y orden","metadata y alt","asignación por variante","retirar y eliminar","error y recarga"],"pattern":"media|image|gallery"},
+  {"resource":"Servicios adicionales","checks":["crear y editar servicio","asociar varios","desactivar relación","retirar relación","refresco inmediato y recarga"],"pattern":"offering|service"},
+  {"resource":"Precio e impuestos","checks":["base e impuestos","precio de variante","reglas y precios específicos","simulador","guardar, recargar y retirar regla"],"pattern":"pricing|price"},
+  {"resource":"Inventario y almacenes","checks":["cantidades y disponibilidad","crear y seleccionar almacén","cambio sin copiar stock","guardar y consultar","errores y permisos"],"pattern":"inventory|stock|warehouse"},
+  {"resource":"Transporte","checks":["base y dimensiones propias","heredar valores","coste y transportistas","plazos","guardar y recargar"],"pattern":"shipping"},
+  {"resource":"SEO y ficha pública","checks":["slug y canonical","aliases y redirects","sitemap y estado","preview editor y Storefront","nombres, precio, stock y medios visibles"],"pattern":"seo|routing|preview|storefront|PDP"},
+  {"resource":"Auditoría, permisos y accesibilidad","checks":["traza de bloques y reintentos","contexto Organization/Shop","lectura sin gestión","teclado, axe y responsive","ausencia de paneles fuera de contexto"],"pattern":"audit|permission|read-only|accessible|responsive|scope"}
+]

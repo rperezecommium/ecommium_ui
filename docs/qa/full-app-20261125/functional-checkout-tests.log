@@ -1,0 +1,12 @@
+
+> checkout@0.0.1 test
+> jest --runInBand orderform.attach-client-profile-data.use-case.spec.ts orderform-privacy-and-coupon.use-case.spec.ts
+
+PASS src/application/use-cases/orderform/orderform-privacy-and-coupon.use-case.spec.ts
+PASS src/application/use-cases/orderform/attach-client-profile-data/orderform.attach-client-profile-data.use-case.spec.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       15 passed, 15 total
+Snapshots:   0 total
+Time:        1.69 s, estimated 2 s
+Ran all test suites matching /orderform.attach-client-profile-data.use-case.spec.ts|orderform-privacy-and-coupon.use-case.spec.ts/i.

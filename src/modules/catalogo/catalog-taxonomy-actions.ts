@@ -1,5 +1,6 @@
 "use server";
 
+import {formFailure,type AdminFormState} from "../../shared/validation/admin-form-state";
 import { revalidatePath } from "next/cache";
 import { getAdminContext } from "../../shared/config/admin-context";
 import { createCatalogEntity, deleteCatalogEntity, updateCatalogEntity, type CatalogEntityKind } from "./catalog-taxonomy";
@@ -16,19 +17,17 @@ function pathFor(kind: CatalogEntityKind) {
   return kind === "categories" ? "/admin/catalogo/categorias" : "/admin/catalogo/marcas";
 }
 
-async function createEntityAction(kind: CatalogEntityKind, formData: FormData) {
-  const context = await getAdminContext();
-  const name = asText(formData.get("name"));
-
-  if (!name) {
-    return;
-  }
-
-  await createCatalogEntity(context, kind, {
-    name,
-    isActive: asActive(formData.get("isActive")),
-  });
-  revalidatePath(pathFor(kind));
+async function createEntityAction(kind: CatalogEntityKind, formData: FormData):Promise<AdminFormState> {
+  const context=await getAdminContext();
+  try{
+    const result=await createCatalogEntity(context,kind,{
+      name:asText(formData.get("name")),isActive:asActive(formData.get("isActive")),
+      slug:asText(formData.get("slug")),title:asText(formData.get("title")),description:asText(formData.get("description")),
+      text:asText(formData.get("text")),siteTitle:asText(formData.get("siteTitle")),keywords:asText(formData.get("keywords")),
+    });
+    if(!result.ok)return {error:result.error};
+    revalidatePath(pathFor(kind));return {success:kind==='categories'?'Categoría creada.':'Marca creada.'};
+  }catch(error){return formFailure(error);}
 }
 
 async function updateEntityAction(kind: CatalogEntityKind, formData: FormData) {
@@ -59,7 +58,7 @@ async function deleteEntityAction(kind: CatalogEntityKind, mode: "soft" | "hard"
   revalidatePath(pathFor(kind));
 }
 
-export async function createCategoryAction(formData: FormData) {
+export async function createCategoryAction(_state: AdminFormState, formData: FormData) {
   return createEntityAction("categories", formData);
 }
 
@@ -75,7 +74,7 @@ export async function hardDeleteCategoryAction(formData: FormData) {
   return deleteEntityAction("categories", "hard", formData);
 }
 
-export async function createBrandAction(formData: FormData) {
+export async function createBrandAction(_state: AdminFormState, formData: FormData) {
   return createEntityAction("brands", formData);
 }
 

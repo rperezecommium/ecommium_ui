@@ -1,3 +1,4 @@
+import { loadTs } from "./helpers/load-ts.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -6,6 +7,37 @@ import vm from "node:vm";
 import ts from "typescript";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname);
+
+test("save recovery accepts the BFF actionId/block/kind contract observed in the real failure", async () => {
+  const actions = loadProductActionsModule({
+    getAdminContext: async () => context,
+    requestAdminBff: async () => ({ ok: true, status: 200, correlationId: "correlation", data: {
+      ok: false, operationId: "operation", retryable: true, blocks: { catalog: "success", variants: "failed" },
+      messages: [], fieldErrors: {},
+      recoveryActions: [{ actionId: "retry_variants", block: "variants", kind: "retry", label: "Reintentar variantes" }],
+    } }),
+  });
+  const form = new FormData();
+  form.set("draft", JSON.stringify(productDraft()));
+  const result = await actions.saveProductDraftAction(form);
+  assert.equal(result.recoveryActions[0].code, "retry_variants");
+  assert.equal(result.recoveryActions[0].targetBlock, "variants");
+  assert.equal(result.recoveryActions[0].retryable, true);
+});
+
+test("save transport uncertainty permits retry but definitive conflicts do not advertise blind retry", async () => {
+  for (const status of [undefined, 503, 409, 403, 422]) {
+    const actions = loadProductActionsModule({ getAdminContext: async () => context,
+      requestAdminBff: async () => ({ ok: false, status, error: "Public error", correlationId: "correlation" }),
+    });
+    const form = new FormData();
+    form.set("draft", JSON.stringify(productDraft()));
+    const result = await actions.saveProductDraftAction(form);
+    assert.equal(result.retryable, status === undefined || status === 503);
+    assert.equal(result.blocks.catalog, "pending");
+    assert.equal(result.recoveryActions[0].retryable, result.retryable);
+  }
+});
 
 const context = {
   organizationId: "org-barcelona",
@@ -50,6 +82,13 @@ function loadProductActionsModule({
     exports: commonJsExports,
     module: { exports: commonJsExports },
     require(specifier) {
+      if (specifier === "./product-variant-media") return loadTs("src/modules/catalogo/product-variant-media.ts");
+      if (specifier === "../auth/current-admin-session") {
+        return { getCurrentAdminSession: async () => ({ permissions: ["*"] }) };
+      }
+      if (specifier === "../../shared/validation/admin-form-state") {
+        return { formFailure: (message, fieldErrors) => ({ ok: false, message, fieldErrors }) };
+      }
       if (specifier === "next/cache") {
         return { revalidatePath };
       }
@@ -149,6 +188,50 @@ function productDraft() {
   };
 }
 
+test("saving unrelated product edits preserves regular and legacy contextual BASE prices", async () => {
+  const { normalizeProductDraft } = loadTs("src/modules/catalogo/product-editor-validation.ts");
+  const { createEmptyProductDraft } = loadTs("src/modules/catalogo/product-editor-draft.ts");
+  for (const legacy of [false, true]) {
+    const draft = createEmptyProductDraft();
+    const price = {
+      pricingId: legacy ? "legacy-contextual-price" : "regular-price",
+      source: "BASE", basePriceMinor: 2000, currency: "EUR", taxIncluded: true,
+      taxCode: "standard", tax: null,
+      priceTableId: legacy ? "legacy-retail" : null,
+      tradePolicy: legacy ? "b2b" : null,
+      channel: legacy ? "marketplace" : null,
+      country: legacy ? "FR" : null,
+      customerGroup: legacy ? "VIP" : null,
+    };
+    draft.pricing.productPrice = { ...price };
+    draft.pricing.variantPrices.own = { ...price, pricingId: "own-price", basePriceMinor: 3500 };
+    draft.pricing.variantPrices.regular = {
+      ...price, pricingId: "regular-variant", basePriceMinor: 3500,
+      priceTableId: null, tradePolicy: null, channel: null, country: null, customerGroup: null,
+    };
+    draft.basic.name = "Unrelated name edit";
+    const before = structuredClone(draft.pricing);
+    const normalized = normalizeProductDraft(draft);
+    assert.deepEqual(normalized.pricing.productPrice, before.productPrice);
+    assert.deepEqual(normalized.pricing.variantPrices, before.variantPrices);
+    let calls = 0;
+    const actions = loadProductActionsModule({
+      getAdminContext: async () => context,
+      requestAdminBff: async (_path, options) => {
+        calls++;
+        const sent = JSON.parse(options.init.body.get("draft"));
+        assert.deepEqual(sent.pricing, before);
+        return { ok: true, data: { ok: true, blocks: {}, messages: [], fieldErrors: {}, recoveryActions: [], correlationIds: [] }, correlationId: "preserved" };
+      },
+    });
+    const form = new FormData();
+    form.set("draft", JSON.stringify(normalized));
+    await actions.saveProductDraftAction(form);
+    assert.equal(calls, 1);
+    assert.deepEqual(draft.pricing, before);
+  }
+});
+
 test("saveProductDraftAction sends one idempotent product save operation to BFF", async () => {
   const calls = [];
   const requestAdminBff = async (pathValue, options = {}) => {
@@ -163,7 +246,7 @@ test("saveProductDraftAction sends one idempotent product save operation to BFF"
     assert.equal(options.init.body.get("idempotencyKey"), "ui-save-key-1");
     assert.deepEqual(
       JSON.parse(options.init.body.get("draft")),
-      JSON.parse(JSON.stringify(productDraft())),
+      JSON.parse(JSON.stringify({ ...productDraft(), media: { ...productDraft().media, assignments: { default: [] } } })),
     );
     assert.deepEqual([...options.init.body.getAll("fileLocalIds")], ["local-media-1"]);
     assert.equal(options.init.body.getAll("files").length, 1);
@@ -945,4 +1028,60 @@ test("uploadProductDraftMediaAction sends one idempotent draft media upload to B
   assert.equal(result.ok, true);
   assert.equal(result.mediaItem.mediaAssetId, "asset-1");
   assert.deepEqual([...result.correlationIds], ["bff-corr", "ui-corr"]);
+});
+
+test("pricing transport failure is unresolved rather than a negative pricing decision", async () => {
+  const actions = loadProductActionsModule({
+    getAdminContext: async () => context,
+    makeProductGateway: () => ({ previewAppliedPrice: async () => ({ ok: false, status: 503, error: "Servicio no disponible", correlationId: "pricing-failed" }) }),
+  });
+  const result = await actions.previewAppliedProductPriceAction({ productId: "qa-product", quantity: 3, customerGroup: "VIP" });
+  assert.equal(result.status, "ERROR");
+  assert.equal(result.price, null);
+  assert.equal(result.requested.quantity, 3);
+  assert.deepEqual([...result.correlationIds], ["pricing-failed"]);
+});
+
+test("save acknowledgement preserves display labels only for the same specification selection", async () => {
+  const draft = productDraft();
+  draft.specifications = { selections: [{ fieldId: "f1", fieldValueId: "v1", fieldName: "Garantía", valueName: "3 años" }] };
+  const actions = loadProductActionsModule({
+    getAdminContext: async () => context,
+    requestAdminBff: async () => ({ ok: true, data: { ok: true, blocks: {}, draftPatch: { specifications: { selections: [{ fieldId: "f1", fieldValueId: "v1" }, { fieldId: "f1", fieldValueId: "v2" }] } }, correlationIds: [] } }),
+  });
+  const form = new FormData();
+  form.set("draft", JSON.stringify(draft));
+  const result = await actions.saveProductDraftAction(form);
+  const [same, changed] = result.draftPatch.specifications.selections;
+  assert.equal(same.fieldName, "Garantía");
+  assert.equal(same.valueName, "3 años");
+  assert.equal(changed.valueName, undefined);
+});
+
+test("save sends cover as variant zero and clears inactive overrides without assigning collection images", async () => {
+  const draft = productDraft();
+  draft.defaultVariantId = "zero";
+  draft.variants = [{ localId: "one", variantId: "variant-one", name: "One", refId: "ONE", options: [] }];
+  draft.media.items = [
+    { localId: "cover", active: true, isMain: true },
+    { localId: "inactive", active: false, isMain: false },
+    { localId: "unassigned", active: true, isMain: false },
+  ];
+  draft.media.assignments = { zero: ["unassigned"], one: ["inactive"] };
+  draft.media.mainByVariant = { zero: "unassigned", one: "inactive" };
+  let sent;
+  const actions = loadProductActionsModule({
+    getAdminContext: async () => context,
+    requestAdminBff: async (_endpoint, options) => {
+      sent = JSON.parse(options.init.body.get("draft"));
+      return { ok: false, error: "Test transport unavailable", status: 503 };
+    },
+  });
+  const form = new FormData();
+  form.set("draft", JSON.stringify(draft));
+  form.set("idempotencyKey", "media-contract-check");
+  await actions.saveProductDraftAction(form);
+  assert.deepEqual(sent.media.assignments, { default: ["cover"], one: [] });
+  assert.deepEqual(sent.media.mainByVariant, { default: "cover" });
+  assert.equal(sent.media.items.length, 3);
 });

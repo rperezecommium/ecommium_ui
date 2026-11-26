@@ -132,7 +132,7 @@ function copyPriceDraft<T extends { pricingId?: string }>(price: T): T {
 
 function resetStockDraft(stock: ProductDraft["inventory"]["stockByVariant"][string] | undefined) {
   return {
-    warehouseId: stock?.warehouseId ?? "main-warehouse",
+    warehouseId: stock?.warehouseId ?? "",
     onHandQuantity: 0,
     reservedQuantity: 0,
     safetyStockQuantity: stock?.safetyStockQuantity ?? 0,
@@ -202,10 +202,10 @@ export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): Pro
         taxCode: "standard",
         tax: null,
         priceTableId: null,
-        tradePolicy: "default",
-        channel: "web",
+        tradePolicy: undefined,
+        channel: undefined,
         customerGroup: null,
-        country: "ES",
+        country: undefined,
       },
     },
     specifications: {
@@ -217,7 +217,7 @@ export function createEmptyProductDraft(locale = "es-ES", currency = "EUR"): Pro
     inventory: {
       stockByVariant: {
         default: {
-          warehouseId: "main-warehouse",
+          warehouseId: "",
           onHandQuantity: 0,
           reservedQuantity: 0,
           safetyStockQuantity: 0,
@@ -276,6 +276,7 @@ export function ensureSingleMainImage(items: ProductDraftMediaItem[], mainLocalI
   return items.map((item) => ({
     ...item,
     isMain: item.localId === mainLocalId,
+    metadataDirty: item.metadataDirty || item.isMain !== (item.localId === mainLocalId),
   }));
 }
 
@@ -377,6 +378,7 @@ export function draftFromEditorData(
         refId: variant.refId,
         ean: variant.ean ?? null,
         options: variant.options ?? [],
+        shippingPackage: data.shipping?.variantPackages?.[variant.variantId] ?? {},
         isActive: variant.isActive,
         isVisible: variant.isVisible,
       })),
@@ -400,15 +402,62 @@ export function draftFromEditorData(
   };
 }
 
+function hasConfiguredEditorPrice(price: ProductDraft["pricing"]["productPrice"]) {
+  return Boolean(price && !price.markedForDeletion && (price.basePriceMinor > 0
+    || (price.basePriceMinor === 0 && (price.priceKind === "REGULAR" || price.pricingId))));
+}
+
 export function editorBasePriceVariantKey(draft: ProductDraft): string | undefined {
   const key = draft.defaultVariantId;
   const price = key ? draft.pricing.variantPrices[key] : undefined;
-  return draft.mode === "simple" && key && price && !price.markedForDeletion ? key : undefined;
+  const productPrice = draft.pricing.productPrice;
+  const usesDefaultPrice = draft.mode === "simple" || !hasConfiguredEditorPrice(productPrice);
+  return usesDefaultPrice && key && price && !price.markedForDeletion ? key : undefined;
 }
 
 export function editorBasePrice(draft: ProductDraft) {
   const key = editorBasePriceVariantKey(draft);
   return key ? draft.pricing.variantPrices[key] : draft.pricing.productPrice;
+}
+
+export function pricesForNewVariants(draft: ProductDraft, variants: Array<{ localId: string }>) {
+  const productPrice = draft.pricing.productPrice;
+  const defaultPrice = draft.defaultVariantId ? draft.pricing.variantPrices[draft.defaultVariantId] : undefined;
+  const source = hasConfiguredEditorPrice(productPrice)
+    ? productPrice
+    : defaultPrice && !defaultPrice.markedForDeletion ? defaultPrice : productPrice;
+  const prices: ProductDraft["pricing"]["variantPrices"] = {};
+  if (!source || source.markedForDeletion) return prices;
+  for (const variant of variants) {
+    const price = { ...source };
+    delete price.pricingId;
+    delete price.markedForDeletion;
+    prices[variant.localId] = { ...price, tax: price.tax ? { ...price.tax } : price.tax };
+  }
+  return prices;
+}
+
+export function variantPriceForEdit(draft: ProductDraft, variantKey: string, currency: string) {
+  const parent = editorBasePrice(draft);
+  const inherited: Partial<NonNullable<ProductDraft["pricing"]["productPrice"]>> = pricesForNewVariants(draft, [{ localId: variantKey }])[variantKey] ?? {};
+  const existing = draft.pricing.variantPrices[variantKey];
+  return {
+    basePriceMinor: 0,
+    listPriceMinor: null,
+    costPriceMinor: null,
+    currency,
+    taxIncluded: parent?.taxIncluded ?? true,
+    taxCode: parent?.taxCode ?? draft.basic.taxCode ?? "standard",
+    tax: parent?.tax ?? null,
+    priceTableId: parent?.priceTableId ?? null,
+    tradePolicy: undefined,
+    channel: undefined,
+    customerGroup: parent?.customerGroup ?? null,
+    country: undefined,
+    ...inherited,
+    ...(existing?.markedForDeletion ? { pricingId: existing.pricingId } : existing),
+    markedForDeletion: false,
+  };
 }
 
 export function withEditorBasePrice(draft: ProductDraft, price: NonNullable<ProductDraft["pricing"]["productPrice"]>): ProductDraft {

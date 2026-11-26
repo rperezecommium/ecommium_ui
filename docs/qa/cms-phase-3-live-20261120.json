@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-11-20T13:40:10.924Z",
+  "section": {
+    "resourceId": "562f31ba-2fee-4d5d-96c4-101b93bbd5a6",
+    "name": "QA Fase3 editor B",
+    "locale": "es-ES",
+    "revisionToken": "5b588a52-a551-42d9-9fc0-478707e383db",
+    "tree": {
+      "id": "cms-be4a9720-1255-4e70-a78a-208c7a8ed5c5",
+      "kind": "container",
+      "children": [
+        {
+          "id": "cms-6ff4d3d4-8e31-4da3-903c-604af0a9d6d0",
+          "kind": "container",
+          "children": [
+            {
+              "id": "cms-34281c68-71ed-4033-a795-3976928e46eb",
+              "kind": "module",
+              "instanceId": "cms-680d2ec0-5ddd-47e4-a9a6-c49b2f226e14",
+              "name": "QA pieza propia de seccion",
+              "mediaAssetIds": [
+                "4c0ede21-b32a-4cbc-8e4d-33b6299e4fd3"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "library": {
+    "resourceId": "434f1f41-cf12-454c-a968-18f6456c3559",
+    "name": "QA Fase2 20261120 copia editor B",
+    "instanceId": "cms-b28deaa9-b789-4aa0-a1c3-38c56803ebe0"
+  },
+  "checks": [
+    "Employee UI create/save/reopen through BFF and ReadIndex observed",
+    "module moved to depth 3 and persisted",
+    "copied module renamed and reopened independently",
+    "library module identity and name preserved",
+    "Media ID remains shared and public URL HTTP200",
+    "two-tab stale save rejected; persisted name remains editor B"
+  ],
+  "publicMediaHttpStatus": 200
+}

@@ -1,7 +1,8 @@
+import {catalogCreatePayload,type CatalogCreateInput} from "./catalog-taxonomy-schema";
 import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
-import { plainProductText, slugifyProductValue } from "./product-editor-draft";
+import { plainProductText } from "./product-editor-draft";
 import type { ProductLookupOption } from "./product-editor-types";
 
 export type CatalogEntityKind = "categories" | "brands";
@@ -174,12 +175,23 @@ export async function listCatalogEntities(
   };
 }
 
+export async function getCatalogEntity(context: AdminContext, kind: CatalogEntityKind, id: string): Promise<BffResult<CatalogEntity>> {
+  return requestAdminBff(`${endpointFor(kind)}/${encodeURIComponent(id)}?${makeScopedParams(context)}`, {
+    context,
+    parse: value => {
+      const entity = parseEntity(kind, context.locale, value);
+      if (entity.id !== id || !entity.label) throw new Error("Invalid catalog entity response");
+      return entity;
+    },
+  });
+}
+
 export async function createCatalogEntity(
   context: AdminContext,
   kind: CatalogEntityKind,
-  input: { name: string; isActive?: boolean },
+  input: CatalogCreateInput,
 ): Promise<BffResult<CatalogEntity>> {
-  const name = plainProductText(input.name);
+  const payload = catalogCreatePayload(kind,{...input,name:plainProductText(input.name)});
   const params = makeScopedParams(context);
 
   return requestAdminBff(`${endpointFor(kind)}?${params.toString()}`, {
@@ -189,16 +201,12 @@ export async function createCatalogEntity(
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        organizationId: context.organizationId,
-        shopId: context.shopId,
-        locale: context.locale,
-        name,
-        slug: slugifyProductValue(name),
-        isActive: input.isActive ?? true,
-      }),
+      body: JSON.stringify(payload),
     },
-    parse: (value) => parseEntity(kind, context.locale, value),
+    parse: (value) => {
+      const entity=parseEntity(kind,context.locale,value);const record=asRecord(value);
+      if(!entity.id||typeof record.name!=='string'||typeof record.isActive!=='boolean')throw Error('Invalid catalog creation response');return entity;
+    },
   });
 }
 
@@ -223,7 +231,6 @@ export async function updateCatalogEntity(
         shopId: context.shopId,
         locale: context.locale,
         name,
-        slug: slugifyProductValue(name),
         isActive: input.isActive,
       }),
     },

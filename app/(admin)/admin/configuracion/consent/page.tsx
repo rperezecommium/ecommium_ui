@@ -1,4 +1,5 @@
-import { getAdminSession } from "../../../../../src/shared/auth/session";
+import Link from "next/link";
+import { getCurrentAdminSession as getAdminSession } from "../../../../../src/modules/auth/current-admin-session";
 import { getAdminContext } from "../../../../../src/shared/config/admin-context";
 import { can } from "../../../../../src/shared/permissions/permissions";
 import { getConsentConfigurationAdminData, getConsentIntegrationCatalogAdminData, type ConsentScopeType } from "../../../../../src/modules/configuracion/consent-configuration-admin";
@@ -22,5 +23,5 @@ export default async function ConsentConfigurationPage({ searchParams }: { searc
       ? Promise.all((["SHOP", "ORGANIZATION"] as ConsentScopeType[]).map(async (historyScope) => ({ scopeType: historyScope, result: await getConsentConfigurationAdminData(context, historyScope) })))
       : Promise.resolve(undefined),
   ]);
-  return <ConsentConfigurationAdminPage canPublish={can(session, "admin:consent:publish")} canWrite={can(session, "admin:consent:write")} context={context} historyResults={historyResults} integrationCatalog={catalogResult.ok ? catalogResult.data : []} integrationCatalogError={catalogResult.ok ? undefined : catalogResult.error} notice={first(params?.notice)} result={result} scopeType={scopeType} tab={tab} />;
+  return <><Link href="/admin/configuracion/consent/newsletter" className="adminButton">Consentimiento del newsletter</Link><ConsentConfigurationAdminPage canPublish={can(session, "admin:consent:publish")} canWrite={can(session, "admin:consent:write")} context={context} historyResults={historyResults} integrationCatalog={catalogResult.ok ? catalogResult.data : []} integrationCatalogError={catalogResult.ok ? undefined : catalogResult.error} notice={first(params?.notice)} result={result} scopeType={scopeType} tab={tab} /></>;
 }

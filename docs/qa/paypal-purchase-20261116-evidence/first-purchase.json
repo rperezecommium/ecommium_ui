@@ -1,0 +1,45 @@
+{
+  "result": "FAILED_INVENTORY_UNIQUENESS",
+  "orderReference": "10050",
+  "orderId": "85f83766-9d40-439e-aef9-6aee9584d818",
+  "transactionId": "85f83766-9d40-439e-aef9-6aee9584d818",
+  "cartId": "of_bce7893d-284d-4599-912f-fdeaaacc3648",
+  "currency": "EUR",
+  "amountMinor": 419673,
+  "productMinor": 419612,
+  "shippingMinor": 61,
+  "pricingRuleId": "582250c8-69ec-4712-89b4-faf945403edb",
+  "context": {
+    "locale": "es-ES",
+    "channel": "web",
+    "country": "ES",
+    "currency": "EUR",
+    "tradePolicy": "default",
+    "countrySource": "DELIVERY_ADDRESS"
+  },
+  "orderCount": 1,
+  "settlementCount": 1,
+  "provider": "paypal",
+  "providerEnvironment": "sandbox",
+  "providerCaptureId": "9A088904TV472883V",
+  "providerCaptureStatus": "COMPLETED",
+  "inventoryCommit": "COMMITTED",
+  "reservationCount": 2,
+  "stockMatchesExpectedDecrement": false,
+  "unitsCommitted": 2,
+  "expectedUnits": 1,
+  "testWarehouseOnHandBefore": 3,
+  "testWarehouseOnHandAfter": 1,
+  "simulatedData": [
+    "product package",
+    "warehouse stock",
+    "delivery address",
+    "order-only document",
+    "PSP generated test card"
+  ],
+  "limitations": [
+    "Full browser guest purchase not validated",
+    "Stripe not validated",
+    "Not a production certification"
+  ]
+}

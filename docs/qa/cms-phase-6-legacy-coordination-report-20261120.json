@@ -1,0 +1,12 @@
+{
+  "scope": "isolated PostgreSQL owner; not UI/BFF/Media E2E",
+  "checks": [
+    "durable reservation precedes Routing and blocks a second repository instance",
+    "successful publication releases exclusion only after owner/outbox completion",
+    "pre-effect validation failure cancels only its own reservation",
+    "context mismatch cannot acquire page reservation",
+    "uncertain effects retain exclusion across repository instances without automatic release"
+  ],
+  "cleanup": true,
+  "status": "PASS"
+}

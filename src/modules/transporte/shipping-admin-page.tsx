@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ShippingDrawer } from "./shipping-drawer";
 import type { ReactNode } from "react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
@@ -26,7 +27,6 @@ type ShippingAdminPageProps = {
   data: ShippingAdminData;
   filters: {
     tab: ShippingAdminTab;
-    includeInactive?: boolean;
     shippingMessage?: string;
     quoteRequested?: boolean;
     postalCode?: string;
@@ -60,20 +60,14 @@ const tabs: Array<{ id: ShippingAdminTab; label: string }> = [
   { id: "quote", label: "Simulador" },
 ];
 
-function tabHref(tab: ShippingAdminTab, filters: ShippingAdminPageProps["filters"]) {
+function tabHref(tab: ShippingAdminTab) {
   const params = new URLSearchParams({ tab });
-  if (filters.includeInactive) {
-    params.set("includeInactive", "true");
-  }
 
   return `/admin/configuracion/transporte?${params.toString()}`;
 }
 
 function drawerHref(tab: ShippingAdminTab, filters: ShippingAdminPageProps["filters"], drawer: "create" | "edit", id?: string) {
   const params = new URLSearchParams({ tab, drawer });
-  if (filters.includeInactive) {
-    params.set("includeInactive", "true");
-  }
   if (id) {
     params.set("recordId", id);
   }
@@ -169,14 +163,13 @@ function ResourceActions({
 
   return (
     <div className="adminButtonRow">
-      <Link className="adminButton adminButtonTiny" href={drawerHref(tab, filters, "edit", id)}>Editar</Link>
+      <Link className="adminButton adminButtonTiny shippingActionInfo" href={drawerHref(tab, filters, "edit", id)}>Editar</Link>
       <form action={setShippingResourceActiveAction}>
         <input type="hidden" name="tab" value={tab} />
         <input type="hidden" name="resource" value={resource} />
         <input type="hidden" name="id" value={id} />
         <input type="hidden" name="active" value={active ? "false" : "true"} />
-        <input type="hidden" name="includeInactive" value={filters.includeInactive ? "true" : "false"} />
-        <button className={`adminButton adminButtonTiny ${active ? "adminButtonDanger" : ""}`} type="submit">
+        <button className={`adminButton adminButtonTiny ${active ? "shippingActionWarning" : "shippingActionPositive"}`} type="submit">
           {active ? "Desactivar" : "Reactivar"}
         </button>
       </form>
@@ -423,14 +416,8 @@ function RecordTable({
   headerAction?: ReactNode;
 }) {
   return (
-    <section className="pricingPanel">
-      <div className="pricingPanelHeader">
-        <div>
-          <h2>{title}</h2>
-          <p>{rows.length} registros</p>
-        </div>
-        {headerAction}
-      </div>
+    <section className="shippingList" aria-label={title}>
+      <div className="shippingListActions">{headerAction}</div>
       <ResultBanner result={result} />
       {rows.length === 0 ? (
         <p className="adminContextHint">{empty}</p>
@@ -464,33 +451,6 @@ function findRecord(rows: ShippingRecord[], id?: string) {
   }
 
   return rows.find((record, index) => recordId(record, index) === id);
-}
-
-function ShippingDrawer({
-  title,
-  description,
-  closeHref,
-  children,
-}: {
-  title: string;
-  description: string;
-  closeHref: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="adminDrawerBackdrop">
-      <aside className="adminSideDrawer" aria-label={title}>
-        <div className="adminSideDrawerHeader">
-          <div>
-            <h2>{title}</h2>
-            <p>{description}</p>
-          </div>
-          <Link className="adminButton adminButtonTiny" href={closeHref}>Cerrar</Link>
-        </div>
-        {children}
-      </aside>
-    </div>
-  );
 }
 
 function safeTrackingUrl(value: string | null) {
@@ -531,7 +491,7 @@ function FulfillmentDetailDrawer({ data, filters }: Pick<ShippingAdminPageProps,
   const result = data.selectedFulfillment;
 
   return (
-    <ShippingDrawer
+    <ShippingDrawer drawerId="shipping-panel-1"
       closeHref={closeHref}
       description="Inspección logística interna del envío seleccionado. No modifica su estado."
       title="Detalle de fulfillment"
@@ -726,13 +686,13 @@ function ShippingResourceDrawer({
     return null;
   }
 
-  const closeHref = tabHref(activeTab, filters);
+  const closeHref = tabHref(activeTab);
   const isEditing = drawer === "edit";
 
   if (activeTab === "zones") {
     const record = isEditing ? findRecord(configuration.zones, filters.recordId) : undefined;
     return (
-      <ShippingDrawer
+      <ShippingDrawer drawerId="shipping-panel-2"
         closeHref={closeHref}
         description="Define paises, provincias y prefijos postales usados por las reglas de tarifa."
         title={isEditing ? "Editar zona" : "Crear zona"}
@@ -745,7 +705,7 @@ function ShippingResourceDrawer({
   if (activeTab === "carriers") {
     const record = isEditing ? findRecord(configuration.carriers, filters.recordId) : undefined;
     return (
-      <ShippingDrawer
+      <ShippingDrawer drawerId="shipping-panel-3"
         closeHref={closeHref}
         description="Gestiona transportistas y plantillas de tracking visibles para Shipping/Logistics."
         title={isEditing ? "Editar transportista" : "Crear transportista"}
@@ -758,7 +718,7 @@ function ShippingResourceDrawer({
   if (activeTab === "services") {
     const record = isEditing ? findRecord(configuration.carrierServices, filters.recordId) : undefined;
     return (
-      <ShippingDrawer
+      <ShippingDrawer drawerId="shipping-panel-4"
         closeHref={closeHref}
         description="Configura servicios, canales, limites logisticos y base de calculo."
         title={isEditing ? "Editar servicio" : "Crear servicio"}
@@ -775,7 +735,7 @@ function ShippingResourceDrawer({
   if (activeTab === "rules") {
     const record = isEditing ? findRecord(configuration.rateRules, filters.recordId) : undefined;
     return (
-      <ShippingDrawer
+      <ShippingDrawer drawerId="shipping-panel-5"
         closeHref={closeHref}
         description="Relaciona zona y servicio con rangos, precio, impuestos y comportamiento fuera de rango."
         title={isEditing ? "Editar regla tarifaria" : "Crear regla tarifaria"}
@@ -790,23 +750,6 @@ function ShippingResourceDrawer({
   }
 
   return null;
-}
-
-function ShippingFilters({ filters }: { filters: ShippingAdminPageProps["filters"] }) {
-  if (filters.tab === "quote" || filters.tab === "fulfillments") {
-    return null;
-  }
-
-  return (
-    <form className="pricingFilterBar" action="/admin/configuracion/transporte">
-      <input type="hidden" name="tab" value={filters.tab} />
-      <label className="productListFilterCheckbox">
-        <input name="includeInactive" type="checkbox" value="true" defaultChecked={Boolean(filters.includeInactive)} />
-        Incluir inactivos
-      </label>
-      <button className="adminButton adminButtonPrimary" type="submit">Aplicar</button>
-    </form>
-  );
 }
 
 function QuoteSimulatorForm({
@@ -1186,10 +1129,6 @@ export function ShippingAdminPage({ context, data, filters }: ShippingAdminPageP
           <h1 className="adminPageTitle">Transporte</h1>
           <p className="adminPageIntro">Configuracion global de transportistas, zonas, servicios y reglas tarifarias para Shipping/Logistics.</p>
         </div>
-        <Link className="adminButton" href="/admin/products">Volver a productos</Link>
-      </div>
-      <div className="adminContextHint">
-        {context.organizationId} / {context.shopId} / {context.currency} / {context.country} / {context.channel}
       </div>
       {filters.shippingMessage ? <div className="adminBanner"><p>{filters.shippingMessage}</p></div> : null}
 
@@ -1197,7 +1136,7 @@ export function ShippingAdminPage({ context, data, filters }: ShippingAdminPageP
         {tabs.map((tab) => (
           <Link
             className={`productEditorTab ${tab.id === activeTab ? "productEditorTabActive" : ""}`}
-            href={tabHref(tab.id, filters)}
+            href={tabHref(tab.id)}
             key={tab.id}
           >
             {tab.label}
@@ -1205,7 +1144,6 @@ export function ShippingAdminPage({ context, data, filters }: ShippingAdminPageP
         ))}
       </nav>
 
-      <ShippingFilters filters={filters} />
 
       {activeTab === "summary" ? (
         <div className="pricingGridTwo">
@@ -1224,8 +1162,6 @@ export function ShippingAdminPage({ context, data, filters }: ShippingAdminPageP
               <span>Servicios</span>
               <strong>{configuration.rateRules.length}</strong>
               <span>Reglas</span>
-              <strong>{filters.includeInactive ? "Si" : "No"}</strong>
-              <span>Incluye inactivos</span>
             </div>
           </section>
           <section className="pricingPanel">
@@ -1244,7 +1180,7 @@ export function ShippingAdminPage({ context, data, filters }: ShippingAdminPageP
           rows={configuration.zones}
           columns={["zoneId", "name", "countries", "states", "postalCodePrefixes", "active"]}
           empty="No hay zonas configuradas."
-          headerAction={<Link className="adminButton adminButtonPrimary" href={drawerHref("zones", filters, "create")}>Crear zona</Link>}
+          headerAction={<Link className="shippingTextAction" href={drawerHref("zones", filters, "create")}>Crear zona</Link>}
           actions={(record, index) => <ResourceActions tab="zones" resource="zones" record={record} index={index} filters={filters} />}
         />
       ) : null}
@@ -1256,7 +1192,7 @@ export function ShippingAdminPage({ context, data, filters }: ShippingAdminPageP
           rows={configuration.carriers}
           columns={["carrierId", "name", "trackingUrlTemplate", "logoUrl", "active"]}
           empty="No hay transportistas configurados."
-          headerAction={<Link className="adminButton adminButtonPrimary" href={drawerHref("carriers", filters, "create")}>Crear transportista</Link>}
+          headerAction={<Link className="shippingTextAction" href={drawerHref("carriers", filters, "create")}>Crear transportista</Link>}
           actions={(record, index) => <ResourceActions tab="carriers" resource="carriers" record={record} index={index} filters={filters} />}
         />
       ) : null}
@@ -1268,7 +1204,7 @@ export function ShippingAdminPage({ context, data, filters }: ShippingAdminPageP
           rows={configuration.carrierServices}
           columns={["carrierServiceId", "carrierId", "name", "deliveryChannel", "ratingBasis", "transitTimeLabel", "estimateBusinessDays", "handlingFeeMinor", "active"]}
           empty="No hay servicios configurados."
-          headerAction={<Link className="adminButton adminButtonPrimary" href={drawerHref("services", filters, "create")}>Crear servicio</Link>}
+          headerAction={<Link className="shippingTextAction" href={drawerHref("services", filters, "create")}>Crear servicio</Link>}
           actions={(record, index) => <ResourceActions tab="services" resource="carrier-services" record={record} index={index} filters={filters} />}
         />
       ) : null}
@@ -1280,7 +1216,7 @@ export function ShippingAdminPage({ context, data, filters }: ShippingAdminPageP
           rows={configuration.rateRules}
           columns={["shippingRateRuleId", "carrierServiceId", "zoneId", "ratingBasis", "minWeightGrams", "maxWeightGrams", "minOrderAmountMinor", "maxOrderAmountMinor", "priceMinor", "currency", "taxRateBasisPoints", "freeShippingThresholdMinor", "outOfRangeBehavior", "priority", "active"]}
           empty="No hay reglas tarifarias configuradas."
-          headerAction={<Link className="adminButton adminButtonPrimary" href={drawerHref("rules", filters, "create")}>Crear regla</Link>}
+          headerAction={<Link className="shippingTextAction" href={drawerHref("rules", filters, "create")}>Crear regla</Link>}
           actions={(record, index) => <ResourceActions tab="rules" resource="rate-rules" record={record} index={index} filters={filters} />}
         />
       ) : null}

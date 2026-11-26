@@ -1,5 +1,5 @@
 import { getAdminContext } from "../../../../src/shared/config/admin-context";
-import { refreshAdminEmployeeSession } from "../../../../src/modules/auth/admin-session-actions";
+import { getCurrentAdminSession as refreshAdminEmployeeSession } from "../../../../src/modules/auth/current-admin-session";
 import { getAfterSalesAdminCapabilities, getAfterSalesAdminData } from "../../../../src/modules/postventa/after-sales-admin";
 import { AfterSalesAdminPage } from "../../../../src/modules/postventa/after-sales-admin-page";
 import type { AfterSalesAdminFilters } from "../../../../src/modules/postventa/after-sales-admin";
@@ -15,6 +15,8 @@ export default async function PostventaPage({ searchParams }: PostventaPageProps
     searchParams,
   ]);
   const filters: AfterSalesAdminFilters = {
+    tab: params?.tab === "tasks" ? "tasks" : params?.tab === "cases" ? "cases" : undefined,
+    caseReference: params?.caseReference,
     caseId: params?.caseId,
     caseTab: params?.caseTab,
     caseFocus: params?.caseFocus,

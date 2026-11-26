@@ -1,0 +1,27 @@
+{
+  "scope": "isolated PostgreSQL owner; not UI/BFF/Media E2E",
+  "checks": [
+    "migration preserves existing independent module",
+    "atomic creation, concurrent replay and composition reopen",
+    "operation input mismatch is rejected",
+    "CAS permits one writer and keeps title SEO composition coherent",
+    "foreign locale shop and organization cannot write",
+    "PREPARED is durable and does not activate publication",
+    "failure at outbox rolls back page version and operation completion",
+    "publication snapshot outbox and receipt commit atomically with replay",
+    "published snapshot survives draft edits; stale publish and writes during reservation fail",
+    "existing published reader returns only the active composition and metadata",
+    "page command materializes independent section identities",
+    "ambiguous Routing failure stays reserved and retry sends no duplicate external effect",
+    "reopening returns a coherent snapshot and the original reserved command",
+    "confirmed publication replays without a second Routing effect",
+    "in-flight replay and path change blocked before Routing; completed replay cannot overwrite later path",
+    "unpublish and delete use revision and durable receipt; deletion replays after resource removal"
+  ],
+  "cleanup": true,
+  "routingRace": {
+    "status": "PREVENTED",
+    "scope": "actual CMS use cases and PostgreSQL, simulated Routing port; not real network"
+  },
+  "status": "PASS"
+}

@@ -1,0 +1,1960 @@
+
+Running 176 tests using 1 worker
+
+
+(node:28261) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/176] tests/e2e/admin-credentials.spec.ts:230:5 › recovery keeps the response uniform and removes the token from the URL
+[2/176] tests/e2e/admin-credentials.spec.ts:257:5 › recovery is hidden and cannot be requested when the BFF capability is unavailable
+[3/176] tests/e2e/admin-credentials.spec.ts:269:5 › a temporary Admin credential is blocked until its owner changes it
+[4/176] tests/e2e/admin-credentials.spec.ts:295:5 › confirmed password change stays cleared on reload and in another tab
+[5/176] tests/e2e/admin-credentials.spec.ts:301:5 › Team Security replaces the menu entry, opens accessible drawers and manages own devices
+[6/176] tests/e2e/admin-credentials.spec.ts:355:5 › personal Security remains available without employee management access
+[7/176] tests/e2e/admin-installation.spec.ts:355:5 › fresh creates only Admin 0 and then requires normal login
+[8/176] tests/e2e/admin-installation.spec.ts:383:5 › review blocks automation without exposing candidate details
+[9/176] tests/e2e/admin-installation.spec.ts:393:5 › adoption performs step-up, changes password and clears the revoked session
+[10/176] tests/e2e/admin-installation.spec.ts:422:5 › SYSTEM session without a shop enters separate Organization and Shop onboarding
+[11/176] tests/e2e/admin-login.spec.ts:3264:5 › CMS page list confirms and deletes an unpublished page
+[12/176] tests/e2e/admin-login.spec.ts:3286:5 › CMS page delete confirmation fits the mobile viewport
+[13/176] tests/e2e/admin-login.spec.ts:3304:7 › CSV admission 1440: ready waits for explicit click before a single upload
+[14/176] tests/e2e/admin-login.spec.ts:3304:7 › CSV admission 390: ready waits for explicit click before a single upload
+[15/176] tests/e2e/admin-login.spec.ts:3338:5 › CSV admission blocks failures and malformed responses, then retries the same file
+[16/176] tests/e2e/admin-login.spec.ts:3365:5 › CSV admission invalidates commercial and category changes and ignores a cancelled response
+[17/176] tests/e2e/admin-login.spec.ts:3417:5 › CSV admission rechecks a replacement file and respects BFF rejection at submission
+[18/176] tests/e2e/admin-login.spec.ts:3442:5 › admin login authenticates without tenant fields and loads context afterwards
+[19/176] tests/e2e/admin-login.spec.ts:3466:5 › admin sidebar submenu groups are collapsible
+[20/176] tests/e2e/admin-login.spec.ts:3478:5 › admin sidebar keeps only the current submenu item bold
+[21/176] tests/e2e/admin-login.spec.ts:3498:5 › communications configuration saves email provider and bootstraps auth templates
+[22/176] tests/e2e/admin-login.spec.ts:3636:5 › communications audit filters, inspects and retries a failed delivery
+[23/176] tests/e2e/admin-login.spec.ts:3726:5 › communications template editor creates, previews and activates an email template
+[24/176] tests/e2e/admin-login.spec.ts:3781:5 › customers admin opens the current detail page and navigates profile addresses and purchases
+[25/176] tests/e2e/admin-login.spec.ts:3847:5 › customers admin hides purchases when the session lacks purchases permission
+[26/176] tests/e2e/admin-login.spec.ts:3873:5 › catalog attributes and features page filters and creates feature values through BFF
+  1) tests/e2e/admin-login.spec.ts:3873:5 › catalog attributes and features page filters and creates feature values through BFF 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('row', { name: /field-co.*Color.*Combinacion/ })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByRole('row', { name: /field-co.*Color.*Combinacion/ })
+
+
+      3908 |   await expect(page.getByRole("columnheader", { name: "Atributo" })).toBeVisible();
+      3909 |   const colorAttributeRow = page.getByRole("row", { name: /field-co.*Color.*Combinacion/ });
+    > 3910 |   await expect(colorAttributeRow).toBeVisible();
+           |                                   ^
+      3911 |   await expect(colorAttributeRow.getByText("Rojo")).toBeVisible();
+      3912 |   await catalogDataModeNav.getByRole("link", { name: "Caracteristicas", exact: true }).click();
+      3913 |   await expect(page).toHaveURL(/tab=features/);
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:3910:35
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28334) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:57644
+    - Network:       http://192.168.1.150:57644
+    ✓ Ready in 63ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-catalog-attrib-4f7b5--feature-values-through-BFF/error-context.md
+
+    Error Context: test-results/admin-login-catalog-attrib-4f7b5--feature-values-through-BFF/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-catalog-attrib-4f7b5--feature-values-through-BFF/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-catalog-attrib-4f7b5--feature-values-through-BFF/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28390) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[27/176] tests/e2e/admin-login.spec.ts:3965:5 › catalog offerings page manages services through BFF
+  2) tests/e2e/admin-login.spec.ts:3965:5 › catalog offerings page manages services through BFF ────
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('textbox', { name: 'Nombre Montaje Premium', exact: true })
+    Expected: 0
+    Received: 1
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 10000ms
+      - waiting for getByRole('textbox', { name: 'Nombre Montaje Premium', exact: true })
+        24 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      4007 |   page.once("dialog",dialog=>dialog.accept());
+      4008 |   await page.getByRole("button", { name: "Desactivar",exact:true }).click();
+    > 4009 |   await expect(page.getByRole("textbox",{name:"Nombre Montaje Premium",exact:true})).toHaveCount(0);
+           |                                                                                      ^
+      4010 |   expect(capturedCatalogOfferingRequests).toContain("GET /api/v1/admin/offerings");
+      4011 |   expect(capturedCatalogOfferingRequests).toContain("POST /api/v1/admin/offerings");
+      4012 |   expect(capturedCatalogOfferingRequests).toContain("PATCH /api/v1/admin/offerings/offering-playwright");
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:4009:86
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28391) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:57758
+    - Network:       http://192.168.1.150:57758
+    ✓ Ready in 97ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-catalog-offeri-89fa6-anages-services-through-BFF/error-context.md
+
+    Error Context: test-results/admin-login-catalog-offeri-89fa6-anages-services-through-BFF/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-catalog-offeri-89fa6-anages-services-through-BFF/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-catalog-offeri-89fa6-anages-services-through-BFF/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28430) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[28/176] tests/e2e/admin-login.spec.ts:4016:5 › pricing configuration exposes master data and creates customer groups through BFF
+[29/176] tests/e2e/admin-login.spec.ts:4086:5 › pricing configuration resolves computed auto prices through BFF
+[30/176] tests/e2e/admin-login.spec.ts:4123:5 › pricing governance page manages campaign fixed prices through Pricing BFF
+[31/176] tests/e2e/admin-login.spec.ts:4183:5 › shipping configuration manages carriers with drawers and active actions through BFF
+[32/176] tests/e2e/admin-login.spec.ts:4244:5 › shipping fulfillment queue filters, inspects and transitions through BFF
+[33/176] tests/e2e/admin-login.spec.ts:4299:5 › seo configuration manages routes and redirects through BFF drawers
+[34/176] tests/e2e/admin-login.spec.ts:4393:5 › media catalog page lists collections and soft-deletes through BFF
+[35/176] tests/e2e/admin-login.spec.ts:4430:5 › stock catalog page edits variant stock through Inventory BFF
+[36/176] tests/e2e/admin-login.spec.ts:4469:5 › product editor rehydrates persisted draft media through BFF only
+[37/176] tests/e2e/admin-login.spec.ts:4493:5 › product preview renders rich product summary below the title
+[38/176] tests/e2e/admin-login.spec.ts:4509:5 › PDP preview is a centered 80 percent modal sharing storefront styles
+[39/176] tests/e2e/admin-login.spec.ts:4558:5 › product editor selects catalog feature values and renders them in preview
+  3) tests/e2e/admin-login.spec.ts:4558:5 › product editor selects catalog feature values and renders them in preview 
+
+    TimeoutError: locator.click: Timeout 10000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Añadir otra característica', exact: true })
+
+
+      4570 |   await openProductBasicSection(page, "Características y especificaciones");
+      4571 |
+    > 4572 |   await page.getByRole("button", { name: "Añadir otra característica", exact: true }).click();
+           |                                                                                       ^
+      4573 |   const featureDialog = page.getByRole("dialog", { name: "Caracteristicas" });
+      4574 |   await expect(featureDialog).toBeVisible();
+      4575 |   await featureDialog.locator(".productSpecificationChoice", { hasText: "Composicion" }).click();
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:4572:87
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28431) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:57900
+    - Network:       http://192.168.1.150:57900
+    ✓ Ready in 98ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-72244-and-renders-them-in-preview/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-72244-and-renders-them-in-preview/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-72244-and-renders-them-in-preview/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-72244-and-renders-them-in-preview/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28463) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[40/176] tests/e2e/admin-login.spec.ts:4592:5 › product editor presents variant options as combination attributes
+  4) tests/e2e/admin-login.spec.ts:4592:5 › product editor presents variant options as combination attributes 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Generador rapido desde atributos')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByText('Generador rapido desde atributos')
+
+
+      4596 |   await page.getByRole("button", { name: "Variantes", exact: true }).click();
+      4597 |   await expect(page.getByRole("heading", { name: "Producto y variantes" })).toBeVisible();
+    > 4598 |   await expect(page.getByText("Generador rapido desde atributos")).toBeVisible();
+           |                                                                    ^
+      4599 |   await page.getByRole("button", { name: "Anadir variante" }).click();
+      4600 |
+      4601 |   await expect(page.getByRole("heading", { name: "Atributos de combinacion" })).toBeVisible();
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:4598:68
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28464) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:57997
+    - Network:       http://192.168.1.150:57997
+    ✓ Ready in 108ms
+    ✓ Running next.con...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-c4640-s-as-combination-attributes/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-c4640-s-as-combination-attributes/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-c4640-s-as-combination-attributes/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-c4640-s-as-combination-attributes/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28486) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[41/176] tests/e2e/admin-login.spec.ts:4628:5 › new manual and generated variants start with an editable parent price
+  5) tests/e2e/admin-login.spec.ts:4628:5 › new manual and generated variants start with an editable parent price 
+
+    TimeoutError: locator.fill: Timeout 10000ms exceeded.
+    Call log:
+      - waiting for getByLabel('Precio con IVA')
+
+
+      4629 |   await loginAdmin(page);
+      4630 |   await page.goto(`http://127.0.0.1:${nextPort}/admin/products/new`);
+    > 4631 |   await page.getByLabel("Precio con IVA").fill("49.90");
+           |                                           ^
+      4632 |   await page.getByRole("button", { name: "Variantes", exact: true }).click();
+      4633 |   await page.getByRole("button", { name: "Anadir variante" }).click();
+      4634 |   const firstPrice = page.getByLabel("Precio variante 1", { exact: true });
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:4631:43
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28487) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58015
+    - Network:       http://192.168.1.150:58015
+    ✓ Ready in 64ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-new-manual-and-6ad5f-th-an-editable-parent-price/error-context.md
+
+    Error Context: test-results/admin-login-new-manual-and-6ad5f-th-an-editable-parent-price/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-new-manual-and-6ad5f-th-an-editable-parent-price/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-new-manual-and-6ad5f-th-an-editable-parent-price/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28505) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[42/176] tests/e2e/admin-login.spec.ts:4670:5 › product preview uses the PDP selector for sellable variants
+[43/176] tests/e2e/admin-login.spec.ts:4691:5 › product editor renders persisted media through the protected preview proxy
+[44/176] tests/e2e/admin-login.spec.ts:4712:5 › product editor sends removed persisted media in draft without binary files
+[45/176] tests/e2e/admin-login.spec.ts:4743:5 › product editor uploads selected media immediately to draft endpoint
+  6) tests/e2e/admin-login.spec.ts:4743:5 › product editor uploads selected media immediately to draft endpoint 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: /Editar metadata: Imagen subida por Playwright/ })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByRole('button', { name: /Editar metadata: Imagen subida por Playwright/ })
+
+
+      4757 |
+      4758 |   await expect(page.getByText("1 imagen(es) subida(s) al borrador.")).toBeVisible();
+    > 4759 |   await expect(page.getByRole("button", { name: /Editar metadata: Imagen subida por Playwright/ })).toBeVisible();
+           |                                                                                                     ^
+      4760 |   await expect.poll(() => capturedDraftStateRequests.length).toBeGreaterThanOrEqual(2);
+      4761 |
+      4762 |   expect(capturedDraftMediaUploadRequests).toHaveLength(1);
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:4759:101
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28506) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58033
+    - Network:       http://192.168.1.150:58033
+    ✓ Ready in 65ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-2b6f3-mediately-to-draft-endpoint/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-2b6f3-mediately-to-draft-endpoint/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-2b6f3-mediately-to-draft-endpoint/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-2b6f3-mediately-to-draft-endpoint/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28530) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[46/176] tests/e2e/admin-login.spec.ts:4767:5 › product editor sends matching idempotency key for draft media upload
+[47/176] tests/e2e/admin-login.spec.ts:4795:5 › product editor keeps the same client draft id for draft state and media upload
+[48/176] tests/e2e/admin-login.spec.ts:4822:5 › product editor restores local draft with the original client draft id after reload
+[49/176] tests/e2e/admin-login.spec.ts:4853:5 › product editor discards local draft and does not reuse discarded client draft id
+[50/176] tests/e2e/admin-login.spec.ts:4899:5 › product editor saves uploaded media as references without rebundling files
+  7) tests/e2e/admin-login.spec.ts:4899:5 › product editor saves uploaded media as references without rebundling files 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: /Editar metadata: Imagen subida por Playwright/ })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByRole('button', { name: /Editar metadata: Imagen subida por Playwright/ })
+
+
+      4914 |
+      4915 |   await expect(page.getByText("1 imagen(es) subida(s) al borrador.")).toBeVisible();
+    > 4916 |   await expect(page.getByRole("button", { name: /Editar metadata: Imagen subida por Playwright/ })).toBeVisible();
+           |                                                                                                     ^
+      4917 |
+      4918 |   await page.getByRole("button", { name: "Ajustes basicos" }).click();
+      4919 |   await page.getByLabel("Nombre", { exact: true }).fill("Producto Con Media Referenciada");
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:4916:101
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28531) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58070
+    - Network:       http://192.168.1.150:58070
+    ✓ Ready in 95ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-fe5e4-es-without-rebundling-files/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-fe5e4-es-without-rebundling-files/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-fe5e4-es-without-rebundling-files/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-fe5e4-es-without-rebundling-files/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28554) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[51/176] tests/e2e/admin-login.spec.ts:4936:5 › product editor sends the media draft identity in the save operation
+[52/176] tests/e2e/admin-login.spec.ts:4977:5 › product editor keeps failed draft media local without saving product
+  8) tests/e2e/admin-login.spec.ts:4977:5 › product editor keeps failed draft media local without saving product 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: /Media temporal no disponible\./ })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByRole('button', { name: /Media temporal no disponible\./ })
+
+
+      4990 |
+      4991 |   await expect(page.getByText("0/1 imagen(es) subidas. Revisa las marcadas con error.")).toBeVisible();
+    > 4992 |   await expect(page.getByRole("button", { name: /Media temporal no disponible\./ })).toBeVisible();
+           |                                                                                      ^
+      4993 |   await expectProductBlock(page, "media: Fallo");
+      4994 |
+      4995 |   expect(capturedDraftMediaUploadRequests).toHaveLength(1);
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:4992:86
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28557) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58113
+    - Network:       http://192.168.1.150:58113
+    ✓ Ready in 67ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-77d73-ocal-without-saving-product/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-77d73-ocal-without-saving-product/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-77d73-ocal-without-saving-product/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-77d73-ocal-without-saving-product/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28591) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[53/176] tests/e2e/admin-login.spec.ts:5000:5 › product editor does not bundle failed media files into product save operation
+[54/176] tests/e2e/admin-login.spec.ts:5036:5 › product editor clears failed media state after removing failed upload
+  9) tests/e2e/admin-login.spec.ts:5036:5 › product editor clears failed media state after removing failed upload 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.productAuditPanel').getByText('media: Fallo', { exact: true })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('.productAuditPanel').getByText('media: Fallo', { exact: true })
+
+
+      6224 |   const previousTab = await page.locator(".productEditorTabActive").innerText();
+      6225 |   await page.getByRole("button", {name:"Auditoria",exact:true}).click();
+    > 6226 |   await expect(page.locator(".productAuditPanel").getByText(text,{exact:true})).toBeVisible();
+           |                                                                                 ^
+      6227 |   if(previousTab !== "Auditoria") await page.getByRole("button",{name:previousTab,exact:true}).click();
+      6228 | }
+      6229 |
+        at expectProductBlock (/Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6226:81)
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5050:3
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28592) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58143
+    - Network:       http://192.168.1.150:58143
+    ✓ Ready in 64ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-0bb37-fter-removing-failed-upload/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-0bb37-fter-removing-failed-upload/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-0bb37-fter-removing-failed-upload/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-0bb37-fter-removing-failed-upload/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28616) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[55/176] tests/e2e/admin-login.spec.ts:5061:5 › product editor blocks incomplete save before product-save operation
+[56/176] tests/e2e/admin-login.spec.ts:5084:5 › product editor blocks publish locally when commercial minimums are missing
+[57/176] tests/e2e/admin-login.spec.ts:5110:5 › product editor publishes through save operation when commercial minimums are complete
+  10) tests/e2e/admin-login.spec.ts:5110:5 › product editor publishes through save operation when commercial minimums are complete 
+
+    TimeoutError: locator.fill: Timeout 10000ms exceeded.
+    Call log:
+      - waiting for getByLabel('Precio sin IVA')
+
+
+      5119 |   await page.getByLabel("Categoria principal", { exact: true }).selectOption("category-bikes");
+      5120 |
+    > 5121 |   await page.getByLabel("Precio sin IVA").fill("49.90");
+           |                                           ^
+      5122 |   await page.getByRole("combobox", { name: /Impuesto/ }).selectOption("tax-standard");
+      5123 |
+      5124 |   await page.getByLabel("Existencias", { exact: true }).fill("7");
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5121:43
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28618) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58167
+    - Network:       http://192.168.1.150:58167
+    ✓ Ready in 100ms
+    ✓ Running next.con...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-a1b2a-rcial-minimums-are-complete/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-a1b2a-rcial-minimums-are-complete/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-a1b2a-rcial-minimums-are-complete/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-a1b2a-rcial-minimums-are-complete/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28648) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[58/176] tests/e2e/admin-login.spec.ts:5143:5 › product editor shows BFF recovery actions after partial save failure
+  11) tests/e2e/admin-login.spec.ts:5143:5 › product editor shows BFF recovery actions after partial save failure 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.productAuditPanel').getByText('pricing: Fallo', { exact: true })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('.productAuditPanel').getByText('pricing: Fallo', { exact: true })
+
+
+      6224 |   const previousTab = await page.locator(".productEditorTabActive").innerText();
+      6225 |   await page.getByRole("button", {name:"Auditoria",exact:true}).click();
+    > 6226 |   await expect(page.locator(".productAuditPanel").getByText(text,{exact:true})).toBeVisible();
+           |                                                                                 ^
+      6227 |   if(previousTab !== "Auditoria") await page.getByRole("button",{name:previousTab,exact:true}).click();
+      6228 | }
+      6229 |
+        at expectProductBlock (/Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6226:81)
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5158:3
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28649) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58197
+    - Network:       http://192.168.1.150:58197
+    ✓ Ready in 95ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-3f0ed--after-partial-save-failure/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-3f0ed--after-partial-save-failure/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-3f0ed--after-partial-save-failure/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-3f0ed--after-partial-save-failure/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28671) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[59/176] tests/e2e/admin-login.spec.ts:5167:5 › product editor reuses idempotency key when retrying a partial save
+  12) tests/e2e/admin-login.spec.ts:5167:5 › product editor reuses idempotency key when retrying a partial save 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.productAuditPanel').getByText('pricing: Fallo', { exact: true })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('.productAuditPanel').getByText('pricing: Fallo', { exact: true })
+
+
+      6224 |   const previousTab = await page.locator(".productEditorTabActive").innerText();
+      6225 |   await page.getByRole("button", {name:"Auditoria",exact:true}).click();
+    > 6226 |   await expect(page.locator(".productAuditPanel").getByText(text,{exact:true})).toBeVisible();
+           |                                                                                 ^
+      6227 |   if(previousTab !== "Auditoria") await page.getByRole("button",{name:previousTab,exact:true}).click();
+      6228 | }
+      6229 |
+        at expectProductBlock (/Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6226:81)
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5189:3
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28672) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58220
+    - Network:       http://192.168.1.150:58220
+    ✓ Ready in 66ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-579cf-hen-retrying-a-partial-save/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-579cf-hen-retrying-a-partial-save/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-579cf-hen-retrying-a-partial-save/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-579cf-hen-retrying-a-partial-save/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28698) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[60/176] tests/e2e/admin-login.spec.ts:5202:5 › correcting an acknowledged partial save rotates the command key and keeps created IDs
+[61/176] tests/e2e/admin-login.spec.ts:5225:5 › product editor clears idempotency key after a successful retry
+[62/176] tests/e2e/admin-login.spec.ts:5259:5 › product editor applies successful save patch and clears local draft
+  13) tests/e2e/admin-login.spec.ts:5259:5 › product editor applies successful save patch and clears local draft 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.productAuditPanel').getByText('catalog: Correcto', { exact: true })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('.productAuditPanel').getByText('catalog: Correcto', { exact: true })
+
+
+      6224 |   const previousTab = await page.locator(".productEditorTabActive").innerText();
+      6225 |   await page.getByRole("button", {name:"Auditoria",exact:true}).click();
+    > 6226 |   await expect(page.locator(".productAuditPanel").getByText(text,{exact:true})).toBeVisible();
+           |                                                                                 ^
+      6227 |   if(previousTab !== "Auditoria") await page.getByRole("button",{name:previousTab,exact:true}).click();
+      6228 | }
+      6229 |
+        at expectProductBlock (/Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6226:81)
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5279:3
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28701) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58242
+    - Network:       http://192.168.1.150:58242
+    ✓ Ready in 95ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-16b8a-atch-and-clears-local-draft/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-16b8a-atch-and-clears-local-draft/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-16b8a-atch-and-clears-local-draft/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-16b8a-atch-and-clears-local-draft/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28717) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[63/176] tests/e2e/admin-login.spec.ts:5291:5 › product audit shows only inventory, fixed prices and available SEO without extra requests
+[64/176] tests/e2e/admin-login.spec.ts:5320:5 › product audit includes specific prices and contextual BASE and configured SEO
+  14) tests/e2e/admin-login.spec.ts:5320:5 › product audit includes specific prices and contextual BASE and configured SEO 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('table', { name: 'Precios fijados del producto y variantes', exact: true }).getByRole('row', { name: /Precio específico/ })
+    Expected substring: "18,00"
+    Error: strict mode violation: getByRole('table', { name: 'Precios fijados del producto y variantes', exact: true }).getByRole('row', { name: /Precio específico/ }) resolved to 3 elements:
+        1) <tr>…</tr> aka getByRole('row', { name: 'Producto completo Precio específico 18,00 € 1 País: FR · Canal: marketplace ·' })
+        2) <tr>…</tr> aka getByRole('row', { name: 'Producto completo Precio específico 1299,00 € 1 País: FR · Canal: marketplace' })
+        3) <tr>…</tr> aka getByRole('row', { name: 'Producto existente Playwright verde · PEP-GREEN Precio específico 99,00 € 1' })
+
+    Call log:
+      - Expect "toContainText" with timeout 10000ms
+      - waiting for getByRole('table', { name: 'Precios fijados del producto y variantes', exact: true }).getByRole('row', { name: /Precio específico/ })
+
+
+      5328 |     await page.getByRole("button", { name: "Auditoria", exact: true }).click();
+      5329 |     const prices = page.getByRole("table", { name: "Precios fijados del producto y variantes", exact: true });
+    > 5330 |     await expect(prices.getByRole("row", { name: /Precio específico/ })).toContainText("18,00");
+           |                                                                          ^
+      5331 |     await expect(prices.getByRole("row", { name: /Precio habitual.*Grupo: vip/ })).toContainText("1299,00");
+      5332 |     await expect(page.getByRole("table", { name: "Resumen de Routing y SEO", exact: true })).toContainText("/audit-product/p");
+      5333 |   } finally { pricingDatesScenario = false; }
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5330:74
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28718) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58277
+    - Network:       http://192.168.1.150:58277
+    ✓ Ready in 67ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-audit--3edc1-ual-BASE-and-configured-SEO/error-context.md
+
+    Error Context: test-results/admin-login-product-audit--3edc1-ual-BASE-and-configured-SEO/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-audit--3edc1-ual-BASE-and-configured-SEO/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-audit--3edc1-ual-BASE-and-configured-SEO/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28729) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[65/176] tests/e2e/admin-login.spec.ts:5336:5 › product editor loads existing product state and saves through operation endpoint
+  15) tests/e2e/admin-login.spec.ts:5336:5 › product editor loads existing product state and saves through operation endpoint 
+
+    TimeoutError: locator.fill: Timeout 10000ms exceeded.
+    Call log:
+      - waiting for getByPlaceholder('Nuevo producto')
+
+
+      5363 |   await expect(page.getByText("Instalacion")).toBeVisible();
+      5364 |
+    > 5365 |   await page.getByPlaceholder("Nuevo producto").fill("Producto existente actualizado");
+           |                                                 ^
+      5366 |   await page.getByRole("button", { name: "Guardar", exact: true }).click();
+      5367 |   await page.getByRole("dialog").getByRole("button", {name:"Guardar borrador",exact:true}).click();
+      5368 |
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5365:49
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28730) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58301
+    - Network:       http://192.168.1.150:58301
+    ✓ Ready in 67ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-c92f7--through-operation-endpoint/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-c92f7--through-operation-endpoint/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-c92f7--through-operation-endpoint/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-c92f7--through-operation-endpoint/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[66/176] tests/e2e/admin-login.spec.ts:5382:5 › product editor applies the pricing preview simulator from the pricing tab
+  16) tests/e2e/admin-login.spec.ts:5382:5 › product editor applies the pricing preview simulator from the pricing tab 
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  locator('details.productSpecificPrices').filter({ has: locator('summary').filter({ hasText: 'Simulador de precio aplicado' }) }).getByLabel('Canal')
+    Expected: "web"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveValue" with timeout 10000ms
+      - waiting for locator('details.productSpecificPrices').filter({ has: locator('summary').filter({ hasText: 'Simulador de precio aplicado' }) }).getByLabel('Canal')
+        24 × locator resolved to <select>…</select>
+           - unexpected value ""
+
+
+      5404 |   await simulator.locator("summary", { hasText: "Simulador de precio aplicado" }).click();
+      5405 |   await expect(simulator).toHaveAttribute("open", "");
+    > 5406 |   await expect(simulator.getByLabel("Canal")).toHaveValue("web");
+           |                                               ^
+      5407 |   await expect(simulator.getByLabel("Canal").locator('option[value="web"]')).toHaveText("Web");
+      5408 |   await expect(simulator.getByLabel("Canal").locator('option[value="marketplace"]')).toHaveText("Marketplace");
+      5409 |
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5406:47
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28745) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58320
+    - Network:       http://192.168.1.150:58320
+    ✓ Ready in 66ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-editor-6a549-ulator-from-the-pricing-tab/error-context.md
+
+    Error Context: test-results/admin-login-product-editor-6a549-ulator-from-the-pricing-tab/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-editor-6a549-ulator-from-the-pricing-tab/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-editor-6a549-ulator-from-the-pricing-tab/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28793) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[67/176] tests/e2e/admin-login.spec.ts:5454:5 › specific prices use a separate products-style table and a cancellable side drawer
+  17) tests/e2e/admin-login.spec.ts:5454:5 › specific prices use a separate products-style table and a cancellable side drawer 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "rgb(255, 255, 255)"
+    Received: "rgba(0, 0, 0, 0)"
+
+      5471 |   expect(await table.evaluate(element => getComputedStyle(element).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+      5472 |   expect(await table.evaluate((element) => element.closest(".productEditorPanel")?.contains(document.querySelector(".productPriceSimulator")))).toBe(false);
+    > 5473 |   expect(await simulatorPanel.evaluate(element => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 255, 255)");
+           |                                                                                               ^
+      5474 |   expect(await page.getByRole("heading", { name: "Precio específico", exact: true }).evaluate(element => getComputedStyle(element).fontSize)).toBe("18px");
+      5475 |   await expect(table.getByText(/No hay precios específicos/)).toBeVisible();
+      5476 |   await expect(page.locator(".productSpecificPriceForm")).toHaveCount(0);
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5473:95
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28794) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58346
+    - Network:       http://192.168.1.150:58346
+    ✓ Ready in 107ms
+    ✓ Running next.con...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-specific-price-5cdea-d-a-cancellable-side-drawer/error-context.md
+
+    Error Context: test-results/admin-login-specific-price-5cdea-d-a-cancellable-side-drawer/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-specific-price-5cdea-d-a-cancellable-side-drawer/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-specific-price-5cdea-d-a-cancellable-side-drawer/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28801) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[68/176] tests/e2e/admin-login.spec.ts:5548:5 › Admin drawers resize within bounds, remember per module and forget on page navigation
+[69/176] tests/e2e/admin-login.spec.ts:5636:5 › drawer query changes keep the same module width across server-rendered open and close
+[70/176] tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: neither
+  18) tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: neither 
+
+    Error: locator.click: Error: strict mode violation: getByRole('table', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ }) resolved to 3 elements:
+        1) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).first()
+        2) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).nth(1)
+        3) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para Producto existente Playwright verde · PEP-GREEN' })
+
+    Call log:
+      - waiting for getByRole('table', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ })
+
+
+      5671 |       await page.getByRole("button", { name: "Precio", exact: true }).click();
+      5672 |       const edit = page.getByRole("table", { name: "Precios específicos", exact: true }).getByRole("button", { name: /^Editar precio específico/ });
+    > 5673 |       await edit.click();
+           |                  ^
+      5674 |       const panel = page.getByRole("dialog", { name: "Editar precio específico", exact: true });
+      5675 |       await expect(panel.getByRole("checkbox", { name: "Ilimitado", exact: true })).toHaveCount(0);
+      5676 |       await expect(panel.getByLabel("Fecha final", { exact: true })).toBeEnabled();
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5673:18
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28802) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58364
+    - Network:       http://192.168.1.150:58364
+    ✓ Ready in 75ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-promotion-date-7dfcb-orts-optional-dates-neither/error-context.md
+
+    Error Context: test-results/admin-login-promotion-date-7dfcb-orts-optional-dates-neither/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-promotion-date-7dfcb-orts-optional-dates-neither/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-promotion-date-7dfcb-orts-optional-dates-neither/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28811) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[71/176] tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: start only
+  19) tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: start only 
+
+    Error: locator.click: Error: strict mode violation: getByRole('table', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ }) resolved to 3 elements:
+        1) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).first()
+        2) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).nth(1)
+        3) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para Producto existente Playwright verde · PEP-GREEN' })
+
+    Call log:
+      - waiting for getByRole('table', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ })
+
+
+      5671 |       await page.getByRole("button", { name: "Precio", exact: true }).click();
+      5672 |       const edit = page.getByRole("table", { name: "Precios específicos", exact: true }).getByRole("button", { name: /^Editar precio específico/ });
+    > 5673 |       await edit.click();
+           |                  ^
+      5674 |       const panel = page.getByRole("dialog", { name: "Editar precio específico", exact: true });
+      5675 |       await expect(panel.getByRole("checkbox", { name: "Ilimitado", exact: true })).toHaveCount(0);
+      5676 |       await expect(panel.getByLabel("Fecha final", { exact: true })).toBeEnabled();
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5673:18
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28814) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58397
+    - Network:       http://192.168.1.150:58397
+    ✓ Ready in 68ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-promotion-date-99806-s-optional-dates-start-only/error-context.md
+
+    Error Context: test-results/admin-login-promotion-date-99806-s-optional-dates-start-only/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-promotion-date-99806-s-optional-dates-start-only/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-promotion-date-99806-s-optional-dates-start-only/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28824) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[72/176] tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: end only
+  20) tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: end only 
+
+    Error: locator.click: Error: strict mode violation: getByRole('table', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ }) resolved to 3 elements:
+        1) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).first()
+        2) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).nth(1)
+        3) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para Producto existente Playwright verde · PEP-GREEN' })
+
+    Call log:
+      - waiting for getByRole('table', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ })
+
+
+      5671 |       await page.getByRole("button", { name: "Precio", exact: true }).click();
+      5672 |       const edit = page.getByRole("table", { name: "Precios específicos", exact: true }).getByRole("button", { name: /^Editar precio específico/ });
+    > 5673 |       await edit.click();
+           |                  ^
+      5674 |       const panel = page.getByRole("dialog", { name: "Editar precio específico", exact: true });
+      5675 |       await expect(panel.getByRole("checkbox", { name: "Ilimitado", exact: true })).toHaveCount(0);
+      5676 |       await expect(panel.getByLabel("Fecha final", { exact: true })).toBeEnabled();
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5673:18
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28825) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58417
+    - Network:       http://192.168.1.150:58417
+    ✓ Ready in 71ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-promotion-date-d8a18-rts-optional-dates-end-only/error-context.md
+
+    Error Context: test-results/admin-login-promotion-date-d8a18-rts-optional-dates-end-only/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-promotion-date-d8a18-rts-optional-dates-end-only/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-promotion-date-d8a18-rts-optional-dates-end-only/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28830) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[73/176] tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: both
+  21) tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: both 
+
+    Error: locator.click: Error: strict mode violation: getByRole('table', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ }) resolved to 3 elements:
+        1) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).first()
+        2) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).nth(1)
+        3) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para Producto existente Playwright verde · PEP-GREEN' })
+
+    Call log:
+      - waiting for getByRole('table', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ })
+
+
+      5671 |       await page.getByRole("button", { name: "Precio", exact: true }).click();
+      5672 |       const edit = page.getByRole("table", { name: "Precios específicos", exact: true }).getByRole("button", { name: /^Editar precio específico/ });
+    > 5673 |       await edit.click();
+           |                  ^
+      5674 |       const panel = page.getByRole("dialog", { name: "Editar precio específico", exact: true });
+      5675 |       await expect(panel.getByRole("checkbox", { name: "Ilimitado", exact: true })).toHaveCount(0);
+      5676 |       await expect(panel.getByLabel("Fecha final", { exact: true })).toBeEnabled();
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5673:18
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28831) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58435
+    - Network:       http://192.168.1.150:58435
+    ✓ Ready in 68ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-promotion-date-8e3f8-upports-optional-dates-both/error-context.md
+
+    Error Context: test-results/admin-login-promotion-date-8e3f8-upports-optional-dates-both/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-promotion-date-8e3f8-upports-optional-dates-both/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-promotion-date-8e3f8-upports-optional-dates-both/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28840) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[74/176] tests/e2e/admin-login.spec.ts:5695:43 › promotion dates in Madrid › product pricing preserves legacy BASE and the autumn overlap (unchanged)
+  22) tests/e2e/admin-login.spec.ts:5695:43 › promotion dates in Madrid › product pricing preserves legacy BASE and the autumn overlap (unchanged) 
+
+    Error: locator.click: Error: strict mode violation: getByRole('region', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ }) resolved to 3 elements:
+        1) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).first()
+        2) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).nth(1)
+        3) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para Producto existente Playwright verde · PEP-GREEN' })
+
+    Call log:
+      - waiting for getByRole('region', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ })
+
+
+      5704 |       await expect(page.getByText("Contexto avanzado de precio base", { exact: true })).toHaveCount(0);
+      5705 |       const list = page.getByRole("region", { name: "Precios específicos", exact: true });
+    > 5706 |       await list.getByRole("button", { name: /^Editar precio específico/ }).click();
+           |                                                                             ^
+      5707 |       const panel = page.getByRole("dialog", { name: "Editar precio específico", exact: true });
+      5708 |       await expect(panel).toBeVisible();
+      5709 |       await expect(panel.getByLabel("Fecha inicial", { exact: true })).toHaveValue("2026-10-25T02:30");
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5706:77
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28841) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58453
+    - Network:       http://192.168.1.150:58453
+    ✓ Ready in 69ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-promotion-date-b502b-e-autumn-overlap-unchanged-/error-context.md
+
+    Error Context: test-results/admin-login-promotion-date-b502b-e-autumn-overlap-unchanged-/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-promotion-date-b502b-e-autumn-overlap-unchanged-/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-promotion-date-b502b-e-autumn-overlap-unchanged-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28848) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[75/176] tests/e2e/admin-login.spec.ts:5695:43 › promotion dates in Madrid › product pricing preserves legacy BASE and the autumn overlap (edited)
+  23) tests/e2e/admin-login.spec.ts:5695:43 › promotion dates in Madrid › product pricing preserves legacy BASE and the autumn overlap (edited) 
+
+    Error: locator.click: Error: strict mode violation: getByRole('region', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ }) resolved to 3 elements:
+        1) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).first()
+        2) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para' }).nth(1)
+        3) <button type="button" title="Editar" aria-haspopup="dialog" class="adminButton employeesActionInfo">…</button> aka getByRole('button', { name: 'Editar precio específico para Producto existente Playwright verde · PEP-GREEN' })
+
+    Call log:
+      - waiting for getByRole('region', { name: 'Precios específicos', exact: true }).getByRole('button', { name: /^Editar precio específico/ })
+
+
+      5704 |       await expect(page.getByText("Contexto avanzado de precio base", { exact: true })).toHaveCount(0);
+      5705 |       const list = page.getByRole("region", { name: "Precios específicos", exact: true });
+    > 5706 |       await list.getByRole("button", { name: /^Editar precio específico/ }).click();
+           |                                                                             ^
+      5707 |       const panel = page.getByRole("dialog", { name: "Editar precio específico", exact: true });
+      5708 |       await expect(panel).toBeVisible();
+      5709 |       await expect(panel.getByLabel("Fecha inicial", { exact: true })).toHaveValue("2026-10-25T02:30");
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5706:77
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28850) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58475
+    - Network:       http://192.168.1.150:58475
+    ✓ Ready in 129ms
+    ✓ Running next.con...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-promotion-date-c3151--the-autumn-overlap-edited-/error-context.md
+
+    Error Context: test-results/admin-login-promotion-date-c3151--the-autumn-overlap-edited-/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-promotion-date-c3151--the-autumn-overlap-edited-/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-promotion-date-c3151--the-autumn-overlap-edited-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28862) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[76/176] tests/e2e/admin-login.spec.ts:5751:7 › promotion dates in Madrid › pricing simulator sends future Madrid dates, variants, groups and quantities without saving
+  24) tests/e2e/admin-login.spec.ts:5751:7 › promotion dates in Madrid › pricing simulator sends future Madrid dates, variants, groups and quantities without saving 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "default"
+    Received: null
+
+      2057 |       expect(url.searchParams.get("currency")).toBe("EUR");
+      2058 |       expect(url.searchParams.get("country")).toBe("ES");
+    > 2059 |       expect(url.searchParams.get("tradePolicy")).toBe("default");
+           |                                                   ^
+      2060 |       expect(url.searchParams.get("channel")).toBe("web");
+      2061 |       expect(url.searchParams.get("priceTableId")).toBe("cockpit-vip");
+      2062 |       expect(url.searchParams.get("quantity")).toBe("3");
+        at Server.<anonymous> (/Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:2059:51)
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('details.productSpecificPrices').filter({ has: locator('summary').filter({ hasText: 'Simulador de precio aplicado' }) }).getByText('Precio aplicado', { exact: true })
+    Expected: visible
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('details.productSpecificPrices').filter({ has: locator('summary').filter({ hasText: 'Simulador de precio aplicado' }) }).getByText('Precio aplicado', { exact: true })
+
+
+      5769 |     await panel.getByLabel("Fecha de simulacion", { exact: true }).fill("2027-11-13T00:00");
+      5770 |     await panel.getByRole("button", { name: "Simular precio", exact: true }).click();
+    > 5771 |     await expect(panel.getByText("Precio aplicado", { exact: true })).toBeVisible();
+           |                                                                       ^
+      5772 |     const query = new URL(capturedPricingPreviewRequests[0], "http://fixture.invalid").searchParams;
+      5773 |     expect(query.get("at")).toBe("2027-11-12T23:00:00.000Z");
+      5774 |     expect(query.get("variantId")).toBe("variant-edit-red");
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5771:71
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28864) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58494
+    - Network:       http://192.168.1.150:58494
+    ✓ Ready in 120ms
+    ✓ Running next.con...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-promotion-date-571fa-d-quantities-without-saving/error-context.md
+
+    Error Context: test-results/admin-login-promotion-date-571fa-d-quantities-without-saving/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-promotion-date-571fa-d-quantities-without-saving/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-promotion-date-571fa-d-quantities-without-saving/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28875) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[77/176] tests/e2e/admin-login.spec.ts:5781:5 › shop read preparation retries without creating another shop and polls until ready
+[78/176] tests/e2e/admin-login.spec.ts:5803:5 › shop read preparation hides retry from an employee without management permission
+[79/176] tests/e2e/admin-login.spec.ts:5823:6 › canonical creation category retains values after rejection and submits corrected payload
+[80/176] tests/e2e/admin-login.spec.ts:5823:6 › canonical creation brand retains values after rejection and submits corrected payload
+[81/176] tests/e2e/admin-login.spec.ts:5823:6 › canonical creation payment-system retains values after rejection and submits corrected payload
+[82/176] tests/e2e/admin-login.spec.ts:5823:6 › canonical creation affiliation retains values after rejection and submits corrected payload
+[83/176] tests/e2e/admin-login.spec.ts:5823:6 › canonical creation payment-rule retains values after rejection and submits corrected payload
+[84/176] tests/e2e/admin-login.spec.ts:5839:5 › catalog creation is hidden without write permission
+[85/176] tests/e2e/admin-login.spec.ts:5844:5 › payment activation requires confirmation and cancellation preserves the form
+[86/176] tests/e2e/admin-login.spec.ts:5851:5 › live employee read permissions hide management even while the signed cookie previously had admin wildcard
+[87/176] tests/e2e/admin-login.spec.ts:5857:5 › employee manage permission does not expose profile security actions
+[88/176] tests/e2e/admin-login.spec.ts:5860:5 › profile security permission does not expose employee management actions
+[89/176] tests/e2e/admin-login.spec.ts:5863:5 › live catalog read permissions hide editing and deletion as well as creation
+[90/176] tests/e2e/admin-login.spec.ts:5866:5 › live payment read permission hides creation without retaining the old cookie wildcard
+[91/176] tests/e2e/admin-login.spec.ts:5869:5 › expired admin session renews through the cookie-writing handler and stays authenticated
+[92/176] tests/e2e/admin-login.spec.ts:5874:5 › health indicator distinguishes successful HTTP error payloads, degraded readiness and unavailable transport
+[93/176] tests/e2e/admin-login.spec.ts:5879:5 › health indicator never treats an empty successful response as operational
+  25) tests/e2e/admin-login.spec.ts:5879:5 › health indicator never treats an empty successful response as operational 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('article', { name: 'Salud de servicios', exact: true }).locator('.adminBadgeOk')
+    Expected: 0
+    Received: 1
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 10000ms
+      - waiting for getByRole('article', { name: 'Salud de servicios', exact: true }).locator('.adminBadgeOk')
+        24 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      5878 | });
+      5879 | test('health indicator never treats an empty successful response as operational',async({page})=>{
+    > 5880 |  await loginAdmin(page);dashboardHealthScenario='invalid';await page.goto(`http://127.0.0.1:${nextPort}/admin`);const panel=page.getByRole('article',{name:'Salud de servicios',exact:true});await expect(panel.locator('.adminBadgeOk')).toHaveCount(0);await expect(panel.locator('.adminStatusRow').filter({hasText:'Sin confirmar'})).toHaveCount(5);
+           |                                                                                                                                                                                                                                           ^
+      5881 | });
+      5882 | test('health indicator still recognizes explicitly healthy services',async({page})=>{
+      5883 |  await loginAdmin(page);await page.goto(`http://127.0.0.1:${nextPort}/admin`);const panel=page.getByRole('article',{name:'Salud de servicios',exact:true});await expect(panel.locator('.adminBadgeOk')).toHaveCount(5);await expect(page.locator('.adminKpi').filter({hasText:'Servicios OK'}).locator('strong')).toHaveText('5');
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:5880:235
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28876) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58519
+    - Network:       http://192.168.1.150:58519
+    ✓ Ready in 71ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-health-indicat-de89f-ful-response-as-operational/error-context.md
+
+    Error Context: test-results/admin-login-health-indicat-de89f-ful-response-as-operational/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-health-indicat-de89f-ful-response-as-operational/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-health-indicat-de89f-ful-response-as-operational/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:28954) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[94/176] tests/e2e/admin-login.spec.ts:5882:5 › health indicator still recognizes explicitly healthy services
+[95/176] tests/e2e/admin-login.spec.ts:5887:5 › Analytics health badge cannot turn a successful HTTP error response into available
+[96/176] tests/e2e/admin-login.spec.ts:5892:5 › communications tabs isolate workspaces and keep Team toolbar responsive
+[97/176] tests/e2e/admin-login.spec.ts:5932:5 › communications tabs hide management controls for read-only employees
+[98/176] tests/e2e/admin-login.spec.ts:5945:5 › category list creates in a drawer, edits inline and groups soft and hard deletion
+[99/176] tests/e2e/admin-login.spec.ts:5991:5 › brand list creates in a drawer, edits inline and groups soft and hard deletion
+[100/176] tests/e2e/admin-login.spec.ts:6037:5 › brand list hides creation and row actions without brand write permission
+[101/176] tests/e2e/admin-login.spec.ts:6047:5 › media library uses shared search, inline editing and a scoped creation drawer
+[102/176] tests/e2e/admin-login.spec.ts:6094:5 › media library read-only hides creation, uploads, inline editing and deactivation
+[103/176] tests/e2e/admin-login.spec.ts:6109:5 › offerings list shares search, inline editing, drawers and confirmed deactivation
+[104/176] tests/e2e/admin-login.spec.ts:6152:5 › offerings read-only hides management and direct panel access
+[105/176] tests/e2e/admin-login.spec.ts:6173:5 › product basic boxes collapse HTML and reuse category and brand drawers
+  26) tests/e2e/admin-login.spec.ts:6173:5 › product basic boxes collapse HTML and reuse category and brand drawers 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('details.productBasicSection')
+    Expected: 4
+    Received: 5
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 10000ms
+      - waiting for locator('details.productBasicSection')
+        24 × locator resolved to 5 elements
+           - unexpected value "5"
+
+
+      6175 |   await page.goto(`http://127.0.0.1:${nextPort}/admin/products/new`);
+      6176 |   const boxes = page.locator("details.productBasicSection");
+    > 6177 |   await expect(boxes).toHaveCount(4);
+           |                       ^
+      6178 |   await expect(boxes.nth(0)).toHaveAttribute("open", "");
+      6179 |   for (const index of [1,2,3]) await expect(boxes.nth(index)).not.toHaveAttribute("open");
+      6180 |   await expect(page.getByRole("textbox",{name:"Resumen HTML",exact:true})).toHaveCount(0);
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6177:23
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:28959) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58679
+    - Network:       http://192.168.1.150:58679
+    ✓ Ready in 113ms
+    ✓ Running next.con...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-basic--b9ee8--category-and-brand-drawers/error-context.md
+
+    Error Context: test-results/admin-login-product-basic--b9ee8--category-and-brand-drawers/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-basic--b9ee8--category-and-brand-drawers/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-basic--b9ee8--category-and-brand-drawers/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:29041) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[106/176] tests/e2e/admin-login.spec.ts:6213:5 › product taxonomy creation respects the current employee permissions
+[107/176] tests/e2e/admin-login.spec.ts:6230:5 › product footer keeps only preview save and a compact actions menu
+  27) tests/e2e/admin-login.spec.ts:6230:5 › product footer keeps only preview save and a compact actions menu 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('link', { name: 'Volver al catálogo', exact: true })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByRole('link', { name: 'Volver al catálogo', exact: true })
+
+
+      6237 |   await page.getByLabel("Nombre", { exact: true }).fill("Producto revisado");
+      6238 |   await expect(footer.getByRole("status")).toContainText("Cambios sin guardar");
+    > 6239 |   await expect(page.getByRole("link",{name:"Volver al catálogo",exact:true})).toBeVisible();
+           |                                                                               ^
+      6240 |   for(const width of [1440,768,390]) {
+      6241 |     await page.setViewportSize({width,height:1000});
+      6242 |     await footer.scrollIntoViewIfNeeded();
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6239:79
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:29042) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58778
+    - Network:       http://192.168.1.150:58778
+    ✓ Ready in 66ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-footer-45a29--and-a-compact-actions-menu/error-context.md
+
+    Error Context: test-results/admin-login-product-footer-45a29--and-a-compact-actions-menu/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-footer-45a29--and-a-compact-actions-menu/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-footer-45a29--and-a-compact-actions-menu/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:29062) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[108/176] tests/e2e/admin-login.spec.ts:6262:7 › active product saves changes preserving visibility=true
+  28) tests/e2e/admin-login.spec.ts:6262:7 › active product saves changes preserving visibility=true 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 0
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      6286 |     await footer.getByRole("button",{name:"Guardar cambios",exact:true}).click();
+      6287 |     await expect(page.getByRole("dialog",{name:/Producto .*publicar/})).toHaveCount(0);
+    > 6288 |     await expect.poll(()=>capturedSaveOperationBodies.length).toBe(1);
+           |                                                               ^
+      6289 |     const sent=JSON.parse(parseMultipartTextField(capturedSaveOperationBodies[0],"draft"));
+      6290 |     expect(sent.basic.isActive).toBe(true);
+      6291 |     expect(sent.basic.isVisible).toBe(visible);
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6288:63
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:29065) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58809
+    - Network:       http://192.168.1.150:58809
+    ✓ Ready in 67ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-active-product-04697--preserving-visibility-true/error-context.md
+
+    Error Context: test-results/admin-login-active-product-04697--preserving-visibility-true/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-active-product-04697--preserving-visibility-true/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-active-product-04697--preserving-visibility-true/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:29084) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[109/176] tests/e2e/admin-login.spec.ts:6262:7 › active product saves changes preserving visibility=false
+  29) tests/e2e/admin-login.spec.ts:6262:7 › active product saves changes preserving visibility=false 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 0
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      6286 |     await footer.getByRole("button",{name:"Guardar cambios",exact:true}).click();
+      6287 |     await expect(page.getByRole("dialog",{name:/Producto .*publicar/})).toHaveCount(0);
+    > 6288 |     await expect.poll(()=>capturedSaveOperationBodies.length).toBe(1);
+           |                                                               ^
+      6289 |     const sent=JSON.parse(parseMultipartTextField(capturedSaveOperationBodies[0],"draft"));
+      6290 |     expect(sent.basic.isActive).toBe(true);
+      6291 |     expect(sent.basic.isVisible).toBe(visible);
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6288:63
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:29087) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:58832
+    - Network:       http://192.168.1.150:58832
+    ✓ Ready in 66ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-active-product-44a01-preserving-visibility-false/error-context.md
+
+    Error Context: test-results/admin-login-active-product-44a01-preserving-visibility-false/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-active-product-44a01-preserving-visibility-false/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-active-product-44a01-preserving-visibility-false/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:29108) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[110/176] tests/e2e/admin-login.spec.ts:6297:5 › active product missing a publication requirement cannot be saved as an inactive draft
+  30) tests/e2e/admin-login.spec.ts:6297:5 › active product missing a publication requirement cannot be saved as an inactive draft 
+
+    TimeoutError: locator.click: Timeout 10000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Imagenes', exact: true })
+
+
+      6300 |   await loginAdmin(page);
+      6301 |   await page.goto(`http://127.0.0.1:${nextPort}/admin/products/product-edit-1`);
+    > 6302 |   await page.getByRole("button",{name:"Imagenes",exact:true}).click();
+           |                                                               ^
+      6303 |   await page.getByRole("button", { name: /^Eliminar del borrador:/ }).first().click();
+      6304 |   const footer=page.getByRole("group",{name:"Acciones del producto",exact:true});
+      6305 |   await footer.getByRole("button",{name:"Guardar cambios",exact:true}).click();
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6302:63
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:29109) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:59037
+    - Network:       http://192.168.1.150:59037
+    ✓ Ready in 104ms
+    ✓ Running next.con...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-active-product-1b1c7--saved-as-an-inactive-draft/error-context.md
+
+    Error Context: test-results/admin-login-active-product-1b1c7--saved-as-an-inactive-draft/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-active-product-1b1c7--saved-as-an-inactive-draft/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-active-product-1b1c7--saved-as-an-inactive-draft/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:29131) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[111/176] tests/e2e/admin-login.spec.ts:6318:5 › feature creation keeps the drawer and entered values when BFF rejects the request
+[112/176] tests/e2e/admin-login.spec.ts:6339:5 › confirmed feature creation distinguishes pending ReadIndex projection from a failed mutation
+[113/176] tests/e2e/admin-login.spec.ts:6362:5 › product feature groups follow category and inline administration preserves the product
+  31) tests/e2e/admin-login.spec.ts:6362:5 › product feature groups follow category and inline administration preserves the product 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('details').filter({ has: locator('summary').filter({ hasText: 'Características y especificaciones' }) })
+    Expected substring: "Esta categoría todavía no tiene"
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 10000ms
+      - waiting for locator('details').filter({ has: locator('summary').filter({ hasText: 'Características y especificaciones' }) })
+
+
+      6370 |   await page.getByLabel("Categoria principal",{exact:true}).selectOption(uuidCategory);
+      6371 |   const features=page.locator("details").filter({has:page.locator("summary",{hasText:"Características y especificaciones"})});
+    > 6372 |   await expect(features).toContainText("Esta categoría todavía no tiene");
+           |                          ^
+      6373 |   await features.getByRole("button",{name:"Administrar características",exact:true}).click();
+      6374 |   const manager=page.getByRole("dialog",{name:"Administrar características",exact:true});
+      6375 |   const form=manager.getByRole("form",{name:"Crear característica desde producto"});
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6372:26
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:29132) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:59093
+    - Network:       http://192.168.1.150:59093
+    ✓ Ready in 119ms
+    ✓ Running next.con...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-featur-37b59-ation-preserves-the-product/error-context.md
+
+    Error Context: test-results/admin-login-product-featur-37b59-ation-preserves-the-product/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-featur-37b59-ation-preserves-the-product/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-featur-37b59-ation-preserves-the-product/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:29157) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[114/176] tests/e2e/admin-login.spec.ts:6405:5 › product feature administration is hidden without write permission
+  32) tests/e2e/admin-login.spec.ts:6405:5 › product feature administration is hidden without write permission 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Añadir otra característica', exact: true })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByRole('button', { name: 'Añadir otra característica', exact: true })
+
+
+      6408 |  await page.goto(`http://127.0.0.1:${nextPort}/admin/products/new`);
+      6409 |  await expect(page.getByRole("button",{name:"Administrar características",exact:true})).toHaveCount(0);
+    > 6410 |  await expect(page.getByRole("button",{name:"Añadir otra característica",exact:true})).toBeVisible();
+           |                                                                                        ^
+      6411 | });
+      6412 |
+      6413 | function installLifecycleFixture(){
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6410:88
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:29158) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:59126
+    - Network:       http://192.168.1.150:59126
+    ✓ Ready in 99ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-product-featur-15215-en-without-write-permission/error-context.md
+
+    Error Context: test-results/admin-login-product-featur-15215-en-without-write-permission/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-product-featur-15215-en-without-write-permission/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-product-featur-15215-en-without-write-permission/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:29174) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[115/176] tests/e2e/admin-login.spec.ts:6417:5 › feature deactivation reviews impact, prevents duplicate submission and waits for ReadIndex
+[116/176] tests/e2e/admin-login.spec.ts:6427:5 › feature deactivation handles stale review, cancellation, responsive dialog and permission denial
+[117/176] tests/e2e/admin-login.spec.ts:6441:5 › feature deactivation uncertain response checks canonical state without another mutation
+[118/176] tests/e2e/admin-login.spec.ts:6447:5 › feature permanent deletion confirms impact, recovers uncertain response and retries only synchronization
+[119/176] tests/e2e/admin-login.spec.ts:6454:5 › feature permanent deletion dialog is accessible and responsive, checks stale impact and rollout permission
+[120/176] tests/e2e/admin-login.spec.ts:6460:5 › feature permanent deletion permits unused definition without typing its name
+[121/176] tests/e2e/admin-login.spec.ts:6465:5 › catalog retirement confirms exact reference, preserves cancellation and verifies responsive dialog
+[122/176] tests/e2e/admin-login.spec.ts:6471:5 › catalog retirement blocks dependencies and recovers a lost confirmation with the same key
+[123/176] tests/e2e/admin-login.spec.ts:6475:5 › catalog retirement removes a persisted variant and leaves its parent
+[124/176] tests/e2e/admin-login.spec.ts:6479:5 › catalog retirement asynchronous lab continues after browser close and API restart
+[125/176] tests/e2e/admin-login.spec.ts:6494:5 › variant shipping inherits base measurements and restores individual fields
+[126/176] tests/e2e/admin-login.spec.ts:6523:5 › added offering appears immediately in the variant services table
+[127/176] tests/e2e/admin-login.spec.ts:6544:5 › integrated inventory edits variants and loads warehouse stock without copying quantities
+  33) tests/e2e/admin-login.spec.ts:6544:5 › integrated inventory edits variants and loads warehouse stock without copying quantities 
+
+    TimeoutError: locator.selectOption: Timeout 10000ms exceeded.
+    Call log:
+      - waiting for getByLabel('Tabla de precios', { exact: true })
+
+
+      6558 |   await page.getByLabel("Precio tachado", {exact:true}).fill("129.90");
+      6559 |   await page.getByRole("checkbox",{name:"Impuestos incluidos",exact:true}).setChecked(false);
+    > 6560 |   await page.getByLabel("Tabla de precios",{exact:true}).selectOption("cockpit-vip");
+           |                                                          ^
+      6561 |   await page.getByRole("button",{name:"Precio",exact:true}).click();
+      6562 |   await expect(page.locator(".productEditorPanel > .pricingEditorContext")).toHaveCount(0);
+      6563 |   await expect(page.getByLabel("Precio sin IVA",{exact:true})).toHaveCount(0);
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6560:58
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:29177) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:59159
+    - Network:       http://192.168.1.150:59159
+    ✓ Ready in 141ms
+    ✓ Running next.con...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-integrated-inv-d5daa--without-copying-quantities/error-context.md
+
+    Error Context: test-results/admin-login-integrated-inv-d5daa--without-copying-quantities/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-integrated-inv-d5daa--without-copying-quantities/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-integrated-inv-d5daa--without-copying-quantities/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:29252) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[128/176] tests/e2e/admin-login.spec.ts:6666:5 › products audit service deactivation must update its checkbox despite stale read projection
+[129/176] tests/e2e/admin-login.spec.ts:6680:5 › products audit service removal must remove the row despite stale read projection
+[130/176] tests/e2e/admin-login.spec.ts:6696:5 › products audit transport fees carriers delivery text and SEO aliases are saved together
+  34) tests/e2e/admin-login.spec.ts:6696:5 › products audit transport fees carriers delivery text and SEO aliases are saved together 
+
+    TimeoutError: locator.fill: Timeout 10000ms exceeded.
+    Call log:
+      - waiting for getByLabel('Peso del paquete (g)', { exact: true })
+
+
+      6706 |   await page.getByLabel("Path alias", { exact: true }).fill("/qa-alias/p");
+      6707 |   await page.getByRole("button", { name: "Variantes", exact: true }).click();
+    > 6708 |   await page.getByLabel("Peso del paquete (g)", { exact: true }).fill("1600");
+           |                                                                  ^
+      6709 |   await page.getByLabel("Ancho (mm)", { exact: true }).fill("410");
+      6710 |   await page.getByLabel("Alto (mm)", { exact: true }).fill("220");
+      6711 |   await page.getByLabel("Profundidad (mm)", { exact: true }).fill("330");
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6708:66
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:29253) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:59346
+    - Network:       http://192.168.1.150:59346
+    ✓ Ready in 128ms
+    ✓ Running next.con...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-products-audit-a65d6--aliases-are-saved-together/error-context.md
+
+    Error Context: test-results/admin-login-products-audit-a65d6--aliases-are-saved-together/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-products-audit-a65d6--aliases-are-saved-together/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-products-audit-a65d6--aliases-are-saved-together/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:29273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[131/176] tests/e2e/admin-login.spec.ts:6734:5 › controlled product brand resolves assigned identity beyond page 100 without extra search fields
+tests/e2e/admin-login.spec.ts:6734:5 › controlled product brand resolves assigned identity beyond page 100 without extra search fields
+[controlled-performance] {"ttfbMs":105.19999999925494,"initialJsEncodedBytes":327552}
+
+[132/176] tests/e2e/admin-login.spec.ts:6771:5 › controlled tax lookup recovers in place without losing the product draft
+[133/176] tests/e2e/admin-login.spec.ts:6787:5 › controlled removed product renders an explicit absence page
+[134/176] tests/e2e/admin-login.spec.ts:6795:5 › variant price reload icon restores inheritance without modifying the base price
+  35) tests/e2e/admin-login.spec.ts:6795:5 › variant price reload icon restores inheritance without modifying the base price 
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator: getByLabel('Precio con IVA', { exact: true })
+    Expected: "99.00"
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveValue" with timeout 10000ms
+      - waiting for getByLabel('Precio con IVA', { exact: true })
+
+
+      6804 |   await expect(page.getByRole("button",{name:"Heredar precio del producto",exact:true})).toBeDisabled();
+      6805 |   await page.getByRole("radio",{name:"Seleccionar PEP-GREEN",exact:true}).check();
+    > 6806 |   await expect(page.getByLabel("Precio con IVA",{exact:true})).toHaveValue("99.00");
+           |                                                                ^
+      6807 |   const reload=page.getByRole("button",{name:"Heredar precio del producto",exact:true});
+      6808 |   await expect(reload).toBeEnabled();
+      6809 |   expect((await reload.boundingBox())!.width).toBeLessThanOrEqual(28);
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/admin-login.spec.ts:6806:64
+
+    attachment #1: next-server.log (text/plain) ────────────────────────────────────────────────────
+    (node:29276) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+    ▲ Next.js 16.3.0
+    - Local:         http://localhost:59383
+    - Network:       http://192.168.1.150:59383
+    ✓ Ready in 99ms
+    ✓ Running next.conf...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-login-variant-price--ce9e0-ut-modifying-the-base-price/error-context.md
+
+    Error Context: test-results/admin-login-variant-price--ce9e0-ut-modifying-the-base-price/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-login-variant-price--ce9e0-ut-modifying-the-base-price/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-login-variant-price--ce9e0-ut-modifying-the-base-price/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:29301) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[135/176] tests/e2e/admin-login.spec.ts:6831:5 › postventa separates cases and pending tasks with compact responsive tables
+[136/176] tests/e2e/admin-login.spec.ts:6885:5 › pricing tabs align create actions and tables fill the available width
+[137/176] tests/e2e/admin-login.spec.ts:6924:5 › Admin badge toolbars center their navigation and drawer actions
+[138/176] tests/e2e/admin-login.spec.ts:6951:5 › tax deletion and creation controls stay hidden for read-only employees
+[139/176] tests/e2e/admin-login.spec.ts:6961:5 › price table activation uses a warning popup and compact list actions
+[140/176] tests/e2e/admin-login.spec.ts:6987:5 › price table write controls are hidden for read-only employees
+[141/176] tests/e2e/admin-login.spec.ts:6996:57 › reviewed taxes removal requires replacement and confirmed impact
+[142/176] tests/e2e/admin-login.spec.ts:6996:57 › reviewed price-tables removal requires replacement and confirmed impact
+[143/176] tests/e2e/admin-login.spec.ts:7029:5 › commercial profile assigns changes and removes a group with a review and canonical revision
+[144/176] tests/e2e/admin-login.spec.ts:7054:5 › commercial profile preserves personal and commercial drafts after a revision conflict
+[145/176] tests/e2e/admin-login.spec.ts:7068:7 › commercial profile distinguishes read failures and omits membership on save: groups403
+[146/176] tests/e2e/admin-login.spec.ts:7068:7 › commercial profile distinguishes read failures and omits membership on save: membership404
+[147/176] tests/e2e/admin-login.spec.ts:7068:7 › commercial profile distinguishes read failures and omits membership on save: invalidSnapshot
+[148/176] tests/e2e/admin-login.spec.ts:7083:5 › commercial profile shows canonical membership to readers without editing controls
+[149/176] tests/e2e/admin-login.spec.ts:7094:5 › commercial profile preserves inactive assignments and distinguishes an empty active catalog
+[150/176] tests/e2e/admin-login.spec.ts:7108:5 › commercial profile fields are accessible and fit desktop tablet and mobile
+[151/176] tests/e2e/admin-login.spec.ts:7125:5 › commercial profile creates a customer with a manually selected group
+[152/176] tests/e2e/admin-login.spec.ts:7144:5 › commercial profile recovers a failed read without discarding personal edits
+[153/176] tests/e2e/admin-login.spec.ts:7157:5 › commercial profile blocks private B2B approval before sending and accepts explicit business approval
+[154/176] tests/e2e/admin-login.spec.ts:7171:5 › commercial profile does not expose a separate Logs menu
+[155/176] tests/e2e/admin-login.spec.ts:7179:5 › commercial profile confirmation cancels and rejects a wrong password without losing the draft
+[156/176] tests/e2e/admin-login.spec.ts:7213:5 › commercial profile policy is saved through employee BFF without assigning a default group
+[157/176] tests/e2e/admin-login.spec.ts:7227:5 › commercial profile create drawer fits narrow viewports
+[158/176] tests/e2e/admin-login.spec.ts:7243:5 › Rules creates a conditional price using the existing price contract
+[159/176] tests/e2e/checkout-configuration.spec.ts:243:5 › admin materializes an initial checkout configuration and confirms a later deactivation
+  36) tests/e2e/checkout-configuration.spec.ts:243:5 › admin materializes an initial checkout configuration and confirms a later deactivation 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('complementary', { name: 'Editar configuración de Checkout' })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByRole('complementary', { name: 'Editar configuración de Checkout' })
+
+
+      247 |   await expect(page.getByText("Aún no hay configuración guardada para esta tienda.")).toBeVisible();
+      248 |   await page.getByRole("link", { name: "Editar configuración" }).click();
+    > 249 |   await expect(page.getByRole("complementary", { name: "Editar configuración de Checkout" })).toBeVisible();
+          |                                                                                               ^
+      250 |   await expect(page.getByLabel("Moneda predeterminada")).toHaveCount(0);
+      251 |   await page.getByRole("button", { name: "Guardar configuración" }).click();
+      252 |
+        at /Users/ricardoperez/Documents/ecommium_ui/tests/e2e/checkout-configuration.spec.ts:249:95
+
+    Error Context: test-results/checkout-configuration-adm-6cca7-nfirms-a-later-deactivation/error-context.md
+
+    Error Context: test-results/checkout-configuration-adm-6cca7-nfirms-a-later-deactivation/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/checkout-configuration-adm-6cca7-nfirms-a-later-deactivation/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/checkout-configuration-adm-6cca7-nfirms-a-later-deactivation/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+(node:29374) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[160/176] tests/e2e/storefront-address-book.spec.ts:399:5 › storefront account manages address book without customerId in the browser
+[161/176] tests/e2e/storefront-address-book.spec.ts:441:5 › storefront checkout sends selected saved address snapshot to shipping data
+[162/176] tests/e2e/storefront-after-sales-wizard.spec.ts:268:5 › guía la apertura de un caso sin obligar evidencias y envía solo la línea elegida
+[163/176] tests/e2e/storefront-consent.spec.ts:270:5 › aceptar registra el contrato, bloquea proveedores antes y carga cada adapter una única vez después
+[164/176] tests/e2e/storefront-consent.spec.ts:303:5 › rechazar mantiene el storefront operativo y deniega Analítica y Marketing
+[165/176] tests/e2e/storefront-consent.spec.ts:315:5 › retirar consentimiento envía WITHDRAW_ALL desde el centro de preferencias
+[166/176] tests/e2e/storefront-consent.spec.ts:327:5 › retirar consentimiento limpia solo las cookies propias controladas de cada proveedor
+[167/176] tests/e2e/storefront-consent.spec.ts:364:5 › una nueva versión vuelve a solicitar una decisión
+[168/176] tests/e2e/storefront-consent.spec.ts:377:5 › un error de política muestra reintento y no permite asumir consentimiento
+[169/176] tests/e2e/storefront-guest-tracking.spec.ts:158:5 › recovers an expired guest link without revealing order existence
+[170/176] tests/e2e/storefront-guest-tracking.spec.ts:172:5 › offers Storefront authentication instead of the Admin login
+[171/176] tests/e2e/storefront-guest-tracking.spec.ts:183:5 › opens authenticated guest tracking without a manual claim and keeps the private token out of the URL
+[172/176] tests/e2e/storefront-guest-tracking.spec.ts:207:5 › activation links require an explicit user confirmation before calling the BFF
+[173/176] tests/e2e/storefront-public-routing.spec.ts:365:5 › renders CMS home, canonical page and alias metadata
+[174/176] tests/e2e/storefront-public-routing.spec.ts:388:5 › preserves redirect status codes from Routing SEO
+[175/176] tests/e2e/storefront-public-routing.spec.ts:398:5 › renders category product and a neutral 404 through generic routes
+[176/176] tests/e2e/products-live-audit.spec.ts:8:5 › products live audit confirms persisted QA state through the front
+  36 failed
+    tests/e2e/admin-login.spec.ts:3873:5 › catalog attributes and features page filters and creates feature values through BFF 
+    tests/e2e/admin-login.spec.ts:3965:5 › catalog offerings page manages services through BFF ─────
+    tests/e2e/admin-login.spec.ts:4558:5 › product editor selects catalog feature values and renders them in preview 
+    tests/e2e/admin-login.spec.ts:4592:5 › product editor presents variant options as combination attributes 
+    tests/e2e/admin-login.spec.ts:4628:5 › new manual and generated variants start with an editable parent price 
+    tests/e2e/admin-login.spec.ts:4743:5 › product editor uploads selected media immediately to draft endpoint 
+    tests/e2e/admin-login.spec.ts:4899:5 › product editor saves uploaded media as references without rebundling files 
+    tests/e2e/admin-login.spec.ts:4977:5 › product editor keeps failed draft media local without saving product 
+    tests/e2e/admin-login.spec.ts:5036:5 › product editor clears failed media state after removing failed upload 
+    tests/e2e/admin-login.spec.ts:5110:5 › product editor publishes through save operation when commercial minimums are complete 
+    tests/e2e/admin-login.spec.ts:5143:5 › product editor shows BFF recovery actions after partial save failure 
+    tests/e2e/admin-login.spec.ts:5167:5 › product editor reuses idempotency key when retrying a partial save 
+    tests/e2e/admin-login.spec.ts:5259:5 › product editor applies successful save patch and clears local draft 
+    tests/e2e/admin-login.spec.ts:5320:5 › product audit includes specific prices and contextual BASE and configured SEO 
+    tests/e2e/admin-login.spec.ts:5336:5 › product editor loads existing product state and saves through operation endpoint 
+    tests/e2e/admin-login.spec.ts:5382:5 › product editor applies the pricing preview simulator from the pricing tab 
+    tests/e2e/admin-login.spec.ts:5454:5 › specific prices use a separate products-style table and a cancellable side drawer 
+    tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: neither 
+    tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: start only 
+    tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: end only 
+    tests/e2e/admin-login.spec.ts:5663:10 › promotion dates in Madrid › specific price supports optional dates: both 
+    tests/e2e/admin-login.spec.ts:5695:43 › promotion dates in Madrid › product pricing preserves legacy BASE and the autumn overlap (unchanged) 
+    tests/e2e/admin-login.spec.ts:5695:43 › promotion dates in Madrid › product pricing preserves legacy BASE and the autumn overlap (edited) 
+    tests/e2e/admin-login.spec.ts:5751:7 › promotion dates in Madrid › pricing simulator sends future Madrid dates, variants, groups and quantities without saving 
+    tests/e2e/admin-login.spec.ts:5879:5 › health indicator never treats an empty successful response as operational 
+    tests/e2e/admin-login.spec.ts:6173:5 › product basic boxes collapse HTML and reuse category and brand drawers 
+    tests/e2e/admin-login.spec.ts:6230:5 › product footer keeps only preview save and a compact actions menu 
+    tests/e2e/admin-login.spec.ts:6262:7 › active product saves changes preserving visibility=true ─
+    tests/e2e/admin-login.spec.ts:6262:7 › active product saves changes preserving visibility=false 
+    tests/e2e/admin-login.spec.ts:6297:5 › active product missing a publication requirement cannot be saved as an inactive draft 
+    tests/e2e/admin-login.spec.ts:6362:5 › product feature groups follow category and inline administration preserves the product 
+    tests/e2e/admin-login.spec.ts:6405:5 › product feature administration is hidden without write permission 
+    tests/e2e/admin-login.spec.ts:6544:5 › integrated inventory edits variants and loads warehouse stock without copying quantities 
+    tests/e2e/admin-login.spec.ts:6696:5 › products audit transport fees carriers delivery text and SEO aliases are saved together 
+    tests/e2e/admin-login.spec.ts:6795:5 › variant price reload icon restores inheritance without modifying the base price 
+    tests/e2e/checkout-configuration.spec.ts:243:5 › admin materializes an initial checkout configuration and confirms a later deactivation 
+  2 skipped
+  138 passed (7.3m)

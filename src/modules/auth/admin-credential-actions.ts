@@ -9,7 +9,9 @@ import {
   unsealAdminCredentialRecoveryToken,
 } from "../../shared/auth/admin-credential-recovery-cookie";
 import { clearAdminContext } from "../../shared/config/admin-context";
-import { clearAdminSession, getAdminSession } from "../../shared/auth/session";
+import {parseAuthSessionPayload,mergeAuthSessions} from "./auth-session-payload";
+import {refreshAdminTokens} from "../../shared/auth/admin-session-refresh";
+import { clearAdminSession, getAdminSession, saveAdminSession } from "../../shared/auth/session";
 
 const recoveryPath = "/auth/admin/password-recovery";
 const recoveryCompletePath = "/auth/admin/password-recovery/complete";
@@ -148,6 +150,11 @@ export async function changeOwnAdminPasswordAction(formData: FormData) {
     security?: { requiresLogin?: boolean };
     status: "password_changed";
   }>("/admin/auth/password/change", {
+    parse:value=>{
+      const response=value as {status?:unknown;security?:{requiresLogin?:unknown}};
+      if(!response||response.status!=="password_changed"||response.security?.requiresLogin!==undefined&&typeof response.security.requiresLogin!=="boolean")throw Error("Invalid credential change response");
+      return response as {status:"password_changed";security?:{requiresLogin?:boolean}};
+    },
     init: {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -165,6 +172,18 @@ export async function changeOwnAdminPasswordAction(formData: FormData) {
     redirect("/auth/login?authNotice=La contraseña cambió. Inicia sesión de nuevo.");
   }
 
+  // Read the authoritative credential state; an unexpired cookie/JWT may still say MUST_CHANGE_PASSWORD.
+  let refreshed=session;
+  let me=await requestAdminBff("/auth/me",{withAuth:false,init:{headers:{authorization:`Bearer ${refreshed.accessToken}`}},parse:value=>parseAuthSessionPayload(value,{requireAccessToken:false})});
+  if((!me.ok&&(me.status===401||me.status===403)||me.ok&&me.data.credentialState!=="NORMAL")&&session.refreshToken){
+    const tokens=await refreshAdminTokens(session.refreshToken);
+    if(tokens.ok){refreshed={...session,accessToken:tokens.accessToken,refreshToken:tokens.refreshToken,expiresAt:tokens.expiresAt};me=await requestAdminBff("/auth/me",{withAuth:false,init:{headers:{authorization:`Bearer ${tokens.accessToken}`}},parse:value=>parseAuthSessionPayload(value,{requireAccessToken:false})});}
+  }
+  if(!me.ok||me.data.credentialState!=="NORMAL"||me.data.employeeId!==session.employeeId||me.data.principalType!=="EMPLOYEE"||me.data.scope!=="admin"){
+    await clearAdminContext();await clearAdminSession();
+    redirect("/auth/login?authNotice=La contraseña cambió. Inicia sesión de nuevo para validar tu acceso.");
+  }
+  await saveAdminSession(mergeAuthSessions(refreshed,me.data));
   revalidatePath("/admin");
   redirect(`${returnTo}?notice=${encodeURIComponent("Contraseña actualizada. Las demás sesiones activas se cerraron.")}`);
 }

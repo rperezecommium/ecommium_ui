@@ -1,0 +1,14 @@
+{
+  "result": "PASS_CART_ONLY",
+  "customerCookie": false,
+  "addStatus": 201,
+  "quantities": [
+    1,
+    2,
+    1
+  ],
+  "quantityChangeStatus": 200,
+  "currency": "EUR",
+  "unitPriceMinor": 419612,
+  "fullGuestPurchase": "NO VALIDADO"
+}

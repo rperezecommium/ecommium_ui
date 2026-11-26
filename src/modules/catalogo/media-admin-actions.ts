@@ -72,8 +72,11 @@ export async function createMediaCollectionAction(formData: FormData) {
     alt: text(formData.get("alt")),
     assetTitle: text(formData.get("assetTitle")),
   });
+  const successReturn = new URL(returnPath, "http://admin.local");
+  successReturn.searchParams.delete("drawer");
+  if (result.ok && result.data.mediaCollectionId) successReturn.searchParams.set("collectionId", result.data.mediaCollectionId);
   const nextPath = result.ok && result.data.mediaCollectionId
-    ? appendMessage(`${returnPath}${returnPath.includes("?") ? "&" : "?"}collectionId=${encodeURIComponent(result.data.mediaCollectionId)}`, "Coleccion media creada.")
+    ? appendMessage(`${successReturn.pathname}?${successReturn.searchParams}`, "Coleccion media creada.")
     : appendMessage(returnPath, result.ok ? "Coleccion media creada." : result.error);
 
   revalidatePath("/admin/catalogo/media");

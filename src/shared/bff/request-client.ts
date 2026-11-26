@@ -2,6 +2,7 @@ import { createBffHeaders } from "./headers";
 import type { BffRequestContext, BffResult } from "./types";
 
 export type BffRequestOptions<T> = {
+  timeoutMs?: number;
   context?: Partial<BffRequestContext>;
   init?: RequestInit;
   parse?: (value: unknown) => T;
@@ -10,8 +11,8 @@ export type BffRequestOptions<T> = {
 
 export const bffRequestTimeoutMs = 15_000;
 
-function bffRequestSignal(existingSignal?: AbortSignal | null) {
-  const timeoutSignal = AbortSignal.timeout(bffRequestTimeoutMs);
+function bffRequestSignal(existingSignal?: AbortSignal | null, timeoutMs = bffRequestTimeoutMs) {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
   return existingSignal ? AbortSignal.any([existingSignal, timeoutSignal]) : timeoutSignal;
 }
 
@@ -104,7 +105,7 @@ export async function requestBffResponseAt(
       ...options.init,
       cache: "no-store",
       headers,
-      signal: bffRequestSignal(options.init?.signal),
+      signal: bffRequestSignal(options.init?.signal, options.timeoutMs),
     });
 
     if (!response.ok) {

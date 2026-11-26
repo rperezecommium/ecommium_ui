@@ -1,0 +1,253 @@
+{
+  "stage": "Después de retirada y republicación real; menú con salto de línea base para anchos intermedios",
+  "cases": [
+    {
+      "requested": {
+        "width": 1440,
+        "height": 1100
+      },
+      "documentWidth": 1425,
+      "moduleInstances": 9,
+      "navigationWrap": "wrap",
+      "searchPlaceholder": "Buscar en Ecommium",
+      "sections": [
+        {
+          "name": "Demostración CMS · Presentación",
+          "scroll": 1385,
+          "width": 1385
+        },
+        {
+          "name": "Demostración CMS · Ayuda",
+          "scroll": 1385,
+          "width": 1385
+        },
+        {
+          "name": "Demostración CMS · Descarga destacada",
+          "scroll": 1385,
+          "width": 1385
+        },
+        {
+          "name": "Demostración CMS · Consulta y trabajos",
+          "scroll": 1385,
+          "width": 1385
+        },
+        {
+          "name": "Demostración CMS · Destacados",
+          "scroll": 1385,
+          "width": 1385
+        },
+        {
+          "name": "Demostración CMS · Promociones en columnas",
+          "scroll": 1385,
+          "width": 1385
+        },
+        {
+          "name": "Demostración CMS · Slider de prueba",
+          "scroll": 1385,
+          "width": 1385
+        }
+      ],
+      "siteParts": [
+        {
+          "id": "f0b81f4e-f5e5-4f0d-b858-3956ad8420c8",
+          "revision": "72c915d1-a9b6-401d-9b70-ef6bc72e41a8",
+          "scroll": 1425,
+          "width": 1425
+        },
+        {
+          "id": "1f4c2e56-5fc1-4416-a042-3bd3b4b36e60",
+          "revision": "803f9b24-f3db-4a8e-859d-36b7ac12c2b2",
+          "scroll": 1425,
+          "width": 1425
+        }
+      ],
+      "viewport": 1425
+    },
+    {
+      "requested": {
+        "width": 1280,
+        "height": 1000
+      },
+      "documentWidth": 1265,
+      "moduleInstances": 9,
+      "navigationWrap": "wrap",
+      "searchPlaceholder": "Buscar en Ecommium",
+      "sections": [
+        {
+          "name": "Demostración CMS · Presentación",
+          "scroll": 1225,
+          "width": 1225
+        },
+        {
+          "name": "Demostración CMS · Ayuda",
+          "scroll": 1225,
+          "width": 1225
+        },
+        {
+          "name": "Demostración CMS · Descarga destacada",
+          "scroll": 1225,
+          "width": 1225
+        },
+        {
+          "name": "Demostración CMS · Consulta y trabajos",
+          "scroll": 1225,
+          "width": 1225
+        },
+        {
+          "name": "Demostración CMS · Destacados",
+          "scroll": 1225,
+          "width": 1225
+        },
+        {
+          "name": "Demostración CMS · Promociones en columnas",
+          "scroll": 1225,
+          "width": 1225
+        },
+        {
+          "name": "Demostración CMS · Slider de prueba",
+          "scroll": 1225,
+          "width": 1225
+        }
+      ],
+      "siteParts": [
+        {
+          "id": "f0b81f4e-f5e5-4f0d-b858-3956ad8420c8",
+          "revision": "72c915d1-a9b6-401d-9b70-ef6bc72e41a8",
+          "scroll": 1265,
+          "width": 1265
+        },
+        {
+          "id": "1f4c2e56-5fc1-4416-a042-3bd3b4b36e60",
+          "revision": "803f9b24-f3db-4a8e-859d-36b7ac12c2b2",
+          "scroll": 1265,
+          "width": 1265
+        }
+      ],
+      "viewport": 1265
+    },
+    {
+      "requested": {
+        "width": 820,
+        "height": 1100
+      },
+      "documentWidth": 805,
+      "moduleInstances": 9,
+      "navigationWrap": "wrap",
+      "searchPlaceholder": "Buscar en Ecommium",
+      "sections": [
+        {
+          "name": "Demostración CMS · Presentación",
+          "scroll": 765,
+          "width": 765
+        },
+        {
+          "name": "Demostración CMS · Ayuda",
+          "scroll": 765,
+          "width": 765
+        },
+        {
+          "name": "Demostración CMS · Descarga destacada",
+          "scroll": 765,
+          "width": 765
+        },
+        {
+          "name": "Demostración CMS · Consulta y trabajos",
+          "scroll": 765,
+          "width": 765
+        },
+        {
+          "name": "Demostración CMS · Destacados",
+          "scroll": 765,
+          "width": 765
+        },
+        {
+          "name": "Demostración CMS · Promociones en columnas",
+          "scroll": 765,
+          "width": 765
+        },
+        {
+          "name": "Demostración CMS · Slider de prueba",
+          "scroll": 765,
+          "width": 765
+        }
+      ],
+      "siteParts": [
+        {
+          "id": "f0b81f4e-f5e5-4f0d-b858-3956ad8420c8",
+          "revision": "72c915d1-a9b6-401d-9b70-ef6bc72e41a8",
+          "scroll": 805,
+          "width": 805
+        },
+        {
+          "id": "1f4c2e56-5fc1-4416-a042-3bd3b4b36e60",
+          "revision": "803f9b24-f3db-4a8e-859d-36b7ac12c2b2",
+          "scroll": 805,
+          "width": 805
+        }
+      ],
+      "viewport": 805
+    },
+    {
+      "requested": {
+        "width": 390,
+        "height": 1000
+      },
+      "documentWidth": 375,
+      "moduleInstances": 9,
+      "navigationWrap": "wrap",
+      "searchPlaceholder": "Buscar en Ecommium",
+      "sections": [
+        {
+          "name": "Demostración CMS · Presentación",
+          "scroll": 351,
+          "width": 351
+        },
+        {
+          "name": "Demostración CMS · Ayuda",
+          "scroll": 351,
+          "width": 351
+        },
+        {
+          "name": "Demostración CMS · Descarga destacada",
+          "scroll": 351,
+          "width": 351
+        },
+        {
+          "name": "Demostración CMS · Consulta y trabajos",
+          "scroll": 351,
+          "width": 351
+        },
+        {
+          "name": "Demostración CMS · Destacados",
+          "scroll": 351,
+          "width": 351
+        },
+        {
+          "name": "Demostración CMS · Promociones en columnas",
+          "scroll": 351,
+          "width": 351
+        },
+        {
+          "name": "Demostración CMS · Slider de prueba",
+          "scroll": 351,
+          "width": 351
+        }
+      ],
+      "siteParts": [
+        {
+          "id": "f0b81f4e-f5e5-4f0d-b858-3956ad8420c8",
+          "revision": "72c915d1-a9b6-401d-9b70-ef6bc72e41a8",
+          "scroll": 375,
+          "width": 375
+        },
+        {
+          "id": "1f4c2e56-5fc1-4416-a042-3bd3b4b36e60",
+          "revision": "803f9b24-f3db-4a8e-859d-36b7ac12c2b2",
+          "scroll": 375,
+          "width": 375
+        }
+      ],
+      "viewport": 375
+    }
+  ]
+}

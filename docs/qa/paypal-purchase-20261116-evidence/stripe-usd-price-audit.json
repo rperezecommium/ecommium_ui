@@ -1,0 +1,41 @@
+{
+  "count": 40,
+  "groups": [
+    {
+      "organizationId": "11111111-1111-4111-8111-111111111111",
+      "shopId": "22222222-2222-4222-8222-222222222222",
+      "productId": "04087060-bf3c-4bdc-a4cb-9d347c299eab",
+      "tradePolicy": "b2c",
+      "priceTableId": "vip-table",
+      "customerGroup": "vip",
+      "country": "ES",
+      "channel": "web",
+      "currency": "USD",
+      "basePriceMinor": 2100
+    },
+    {
+      "organizationId": "11111111-1111-4111-8111-111111111111",
+      "shopId": "22222222-2222-4222-8222-222222222222",
+      "productId": "f3c6b5e1-7c2a-4e1b-9d2b-3a4c5d6e7f01",
+      "tradePolicy": "b2c",
+      "priceTableId": "cockpit-vip",
+      "customerGroup": "vip",
+      "country": "US",
+      "channel": "mobile",
+      "currency": "USD",
+      "basePriceMinor": 1199
+    },
+    {
+      "organizationId": "11111111-1111-4111-8111-111111111111",
+      "shopId": "22222222-2222-4222-8222-222222222222",
+      "productId": "f4b08c25-0acd-4f5a-97cb-0ac911b20ab1",
+      "tradePolicy": null,
+      "priceTableId": null,
+      "customerGroup": null,
+      "country": null,
+      "channel": null,
+      "currency": "USD",
+      "basePriceMinor": 1450
+    }
+  ]
+}

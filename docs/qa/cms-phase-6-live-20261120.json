@@ -1,0 +1,18 @@
+{
+  "pageId": "01d727bb-2085-475f-bcfb-2d1f995cde58",
+  "path": "/qa-fase6-20261120",
+  "publicSnapshotUnchangedAfterConversion": true,
+  "legacyPublicVersion": 1,
+  "observedBrowserChecks": [
+    "converted draft reopened in composer",
+    "legacy builder URL redirected to composer",
+    "explicit publication visible in public Storefront",
+    "accordion expanded with preserved answer",
+    "text geometry matched legacy baseline at 1440,768,390",
+    "Media URL and 1385x490 desktop dimensions preserved",
+    "source definition archive left copy visible",
+    "QA page unpublished; public route displayed 404"
+  ],
+  "finalQaState": "UNPUBLISHED",
+  "scope": "Observed real UI/BFF/CMS; geometry is DOM measurement, not pixel diff; does not certify all legacy variants"
+}

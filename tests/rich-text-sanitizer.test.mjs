@@ -5,7 +5,7 @@ import vm from "node:vm";
 import ts from "typescript";
 import sanitizeHtml from "sanitize-html";
 
-const source = readFileSync(new URL("../src/shared/security/rich-text.ts", import.meta.url), "utf8");
+const source = readFileSync(new URL("../packages/cms-blocks/src/rich-text.ts", import.meta.url), "utf8");
 const outputText = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
 }).outputText;
@@ -44,4 +44,14 @@ test("rich text sanitizer preserves only allowlisted safe markup", () => {
     sanitized,
     '<h2>Título</h2><p><a href="/catalogo" rel="noopener noreferrer" title="Catálogo">Ver</a> <strong>ahora</strong></p>',
   );
+});
+
+test("CMS toolbar formats survive sanitization including nested lists, quotes, code and links", () => {
+  const html = '<blockquote><p>Cita <s>tachada</s> <code>codigo</code></p></blockquote><pre><code>const n = 1;</code></pre><ol><li><p>Uno</p><ul><li>Dos</li></ul></li></ol><a href="/catalogo">Catálogo</a>';
+  const clean = sanitizeRichTextHtml(html);
+  assert.match(clean, /<blockquote>/);
+  assert.match(clean, /<s>tachada<\/s>/);
+  assert.match(clean, /<pre><code>const n = 1;<\/code><\/pre>/);
+  assert.match(clean, /<ul><li>Dos<\/li><\/ul>/);
+  assert.match(clean, /href="\/catalogo"/);
 });

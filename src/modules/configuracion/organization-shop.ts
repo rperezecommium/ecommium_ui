@@ -2,6 +2,7 @@ import type { AdminContext } from "../../shared/config/admin-context";
 import { requestAdminBff } from "../../shared/bff/admin-client";
 
 export type OrganizationOption = {
+  timezone?: string;
   id: string;
   name: string;
   shopGroups: ShopGroupOption[];
@@ -21,6 +22,7 @@ export type ShopOption = {
   shopAlias?: string;
   shopGroupId?: string;
   primaryDomain?: string;
+  adminDomain?: string;
   status?: string;
   locale?: string;
   currency?: string;
@@ -69,6 +71,7 @@ export type AvailableAdminContextDirectory = {
 };
 
 type RawOrganization = {
+  defaultSettings?: unknown;
   id?: unknown;
   organizationId?: unknown;
   name?: unknown;
@@ -98,6 +101,7 @@ type RawShop = {
   shopName?: unknown;
   displayName?: unknown;
   primaryDomain?: unknown;
+  adminDomain?: unknown;
   status?: unknown;
   effectiveSettings?: unknown;
   settingsOverride?: unknown;
@@ -158,6 +162,7 @@ function normalizeShop(raw: unknown, organizationId: string): ShopOption | null 
     shopAlias: asString(shop.shopAlias),
     shopGroupId: asString(shop.shopGroupId) ?? asString(shop.groupId),
     primaryDomain: asString(shop.primaryDomain),
+    adminDomain: asString(shop.adminDomain),
     status: asString(shop.status),
     locale:
       asString(shop.locale) ??
@@ -247,6 +252,7 @@ function normalizeOrganization(raw: unknown): OrganizationOption | null {
   return {
     id,
     name: asString(organization.name) ?? asString(organization.displayName) ?? id,
+    timezone: asString(asRecord(organization.defaultSettings).timezone),
     shopGroups,
     shops,
   };

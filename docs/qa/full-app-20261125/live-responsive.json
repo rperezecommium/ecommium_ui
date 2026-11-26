@@ -1,0 +1,972 @@
+{
+  "mode": "real-ui-axe-no-exclusions",
+  "checks": [
+    {
+      "route": "/admin/products",
+      "width": 1440,
+      "overflow": false,
+      "violations": [],
+      "incomplete": 2
+    },
+    {
+      "route": "/admin/products",
+      "width": 768,
+      "overflow": true,
+      "violations": [],
+      "incomplete": 2
+    },
+    {
+      "route": "/admin/products",
+      "width": 390,
+      "overflow": true,
+      "violations": [],
+      "incomplete": 2
+    },
+    {
+      "route": "/admin/postventa",
+      "width": 1440,
+      "overflow": false,
+      "violations": [],
+      "incomplete": 0
+    },
+    {
+      "route": "/admin/postventa",
+      "width": 768,
+      "overflow": false,
+      "violations": [],
+      "incomplete": 1
+    },
+    {
+      "route": "/admin/postventa",
+      "width": 390,
+      "overflow": false,
+      "violations": [],
+      "incomplete": 1
+    },
+    {
+      "route": "/admin/clientes",
+      "width": 1440,
+      "overflow": true,
+      "violations": [],
+      "incomplete": 1
+    },
+    {
+      "route": "/admin/clientes",
+      "width": 768,
+      "overflow": true,
+      "violations": [],
+      "incomplete": 1
+    },
+    {
+      "route": "/admin/clientes",
+      "width": 390,
+      "overflow": true,
+      "violations": [],
+      "incomplete": 1
+    },
+    {
+      "route": "/admin/cms/ajustes-basicos",
+      "width": 1440,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 7,
+          "targets": [
+            [
+              ".adminBreadcrumb"
+            ],
+            [
+              ".adminPageIntro"
+            ],
+            [
+              ".pricingPanel.cmsEditorPanel:nth-child(1) > .pricingPanelHeader > div > p"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 0
+    },
+    {
+      "route": "/admin/cms/ajustes-basicos",
+      "width": 768,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 7,
+          "targets": [
+            [
+              ".adminBreadcrumb"
+            ],
+            [
+              ".adminPageIntro"
+            ],
+            [
+              ".pricingPanel.cmsEditorPanel:nth-child(1) > .pricingPanelHeader > div > p"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 0
+    },
+    {
+      "route": "/admin/cms/ajustes-basicos",
+      "width": 390,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 7,
+          "targets": [
+            [
+              ".adminBreadcrumb"
+            ],
+            [
+              ".adminPageIntro"
+            ],
+            [
+              ".pricingPanel.cmsEditorPanel:nth-child(1) > .pricingPanelHeader > div > p"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 0
+    },
+    {
+      "route": "/module-test-page",
+      "width": 1440,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              "aside"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 17,
+          "targets": [
+            [
+              ".storefrontMarketCurrency"
+            ],
+            [
+              ".storefrontReviews > strong"
+            ],
+            [
+              ".storefrontBreadcrumb > span:nth-child(3)"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 5,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-938c0494-2fc6-47e4-9bea-ef019e770085"
+            ],
+            [
+              "#cms-piece-cms-938c0494-2fc6-47e4-9bea-ef019e770085 > .cmsVisualModule[aria-label=\"Hero prototype images\"][data-cms-visual-schema-version=\"2\"]"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/module-test-page",
+      "width": 768,
+      "overflow": true,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              "aside"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 21,
+          "targets": [
+            [
+              ".storefrontReviews > strong"
+            ],
+            [
+              ".storefrontAuthDrawerHeader > div > span"
+            ],
+            [
+              ".storefrontAuthDrawerHeader > div > p"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 5,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-938c0494-2fc6-47e4-9bea-ef019e770085"
+            ],
+            [
+              "#cms-piece-cms-938c0494-2fc6-47e4-9bea-ef019e770085 > .cmsVisualModule[aria-label=\"Hero prototype images\"][data-cms-visual-schema-version=\"2\"]"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/module-test-page",
+      "width": 390,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              "aside"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 16,
+          "targets": [
+            [
+              ".storefrontMarketCurrency"
+            ],
+            [
+              ".storefrontBreadcrumb > span:nth-child(3)"
+            ],
+            [
+              "header > span"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 5,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-938c0494-2fc6-47e4-9bea-ef019e770085"
+            ],
+            [
+              "#cms-piece-cms-938c0494-2fc6-47e4-9bea-ef019e770085 > .cmsVisualModule[aria-label=\"Hero prototype images\"][data-cms-visual-schema-version=\"2\"]"
+            ]
+          ]
+        },
+        {
+          "id": "scrollable-region-focusable",
+          "impact": "serious",
+          "count": 1,
+          "targets": [
+            [
+              ".storefrontAssurances"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/plp/bike-brakes",
+      "width": 1440,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              ".storefrontAuthDrawer"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 52,
+          "targets": [
+            [
+              ".storefrontMarketCurrency"
+            ],
+            [
+              ".storefrontReviews > strong"
+            ],
+            [
+              ".storefrontBreadcrumb > span:nth-child(3)"
+            ]
+          ]
+        },
+        {
+          "id": "heading-order",
+          "impact": "moderate",
+          "count": 1,
+          "targets": [
+            [
+              "nav[aria-label=\"La tienda\"] > h3"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/plp/bike-brakes",
+      "width": 768,
+      "overflow": true,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              ".storefrontAuthDrawer"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 56,
+          "targets": [
+            [
+              ".storefrontReviews > strong"
+            ],
+            [
+              ".storefrontAuthDrawerHeader > div > span"
+            ],
+            [
+              ".storefrontAuthDrawerHeader > div > p"
+            ]
+          ]
+        },
+        {
+          "id": "heading-order",
+          "impact": "moderate",
+          "count": 1,
+          "targets": [
+            [
+              "nav[aria-label=\"La tienda\"] > h3"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/plp/bike-brakes",
+      "width": 390,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              ".storefrontAuthDrawer"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 51,
+          "targets": [
+            [
+              ".storefrontMarketCurrency"
+            ],
+            [
+              ".storefrontBreadcrumb > span:nth-child(3)"
+            ],
+            [
+              ".storefrontFacetActive"
+            ]
+          ]
+        },
+        {
+          "id": "heading-order",
+          "impact": "moderate",
+          "count": 1,
+          "targets": [
+            [
+              "nav[aria-label=\"La tienda\"] > h3"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        },
+        {
+          "id": "scrollable-region-focusable",
+          "impact": "serious",
+          "count": 1,
+          "targets": [
+            [
+              ".storefrontAssurances"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/pdp/bikershop-pa7-bulk-0110-handlebar-tape",
+      "width": 1440,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              ".storefrontAuthDrawer"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 16,
+          "targets": [
+            [
+              ".storefrontMarketCurrency"
+            ],
+            [
+              ".storefrontReviews > strong"
+            ],
+            [
+              "span:nth-child(5)"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/pdp/bikershop-pa7-bulk-0110-handlebar-tape",
+      "width": 768,
+      "overflow": true,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              ".storefrontAuthDrawer"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 20,
+          "targets": [
+            [
+              ".storefrontReviews > strong"
+            ],
+            [
+              ".storefrontAuthDrawerHeader > div > span"
+            ],
+            [
+              ".storefrontAuthDrawerHeader > div > p"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/pdp/bikershop-pa7-bulk-0110-handlebar-tape",
+      "width": 390,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              ".storefrontAuthDrawer"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 15,
+          "targets": [
+            [
+              ".storefrontMarketCurrency"
+            ],
+            [
+              "span:nth-child(5)"
+            ],
+            [
+              ".storefrontPdpBrand"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        },
+        {
+          "id": "scrollable-region-focusable",
+          "impact": "serious",
+          "count": 1,
+          "targets": [
+            [
+              ".storefrontAssurances"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/cart",
+      "width": 1440,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              "aside"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 5,
+          "targets": [
+            [
+              ".storefrontMarketCurrency"
+            ],
+            [
+              ".storefrontReviews > strong"
+            ],
+            [
+              ".storefrontBreadcrumb > span:nth-child(3)"
+            ]
+          ]
+        },
+        {
+          "id": "heading-order",
+          "impact": "moderate",
+          "count": 1,
+          "targets": [
+            [
+              "nav[aria-label=\"La tienda\"] > h3"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/cart",
+      "width": 768,
+      "overflow": true,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              "aside"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 9,
+          "targets": [
+            [
+              ".storefrontReviews > strong"
+            ],
+            [
+              ".storefrontAuthDrawerHeader > div > span"
+            ],
+            [
+              ".storefrontAuthDrawerHeader > div > p"
+            ]
+          ]
+        },
+        {
+          "id": "heading-order",
+          "impact": "moderate",
+          "count": 1,
+          "targets": [
+            [
+              "nav[aria-label=\"La tienda\"] > h3"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/cart",
+      "width": 390,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "count": 1,
+          "targets": [
+            [
+              "aside"
+            ]
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 4,
+          "targets": [
+            [
+              ".storefrontMarketCurrency"
+            ],
+            [
+              ".storefrontBreadcrumb > span:nth-child(3)"
+            ],
+            [
+              ".storefrontCartEmpty > p"
+            ]
+          ]
+        },
+        {
+          "id": "heading-order",
+          "impact": "moderate",
+          "count": 1,
+          "targets": [
+            [
+              "nav[aria-label=\"La tienda\"] > h3"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-a833d281-4b6f-4281-82c6-6775a258e5bd"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        },
+        {
+          "id": "scrollable-region-focusable",
+          "impact": "serious",
+          "count": 1,
+          "targets": [
+            [
+              ".storefrontAssurances"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 2
+    },
+    {
+      "route": "/checkout",
+      "width": 1440,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 1,
+          "targets": [
+            [
+              "a[href$=\"bike-drivetrain\"]"
+            ]
+          ]
+        },
+        {
+          "id": "heading-order",
+          "impact": "moderate",
+          "count": 1,
+          "targets": [
+            [
+              "nav[aria-label=\"La tienda\"] > h3"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-96311cc9-2cec-4e8c-a929-b9ef3ac07e93"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 1
+    },
+    {
+      "route": "/checkout",
+      "width": 768,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 1,
+          "targets": [
+            [
+              "a[href$=\"bike-drivetrain\"]"
+            ]
+          ]
+        },
+        {
+          "id": "heading-order",
+          "impact": "moderate",
+          "count": 1,
+          "targets": [
+            [
+              "nav[aria-label=\"La tienda\"] > h3"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-96311cc9-2cec-4e8c-a929-b9ef3ac07e93"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 1
+    },
+    {
+      "route": "/checkout",
+      "width": 390,
+      "overflow": false,
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 1,
+          "targets": [
+            [
+              "a[href$=\"bike-drivetrain\"]"
+            ]
+          ]
+        },
+        {
+          "id": "heading-order",
+          "impact": "moderate",
+          "count": 1,
+          "targets": [
+            [
+              "nav[aria-label=\"La tienda\"] > h3"
+            ]
+          ]
+        },
+        {
+          "id": "landmark-unique",
+          "impact": "moderate",
+          "count": 3,
+          "targets": [
+            [
+              "#cms-piece-cms-96311cc9-2cec-4e8c-a929-b9ef3ac07e93"
+            ],
+            [
+              "#cms-piece-cms-6207bfdc-ca5a-4f4e-ab22-7bfdefd3d463"
+            ],
+            [
+              "#cms-piece-cms-096bc2f2-d29b-4de0-a3b6-2b3d7aff7a6c"
+            ]
+          ]
+        }
+      ],
+      "incomplete": 1
+    }
+  ]
+}

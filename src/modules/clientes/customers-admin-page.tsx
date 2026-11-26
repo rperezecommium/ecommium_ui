@@ -1,3 +1,11 @@
+import { AdminResourceDrawer } from "../../shared/ui/admin-resource-drawer";
+import addressStyles from "./customer-addresses.module.css";
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
+import type { AdminContext } from "../../shared/config/admin-context";
+import { Suspense } from "react";
+import { AdminMutationForm } from "../../shared/ui/admin-mutation-form";
+import { updateCustomerProfileFormAction } from "./customers-admin-actions";
+import { CustomerCommercialFields } from "./customer-commercial-fields";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -9,13 +17,11 @@ import {
   Home,
   LifeBuoy,
   Mail,
-  MessageSquare,
   Plus,
   Save,
   Search,
   ShieldCheck,
   Star,
-  Tag,
   Trash2,
   UserCheck,
   UserRound,
@@ -27,7 +33,6 @@ import type {
   CustomerOverviewData,
   CustomerProfile,
   CustomerPurchase,
-  CustomerPurchasesData,
   CustomersAdminCapabilities,
   CustomersAdminData,
   CustomersAdminFilters,
@@ -54,7 +59,6 @@ import {
   setDefaultShippingAddressAction,
   setCustomerAccountActivationAction,
   updateCustomerPrivacyRequestStatusAction,
-  updateCustomerProfileAction,
   updateCustomerAddressAction,
   updateCustomerTaskStatusAction,
 } from "./customers-admin-actions";
@@ -68,6 +72,7 @@ type CustomersAdminPageProps = {
 export type CustomerDetailTab =
   | "resumen"
   | "perfil"
+  | "direcciones"
   | "compras"
   | "facturacion"
   | "comunicaciones"
@@ -80,6 +85,7 @@ export type CustomerDetailTab =
 const customerDetailTabs: Array<{ id: CustomerDetailTab; label: string }> = [
   { id: "resumen", label: "Resumen" },
   { id: "perfil", label: "Perfil" },
+  { id: "direcciones", label: "Direcciones" },
   { id: "compras", label: "Compras" },
   { id: "facturacion", label: "Facturación" },
   { id: "comunicaciones", label: "Comunicaciones" },
@@ -230,21 +236,10 @@ function addressRoleLabel(value: string | undefined) {
   return "Ambas";
 }
 
-function currentPageSummary(customers: CustomerProfile[]) {
-  const registered = customers.filter((customer) => !customer.isGuest).length;
-  const guests = customers.filter((customer) => customer.isGuest).length;
-  const newsletter = customers.filter((customer) => customer.clientPreferencesData?.optinNewsLetter).length;
-
-  return { registered, guests, newsletter };
-}
-
 function buyerTypeLabel(value: string | undefined) {
   return value === "BUSINESS_BUYER" ? "Empresa" : "Particular";
 }
 
-function buyerTypeValue(value: string | undefined) {
-  return value === "BUSINESS_BUYER" ? "BUSINESS_BUYER" : "PRIVATE_BUYER";
-}
 
 function localeValue(customer: CustomerProfile | undefined, fallback: string) {
   return customer?.clientPreferencesData?.locale || fallback || "es-ES";
@@ -381,15 +376,17 @@ function OverviewMiniList<T>({
 function CustomerDataTable({
   columns,
   fullWidth = false,
+  productStyle = false,
   label,
 }: {
   columns: Array<{ label: string; value: ReactNode }>;
   fullWidth?: boolean;
+  productStyle?: boolean;
   label: string;
 }) {
   return (
     <div className={`adminTableScroller${fullWidth ? " customerDataTableFullWidth" : ""}`}>
-      <table aria-label={label} className="adminTable pricingTable">
+      <table aria-label={label} className={productStyle ? `adminTable productListTable ${addressStyles.summaryTable}` : "adminTable pricingTable"}>
         <thead>
           <tr>
             {columns.map((column) => <th key={column.label} scope="col">{column.label}</th>)}
@@ -485,39 +482,6 @@ function SummaryDomain({
 
 function SummaryMetric({ label, value }: { label: string; value: string }) {
   return <div><dt>{label}</dt><dd>{value}</dd></div>;
-}
-
-function exactPurchaseTotals(purchases: CustomerPurchasesData | null | undefined) {
-  const items = purchases?.items ?? [];
-  const hasCompleteDataset = purchases?.total === items.length && items.every((item) => typeof item.totalAmountMinor === "number");
-  const currency = items[0]?.currency;
-  const hasSingleCurrency = Boolean(currency) && items.every((item) => item.currency === currency);
-
-  if (!hasCompleteDataset || !hasSingleCurrency) {
-    return undefined;
-  }
-
-  const totalMinor = items.reduce((sum, item) => sum + (item.totalAmountMinor ?? 0), 0);
-  return {
-    total: moneyText(totalMinor, currency),
-    average: moneyText(Math.round(totalMinor / Math.max(1, items.length)), currency),
-    cancellations: String(items.filter((item) => /CANCELLED|CANCELED/.test(item.status ?? "")).length),
-  };
-}
-
-function PurchasesKpiPanel({ purchases }: { purchases: CustomerPurchasesData | null | undefined }) {
-  const totals = exactPurchaseTotals(purchases);
-
-  return (
-    <div className="adminSummaryGrid customerDomainKpis">
-      <div><span>Pedidos</span><strong>{countText(purchases?.total)}</strong></div>
-      <div><span>Importe total</span><strong>{totals?.total ?? "No disponible"}</strong></div>
-      <div><span>Ticket medio</span><strong>{totals?.average ?? "No disponible"}</strong></div>
-      <div><span>Cancelaciones</span><strong>{totals?.cancellations ?? "No disponible"}</strong></div>
-      <div><span>Reembolsos</span><strong>No disponible</strong></div>
-      <div><span>Devoluciones</span><strong>No disponible</strong></div>
-    </div>
-  );
 }
 
 function HiddenCustomerFields({ customer, returnTo }: { customer: CustomerProfile; returnTo?: string }) {
@@ -658,20 +622,6 @@ function OperationalOverviewPanel({
           <p>{isPrivacy ? "Consentimientos y solicitudes de datos" : "Notas, tags, tareas y asignaciones internas"}</p>
         </div>
         <ClipboardList aria-hidden="true" size={18} />
-      </div>
-      <div className="adminSummaryGrid">
-        {isPrivacy ? (
-          <>
-            <div><ShieldCheck aria-hidden="true" size={16} /><span>Marketing</span><strong>{consents?.granted ? "Sí" : "No"}</strong></div>
-            <div><ShieldCheck aria-hidden="true" size={16} /><span>Solicitudes</span><strong>{countText(overview?.privacyRequests.total)}</strong></div>
-          </>
-        ) : (
-          <>
-            <div><MessageSquare aria-hidden="true" size={16} /><span>Notas</span><strong>{countText(overview?.notes.total)}</strong></div>
-            <div><Tag aria-hidden="true" size={16} /><span>Tags</span><strong>{countText(overview?.tags.total)}</strong></div>
-            <div><ClipboardList aria-hidden="true" size={16} /><span>Tareas</span><strong>{countText(overview?.tasks.total)}</strong></div>
-          </>
-        )}
       </div>
       <CustomerDataTable
         label={isPrivacy ? "Estado de privacidad" : "Estado de backoffice"}
@@ -853,38 +803,15 @@ function ContinuityOverviewPanel({
       : "Casos y postventa del cliente";
 
   return (
-    <section className="pricingPanel">
-      <div className="pricingPanelHeader">
+    <div className={section === "facturacion" ? `productListPage ${addressStyles.list}` : undefined}><section className={section === "facturacion" ? "productListGrid" : "pricingPanel"}>
+      <div className={section === "facturacion" ? "adminCardHeader productListGridHeader" : "pricingPanelHeader"}>
         <div>
-          <h3>{sectionTitle}</h3>
-          <p>{sectionDescription}</p>
+          {section === "facturacion" ? <><h2>{sectionTitle}</h2><span> ({invoices.length})</span></> : <><h3>{sectionTitle}</h3><p>{sectionDescription}</p></>}
         </div>
         <FileText aria-hidden="true" size={18} />
       </div>
-      <div className="adminSummaryGrid">
-        {section === "facturacion" ? <>
-          <div><FileText aria-hidden="true" size={16} /><span>Facturas</span><strong>{countText(overview?.invoices.total)}</strong></div>
-          <div><span>Notas de crédito</span><strong>No disponible</strong></div>
-          <div><span>Reembolsos</span><strong>No disponible</strong></div>
-          <div><span>Pagos</span><strong>No disponible</strong></div>
-          <div><span>Métodos de pago</span><strong>No disponible</strong></div>
-        </> : null}
-        {section === "soporte" ? <>
-        <div>
-          <LifeBuoy aria-hidden="true" size={16} />
-          <span>Postventa</span>
-          <strong>{countText(overview?.afterSales.total)}</strong>
-        </div>
-        </> : null}
-        {section === "comunicaciones" ? <>
-        <div>
-          <Mail aria-hidden="true" size={16} />
-          <span>Comunicaciones</span>
-          <strong>{countText(overview?.communications.total)}</strong>
-        </div>
-        </> : null}
-      </div>
       <CustomerDataTable
+        productStyle={section === "facturacion"}
         label={`Información de ${sectionTitle.toLowerCase()}`}
         columns={section === "facturacion"
           ? [{ label: "Última factura", value: valueText(overview?.invoices.items[0]?.invoiceNumber) }]
@@ -899,8 +826,8 @@ function ContinuityOverviewPanel({
       <div className="customersOverviewSubsection">
         <h4>Facturas</h4>
         {invoices.length ? (
-          <div className="adminTableScroller">
-            <table className="adminTable pricingTable">
+          <div className="adminTableScroller productListTableScroller">
+            <table className={`adminTable productListTable ${addressStyles.invoiceTable}`} aria-label="Facturas del cliente">
               <thead>
                 <tr>
                   <th scope="col">Factura</th>
@@ -918,7 +845,7 @@ function ContinuityOverviewPanel({
                     <td><span className={statusBadgeClass(invoice.status)}>{valueText(invoice.status)}</span></td>
                     <td>{moneyText(invoice.totalAmountMinor, invoice.currency)}</td>
                     <td>
-                      <Link className="adminButton adminButtonTiny" href={`/admin/pagos/facturas/${encodeURIComponent(invoice.invoiceId)}`}>
+                      <Link className="adminButton employeesActionInfo" href={`/admin/pagos/facturas/${encodeURIComponent(invoice.invoiceId)}`}>
                         Abrir factura
                       </Link>
                     </td>
@@ -1020,7 +947,7 @@ function ContinuityOverviewPanel({
       </div>
       ) : null}
       </> : null}
-    </section>
+    </section></div>
   );
 }
 
@@ -1102,10 +1029,12 @@ function ActivityFilters({ customer, source }: { customer: CustomerProfile; sour
 }
 
 function ProfileFields({
+  context,
   customer,
   contextLocale,
   includeEmail = false,
 }: {
+  context: AdminContext;
   customer?: CustomerProfile;
   contextLocale: string;
   includeEmail?: boolean;
@@ -1120,13 +1049,7 @@ function ProfileFields({
               <span>Email</span>
               <input name="email" type="email" defaultValue={customer?.email ?? ""} required />
             </label>
-          ) : (
-            <div className="customerReadOnlyField">
-              <span>Email</span>
-              <strong>{valueText(customer?.email)}</strong>
-              <small>El contrato actual no permite modificarlo desde Administración.</small>
-            </div>
-          )}
+          ) : null}
           <label className="adminField">
             <span>Nombre</span>
             <input name="firstName" defaultValue={customer?.firstName ?? ""} required />
@@ -1145,16 +1068,12 @@ function ProfileFields({
           </label>
         </div>
       </fieldset>
+      <Suspense fallback={<fieldset className="adminFieldset customerProfileFieldset" aria-busy="true"><legend>Condiciones comerciales</legend><p role="status">Cargando condiciones comerciales…</p></fieldset>}>
+        <CustomerCommercialFields context={context} customerId={customer?.customerId} buyerType={customer?.buyerType} />
+      </Suspense>
       <fieldset className="adminFieldset customerProfileFieldset">
         <legend>Preferencias del perfil</legend>
         <div className="customerProfileFields">
-          <label className="adminField">
-            <span>Tipo comprador</span>
-            <select name="buyerType" defaultValue={buyerTypeValue(customer?.buyerType)}>
-              <option value="PRIVATE_BUYER">Particular</option>
-              <option value="BUSINESS_BUYER">Empresa</option>
-            </select>
-          </label>
           <label className="adminField">
             <span>Idioma</span>
             <input name="locale" defaultValue={localeValue(customer, contextLocale)} />
@@ -1281,6 +1200,7 @@ function PermissionBanner({
 }
 
 function DrawerShell({
+  drawerId,
   title,
   closeHref,
   children,
@@ -1289,6 +1209,7 @@ function DrawerShell({
   summary,
   avatarId,
 }: {
+  drawerId: string;
   title: string;
   closeHref: string;
   children: ReactNode;
@@ -1328,7 +1249,7 @@ function DrawerShell({
   return (
     <div className="adminDrawerBackdrop customersDrawerBackdrop">
       <Link className="customersDrawerBackdropLink" href={closeHref} aria-label="Cerrar ventana lateral" />
-      <aside className="adminSideDrawer customersSideDrawer" aria-label={title}>
+      <AdminResizableDrawer drawerId={drawerId} className="adminSideDrawer customersSideDrawer" aria-label={title}>
         <div className="adminSideDrawerHeader">
           <div>
             <h2>{title}</h2>
@@ -1341,7 +1262,7 @@ function DrawerShell({
         <div className="customersSideDrawerBody">
           {children}
         </div>
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }
@@ -1363,10 +1284,10 @@ function CustomerDrawer({
 
   if (filters.drawer === "create") {
     return (
-      <DrawerShell title="Crear cliente" closeHref={closeHref}>
+      <DrawerShell drawerId="customer-create" title="Crear cliente" closeHref={closeHref}>
         {capabilities.canWriteCustomers ? (
           <form action={createCustomerAction} className="adminFormGrid">
-            <ProfileFields contextLocale={data.context.locale} includeEmail />
+            <ProfileFields context={data.context} contextLocale={data.context.locale} includeEmail />
             <div className="adminButtonRow">
               <button className="adminButton adminButtonPrimary" type="submit">
                 <Save aria-hidden="true" size={16} />
@@ -1403,7 +1324,7 @@ function CustomerDrawer({
     </div>
   ) : null;
   const tabs = customer ? (
-    <nav className="customerDetailTabs" aria-label="Secciones del cliente">
+    <div className={addressStyles.toolbar}><nav className="customerDetailTabs" aria-label="Secciones del cliente">
       {customerDetailTabs.map((tab) => (
         <Link
           aria-current={tab.id === activeTab ? "page" : undefined}
@@ -1415,10 +1336,13 @@ function CustomerDrawer({
         </Link>
       ))}
     </nav>
+    {activeTab === "direcciones" && capabilities.canWriteCustomers ? <Link className={addressStyles.addLink} href={customerDetailHref(customer, "direcciones", {addressMode:"create"})}><Plus aria-hidden="true" size={14} />Agregar nueva</Link> : null}
+    </div>
   ) : null;
 
   return (
     <DrawerShell
+      drawerId="customer-detail"
       closeHref={closeHref}
       summary={summary}
       tabs={tabs}
@@ -1426,6 +1350,7 @@ function CustomerDrawer({
       avatarId={customer?.avatarId}
       variant={variant}
     >
+      {variant === "page" && filters.customerMessage ? <div className="adminBanner adminBannerInfo" role="status"><p>{filters.customerMessage}</p></div> : null}
       <ResultBanner result={data.selectedCustomer} />
       {!customer ? (
         <div className="adminEmptyState">Selecciona un cliente del listado.</div>
@@ -1473,17 +1398,21 @@ function CustomerDrawer({
 
           {activeTab === "perfil" ? <>
           <section className="pricingPanel">
-            <div className="pricingPanelHeader">
-              <div>
+            <div className="pricingPanelHeader customerProfileHeader">
+              <div className="customerProfileIdentity">
                 <h3>Perfil</h3>
                 <p>{customer.customerReference ?? "Referencia no disponible"}</p>
               </div>
+              <div className="customerReadOnlyField customerProfileEmail">
+                <span>Email · Solo lectura</span>
+                <strong>{valueText(customer.email)}</strong>
+              </div>
             </div>
             {capabilities.canWriteCustomers ? (
-              <form action={updateCustomerProfileAction} className="adminFormGrid">
+              <AdminMutationForm action={updateCustomerProfileFormAction} label="Editar perfil del cliente" className="adminFormGrid">
                 <input name="customerId" type="hidden" value={customer.customerId} />
                 {returnTo ? <input name="returnTo" type="hidden" value={returnTo} /> : null}
-                <ProfileFields customer={customer} contextLocale={data.context.locale} />
+                <ProfileFields context={data.context} customer={customer} contextLocale={data.context.locale} />
                 <CustomerDataTable
                   fullWidth
                   label="Estado del perfil"
@@ -1501,73 +1430,33 @@ function CustomerDrawer({
                   </button>
                   <Link className="adminButton" href={returnTo ?? closeHref}>Cancelar</Link>
                 </div>
-              </form>
+              </AdminMutationForm>
             ) : (
               <>
                 <PermissionBanner permission="customers.addresses.write" action="editar perfiles" />
                 <ProfileSummary customer={customer} />
+                <CustomerCommercialFields context={data.context} customerId={customer.customerId} buyerType={customer.buyerType} readOnly />
               </>
             )}
           </section>
 
-          <section className="pricingPanel">
-            <div className="pricingPanelHeader">
+          </> : null}
+
+          {activeTab === "direcciones" ? <>
+          <div className={`productListPage ${addressStyles.list}`}><section className="productListGrid">
+            <div className="adminCardHeader productListGridHeader">
               <div>
-                <h3>Direcciones</h3>
-                <p>{data.addresses.data?.items.length ?? 0} registros</p>
+                <h2>Direcciones</h2>
+                <span> ({data.addresses.data?.items.length ?? 0})</span>
               </div>
-              {capabilities.canWriteCustomers ? (
-                <Link
-                  className="adminButton adminButtonTiny"
-                  href={variant === "page"
-                    ? customerDetailHref(customer, "perfil", { addressMode: "create" })
-                    : customersHref(filters, {
-                      drawer: "detail",
-                      customerId: customer.customerId,
-                      addressMode: "create",
-                      addressId: undefined,
-                    })}
-                >
-                  <Plus aria-hidden="true" size={14} />
-                  Agregar
-                </Link>
-              ) : null}
             </div>
             <ResultBanner result={data.addresses} />
             {filters.addressMode && !capabilities.canWriteCustomers ? (
               <PermissionBanner permission="customers.addresses.write" action="modificar direcciones" />
             ) : null}
-            {filters.addressMode && capabilities.canWriteCustomers ? (
-              <form
-                action={filters.addressMode === "edit" ? updateCustomerAddressAction : createCustomerAddressAction}
-                className="adminFormGrid"
-              >
-                <input name="customerId" type="hidden" value={customer.customerId} />
-                {returnTo ? <input name="returnTo" type="hidden" value={returnTo} /> : null}
-                {filters.addressMode === "edit" ? (
-                  <input name="addressId" type="hidden" value={filters.addressId ?? ""} />
-                ) : null}
-                <AddressFields
-                  address={data.addresses.data?.items.find((address) => address.addressId === filters.addressId)}
-                  contextCountry={data.context.country}
-                />
-                <div className="adminButtonRow">
-                  <button className="adminButton adminButtonPrimary" type="submit">
-                    <Save aria-hidden="true" size={16} />
-                    {filters.addressMode === "edit" ? "Guardar direccion" : "Crear direccion"}
-                  </button>
-                  <Link
-                    className="adminButton"
-                    href={variant === "page" ? customerDetailHref(customer, "perfil") : customersHref(filters, { addressMode: undefined, addressId: undefined })}
-                  >
-                    Cancelar
-                  </Link>
-                </div>
-              </form>
-            ) : null}
             {data.addresses.data?.items.length ? (
-              <div className="adminTableScroller">
-                <table className="adminTable pricingTable">
+              <div className="adminTableScroller productListTableScroller">
+                <table className={`adminTable productListTable ${addressStyles.table}`} aria-label="Direcciones del cliente">
                   <thead>
                     <tr>
                       <th scope="col">Nombre</th>
@@ -1583,14 +1472,14 @@ function CustomerDrawer({
                     {data.addresses.data.items.map((address) => (
                       <tr key={address.addressId}>
                         <td>
-                          <strong>{addressLabel(address)}</strong>
+                          <span>{addressLabel(address)}</span>
                         </td>
                         <td>{addressRoleLabel(address.addressRole)}</td>
                         <td>{addressLine(address)}</td>
                         <td>{valueText(address.city)}</td>
                         <td>{valueText(address.postalCode)}</td>
                         <td>
-                          <div className="adminButtonRow">
+                          <div className="productListActions">
                             {address.addressId === data.addresses.data?.defaultShippingAddressId ? (
                               <span className="adminBadge adminBadgeOk">Envio</span>
                             ) : null}
@@ -1603,11 +1492,11 @@ function CustomerDrawer({
                         </td>
                         {capabilities.canWriteCustomers ? (
                           <td>
-                            <div className="adminButtonRow">
+                            <div className="productListActions">
                               <Link
-                                className="adminIconButton"
+                                className="adminButton employeesActionInfo"
                                 href={variant === "page"
-                                  ? customerDetailHref(customer, "perfil", { addressMode: "edit", addressId: address.addressId })
+                                  ? customerDetailHref(customer, "direcciones", { addressMode: "edit", addressId: address.addressId })
                                   : customersHref(filters, {
                                     drawer: "detail",
                                     customerId: customer.customerId,
@@ -1623,7 +1512,7 @@ function CustomerDrawer({
                                 <input name="customerId" type="hidden" value={customer.customerId} />
                                 <input name="addressId" type="hidden" value={address.addressId} />
                                 {returnTo ? <input name="returnTo" type="hidden" value={returnTo} /> : null}
-                                <button className="adminIconButton" type="submit" title="Usar como envio">
+                                <button className="adminButton employeesActionInfo" type="submit" title="Usar como envio">
                                   <Home aria-hidden="true" size={16} />
                                   <span className="adminVisuallyHidden">Usar como envio</span>
                                 </button>
@@ -1632,13 +1521,13 @@ function CustomerDrawer({
                                 <input name="customerId" type="hidden" value={customer.customerId} />
                                 <input name="addressId" type="hidden" value={address.addressId} />
                                 {returnTo ? <input name="returnTo" type="hidden" value={returnTo} /> : null}
-                                <button className="adminIconButton" type="submit" title="Usar como fiscal">
+                                <button className="adminButton employeesActionInfo" type="submit" title="Usar como fiscal">
                                   <Star aria-hidden="true" size={16} />
                                   <span className="adminVisuallyHidden">Usar como fiscal</span>
                                 </button>
                               </form>
                               <details className="productDangerMenu">
-                                <summary className="adminIconButton adminIconButtonDanger" title="Eliminar direccion">
+                                <summary className="adminButton adminButtonDanger" title="Eliminar direccion">
                                   <Trash2 aria-hidden="true" size={16} />
                                   <span className="adminVisuallyHidden">Eliminar direccion</span>
                                 </summary>
@@ -1664,26 +1553,55 @@ function CustomerDrawer({
             ) : (
               <div className="adminEmptyState">Sin direcciones registradas.</div>
             )}
-          </section>
+          </section></div>
+            {filters.addressMode && capabilities.canWriteCustomers ? (
+              <AdminResourceDrawer drawerId="customer-address" title={filters.addressMode === "edit" ? "Editar dirección" : "Nueva dirección"} description={`Dirección de ${fullName(customer)}`} closeHref={customerDetailHref(customer, "direcciones")}>
+              <form
+                action={filters.addressMode === "edit" ? updateCustomerAddressAction : createCustomerAddressAction}
+                className={`adminFormGrid ${addressStyles.form}`}
+              >
+                <input name="customerId" type="hidden" value={customer.customerId} />
+                {returnTo ? <input name="returnTo" type="hidden" value={returnTo} /> : null}
+                {filters.addressMode === "edit" ? (
+                  <input name="addressId" type="hidden" value={filters.addressId ?? ""} />
+                ) : null}
+                <AddressFields
+                  address={data.addresses.data?.items.find((address) => address.addressId === filters.addressId)}
+                  contextCountry={data.context.country}
+                />
+                <div className="adminButtonRow">
+                  <button className="adminButton adminButtonPrimary" type="submit">
+                    <Save aria-hidden="true" size={16} />
+                    {filters.addressMode === "edit" ? "Guardar direccion" : "Crear direccion"}
+                  </button>
+                  <Link
+                    className="adminButton"
+                    href={variant === "page" ? customerDetailHref(customer, "direcciones") : customersHref(filters, { addressMode: undefined, addressId: undefined })}
+                  >
+                    Cancelar
+                  </Link>
+                </div>
+              </form>
+              </AdminResourceDrawer>
+            ) : null}
           </> : null}
 
           {activeTab === "compras" ? <>
-          <section className="pricingPanel">
-            <div className="pricingPanelHeader">
+          <div className={`productListPage ${addressStyles.list}`}><section className="productListGrid">
+            <div className="adminCardHeader productListGridHeader">
               <div>
-                <h3>Compras</h3>
-                <p>{data.purchases.data?.total ?? 0} registros</p>
+                <h2>Compras</h2>
+                <span> ({data.purchases.data?.total ?? 0})</span>
               </div>
             </div>
             {!capabilities.canReadPurchases ? (
               <PermissionBanner permission="customers.purchases.read" action="consultar compras" />
             ) : null}
             {capabilities.canReadPurchases ? <ResultBanner result={data.purchases} /> : null}
-            {capabilities.canReadPurchases ? <PurchasesKpiPanel purchases={data.purchases.data} /> : null}
             {capabilities.canReadPurchases && data.purchases.data?.items.length ? (
               <>
-                <div className="adminTableScroller">
-                  <table className="adminTable pricingTable">
+                <div className="adminTableScroller productListTableScroller">
+                  <table className={`adminTable productListTable ${addressStyles.table}`} aria-label="Compras del cliente">
                     <thead>
                       <tr>
                         <th scope="col">Pedido</th>
@@ -1701,7 +1619,7 @@ function CustomerDrawer({
                         return (
                           <tr key={purchase.purchaseId}>
                             <td>
-                              <strong>{valueText(purchase.orderId ?? purchase.purchaseId)}</strong>
+                              <span>{valueText(purchase.orderId ?? purchase.purchaseId)}</span>
                               <div className="adminContextHint">{purchase.itemsCount ?? purchase.items?.length ?? 0} items</div>
                             </td>
                             <td>{dateText(purchase.placedAt ?? purchase.recordedAt)}</td>
@@ -1714,7 +1632,7 @@ function CustomerDrawer({
                             <td>{purchase.isPaid === undefined ? "No disponible" : purchase.isPaid ? "Pagado" : "Pendiente"}</td>
                             <td>No disponible</td>
                             <td>
-                              <Link className="adminButton adminButtonTiny" href={`/admin/pedidos?orderId=${encodeURIComponent(orderReference)}`}>
+                              <Link className="adminButton employeesActionInfo" href={`/admin/pedidos?orderId=${encodeURIComponent(orderReference)}`}>
                                 Abrir pedido
                               </Link>
                             </td>
@@ -1765,7 +1683,7 @@ function CustomerDrawer({
             ) : capabilities.canReadPurchases ? (
               <div className="adminEmptyState">Sin compras materializadas.</div>
             ) : null}
-          </section>
+          </section></div>
           </> : null}
         </div>
       )}
@@ -1787,7 +1705,7 @@ function CustomersTable({ data }: Pick<CustomersAdminPageProps, "data">) {
 
   return (
     <div className="adminTableScroller">
-      <table className="adminTable pricingTable">
+      <table className="adminTable pricingTable productListTable">
         <thead>
           <tr>
             <th scope="col">Cliente</th>
@@ -1843,11 +1761,9 @@ export function CustomersAdminPage({ capabilities, data, filters }: CustomersAdm
   const previousOffset = Math.max(0, offset - limit);
   const firstItem = total === 0 ? 0 : offset + 1;
   const lastItem = Math.min(nextOffset, total);
-  const summary = currentPageSummary(data.list.data.items);
-  const hasCustomerFilters = Boolean(filters.q?.trim() || filters.email?.trim());
 
   return (
-    <main className="adminPage customersAdminPage">
+    <main className="adminPage customersAdminPage productListPage">
       <div className="adminBreadcrumb">Admin / Clientes</div>
       <div className="adminPageHeader">
         <div>
@@ -1855,8 +1771,7 @@ export function CustomersAdminPage({ capabilities, data, filters }: CustomersAdm
           <p className="adminPageIntro">Vista 360 de clientes</p>
         </div>
         {capabilities.canWriteCustomers ? (
-          <Link className="adminButton adminButtonPrimary" href={customersHref(filters, { drawer: "create", customerId: undefined })}>
-            <Plus aria-hidden="true" size={16} />
+          <Link className="employeesTextAction" href={customersHref(filters, { drawer: "create", customerId: undefined })}>
             Crear cliente
           </Link>
         ) : null}
@@ -1868,31 +1783,7 @@ export function CustomersAdminPage({ capabilities, data, filters }: CustomersAdm
         </div>
       ) : null}
 
-      <section className="pricingPanel">
-        <div className="pricingPanelHeader">
-          <div>
-            <h2>{hasCustomerFilters ? "Clientes filtrados" : "Todos los clientes"}</h2>
-            <p>{total} clientes</p>
-          </div>
-          <span className="adminBadge">{data.context.organizationId || "Sin organization"} / {data.context.shopId || "Sin shop"}</span>
-        </div>
-        <div className="adminSummaryGrid">
-          <div>
-            <UserCheck aria-hidden="true" size={16} />
-            <span>Registrados</span>
-            <strong>{summary.registered}</strong>
-          </div>
-          <div>
-            <UserRound aria-hidden="true" size={16} />
-            <span>Guest</span>
-            <strong>{summary.guests}</strong>
-          </div>
-          <div>
-            <Mail aria-hidden="true" size={16} />
-            <span>Newsletter</span>
-            <strong>{summary.newsletter}</strong>
-          </div>
-        </div>
+      <div className="productListSearchPanel customersSearchPanel">
         <form className="customersFilterBar" action={applyCustomersFiltersAction}>
           <label className="adminField">
             <span>Buscar</span>
@@ -1915,6 +1806,9 @@ export function CustomersAdminPage({ capabilities, data, filters }: CustomersAdm
           </button>
           <Link className="adminButton" href="/admin/clientes">Todos los clientes</Link>
         </form>
+      </div>
+
+      <section className="productListGrid" aria-label="Listado de clientes">
         <ResultBanner result={data.list} />
         <CustomersTable data={data} />
         <nav className="productListPagination" aria-label="Paginacion de clientes">

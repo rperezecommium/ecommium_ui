@@ -1,0 +1,101 @@
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.fields {
+  min-width: 0;
+}
+.fields fieldset {
+  min-width: 0;
+}
+.preview {
+  min-width: 0;
+  position: sticky;
+  top: 16px;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+}
+.actions {
+  grid-column: 1 / -1;
+  position: sticky;
+  bottom: 0;
+  padding: 12px;
+  background: var(--admin-surface);
+  border-top: 1px solid var(--admin-border);
+}
+.library {
+  padding: 0;
+}
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .preview {
+    position: static;
+    max-height: none;
+  }
+}
+.containerControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 10px;
+}
+.containerActionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  min-width: 0;
+}
+.containerActionRow > label { min-width: 0; margin: 0; }
+.containerActionRow select, .containerActionRow > button {
+  height: var(--admin-control-height, 40px);
+  min-height: var(--admin-control-height, 40px);
+  box-sizing: border-box;
+  font-size: var(--admin-control-font-size, 14px);
+}
+.containerActionRow > button {
+  white-space: nowrap;
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: var(--admin-surface);
+}
+.containerActionRow > button:hover:not(:disabled) { background: var(--admin-primary-hover); border-color: var(--admin-primary-hover); }
+.containerActionRow > button:active:not(:disabled) { background: var(--admin-primary-pressed); border-color: var(--admin-primary-pressed); }
+@media (max-width: 600px) {
+  .containerControls { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+}
+
+.containerStyleDetails { margin-top: 12px; }
+.containerStyleDetails > summary { cursor: pointer; padding: 8px 0; color: var(--admin-text); font-weight: 600; }
+.containerStyleDetails > summary:focus-visible { outline: 2px solid var(--admin-focus-ring); outline-offset: 2px; border-radius: 4px; }
+
+.sectionEditorFieldset { display: grid; gap: 12px; min-width: 0; padding: 0; margin: 0; border: 0; }
+.sectionBox { min-width: 0; padding: 12px; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 6px; }
+.sectionBox.containerStyleDetails { margin-top: 0; }
+.sectionBox.containerStyleDetails > summary { padding: 0; }
+.sectionBox.containerStyleDetails[open] > summary { margin-bottom: 12px; }
+.sectionCssBox > :global(.cmsBlockStyleSheetEditor) { padding: 0; border: 0; box-shadow: none; background: transparent; }
+
+.sectionTreePanel { margin-top: 20px; }
+.sectionCssBox :global(.cmsSectionSelectorReference) code { display: block; max-width: 100%; white-space: normal; overflow-wrap: anywhere; font-size: 12px; }
+
+.moduleCreateRow { width: 100%; max-width: 720px; margin: 16px 0; }
+.builderTabs :global(.adminTab:disabled) { opacity: .5; cursor: not-allowed; }
+
+.templateToolbar { display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:center; gap:12px; margin:12px 0; }
+.templateCreateLink { justify-self:end; border:0; padding:4px 0; min-height:32px; background:transparent; color:var(--admin-primary-pressed); text-decoration:underline; text-underline-offset:3px; font:inherit; cursor:pointer; }
+.templateCreateLink:focus-visible { outline:2px solid var(--admin-focus-ring); outline-offset:3px; }
+.templateCreateLink:disabled { opacity:.5; cursor:not-allowed; }
+.templateCreateForm { grid-column:1 / -1; }
+@media(max-width:480px) { .templateToolbar { gap:8px; } }
+
+.templateToolbar > .templateTabs { margin: 0; }

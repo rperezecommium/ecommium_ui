@@ -1,0 +1,70 @@
+{
+  "result": "PASS_SANDBOX_WITH_SIMULATED_DATA",
+  "orderReference": "10053",
+  "orderId": "fae52554-e803-4d5a-9e47-85c9886ff147",
+  "transactionId": "fae52554-e803-4d5a-9e47-85c9886ff147",
+  "cartId": "of_e93dd98a-dd28-43a4-bd88-8831071df23a",
+  "currency": "EUR",
+  "amountMinor": 419673,
+  "productMinor": 419612,
+  "shippingMinor": 61,
+  "pricingRuleId": "582250c8-69ec-4712-89b4-faf945403edb",
+  "context": {
+    "locale": "es-ES",
+    "channel": "web",
+    "country": "ES",
+    "currency": "EUR",
+    "tradePolicy": "default",
+    "countrySource": "DELIVERY_ADDRESS"
+  },
+  "orderCount": 1,
+  "settlementCount": 1,
+  "provider": "paypal",
+  "providerEnvironment": "sandbox",
+  "providerCaptureId": "7AS57939C5788162H",
+  "providerCaptureStatus": "COMPLETED",
+  "providerShippingMatchesCart": true,
+  "inventoryCommit": "COMMITTED",
+  "reservationCount": 1,
+  "stockMatchesExpectedDecrement": true,
+  "unitsCommitted": 1,
+  "expectedUnits": 1,
+  "testWarehouseOnHandBefore": 1,
+  "testWarehouseOnHandAfter": 0,
+  "simulatedData": [
+    "product package",
+    "warehouse stock",
+    "delivery address",
+    "order-only document",
+    "SANDBOX_BUYER"
+  ],
+  "ownerScriptLimitationsAtRun": [
+    "Full browser guest purchase not validated",
+    "Stripe not validated",
+    "Not a production certification"
+  ],
+  "browserActor": "guest",
+  "customerCookiePresent": false,
+  "guestIdentityVerified": true,
+  "paidCartSnapshotPreserved": "VERIFIED_BY_SHA256_MATCH",
+  "newCurrentCart": {
+    "differentFromPaid": true,
+    "items": 0
+  },
+  "tracking": {
+    "path": "/pedido/10053/seguimiento",
+    "confirmed": true
+  },
+  "concurrentOrderReplays": {
+    "statuses": [
+      201,
+      201
+    ],
+    "sameOrderReference": "10053",
+    "postReplayOwnerVerification": "PASS single order/settlement/reservation; stock0"
+  },
+  "limitations": [
+    "Not a production certification",
+    "Guest authorization/security backlog remains open"
+  ]
+}

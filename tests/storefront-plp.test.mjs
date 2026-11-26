@@ -25,6 +25,8 @@ function loadTsModule(relativePath, extraRequire = () => ({})) {
     module: { exports: commonJsExports },
     process: { env: {} },
     require(specifier) {
+      if (specifier.endsWith("/storefront-commercial-policy")) return loadTsModule("src/shared/config/storefront-commercial-policy.ts");
+      if (specifier.endsWith("/storefront-commercial-context")) return { getStorefrontCommercialReadOptions: async () => ({ withAuth: false }) };
       return extraRequire(specifier);
     },
   };
@@ -143,7 +145,8 @@ test("storefront search events client gates analytics behind Consent and records
   assert.match(eventsClientSource, /navigator\.sendBeacon/);
   assert.match(eventsClientSource, /useStorefrontConsentService\(storefrontAnalyticsServiceKey\)/);
   assert.match(eventsClientSource, /useSyncExternalStore/);
-  assert.match(eventsClientSource, /if \(allowed\) \{\s*sendAuthorizedStorefrontSearchEvent\(payload\);/);
+  assert.match(eventsClientSource, /if \(enabled && allowed\) \{\s*sendAuthorizedStorefrontSearchEvent\(payload\);/);
+  assert.match(eventsClientSource, /if \(enabled && !allowed\)/);
   assert.match(eventsClientSource, /ensureStorefrontVisitorId/);
   assert.match(eventsClientSource, /document\.cookie = `\$\{storefrontVisitorCookieName\}=/);
   assert.match(eventsClientSource, /Max-Age=0/);
@@ -361,8 +364,8 @@ test("storefront checkout persists orderform checkout data through BFF actions",
   assert.match(checkoutClientSource, /invalidCouponCode/);
   assert.match(checkoutClientSource, /onChange=\{updateCouponCode\}/);
   assert.match(checkoutClientSource, /create-order/);
-  assert.match(checkoutClientSource, /\/api\/storefront\/cart\/items/);
-  assert.match(checkoutClientSource, /method: "DELETE"/);
+  assert.match(checkoutClientSource, /rotatePurchasedCart/);
+  assert.doesNotMatch(checkoutClientSource, /method: "DELETE"/);
   assert.doesNotMatch(checkoutClientSource, /Cupón o promoción/);
   assert.match(checkoutClientSource, /cartUpdatedEventName/);
   assert.match(checkoutClientSource, /selectedSlas/);
@@ -435,7 +438,7 @@ test("storefront PDP reuses the operative storefront search header", () => {
   const pdpPageSource = readFileSync(path.resolve(root, "src/modules/storefront/pdp-page.tsx"), "utf8");
 
   assert.match(pdpPageSource, /import \{ StorefrontPageShell \} from "\.\/storefront-header"/);
-  assert.match(pdpPageSource, /<StorefrontPageShell>/);
+  assert.match(pdpPageSource, /<StorefrontPageShell surface="PDP">/);
   assert.doesNotMatch(pdpPageSource, /<input placeholder="Buscar en nuestra tienda" \/>/);
 });
 
@@ -693,7 +696,7 @@ test("storefront PDP maps product details, variants and specifications", async (
   const requestStorefrontBff = async (pathValue, options = {}) => {
     calls.push({ path: pathValue, options });
 
-    if (pathValue === "/storefront/navigation/categories/tree/3") {
+    if (new URL(pathValue, "http://fixture").pathname === "/storefront/navigation/categories/tree/3") {
       return {
         ok: true,
         status: 200,

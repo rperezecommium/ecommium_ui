@@ -1,5 +1,5 @@
 import { getAdminContext } from "../../../../src/shared/config/admin-context";
-import { refreshAdminEmployeeSession } from "../../../../src/modules/auth/admin-session-actions";
+import { getCurrentAdminSession as refreshAdminEmployeeSession } from "../../../../src/modules/auth/current-admin-session";
 import { getInvoiceAdminCapabilities, getInvoiceAdminData } from "../../../../src/modules/pagos/invoices-admin";
 import type { InvoiceAdminFilters } from "../../../../src/modules/pagos/invoices-admin";
 import { getPaymentsAdminCapabilities, getPaymentsAdminData, type PaymentsAdminFilters } from "../../../../src/modules/pagos/payments-admin";
@@ -22,6 +22,7 @@ export default async function PagosPage({ searchParams }: PagosPageProps) {
     searchParams,
   ]);
   const filters: InvoiceAdminFilters = {
+    issueInvoice: params?.issueInvoice === "true" ? "true" : undefined,
     invoiceId: params?.invoiceId,
     orderId: params?.orderId,
     status: params?.status,

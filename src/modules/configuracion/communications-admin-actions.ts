@@ -55,9 +55,9 @@ function asNumber(value: FormDataEntryValue | null) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function finish(notice: string): never {
+function finish(notice: string, tab: "provider" | "templates" = "provider"): never {
   revalidatePath("/admin/configuracion/comunicaciones");
-  redirect(`/admin/configuracion/comunicaciones?notice=${encodeURIComponent(notice)}`);
+  redirect(`/admin/configuracion/comunicaciones?tab=${tab}&notice=${encodeURIComponent(notice)}`);
 }
 
 function allowedValue<T extends string>(value: FormDataEntryValue | null, allowed: readonly T[]) {
@@ -166,7 +166,7 @@ function templatePayload(formData: FormData, options: { includeKey: boolean }): 
 }
 
 function deliveryRetryReturnPath(formData: FormData, notice: string, deliveryId?: string) {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ tab: "deliveries" });
   const templateStatus = allowedValue(formData.get("status"), ["DRAFT", "ACTIVE", "ARCHIVED"]);
   const deliveryStatus = allowedValue(formData.get("deliveryStatus"), ["PENDING", "SENT", "FAILED", "SKIPPED", "RETRYING"]);
   const deliveryTemplateKey = safeFilterValue(formData.get("deliveryTemplateKey"));
@@ -232,11 +232,12 @@ export async function bootstrapAuthEmailTemplatesAction(formData: FormData) {
   });
 
   if (!result.ok) {
-    finish(result.status === 403 ? "Falta permiso communications.manage." : result.error);
+    finish(result.status === 403 ? "Falta permiso communications.manage." : result.error, "templates");
   }
 
   finish(
     `Plantillas auth listas: ${result.data.created} creadas, ${result.data.updated} actualizadas, ${result.data.existing} existentes.`,
+    "templates",
   );
 }
 
@@ -278,34 +279,34 @@ export async function createEmailTemplateAction(formData: FormData): Promise<nev
   const context = await getAdminContext();
   const payload = templatePayload(formData, { includeKey: true });
   if (!payload.ok) {
-    finish(payload.error);
+    finish(payload.error, "templates");
   }
 
   const result = await createEmailTemplate(context, payload.value);
   if (!result.ok) {
-    finish(result.status === 403 ? "Falta permiso communications.manage." : result.error);
+    finish(result.status === 403 ? "Falta permiso communications.manage." : result.error, "templates");
   }
 
-  finish(`Plantilla ${result.data.templateKey} creada como borrador.`);
+  finish(`Plantilla ${result.data.templateKey} creada como borrador.`, "templates");
 }
 
 export async function patchEmailTemplateAction(formData: FormData): Promise<never> {
   const context = await getAdminContext();
   const templateId = safeFilterValue(formData.get("templateId"));
   if (!templateId) {
-    finish("Selecciona una plantilla para guardar.");
+    finish("Selecciona una plantilla para guardar.", "templates");
   }
   const payload = templatePayload(formData, { includeKey: false });
   if (!payload.ok) {
-    finish(payload.error);
+    finish(payload.error, "templates");
   }
 
   const result = await patchEmailTemplate(context, templateId, payload.value);
   if (!result.ok) {
-    finish(result.status === 403 ? "Falta permiso communications.manage." : result.error);
+    finish(result.status === 403 ? "Falta permiso communications.manage." : result.error, "templates");
   }
 
-  finish(`Plantilla ${result.data.templateKey} guardada como borrador.`);
+  finish(`Plantilla ${result.data.templateKey} guardada como borrador.`, "templates");
 }
 
 export async function previewEmailTemplateAction(formData: FormData) {
@@ -479,16 +480,16 @@ export async function transitionEmailTemplateAction(formData: FormData): Promise
   const templateId = safeFilterValue(formData.get("templateId"));
   const transition = allowedValue(formData.get("transition"), emailTemplateTransitions);
   if (!templateId || !transition) {
-    finish("Selecciona una transición válida para la plantilla.");
+    finish("Selecciona una transición válida para la plantilla.", "templates");
   }
 
   const result = await transitionEmailTemplate(context, templateId, transition);
   if (!result.ok) {
-    finish(result.status === 403 ? "Falta permiso communications.manage." : result.error);
+    finish(result.status === 403 ? "Falta permiso communications.manage." : result.error, "templates");
   }
 
   const label = transition === "activate" ? "activada" : transition === "deactivate" ? "pausada" : "archivada";
-  finish(`Plantilla ${result.data.templateKey} ${label}.`);
+  finish(`Plantilla ${result.data.templateKey} ${label}.`, "templates");
 }
 
 export async function retryEmailDeliveryAction(formData: FormData): Promise<never> {

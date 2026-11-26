@@ -1,3 +1,4 @@
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
 import type { AdminContext } from "../../shared/config/admin-context";
 import Link from "next/link";
 import type {
@@ -50,7 +51,7 @@ function CheckoutConfigurationDrawer({
 
   return (
     <div className="adminDrawerBackdrop">
-      <aside aria-label="Editar configuración de Checkout" className="adminSideDrawer checkoutConfigurationDrawer">
+      <AdminResizableDrawer drawerId="checkout-configuration-admin-page-editar-configuracion-de-checkout-1" aria-label="Editar configuración de Checkout" className="adminSideDrawer checkoutConfigurationDrawer">
         <div className="adminSideDrawerHeader">
           <div>
             <h2>Editar configuración</h2>
@@ -59,7 +60,7 @@ function CheckoutConfigurationDrawer({
           <Link className="adminButton adminButtonTiny" href={checkoutHref()}>Cerrar</Link>
         </div>
         <CheckoutConfigurationForm configuration={configuration} inDrawer state={state} />
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }

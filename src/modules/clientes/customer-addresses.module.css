@@ -1,0 +1,26 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.toolbar nav { flex: 1; }
+.addLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  color: var(--admin-text);
+  white-space: nowrap;
+}
+.addLink:hover { color: var(--admin-primary-hover); }
+.table { min-width: 800px; width: 100%; }
+.form { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+.form :global(.adminField) { min-width: 0; }
+.form input, .form select { width: 100%; min-width: 0; min-height: 40px; box-sizing: border-box; }
+.form :global(.adminButtonRow) { grid-column: 1 / -1; }
+
+.list { padding: 0; min-width: 0; }
+
+.invoiceTable { min-width: 640px; width: 100%; }
+.summaryTable { min-width: 0; width: 100%; }

@@ -1,0 +1,82 @@
+{
+  "compensation": {
+    "method": "Admin/BFF stock-level upsert",
+    "stockBefore": 0,
+    "stockAfterAdjustment": 1,
+    "quantity": 1,
+    "duplicateReservationsPreserved": true,
+    "events": [
+      {
+        "eventId": "af7a738e-0e2b-4d1d-a822-50a06dcf3385",
+        "eventType": "inventory.stock-level.upserted.v1",
+        "occurredAt": "2026-11-16T14:08:31.316Z",
+        "payload": {
+          "tags": [
+            "inventory.availability",
+            "domain:storefront.plp",
+            "domain:storefront.listing",
+            "domain:storefront.search-hydration",
+            "org:11111111-1111-4111-8111-111111111111",
+            "tenant:11111111-1111-4111-8111-111111111111",
+            "organization:11111111-1111-4111-8111-111111111111",
+            "shop:22222222-2222-4222-8222-222222222222",
+            "variant:f03e68e1-2690-4be7-8d32-feb82b580e9c",
+            "warehouse:8df995ce-cae9-4a4f-b63a-85c7f453edf5"
+          ],
+          "available": true,
+          "updatedAt": "2026-11-16T14:08:31.252Z",
+          "variantId": "f03e68e1-2690-4be7-8d32-feb82b580e9c",
+          "warehouseId": "8df995ce-cae9-4a4f-b63a-85c7f453edf5",
+          "onHandQuantity": 1,
+          "reservedQuantity": 0,
+          "availableQuantity": 1,
+          "quarantineQuantity": 0,
+          "safetyStockQuantity": 0
+        }
+      }
+    ]
+  },
+  "orders": [
+    {
+      "orderId": "85f83766-9d40-439e-aef9-6aee9584d818",
+      "orderReference": "10050",
+      "paymentTransactionId": "85f83766-9d40-439e-aef9-6aee9584d818",
+      "status": "PAYMENT_SETTLED",
+      "currency": "EUR",
+      "totalAmountMinor": 419673,
+      "itemsCount": 1,
+      "customerPresent": true,
+      "guestSessionPresent": false
+    },
+    {
+      "orderId": "eeaac384-4dee-48db-acbd-3550c376c90d",
+      "orderReference": "10051",
+      "paymentTransactionId": "eeaac384-4dee-48db-acbd-3550c376c90d",
+      "status": "PAYMENT_SETTLED",
+      "currency": "EUR",
+      "totalAmountMinor": 419673,
+      "itemsCount": 1,
+      "customerPresent": true,
+      "guestSessionPresent": false
+    },
+    {
+      "orderId": "fae52554-e803-4d5a-9e47-85c9886ff147",
+      "orderReference": "10053",
+      "paymentTransactionId": "fae52554-e803-4d5a-9e47-85c9886ff147",
+      "status": "PAYMENT_SETTLED",
+      "currency": "EUR",
+      "totalAmountMinor": 419673,
+      "itemsCount": 1,
+      "customerPresent": false,
+      "guestSessionPresent": true
+    }
+  ],
+  "guestIdentityVerified": true,
+  "historical10051": {
+    "cartId": "of_17b2011d-a3ef-4f8c-89a8-cf0c46561c51",
+    "items": 0,
+    "totalMinor": 0,
+    "recovery": "NO_AUTHENTIC_FULL_SNAPSHOT_FOUND_IN_AVAILABLE_LOGS_OR_ARTIFACTS",
+    "status": "UNRECOVERED_HISTORY_PRESERVED"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "checks": [
+    "Slider forward/back 1440",
+    "Account drawer remains interactive 1440",
+    "Newsletter editing fields, privacy and hydrated product links 1440",
+    "Slider forward/back 768",
+    "Account drawer remains interactive 768",
+    "Newsletter editing fields, privacy and hydrated product links 768",
+    "Slider forward/back 390",
+    "Account drawer remains interactive 390",
+    "Newsletter editing fields, privacy and hydrated product links 390"
+  ]
+}

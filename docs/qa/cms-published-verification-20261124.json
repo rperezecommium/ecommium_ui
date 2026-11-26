@@ -1,0 +1,104 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "path": "/home",
+      "pageId": "ea43dfd4-3972-4a9f-bb4c-4a5762c2b15a",
+      "publishedComposition": true
+    },
+    {
+      "path": "/privacidad-newsletter",
+      "pageId": "f120030d-730c-4074-9b0a-61ff45afe966",
+      "publishedComposition": true
+    },
+    {
+      "path": "/seleccion-bike-brakes",
+      "pageId": "c96fa66d-3e01-417e-a24c-df87e7200c41",
+      "publishedComposition": true
+    },
+    {
+      "path": "/module-test-page",
+      "pageId": "85d5afdc-b5fe-46f1-9cd0-e468a44840e8",
+      "publishedComposition": true
+    },
+    {
+      "surface": "HOME",
+      "header": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+      "footer": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+      "sameAssignments": true,
+      "independent": true
+    },
+    {
+      "surface": "CMS",
+      "header": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+      "footer": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+      "sameAssignments": true,
+      "independent": true
+    },
+    {
+      "surface": "PLP",
+      "header": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+      "footer": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+      "sameAssignments": true,
+      "independent": true
+    },
+    {
+      "surface": "PDP",
+      "header": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+      "footer": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+      "sameAssignments": true,
+      "independent": true
+    },
+    {
+      "surface": "SEARCH",
+      "header": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+      "footer": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+      "sameAssignments": true,
+      "independent": true
+    },
+    {
+      "surface": "CART",
+      "header": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+      "footer": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+      "sameAssignments": true,
+      "independent": true
+    },
+    {
+      "surface": "CHECKOUT",
+      "header": "559ca9dd-5a9b-4801-b3a2-45dfb31bd58b",
+      "footer": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+      "sameAssignments": true,
+      "independent": true
+    },
+    {
+      "surface": "ACCOUNT",
+      "header": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+      "footer": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+      "sameAssignments": true,
+      "independent": true
+    },
+    {
+      "surface": "ERROR",
+      "header": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+      "footer": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+      "sameAssignments": true,
+      "independent": true
+    },
+    {
+      "allPagesIndependent": true,
+      "count": 13,
+      "qaDraftsPreserved": [
+        {
+          "pageId": "c856e902-e250-4858-9e38-cd55a5910a46",
+          "status": "DRAFT",
+          "published": false
+        },
+        {
+          "pageId": "596f8a71-636d-417b-859e-153782ce5884",
+          "status": "DRAFT",
+          "published": false
+        }
+      ]
+    }
+  ]
+}

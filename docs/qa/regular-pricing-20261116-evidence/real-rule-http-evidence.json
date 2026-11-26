@@ -1,0 +1,38 @@
+[
+  {
+    "context": "&country=ES&channel=web",
+    "status": 200,
+    "pricingId": "90caaf69-b811-45e4-9b4c-1aefd2df52b5",
+    "source": "BASE",
+    "currency": "EUR",
+    "netMinor": 2200,
+    "grossMinor": 2662
+  },
+  {
+    "context": "&country=FR&channel=mobile",
+    "status": 200,
+    "pricingId": "90caaf69-b811-45e4-9b4c-1aefd2df52b5",
+    "source": "BASE",
+    "currency": "EUR",
+    "netMinor": 2200,
+    "grossMinor": 2662
+  },
+  {
+    "context": "&country=ES&channel=admin&tradePolicy=default&priceTableId=vip",
+    "status": 200,
+    "pricingId": "62e39daf-9c19-4a58-b31e-cc9056daa269",
+    "source": "BASE",
+    "currency": "EUR",
+    "netMinor": 2727,
+    "grossMinor": 3300
+  },
+  {
+    "context": "&country=FR&channel=admin&tradePolicy=default&priceTableId=vip",
+    "status": 200,
+    "pricingId": "90caaf69-b811-45e4-9b4c-1aefd2df52b5",
+    "source": "BASE",
+    "currency": "EUR",
+    "netMinor": 2200,
+    "grossMinor": 2662
+  }
+]

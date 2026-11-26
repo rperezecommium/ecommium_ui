@@ -152,3 +152,10 @@ test("does not treat pending admin context marker as an active shop", () => {
   assert.equal(session.organizationId, "org-1");
   assert.equal(session.shopId, undefined);
 });
+
+test('an explicit empty permission array from auth/me cannot retain token or login privileges',()=>{
+ const payload=Buffer.from(JSON.stringify({permissions:['*'],roles:['superadmin']})).toString('base64url');
+ const login={accessToken:'header.'+payload+'.signature',roles:['superadmin'],permissions:['*'],credentialState:'MUST_CHANGE_PASSWORD'};
+ const me=parseAuthSessionPayload({tokens:{accessToken:login.accessToken},principal:{sub:'employee-1',principalType:'EMPLOYEE',scope:'admin',roles:[],permissions:[],credentialState:'NORMAL'}},{requireAccessToken:false});
+ const merged=mergeAuthSessions(login,me);assert.equal(merged.permissions.length,0);assert.equal(merged.roles.length,0);assert.equal(merged.credentialState,'NORMAL');
+});

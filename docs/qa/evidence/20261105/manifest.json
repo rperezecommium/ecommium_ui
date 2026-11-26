@@ -1,0 +1,320 @@
+{
+  "date": "2026-11-05",
+  "timezone": "Europe/Madrid",
+  "source": "Playwright E2E against Next.js production build and explicit local test BFF",
+  "real_backend": false,
+  "images": [
+    {
+      "file": "01-context-without-preparation-block.png",
+      "title": "Contexto sin bloque permanente de preparación",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "57f7747c1b4ce84ea6db286466d485dd528d74aa2a37c38a8120710fa195126c",
+      "captured_at": "2026-11-05T18:02:30.228671+01:00"
+    },
+    {
+      "file": "02-create-shop-form.png",
+      "title": "Formulario de alta de tienda",
+      "width": 1600,
+      "height": 1078,
+      "sha256": "739040ea2252efbfcc2aa31dbd9900b824101995204b254209ebe86d22a65621",
+      "captured_at": "2026-11-05T18:02:49.125680+01:00"
+    },
+    {
+      "file": "03-create-shop-recovery.png",
+      "title": "Preparación integrada en Crear tienda",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "337df994110e84f29892abb074a252ff5b80470ff9aa6434bb0505645c1cfef3",
+      "captured_at": "2026-11-05T18:02:49.245935+01:00"
+    },
+    {
+      "file": "04-create-shop-ready.png",
+      "title": "Alta completada y continuación",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "5981b9737532291ea3984d01d75ce692d95b12b63467878066eacaf00b9a7e8c",
+      "captured_at": "2026-11-05T18:02:49.351223+01:00"
+    },
+    {
+      "file": "05-provider-unified.png",
+      "title": "Proveedor: información unificada arriba al 100 %",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "d6d8c71eec38fd1d80d3e284b4de1bedecc78a93c45b659641f0d3ed1b15d224",
+      "captured_at": "2026-11-05T18:02:27.786024+01:00"
+    },
+    {
+      "file": "06-provider-configuration.png",
+      "title": "Configuración del proveedor desde la barra",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "af36c2a7f36d268717c48ba2a0c866ec3ee34a58a3ba19a51b53018ab3547d78",
+      "captured_at": "2026-11-05T18:02:27.986802+01:00"
+    },
+    {
+      "file": "07-provider-saved.png",
+      "title": "Configuración guardada en el resumen unificado",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "8841672563294a71de1224dbabeeaaa5d093d76bbb8f5efdd99fd1c042d615a0",
+      "captured_at": "2026-11-05T18:02:28.184408+01:00"
+    },
+    {
+      "file": "08-test-email.png",
+      "title": "Enviar prueba conservado bajo Estado técnico",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "13bf6ed884ab759f892fb6c07de99253c8360ac4b96de1c89e37da07666f5d2f",
+      "captured_at": "2026-11-05T18:02:28.500899+01:00"
+    },
+    {
+      "file": "09-template-filters-full-width.png",
+      "title": "Plantillas: pestaña, tabla y formulario al 100 %",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "6cd7bd1fa7b9e12e010ecf4d206d6bd8de5550b9459a9f5af2cf190153c3e38f",
+      "captured_at": "2026-11-05T18:02:33.195752+01:00"
+    },
+    {
+      "file": "10-template-editor.png",
+      "title": "Crear plantilla en panel lateral",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "1b4ffadccb33d0b9253b3020adbe080e57d2b3c2a68fa89d34998a6874a309f0",
+      "captured_at": "2026-11-05T18:02:29.569024+01:00"
+    },
+    {
+      "file": "11-template-preview.png",
+      "title": "Preview de plantilla y activación",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "3e0fbdeae10f5837c1e7b711c389e780438aecc8077513faf407c2d87f55e85c",
+      "captured_at": "2026-11-05T18:02:29.877634+01:00"
+    },
+    {
+      "file": "12-audit-failed-filter.png",
+      "title": "Auditoría: filtros completos y Ver fallidas",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "1c03863d83fed4c33b468e8302012b8ee39c005afadf5dce37dfb248dbcf2f09",
+      "captured_at": "2026-11-05T18:02:29.016358+01:00"
+    },
+    {
+      "file": "13-delivery-detail.png",
+      "title": "Detalle de entrega fallida",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "5dd20cf6b03ab4824efe20d83bb08d521be0b492d86d21990d334e8018d9b2bf",
+      "captured_at": "2026-11-05T18:02:29.135135+01:00"
+    },
+    {
+      "file": "14-delivery-retried.png",
+      "title": "Entrega recuperada tras reintentar",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "d1275adbb815dbf1b28d41d44986d03572f2db1395685e82bea66ab6fb36810e",
+      "captured_at": "2026-11-05T18:02:29.227827+01:00"
+    },
+    {
+      "file": "15-templates-mobile.png",
+      "title": "Plantillas en móvil",
+      "width": 390,
+      "height": 1772,
+      "sha256": "012cdbcf03691a7880fc4ef7324fa5beb0b767d2ef0a7cc08f448614da8b056d",
+      "captured_at": "2026-11-05T18:02:33.125303+01:00"
+    },
+    {
+      "file": "16-templates-read-only.png",
+      "title": "Controles según permisos",
+      "width": 1600,
+      "height": 1000,
+      "sha256": "7e86737e7f09bee216006d5904fa6a05dfda38687400b35ddb4a6491caabcf3c",
+      "captured_at": "2026-11-05T14:18:42.242043+01:00"
+    },
+    {
+      "file": "18-team-security-devices.png",
+      "title": "Equipo: Seguridad y dispositivos",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "9c45ff736ac0edafad2557b9af62fc48258b3958c79fdc783079d68233314bf5",
+      "captured_at": "2026-11-05T18:02:26.299708+01:00"
+    },
+    {
+      "file": "19-team-security-password-drawer.png",
+      "title": "Panel lateral para cambiar contraseña",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "3dc4663fe0aeb1a785800e4451b703bac34d5add5f1753987c31765f4e86255b",
+      "captured_at": "2026-11-05T18:02:26.402261+01:00"
+    },
+    {
+      "file": "20-team-security-step-up-drawer.png",
+      "title": "Panel lateral de confirmación sensible",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "8d6a0b81ddc9360c7e946153b09fa7ef446705e52e6e6b5f9a0381c76f46ed85",
+      "captured_at": "2026-11-05T18:02:26.481185+01:00"
+    },
+    {
+      "file": "21-category-search-list.png",
+      "title": "Categorías: buscador y edición en fila",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "76a0a411658a5988ed52155ce9a70b11c329c17d28157d1cefc935a6196f2706",
+      "captured_at": "2026-11-05T18:02:33.846507+01:00"
+    },
+    {
+      "file": "22-category-create-drawer.png",
+      "title": "Categorías: alta lateral",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "143670b3ff6643e756335035ed0f1180582b6fec4787c8722d1e211c3f81633c",
+      "captured_at": "2026-11-05T18:02:33.961987+01:00"
+    },
+    {
+      "file": "23-category-actions-menu.png",
+      "title": "Categorías: menú soft y hard",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "bb26053744203677cf6c2f67caea34d5e833b519f4f77958221141441d947920",
+      "captured_at": "2026-11-05T18:02:34.180842+01:00"
+    },
+    {
+      "file": "24-category-soft-deleted.png",
+      "title": "Categorías: filtro tras soft simulado",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "a1cd36224e9e0e17710a3cb0e93f6aa2a4b61f384ebbb9df8cda5e05af770357",
+      "captured_at": "2026-11-05T18:02:34.430073+01:00"
+    },
+    {
+      "file": "25-brand-search-list.png",
+      "title": "Marcas: buscador y edición en fila",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "e5da423ec4ccbd333fa36220e805975d7a5bf7072657707442da6567273405ae",
+      "captured_at": "2026-11-05T18:02:34.909390+01:00"
+    },
+    {
+      "file": "26-brand-create-drawer.png",
+      "title": "Marcas: alta lateral",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "ef53649eac6f8e56e56b85fad10264ec869096e4a287f14ab619b61f94c549fc",
+      "captured_at": "2026-11-05T18:02:35.023454+01:00"
+    },
+    {
+      "file": "27-brand-actions-menu.png",
+      "title": "Marcas: menú soft y hard",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "be1f14d7c0ac648b0a5b03c645876e2a641e13cd2ae7671f05d3842209180cc0",
+      "captured_at": "2026-11-05T18:02:35.230565+01:00"
+    },
+    {
+      "file": "28-brand-soft-deleted.png",
+      "title": "Marcas: filtro tras soft simulado",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "2e5a13579f60964c36d88e23d817b2640552b2f02fa2fa801828848f37a9ce09",
+      "captured_at": "2026-11-05T18:02:35.486567+01:00"
+    },
+    {
+      "file": "29-media-library-list.png",
+      "title": "Media: biblioteca y buscador",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "9595157011b7a54ee12bc162bf0f97c126659adb084f593f6fe875f693e4c461",
+      "captured_at": "2026-11-05T18:02:35.978342+01:00"
+    },
+    {
+      "file": "30-media-library-actions.png",
+      "title": "Media: menú de acciones",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "5776733d11b31c28878a34f1c5177e5ea6aa181586f1488d8606275463773599",
+      "captured_at": "2026-11-05T18:02:36.164313+01:00"
+    },
+    {
+      "file": "31-media-create-drawer.png",
+      "title": "Media: alta lateral",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "6df10a1dc81e22886568b116df2e294ed445a13a4f75c1fd10963305dc09c52c",
+      "captured_at": "2026-11-05T18:02:36.254924+01:00"
+    },
+    {
+      "file": "32-media-created-detail.png",
+      "title": "Media: colección creada y detalle",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "821c8716f4abdaa7c0c883bf1d79c73346c8bec15fca0c2833b68d2e00b76b67",
+      "captured_at": "2026-11-05T18:02:36.429509+01:00"
+    },
+    {
+      "file": "33-offerings-search-list.png",
+      "title": "Servicios: buscador y edición en fila",
+      "width": 1600,
+      "height": 1092,
+      "sha256": "74d865c26030964e9f6b016c552993a8ef506bdd149d1a1527fe3600459c96e7",
+      "captured_at": "2026-11-05T18:02:36.762762+01:00"
+    },
+    {
+      "file": "34-offerings-create-drawer.png",
+      "title": "Servicios: alta lateral",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "ab11444f3a8c91d80812af3c8c778e1bb906efbcd8c96f4ff5d9402c7562a740",
+      "captured_at": "2026-11-05T18:02:36.942763+01:00"
+    },
+    {
+      "file": "35-offerings-actions-menu.png",
+      "title": "Servicios: menú de acciones",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "7c4f2787c97eb20070fe5711700c2d02fa91732afefd6fa25a01611992955829",
+      "captured_at": "2026-11-05T18:02:37.072808+01:00"
+    },
+    {
+      "file": "36-offerings-edit-drawer.png",
+      "title": "Servicios: edición lateral",
+      "width": 1440,
+      "height": 1092,
+      "sha256": "2d805fab882a8b2e0fdebe3e9f47d5a41ffbc1a4b6f7f16c6f2dbb100b9b965a",
+      "captured_at": "2026-11-05T18:02:37.176334+01:00"
+    },
+    {
+      "file": "37-media-tablet.png",
+      "title": "Media: tablet 768px",
+      "width": 768,
+      "height": 1580,
+      "sha256": "85fa97b15a58182c53275e47aeac6ba988d6c09c077b702034093affae1e37bd",
+      "captured_at": "2026-11-05T18:02:36.025380+01:00"
+    },
+    {
+      "file": "38-media-mobile.png",
+      "title": "Media: móvil 390px",
+      "width": 390,
+      "height": 1735,
+      "sha256": "790d9a40701d5c428b5254a0d6c01d28e2bf9f04661be0b3f8fabba370b5bb66",
+      "captured_at": "2026-11-05T18:02:36.055239+01:00"
+    },
+    {
+      "file": "39-offerings-tablet.png",
+      "title": "Servicios: tablet 768px",
+      "width": 768,
+      "height": 1494,
+      "sha256": "cb7630c75887e373e7a724aa2f805efd3b024ca5ddf7d2311bfbeddfcff99fe0",
+      "captured_at": "2026-11-05T18:02:36.817738+01:00"
+    },
+    {
+      "file": "40-offerings-mobile.png",
+      "title": "Servicios: móvil 390px",
+      "width": 390,
+      "height": 1654,
+      "sha256": "7382a0674ce33d5c2f631cafde821a33e0ef3e6ffbea15e0a6931fa4d049c094",
+      "captured_at": "2026-11-05T18:02:36.855570+01:00"
+    }
+  ]
+}

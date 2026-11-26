@@ -1,0 +1,143 @@
+[
+  {
+    "size": {
+      "width": 1440,
+      "height": 900
+    },
+    "document": {
+      "viewport": 1425,
+      "width": 1425
+    },
+    "sections": [
+      {
+        "name": "Demostración CMS · Presentación",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Ayuda",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Descarga destacada",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Consulta y trabajos",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Destacados",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Promociones en columnas",
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "name": "Demostración CMS · Slider de prueba",
+        "scroll": 1385,
+        "width": 1385
+      }
+    ]
+  },
+  {
+    "size": {
+      "width": 820,
+      "height": 1024
+    },
+    "document": {
+      "viewport": 805,
+      "width": 1260
+    },
+    "sections": [
+      {
+        "name": "Demostración CMS · Presentación",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Ayuda",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Descarga destacada",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Consulta y trabajos",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Destacados",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Promociones en columnas",
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "name": "Demostración CMS · Slider de prueba",
+        "scroll": 765,
+        "width": 765
+      }
+    ]
+  },
+  {
+    "size": {
+      "width": 390,
+      "height": 844
+    },
+    "document": {
+      "viewport": 375,
+      "width": 375
+    },
+    "sections": [
+      {
+        "name": "Demostración CMS · Presentación",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Ayuda",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Descarga destacada",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Consulta y trabajos",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Destacados",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Promociones en columnas",
+        "scroll": 351,
+        "width": 351
+      },
+      {
+        "name": "Demostración CMS · Slider de prueba",
+        "scroll": 351,
+        "width": 351
+      }
+    ]
+  }
+]

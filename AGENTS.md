@@ -13,6 +13,7 @@ Antes de implementar cualquier modulo, la IA debe leer:
 3. `package.json`, `next.config.ts`, `tsconfig.json`, `eslint.config.mjs`.
 4. `docs/composable-reference/README.md`: snapshot local del composable, sus decisiones relevantes y contratos BFF para UI.
 5. `securityReadme.md`: backlog de seguridad vigente. Todo hallazgo marcado como pendiente debe preservarse, revisarse antes de tocar su superficie y actualizarse solo con evidencia de correccion y pruebas.
+6. Para trabajos de tablas/listados Admin o cualquier petición de «Compacta», leer `docs/admin-compacta-style.md`, guía obligatoria del estilo de tablas basado en Productos.
 
 La IA no debe trasladarse al repo backend para leer documentacion o codigo, salvo pedido explicito del usuario. Si falta contexto, debe trabajar con la referencia local, inspeccionar este repo de UI, validar contra el BFF disponible y dejar el gap documentado.
 
@@ -96,6 +97,15 @@ En productos, precios, transportistas, pagos y permisos, el patron obligatorio e
 - `Avanzado`: reglas, excepciones, overrides, prioridades, auditoria e integraciones.
 - `Contexto`: Organization/Shop/locale visibles.
 - `Revision`: resumen de impacto antes de acciones destructivas o masivas.
+
+## Estándar obligatorio de tablas: Compacta
+
+- «Compacta», «estilos Compacta» o «dale los estilos Compacta a esta tabla» invocan [la guía completa](docs/admin-compacta-style.md). Leerla y aplicar sus reglas, no una aproximación visual.
+- La referencia es Productos: estructura y ancestros, variables, tipografía, cabecera/celdas, filas, badges, acciones y hover/focus/disabled. Añadir solo `productListTable` no basta.
+- Reutilizar clases y tokens compartidos existentes. No duplicar la paleta ni crear un CSS distinto por módulo. Las variantes compactas de tablas son una excepción acotada a los valores genéricos Admin; no trasladarlas a toda la aplicación.
+- Mantener permisos, datos, columnas, acciones y contratos del módulo. Aplicar Compacta no autoriza cambios funcionales ni eliminación de contenido.
+- Verificar estilos calculados contra Productos en desktop/tablet/mobile y documentar diferencias autorizadas. El margen superior de 30px y la eliminación de título/contador son excepciones de Biblioteca CMS, no reglas universales.
+- Cualquier cambio futuro del estándar debe actualizar `docs/admin-compacta-style.md` en la misma entrega. Las instrucciones explícitas del usuario prevalecen y sus excepciones se documentan localmente.
 
 ## Arquitectura Next.js obligatoria
 Usar Next.js App Router con Server Components por defecto.
@@ -565,6 +575,41 @@ Proceso 4: cart/checkout sobre BFF.
 Proceso 5: cuenta cliente, compras, facturas y postventa.
 
 Proceso 6: Lighthouse, Core Web Vitals, Playwright y pruebas responsive.
+
+## Estándar obligatorio de paneles laterales Admin
+
+La vista previa PDP del producto es una excepción de presentación: usa un
+diálogo centrado al 80% del viewport, no un panel lateral. Debe renderizar
+`StorefrontPdpContentClient` y su CSS compartido con la PDP pública; no mantener
+una ficha visual alternativa en el editor. El modo preview conserva la
+exploración visual sin ejecutar compras ni analítica Storefront.
+
+- Todo panel emergente lateral del Admin debe usar `AdminResourceDrawer` o
+  `AdminResizableDrawer` de `src/shared/ui`. No crear un `<aside>` lateral propio
+  que evite el comportamiento compartido. Las confirmaciones centradas, popovers
+  pequeños y ventanas Storefront no pertenecen a este estándar Admin.
+- `drawerId` es obligatorio y estable por módulo/tipo de formulario. No usar
+  IDs aleatorios, títulos con datos de una entidad ni el ID de un registro como
+  identidad de la preferencia de ancho. Los módulos distintos no comparten ancho.
+- La pestaña del borde izquierdo usa el icono de tres líneas y la geometría de
+  la pestaña del menú izquierdo. Click/foco: outline azul 3px; arrastre: 5px,
+  sin desplazar el contenido. Al soltar tras arrastrar, el outline desaparece.
+  Arrastrar a la izquierda amplía el panel.
+- Límites estrictos: 20%-50% del ancho entre el borde derecho visible del menú
+  izquierdo y el borde derecho del viewport. Default 40%. Los límites de cálculo
+  y CSS provienen de `admin-drawer-size.ts`; no duplicar la lógica por pantalla.
+- El ancho se actualiza con Pointer Events/captura de puntero y un único frame
+  de pintado pendiente. No animar el ancho con retraso durante el arrastre.
+  Escape cancela el arrastre; los cursores/captura/selección se limpian al terminar.
+- Flechas izquierda/derecha, Shift+flechas y Home/End permiten ajuste por teclado.
+  El tirador es un separador vertical accesible con rango y valor actuales.
+- El provider dentro del shell recuerda el ratio por módulo durante la página.
+  Cerrar/reabrir y cambios de query que abren/cerran un panel conservan el ancho.
+  Cambiar de pathname lo descarta, también al volver atrás. No usar cookies,
+  localStorage ni sessionStorage para guardar estos anchos.
+- Ejecutar `node --test tests/admin-drawer-size.test.mjs` y regresión Playwright
+  de arrastre/memoria al cambiar el estándar. El test de inventario impide
+  incorporar laterales Admin que omitan el componente o su identidad.
 
 ## QA y testing obligatorio
 Cada modulo debe entregar:

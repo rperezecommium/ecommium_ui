@@ -19,11 +19,15 @@ const initialState: StorefrontAuthActionState = {
 };
 
 export function StorefrontAuthEntry({
+  compact = false,
+  preview = false,
   customerEmail,
   initialMode,
   redirectTo,
   purpose,
 }: {
+  compact?: boolean;
+  preview?: boolean;
   customerEmail?: string;
   initialMode?: AuthMode;
   redirectTo?: string;
@@ -34,16 +38,17 @@ export function StorefrontAuthEntry({
   const [signupStartedAt, setSignupStartedAt] = useState("");
 
   useEffect(() => {
-    if (initialMode !== "login") return;
+    if (preview || initialMode !== "login") return;
 
     const url = new URL(window.location.href);
     if (url.searchParams.get("customerLogin") !== "1") return;
 
     url.searchParams.delete("customerLogin");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [initialMode]);
+  }, [initialMode, preview]);
 
   function show(nextMode: AuthMode) {
+    if (preview) return;
     setMode(nextMode);
     if (nextMode === "signup") {
       setSignupStartedAt(new Date(Date.now() - 8000).toISOString());
@@ -60,14 +65,14 @@ export function StorefrontAuthEntry({
 
   return (
     <>
-      <div className="storefrontAuthEntry" aria-label="Cuenta cliente">
+      <div className={`storefrontAuthEntry${compact ? " storefrontAuthEntryCompact" : ""}`} aria-label="Cuenta cliente">
         {customerEmail ? (
           <>
-            <Link className="storefrontAuthLoginButton" href="/account">
+            <Link aria-label="Mi cuenta" className="storefrontAuthLoginButton" href="/account" title="Mi cuenta">
               <UserRound aria-hidden="true" size={18} />
-              <span>Mi cuenta</span>
+              <span className={compact ? "storefrontVisuallyHidden" : undefined}>Mi cuenta</span>
             </Link>
-            <form action={logoutStorefrontCustomer} className="storefrontAuthLogoutForm">
+            <form action={logoutStorefrontCustomer} className={compact ? "storefrontAuthLogoutForm storefrontCompactOptional" : "storefrontAuthLogoutForm"}>
               <button className="storefrontAuthLogoutButton" type="submit">
                 <LogOut aria-hidden="true" size={18} />
                 <span>Cerrar sesion</span>
@@ -76,18 +81,18 @@ export function StorefrontAuthEntry({
           </>
         ) : (
           <>
-            <button className="storefrontAuthLoginButton" onClick={() => show("login")} type="button">
+            <button aria-label="Iniciar sesion" className="storefrontAuthLoginButton" onClick={() => show("login")} title="Iniciar sesion" type="button">
               <User aria-hidden="true" size={18} />
-              <span>Iniciar Sesion</span>
+              <span className={compact ? "storefrontVisuallyHidden" : undefined}>Iniciar Sesion</span>
             </button>
-            <button className="storefrontAuthRegisterButton" onClick={() => show("signup")} type="button">
+            <button aria-label="Registrate" className="storefrontAuthRegisterButton" onClick={() => show("signup")} title="Registrate" type="button">
               <Rocket aria-hidden="true" size={18} />
-              <span>Registrate</span>
+              <span className={compact ? "storefrontVisuallyHidden" : undefined}>Registrate</span>
             </button>
           </>
         )}
       </div>
-      {!customerEmail ? (
+      {!preview && !customerEmail ? (
           <AuthDrawer
             mode={mode}
           onClose={() => setOpen(false)}

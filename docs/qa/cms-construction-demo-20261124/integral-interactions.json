@@ -1,0 +1,30 @@
+{
+  "accountDialog": "Abierto en móvil, campos Email/Password visibles y cerrado con su botón",
+  "search": {
+    "url": "http://localhost:5173/search?q=ciclismo",
+    "heading": "Resultados de busqueda"
+  },
+  "cart": {
+    "url": "http://localhost:5173/cart",
+    "headings": [
+      "Iniciar sesion",
+      "Tu carrito esta vacio",
+      "La tienda",
+      "Ciclismo",
+      "Te acompañamos",
+      "Privacidad y confianza"
+    ]
+  },
+  "footerPrivacy": {
+    "url": "http://localhost:5173/privacidad-newsletter",
+    "headings": [
+      "Iniciar sesion",
+      "Privacidad del newsletter",
+      "Privacidad del newsletter",
+      "La tienda",
+      "Ciclismo",
+      "Te acompañamos",
+      "Privacidad y confianza"
+    ]
+  }
+}

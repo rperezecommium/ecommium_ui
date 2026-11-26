@@ -1,0 +1,42 @@
+[
+  {
+    "size": {
+      "width": 820,
+      "height": 1024
+    },
+    "page": {
+      "documentWidth": 1260,
+      "viewport": 805
+    },
+    "modules": [
+      {
+        "scroll": 765,
+        "width": 765
+      },
+      {
+        "scroll": 445,
+        "width": 444.59375
+      }
+    ]
+  },
+  {
+    "size": {
+      "width": 1440,
+      "height": 900
+    },
+    "page": {
+      "documentWidth": 1425,
+      "viewport": 1425
+    },
+    "modules": [
+      {
+        "scroll": 1385,
+        "width": 1385
+      },
+      {
+        "scroll": 817,
+        "width": 816.59375
+      }
+    ]
+  }
+]

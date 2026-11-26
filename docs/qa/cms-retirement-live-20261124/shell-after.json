@@ -1,0 +1,689 @@
+[
+  {
+    "id": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+    "kind": "HEADER",
+    "width": 1440,
+    "after": {
+      "height": 182,
+      "width": 1440,
+      "text": "Enviar a:\nEspaña\nIdioma:\nEspañol\nEUR\n\n¡Siempre el mejor precio online!\n\nAyuda y contacto\nDevolucion facil en 30 dias\n4.5/5\nIniciar Sesion\nRegistrate\nCUENTA CLIENTE\nIniciar sesion\n\nAccede a tus pedidos y preferencias.\n\nIniciar sesion\nCrear cuenta\nEmail\nPassword\nIniciar sesion\nHe olvidado mi password\nCarrito\n0\nQA Categora Auditora 20261111 A\nBike Brakes\nBike Cockpit\nBike Drivetrain\nBike Workshop\nBikerShop\nNutritiom-pro\nnutritions\nbicicletas\nBikerShop\ncomponentes",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "He olvidado mi password",
+          "href": "/auth/password-reset"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        },
+        {
+          "text": "QA Categora Auditora 20261111 A",
+          "href": "/plp/qa-categoria-auditoria-20261111-a"
+        },
+        {
+          "text": "Bike Brakes",
+          "href": "/plp/bike-brakes"
+        },
+        {
+          "text": "Bike Cockpit",
+          "href": "/plp/bike-cockpit"
+        },
+        {
+          "text": "Bike Drivetrain",
+          "href": "/plp/bike-drivetrain"
+        },
+        {
+          "text": "Bike Workshop",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-9f92d709"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059"
+        },
+        {
+          "text": "Nutritiom-pro",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "nutritions",
+          "href": "/plp/imp-bf62d289bb-nutritions-8084421f"
+        },
+        {
+          "text": "bicicletas",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-a7371a92"
+        },
+        {
+          "text": "Ropa ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Accesorios y componentes",
+          "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a"
+        },
+        {
+          "text": "Zapatillas carretera",
+          "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e"
+        },
+        {
+          "text": "Zapatillas MTB",
+          "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d"
+        },
+        {
+          "text": "componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        }
+      ]
+    },
+    "sameText": true,
+    "sameLinks": true,
+    "heightDifference": 0
+  },
+  {
+    "id": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+    "kind": "HEADER",
+    "width": 768,
+    "after": {
+      "height": 234,
+      "width": 768,
+      "text": "Enviar a:\nEspaña\nIdioma:\nEspañol\nEUR\n\n¡Siempre el mejor precio online!\n\nAyuda y contacto\nDevolucion facil en 30 dias\n4.5/5\nIniciar Sesion\nRegistrate\nCUENTA CLIENTE\nIniciar sesion\n\nAccede a tus pedidos y preferencias.\n\nIniciar sesion\nCrear cuenta\nEmail\nPassword\nIniciar sesion\nHe olvidado mi password\nCarrito\n0\nQA Categora Auditora 20261111 A\nBike Brakes\nBike Cockpit\nBike Drivetrain\nBike Workshop\nBikerShop\nNutritiom-pro\nnutritions\nbicicletas\nBikerShop\ncomponentes",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "He olvidado mi password",
+          "href": "/auth/password-reset"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        },
+        {
+          "text": "QA Categora Auditora 20261111 A",
+          "href": "/plp/qa-categoria-auditoria-20261111-a"
+        },
+        {
+          "text": "Bike Brakes",
+          "href": "/plp/bike-brakes"
+        },
+        {
+          "text": "Bike Cockpit",
+          "href": "/plp/bike-cockpit"
+        },
+        {
+          "text": "Bike Drivetrain",
+          "href": "/plp/bike-drivetrain"
+        },
+        {
+          "text": "Bike Workshop",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-9f92d709"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059"
+        },
+        {
+          "text": "Nutritiom-pro",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "nutritions",
+          "href": "/plp/imp-bf62d289bb-nutritions-8084421f"
+        },
+        {
+          "text": "bicicletas",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-a7371a92"
+        },
+        {
+          "text": "Ropa ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Accesorios y componentes",
+          "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a"
+        },
+        {
+          "text": "Zapatillas carretera",
+          "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e"
+        },
+        {
+          "text": "Zapatillas MTB",
+          "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d"
+        },
+        {
+          "text": "componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        }
+      ]
+    },
+    "sameText": true,
+    "sameLinks": true,
+    "heightDifference": 0
+  },
+  {
+    "id": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+    "kind": "HEADER",
+    "width": 390,
+    "after": {
+      "height": 328,
+      "width": 390,
+      "text": "Enviar a:\nEspaña\nIdioma:\nEspañol\nEUR\n\n¡Siempre el mejor precio online!\n\nAyuda y contacto\nDevolucion facil en 30 dias\n4.5/5\nIniciar Sesion\nRegistrate\nCUENTA CLIENTE\nIniciar sesion\n\nAccede a tus pedidos y preferencias.\n\nIniciar sesion\nCrear cuenta\nEmail\nPassword\nIniciar sesion\nHe olvidado mi password\nCarrito\n0\nQA Categora Auditora 20261111 A\nBike Brakes\nBike Cockpit\nBike Drivetrain\nBike Workshop\nBikerShop\nNutritiom-pro\nnutritions\nbicicletas\nBikerShop\ncomponentes",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "He olvidado mi password",
+          "href": "/auth/password-reset"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        },
+        {
+          "text": "QA Categora Auditora 20261111 A",
+          "href": "/plp/qa-categoria-auditoria-20261111-a"
+        },
+        {
+          "text": "Bike Brakes",
+          "href": "/plp/bike-brakes"
+        },
+        {
+          "text": "Bike Cockpit",
+          "href": "/plp/bike-cockpit"
+        },
+        {
+          "text": "Bike Drivetrain",
+          "href": "/plp/bike-drivetrain"
+        },
+        {
+          "text": "Bike Workshop",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-9f92d709"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059"
+        },
+        {
+          "text": "Nutritiom-pro",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "nutritions",
+          "href": "/plp/imp-bf62d289bb-nutritions-8084421f"
+        },
+        {
+          "text": "bicicletas",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-a7371a92"
+        },
+        {
+          "text": "Ropa ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Accesorios y componentes",
+          "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a"
+        },
+        {
+          "text": "Zapatillas carretera",
+          "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e"
+        },
+        {
+          "text": "Zapatillas MTB",
+          "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d"
+        },
+        {
+          "text": "componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        }
+      ]
+    },
+    "sameText": true,
+    "sameLinks": true,
+    "heightDifference": 0
+  },
+  {
+    "id": "559ca9dd-5a9b-4801-b3a2-45dfb31bd58b",
+    "kind": "HEADER",
+    "width": 1440,
+    "after": {
+      "height": 101,
+      "width": 1440,
+      "text": "ECOMMIUM start\nCarrito\n0",
+      "links": [
+        {
+          "text": "ECOMMIUM start",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        }
+      ]
+    },
+    "sameText": true,
+    "sameLinks": true,
+    "heightDifference": 0
+  },
+  {
+    "id": "559ca9dd-5a9b-4801-b3a2-45dfb31bd58b",
+    "kind": "HEADER",
+    "width": 768,
+    "after": {
+      "height": 101,
+      "width": 768,
+      "text": "ECOMMIUM start\nCarrito\n0",
+      "links": [
+        {
+          "text": "ECOMMIUM start",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        }
+      ]
+    },
+    "sameText": true,
+    "sameLinks": true,
+    "heightDifference": 0
+  },
+  {
+    "id": "559ca9dd-5a9b-4801-b3a2-45dfb31bd58b",
+    "kind": "HEADER",
+    "width": 390,
+    "after": {
+      "height": 144,
+      "width": 390,
+      "text": "ECOMMIUM start\nCarrito\n0",
+      "links": [
+        {
+          "text": "ECOMMIUM start",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        }
+      ]
+    },
+    "sameText": true,
+    "sameLinks": true,
+    "heightDifference": 0
+  },
+  {
+    "id": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+    "kind": "FOOTER",
+    "width": 1440,
+    "after": {
+      "height": 632.1875,
+      "width": 1440,
+      "text": "INFORMACIÓN\nVivimos el ciclismo en cada detalle. Componentes, equipamiento y pequeñas ideas para que tu próxima salida sea la mejor.\nCarretera, montaña y ciudad: aquí empieza tu siguiente ruta.\nTALLER Y COMUNIDAD\nAvenida del Pedal, 24\n08001 Barcelona · España\nLunes a viernes · 9:00–18:00\nhola@ecommium.example\nLA TIENDA\nNuestra selección\nDescubre el catálogo\nTu cuenta ciclista\nNovedades para tu ruta\nComunidad Ecommium\nCICLISMO\nBicicletas y cuadros\nComponentes\nRopa de ciclismo\nNutrición e hidratación\nEquipamiento de taller\nTE ACOMPAÑAMOS\nMi cuenta y pedidos\nEncuentra tu equipamiento\nPrepara tu próxima ruta\nTodo para tu bicicleta\nEl club Ecommium\nPRIVACIDAD Y CONFIANZA\nPrivacidad del newsletter\nGestiona tu cuenta\nTus comunicaciones\nCompra con información\nInstagram\nFacebook\nYouTube\nX\n\n© 2026 Ecommium · Cada ruta empieza con una buena elección.",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Nuestra selección",
+          "href": "/home"
+        },
+        {
+          "text": "Descubre el catálogo",
+          "href": "/search"
+        },
+        {
+          "text": "Tu cuenta ciclista",
+          "href": "/account"
+        },
+        {
+          "text": "Novedades para tu ruta",
+          "href": "/search?q=ciclismo"
+        },
+        {
+          "text": "Comunidad Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Bicicletas y cuadros",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "Componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        },
+        {
+          "text": "Ropa de ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Nutrición e hidratación",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "Equipamiento de taller",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "Mi cuenta y pedidos",
+          "href": "/account"
+        },
+        {
+          "text": "Encuentra tu equipamiento",
+          "href": "/search"
+        },
+        {
+          "text": "Prepara tu próxima ruta",
+          "href": "/search?q=accesorios"
+        },
+        {
+          "text": "Todo para tu bicicleta",
+          "href": "/search?q=componentes"
+        },
+        {
+          "text": "El club Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Privacidad del newsletter",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Gestiona tu cuenta",
+          "href": "/account"
+        },
+        {
+          "text": "Tus comunicaciones",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Compra con información",
+          "href": "/search"
+        },
+        {
+          "text": "Instagram",
+          "href": "https://www.instagram.com/"
+        },
+        {
+          "text": "Facebook",
+          "href": "https://www.facebook.com/"
+        },
+        {
+          "text": "YouTube",
+          "href": "https://www.youtube.com/"
+        },
+        {
+          "text": "X",
+          "href": "https://x.com/"
+        }
+      ]
+    },
+    "sameText": true,
+    "sameLinks": true,
+    "heightDifference": 0
+  },
+  {
+    "id": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+    "kind": "FOOTER",
+    "width": 768,
+    "after": {
+      "height": 1038.78125,
+      "width": 768,
+      "text": "INFORMACIÓN\nVivimos el ciclismo en cada detalle. Componentes, equipamiento y pequeñas ideas para que tu próxima salida sea la mejor.\nCarretera, montaña y ciudad: aquí empieza tu siguiente ruta.\nTALLER Y COMUNIDAD\nAvenida del Pedal, 24\n08001 Barcelona · España\nLunes a viernes · 9:00–18:00\nhola@ecommium.example\nLA TIENDA\nNuestra selección\nDescubre el catálogo\nTu cuenta ciclista\nNovedades para tu ruta\nComunidad Ecommium\nCICLISMO\nBicicletas y cuadros\nComponentes\nRopa de ciclismo\nNutrición e hidratación\nEquipamiento de taller\nTE ACOMPAÑAMOS\nMi cuenta y pedidos\nEncuentra tu equipamiento\nPrepara tu próxima ruta\nTodo para tu bicicleta\nEl club Ecommium\nPRIVACIDAD Y CONFIANZA\nPrivacidad del newsletter\nGestiona tu cuenta\nTus comunicaciones\nCompra con información\nInstagram\nFacebook\nYouTube\nX\n\n© 2026 Ecommium · Cada ruta empieza con una buena elección.",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Nuestra selección",
+          "href": "/home"
+        },
+        {
+          "text": "Descubre el catálogo",
+          "href": "/search"
+        },
+        {
+          "text": "Tu cuenta ciclista",
+          "href": "/account"
+        },
+        {
+          "text": "Novedades para tu ruta",
+          "href": "/search?q=ciclismo"
+        },
+        {
+          "text": "Comunidad Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Bicicletas y cuadros",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "Componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        },
+        {
+          "text": "Ropa de ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Nutrición e hidratación",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "Equipamiento de taller",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "Mi cuenta y pedidos",
+          "href": "/account"
+        },
+        {
+          "text": "Encuentra tu equipamiento",
+          "href": "/search"
+        },
+        {
+          "text": "Prepara tu próxima ruta",
+          "href": "/search?q=accesorios"
+        },
+        {
+          "text": "Todo para tu bicicleta",
+          "href": "/search?q=componentes"
+        },
+        {
+          "text": "El club Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Privacidad del newsletter",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Gestiona tu cuenta",
+          "href": "/account"
+        },
+        {
+          "text": "Tus comunicaciones",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Compra con información",
+          "href": "/search"
+        },
+        {
+          "text": "Instagram",
+          "href": "https://www.instagram.com/"
+        },
+        {
+          "text": "Facebook",
+          "href": "https://www.facebook.com/"
+        },
+        {
+          "text": "YouTube",
+          "href": "https://www.youtube.com/"
+        },
+        {
+          "text": "X",
+          "href": "https://x.com/"
+        }
+      ]
+    },
+    "sameText": true,
+    "sameLinks": true,
+    "heightDifference": 0
+  },
+  {
+    "id": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+    "kind": "FOOTER",
+    "width": 390,
+    "after": {
+      "height": 1457.03125,
+      "width": 390,
+      "text": "INFORMACIÓN\nVivimos el ciclismo en cada detalle. Componentes, equipamiento y pequeñas ideas para que tu próxima salida sea la mejor.\nCarretera, montaña y ciudad: aquí empieza tu siguiente ruta.\nTALLER Y COMUNIDAD\nAvenida del Pedal, 24\n08001 Barcelona · España\nLunes a viernes · 9:00–18:00\nhola@ecommium.example\nLA TIENDA\nNuestra selección\nDescubre el catálogo\nTu cuenta ciclista\nNovedades para tu ruta\nComunidad Ecommium\nCICLISMO\nBicicletas y cuadros\nComponentes\nRopa de ciclismo\nNutrición e hidratación\nEquipamiento de taller\nTE ACOMPAÑAMOS\nMi cuenta y pedidos\nEncuentra tu equipamiento\nPrepara tu próxima ruta\nTodo para tu bicicleta\nEl club Ecommium\nPRIVACIDAD Y CONFIANZA\nPrivacidad del newsletter\nGestiona tu cuenta\nTus comunicaciones\nCompra con información\nInstagram\nFacebook\nYouTube\nX\n\n© 2026 Ecommium · Cada ruta empieza con una buena elección.",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Nuestra selección",
+          "href": "/home"
+        },
+        {
+          "text": "Descubre el catálogo",
+          "href": "/search"
+        },
+        {
+          "text": "Tu cuenta ciclista",
+          "href": "/account"
+        },
+        {
+          "text": "Novedades para tu ruta",
+          "href": "/search?q=ciclismo"
+        },
+        {
+          "text": "Comunidad Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Bicicletas y cuadros",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "Componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        },
+        {
+          "text": "Ropa de ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Nutrición e hidratación",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "Equipamiento de taller",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "Mi cuenta y pedidos",
+          "href": "/account"
+        },
+        {
+          "text": "Encuentra tu equipamiento",
+          "href": "/search"
+        },
+        {
+          "text": "Prepara tu próxima ruta",
+          "href": "/search?q=accesorios"
+        },
+        {
+          "text": "Todo para tu bicicleta",
+          "href": "/search?q=componentes"
+        },
+        {
+          "text": "El club Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Privacidad del newsletter",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Gestiona tu cuenta",
+          "href": "/account"
+        },
+        {
+          "text": "Tus comunicaciones",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Compra con información",
+          "href": "/search"
+        },
+        {
+          "text": "Instagram",
+          "href": "https://www.instagram.com/"
+        },
+        {
+          "text": "Facebook",
+          "href": "https://www.facebook.com/"
+        },
+        {
+          "text": "YouTube",
+          "href": "https://www.youtube.com/"
+        },
+        {
+          "text": "X",
+          "href": "https://x.com/"
+        }
+      ]
+    },
+    "sameText": true,
+    "sameLinks": true,
+    "heightDifference": 0
+  }
+]

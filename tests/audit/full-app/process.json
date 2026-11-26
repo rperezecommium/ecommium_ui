@@ -1,0 +1,2623 @@
+{
+  "schemaVersion": 1,
+  "name": "Proceso completo de QA Admin y Storefront",
+  "date": "2026-11-25",
+  "scope": "UI y BFF existentes; sin acceso ni cambios al repositorio backend",
+  "statusValues": [
+    "APROBADO",
+    "FALLIDO",
+    "BLOQUEADO",
+    "NO_EJECUTADO"
+  ],
+  "rules": [
+    "Un test candidato no acredita el proceso completo",
+    "Mocks, navegador aislado e integración real se reportan por separado",
+    "No guardar credenciales, cookies ni tokens en evidencias",
+    "Escrituras solo en recursos QA identificados; no alterar configuración comercial existente",
+    "Sin envío real de email ni cobros reales; sandbox y buzón QA verificados antes de ejecutar",
+    "LCP e INP p75 requieren datos de campo; Lighthouse de laboratorio no los certifica"
+  ],
+  "processes": [
+    {
+      "id": "A01",
+      "surface": "Admin",
+      "name": "Acceso y sesión",
+      "route": "/auth/login",
+      "candidateTestFiles": [
+        "tests/admin-login-action.test.mjs",
+        "tests/admin-session-cookie.test.mjs",
+        "tests/admin-context-resolution.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A01-01",
+          "action": "Login",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A01-02",
+          "action": "Contraseña incorrecta",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A01-03",
+          "action": "Refresh y rotación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A01-04",
+          "action": "Logout",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A01-05",
+          "action": "Recuperación de contraseña",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A02",
+      "surface": "Admin",
+      "name": "Contexto y multitienda",
+      "route": "/admin/configuracion/contexto",
+      "candidateTestFiles": [
+        "tests/admin-context-resolution.test.mjs",
+        "tests/shop-read-preparation.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A02-01",
+          "action": "Contexto predeterminado",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A02-02",
+          "action": "Selector sin defaultContext",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A02-03",
+          "action": "Cambiar tienda",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A02-04",
+          "action": "Persistencia tras recarga",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A02-05",
+          "action": "Aislamiento entre tiendas",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A03",
+      "surface": "Admin",
+      "name": "Equipo y permisos",
+      "route": "/admin/configuracion/equipo",
+      "candidateTestFiles": [
+        "tests/employees-actions.test.mjs",
+        "tests/admin-permissions-session.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A03-01",
+          "action": "Alta QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A03-02",
+          "action": "Edición",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A03-03",
+          "action": "Solo lectura",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A03-04",
+          "action": "Rechazo de mutación sin permiso",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A03-05",
+          "action": "Desactivación QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A04",
+      "surface": "Admin",
+      "name": "Configuración regional",
+      "route": "/admin/configuracion/contexto",
+      "candidateTestFiles": [
+        "tests/shop-creation-preparation.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A04-01",
+          "action": "Moneda y locale",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A04-02",
+          "action": "Unidades",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A04-03",
+          "action": "Perfil fiscal",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A04-04",
+          "action": "Herencia",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A04-05",
+          "action": "Reabrir configuración",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A05",
+      "surface": "Admin",
+      "name": "Categorías y marcas",
+      "route": "/admin/catalogo/categorias",
+      "candidateTestFiles": [
+        "tests/category-list-actions.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A05-01",
+          "action": "Crear QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A05-02",
+          "action": "Editar QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A05-03",
+          "action": "Nombre en Productos",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A05-04",
+          "action": "Jerarquía",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A05-05",
+          "action": "Desactivar QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A06",
+      "surface": "Admin",
+      "name": "Características y atributos",
+      "route": "/admin/catalogo/atributos-caracteristicas",
+      "candidateTestFiles": [
+        "tests/catalog-feature-create.test.mjs",
+        "tests/catalog-feature-update.test.mjs",
+        "tests/product-feature-flow.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A06-01",
+          "action": "Crear campo QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A06-02",
+          "action": "Añadir valor",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A06-03",
+          "action": "Asociar categoría",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A06-04",
+          "action": "Editar desde producto",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A06-05",
+          "action": "Preservar selecciones",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A07",
+      "surface": "Admin",
+      "name": "Productos",
+      "route": "/admin/products",
+      "candidateTestFiles": [
+        "tests/product-editor.test.mjs",
+        "tests/product-save-operation-action.test.mjs",
+        "tests/product-list-view.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A07-01",
+          "action": "Crear borrador QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A07-02",
+          "action": "Guardar y reabrir",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A07-03",
+          "action": "Activar QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A07-04",
+          "action": "Preview",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A07-05",
+          "action": "Duplicar QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A07-06",
+          "action": "Filtros y paginación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A08",
+      "surface": "Admin",
+      "name": "Variantes",
+      "route": "/admin/products",
+      "candidateTestFiles": [
+        "tests/product-registered-combinations.test.mjs",
+        "tests/product-variant-media.test.mjs",
+        "tests/product-variant-shipping.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A08-01",
+          "action": "Generar combinaciones",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A08-02",
+          "action": "SKU único",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A08-03",
+          "action": "Medios propios",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A08-04",
+          "action": "Precio propio e herencia",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A08-05",
+          "action": "Transporte propio e herencia",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A08-06",
+          "action": "Reabrir",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A09",
+      "surface": "Admin",
+      "name": "Media",
+      "route": "/admin/catalogo/media",
+      "candidateTestFiles": [
+        "tests/media-admin.test.mjs",
+        "tests/media-upload-security.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A09-01",
+          "action": "Subir QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A09-02",
+          "action": "Portada",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A09-03",
+          "action": "Orden",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A09-04",
+          "action": "Caption",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A09-05",
+          "action": "Reemplazar QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A09-06",
+          "action": "Archivo inválido",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A10",
+      "surface": "Admin",
+      "name": "Stock",
+      "route": "/admin/catalogo/stock",
+      "candidateTestFiles": [
+        "tests/stock-admin.test.mjs",
+        "tests/product-inventory.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A10-01",
+          "action": "Consultar almacén",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A10-02",
+          "action": "Editar stock QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A10-03",
+          "action": "Stock por variante",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A10-04",
+          "action": "Agotado",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A10-05",
+          "action": "Concurrencia de compra",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A11",
+      "surface": "Admin",
+      "name": "Importación CSV",
+      "route": "/admin/catalogo/importar",
+      "candidateTestFiles": [
+        "tests/catalog-csv-import.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A11-01",
+          "action": "Admisión",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A11-02",
+          "action": "Archivo inválido",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A11-03",
+          "action": "Importación QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A11-04",
+          "action": "Error parcial",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A11-05",
+          "action": "Seguimiento",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A11-06",
+          "action": "Reintento sin duplicados",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A12",
+      "surface": "Admin",
+      "name": "Precios e impuestos",
+      "route": "/admin/configuracion/precios",
+      "candidateTestFiles": [
+        "tests/pricing-admin.test.mjs",
+        "tests/pricing-conditional-price.test.mjs",
+        "tests/pricing-reviewed-removal.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A12-01",
+          "action": "Precio normal",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A12-02",
+          "action": "Tabla",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A12-03",
+          "action": "Reglas y prioridades",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A12-04",
+          "action": "Vigencias",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A12-05",
+          "action": "Impuestos",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A12-06",
+          "action": "Simulación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A12-07",
+          "action": "Consistencia con checkout",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A13",
+      "surface": "Admin",
+      "name": "Servicios adicionales",
+      "route": "/admin/catalogo/offerings",
+      "candidateTestFiles": [
+        "tests/offering-list-actions.test.mjs",
+        "tests/product-editor.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A13-01",
+          "action": "Crear QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A13-02",
+          "action": "Asociar producto",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A13-03",
+          "action": "Asociar variante",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A13-04",
+          "action": "Compra con servicio",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A13-05",
+          "action": "Desactivar QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A14",
+      "surface": "Admin",
+      "name": "CMS ajustes",
+      "route": "/admin/cms/ajustes-basicos",
+      "candidateTestFiles": [
+        "tests/cms-shell-composition.test.mjs",
+        "tests/cms-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A14-01",
+          "action": "Guardar y reabrir",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A14-02",
+          "action": "Ancho y gaps",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A14-03",
+          "action": "Colores",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A14-04",
+          "action": "Tipografías",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A14-05",
+          "action": "Breakpoints",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A14-06",
+          "action": "Herencia y override",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A15",
+      "surface": "Admin",
+      "name": "CMS módulos",
+      "route": "/admin/cms/modulos",
+      "candidateTestFiles": [
+        "tests/cms-independent-modules.test.mjs",
+        "tests/cms-unified-builder.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A15-01",
+          "action": "Crear QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A15-02",
+          "action": "Visual y registered",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A15-03",
+          "action": "Campos expuestos",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A15-04",
+          "action": "CSS seguro",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A15-05",
+          "action": "Preview responsive",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A15-06",
+          "action": "Guardar y reabrir",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A16",
+      "surface": "Admin",
+      "name": "CMS secciones",
+      "route": "/admin/cms/secciones",
+      "candidateTestFiles": [
+        "tests/cms-section-tree.test.mjs",
+        "tests/cms-section-tree-controls.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A16-01",
+          "action": "Insertar módulos",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A16-02",
+          "action": "Editar copia",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A16-03",
+          "action": "Anidar",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A16-04",
+          "action": "Arrastrar",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A16-05",
+          "action": "Herencia",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A16-06",
+          "action": "Reabrir",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A17",
+      "surface": "Admin",
+      "name": "CMS plantillas",
+      "route": "/admin/cms/plantillas",
+      "candidateTestFiles": [
+        "tests/cms-template-create.test.mjs",
+        "tests/cms-composition-template-copy.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A17-01",
+          "action": "Crear SECTION",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A17-02",
+          "action": "Crear PAGE",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A17-03",
+          "action": "Copiar",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A17-04",
+          "action": "Independencia de origen",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A17-05",
+          "action": "Archivar QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A18",
+      "surface": "Admin",
+      "name": "CMS páginas",
+      "route": "/admin/cms",
+      "candidateTestFiles": [
+        "tests/cms-page-composition.test.mjs",
+        "tests/cms-page-coordination.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A18-01",
+          "action": "Componer QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A18-02",
+          "action": "Guardar",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A18-03",
+          "action": "Reabrir",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A18-04",
+          "action": "Preview",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A18-05",
+          "action": "Publicar QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A18-06",
+          "action": "Conflicto",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A18-07",
+          "action": "Despublicar QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A19",
+      "surface": "Admin",
+      "name": "Headers y footers",
+      "route": "/admin/cms/headers",
+      "candidateTestFiles": [
+        "tests/cms-shell-actions.test.mjs",
+        "tests/cms-site-parts-delete.test.mjs",
+        "tests/cms-site-part-preview.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A19-01",
+          "action": "Crear QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A19-02",
+          "action": "Insertar sección",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A19-03",
+          "action": "Asignar en tienda QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A19-04",
+          "action": "Herencia",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A19-05",
+          "action": "Preview",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A19-06",
+          "action": "Publicar QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A19-07",
+          "action": "Bloquear borrado en uso",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A20",
+      "surface": "Admin",
+      "name": "SEO",
+      "route": "/admin/configuracion/seo",
+      "candidateTestFiles": [
+        "tests/seo-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A20-01",
+          "action": "Crear ruta QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A20-02",
+          "action": "Canonical",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A20-03",
+          "action": "Alias",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A20-04",
+          "action": "Redirect",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A20-05",
+          "action": "Sitemap",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A20-06",
+          "action": "404",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A21",
+      "surface": "Admin",
+      "name": "Búsqueda",
+      "route": "/admin/catalogo/search",
+      "candidateTestFiles": [
+        "tests/search-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A21-01",
+          "action": "Preview",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A21-02",
+          "action": "Indexación QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A21-03",
+          "action": "Consulta",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A21-04",
+          "action": "Filtros",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A21-05",
+          "action": "Orden",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A21-06",
+          "action": "Actualización tras activar QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A22",
+      "surface": "Admin",
+      "name": "Transporte",
+      "route": "/admin/configuracion/transporte",
+      "candidateTestFiles": [
+        "tests/shipping-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A22-01",
+          "action": "Transportista QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A22-02",
+          "action": "Zonas",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A22-03",
+          "action": "Rangos",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A22-04",
+          "action": "Fuera de rango",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A22-05",
+          "action": "Almacenes",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A22-06",
+          "action": "SLA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A22-07",
+          "action": "Recogida",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A22-08",
+          "action": "Cotización real",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A23",
+      "surface": "Admin",
+      "name": "Pagos",
+      "route": "/admin/pagos",
+      "candidateTestFiles": [
+        "tests/payments-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A23-01",
+          "action": "Provider sandbox",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A23-02",
+          "action": "Afiliación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A23-03",
+          "action": "Routing",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A23-04",
+          "action": "Lookup",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A23-05",
+          "action": "Éxito",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A23-06",
+          "action": "Rechazo",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A23-07",
+          "action": "Cancelación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A23-08",
+          "action": "Reintento",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A24",
+      "surface": "Admin",
+      "name": "Promociones",
+      "route": "/admin/promociones",
+      "candidateTestFiles": [
+        "tests/promotions-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A24-01",
+          "action": "Cupón QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A24-02",
+          "action": "Vigencia",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A24-03",
+          "action": "Restricciones",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A24-04",
+          "action": "Límites",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A24-05",
+          "action": "Descuento en checkout",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A25",
+      "surface": "Admin",
+      "name": "Clientes",
+      "route": "/admin/clientes",
+      "candidateTestFiles": [
+        "tests/customers-admin.test.mjs",
+        "tests/customer-commercial-policy.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A25-01",
+          "action": "Alta QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A25-02",
+          "action": "Edición",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A25-03",
+          "action": "Direcciones",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A25-04",
+          "action": "Grupo comercial",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A25-05",
+          "action": "Aprobación B2B",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A25-06",
+          "action": "Historial",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A25-07",
+          "action": "Solo lectura",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A26",
+      "surface": "Admin",
+      "name": "Pedidos y fulfillment",
+      "route": "/admin/pedidos",
+      "candidateTestFiles": [
+        "tests/orders-admin.test.mjs",
+        "tests/shipping-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A26-01",
+          "action": "Localizar pedido QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A26-02",
+          "action": "Líneas e importes",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A26-03",
+          "action": "Pago",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A26-04",
+          "action": "Preparación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A26-05",
+          "action": "Envío",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A26-06",
+          "action": "Tracking",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A26-07",
+          "action": "Sin duplicados",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A27",
+      "surface": "Admin",
+      "name": "Facturas",
+      "route": "/admin/pagos",
+      "candidateTestFiles": [
+        "tests/invoices-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A27-01",
+          "action": "Emisión QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A27-02",
+          "action": "Consulta",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A27-03",
+          "action": "Descarga",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A27-04",
+          "action": "Importes",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A27-05",
+          "action": "Propiedad y permisos",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A28",
+      "surface": "Admin",
+      "name": "Postventa",
+      "route": "/admin/postventa",
+      "candidateTestFiles": [
+        "tests/after-sales-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A28-01",
+          "action": "Solicitud QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A28-02",
+          "action": "Nombre responsable",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A28-03",
+          "action": "Asignación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A28-04",
+          "action": "Mensajes",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A28-05",
+          "action": "Evidencias",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A28-06",
+          "action": "Devolución",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A28-07",
+          "action": "Reembolso parcial y total sandbox",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A28-08",
+          "action": "Cierre",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A29",
+      "surface": "Admin",
+      "name": "Comunicaciones",
+      "route": "/admin/configuracion/comunicaciones",
+      "candidateTestFiles": [
+        "tests/communications-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A29-01",
+          "action": "Plantilla QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A29-02",
+          "action": "Preview",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A29-03",
+          "action": "Activación QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A29-04",
+          "action": "Envío a buzón QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A29-05",
+          "action": "Fallo",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A29-06",
+          "action": "Retry",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A30",
+      "surface": "Admin",
+      "name": "Automatización",
+      "route": "/admin/configuracion/automatizacion",
+      "candidateTestFiles": [
+        "tests/automation-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A30-01",
+          "action": "Regla QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A30-02",
+          "action": "Condiciones",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A30-03",
+          "action": "Activación QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A30-04",
+          "action": "Ejecución",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A30-05",
+          "action": "Fallo",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A30-06",
+          "action": "Retry sin duplicados",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A31",
+      "surface": "Admin",
+      "name": "Analítica y salud",
+      "route": "/admin/analitica",
+      "candidateTestFiles": [
+        "tests/analytics-admin.test.mjs",
+        "tests/admin-health.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A31-01",
+          "action": "KPIs",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A31-02",
+          "action": "Rango de fechas",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A31-03",
+          "action": "Eventos",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A31-04",
+          "action": "Dependencia degradada",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A31-05",
+          "action": "Estado desconocido",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A31-06",
+          "action": "Correlación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "A32",
+      "surface": "Admin",
+      "name": "Consentimiento",
+      "route": "/admin/configuracion/consent",
+      "candidateTestFiles": [
+        "tests/consent-configuration-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "A32-01",
+          "action": "Borrador QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A32-02",
+          "action": "Publicación QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A32-03",
+          "action": "Categorías",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A32-04",
+          "action": "Terceros",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "A32-05",
+          "action": "Revisión",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "F01",
+      "surface": "Storefront",
+      "name": "Navegación y CMS",
+      "route": "/module-test-page",
+      "candidateTestFiles": [
+        "tests/storefront-public-routing.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "F01-01",
+          "action": "Home",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F01-02",
+          "action": "Landing",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F01-03",
+          "action": "Header",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F01-04",
+          "action": "Footer",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F01-05",
+          "action": "Enlaces",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F01-06",
+          "action": "404",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F01-07",
+          "action": "Contenido publicado",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "F02",
+      "surface": "Storefront",
+      "name": "PLP",
+      "route": "/plp",
+      "candidateTestFiles": [
+        "tests/storefront-plp.test.mjs",
+        "tests/storefront-plp-cards.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "F02-01",
+          "action": "Categoría real",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F02-02",
+          "action": "Filtros",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F02-03",
+          "action": "Orden",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F02-04",
+          "action": "Paginación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F02-05",
+          "action": "Precio",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F02-06",
+          "action": "Disponibilidad",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F02-07",
+          "action": "Responsive",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "F03",
+      "surface": "Storefront",
+      "name": "PDP",
+      "route": "/pdp",
+      "candidateTestFiles": [
+        "tests/pdp-variant-options.test.mjs",
+        "tests/product-storefront-preview.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "F03-01",
+          "action": "Producto real",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F03-02",
+          "action": "Variantes",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F03-03",
+          "action": "Galería",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F03-04",
+          "action": "Precio",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F03-05",
+          "action": "Stock",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F03-06",
+          "action": "Servicios",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F03-07",
+          "action": "Añadir al carrito",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "F04",
+      "surface": "Storefront",
+      "name": "Búsqueda",
+      "route": "/search",
+      "candidateTestFiles": [
+        "tests/search-admin.test.mjs",
+        "tests/storefront-public-routing.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "F04-01",
+          "action": "Consulta",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F04-02",
+          "action": "Sin resultados",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F04-03",
+          "action": "Filtros",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F04-04",
+          "action": "Enlaces PDP",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F04-05",
+          "action": "Eventos",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "F05",
+      "surface": "Storefront",
+      "name": "Cuenta cliente",
+      "route": "/account",
+      "candidateTestFiles": [
+        "tests/storefront-account.test.mjs",
+        "tests/storefront-activation.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "F05-01",
+          "action": "Registro QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F05-02",
+          "action": "Activación explícita",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F05-03",
+          "action": "Login",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F05-04",
+          "action": "Logout",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F05-05",
+          "action": "Recuperación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F05-06",
+          "action": "Direcciones",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F05-07",
+          "action": "Propiedad",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "F06",
+      "surface": "Storefront",
+      "name": "Carrito",
+      "route": "/cart",
+      "candidateTestFiles": [
+        "tests/rotate-purchased-cart.test.mjs",
+        "tests/storefront-checkout-context.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "F06-01",
+          "action": "Añadir",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F06-02",
+          "action": "Modificar",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F06-03",
+          "action": "Eliminar",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F06-04",
+          "action": "Variantes",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F06-05",
+          "action": "Recarga",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F06-06",
+          "action": "Totales",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F06-07",
+          "action": "Carrito posterior a compra",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "F07",
+      "surface": "Storefront",
+      "name": "Checkout",
+      "route": "/checkout",
+      "candidateTestFiles": [
+        "tests/storefront-payments.test.mjs",
+        "tests/storefront-checkout-context.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "F07-01",
+          "action": "Invitado",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F07-02",
+          "action": "Registrado",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F07-03",
+          "action": "Direcciones",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F07-04",
+          "action": "Transporte",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F07-05",
+          "action": "Promoción",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F07-06",
+          "action": "Impuestos",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F07-07",
+          "action": "Validación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F07-08",
+          "action": "Cambio de contexto",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "F08",
+      "surface": "Storefront",
+      "name": "Pago y confirmación",
+      "route": "/checkout/confirmation",
+      "candidateTestFiles": [
+        "tests/storefront-payments.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "F08-01",
+          "action": "Stripe sandbox",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F08-02",
+          "action": "PayPal sandbox",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F08-03",
+          "action": "Rechazo",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F08-04",
+          "action": "Cancelación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F08-05",
+          "action": "Retorno repetido",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F08-06",
+          "action": "Pedido único",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F08-07",
+          "action": "Importes conciliados",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "F09",
+      "surface": "Storefront",
+      "name": "Compras y documentos",
+      "route": "/account",
+      "candidateTestFiles": [
+        "tests/storefront-order-tracking.test.mjs",
+        "tests/invoices-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "F09-01",
+          "action": "Historial",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F09-02",
+          "action": "Detalle",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F09-03",
+          "action": "Factura",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F09-04",
+          "action": "Tracking invitado",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F09-05",
+          "action": "Acceso ajeno denegado",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "F10",
+      "surface": "Storefront",
+      "name": "Solicitud postventa",
+      "route": "/account",
+      "candidateTestFiles": [
+        "tests/after-sales-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "F10-01",
+          "action": "Seleccionar pedido QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F10-02",
+          "action": "Líneas",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F10-03",
+          "action": "Motivo",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F10-04",
+          "action": "Evidencias",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F10-05",
+          "action": "Envío",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F10-06",
+          "action": "Estado y mensajes",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "F11",
+      "surface": "Storefront",
+      "name": "Consentimiento y newsletter",
+      "route": "/",
+      "candidateTestFiles": [
+        "tests/storefront-consent.test.mjs",
+        "tests/newsletter.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "F11-01",
+          "action": "Rechazar",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F11-02",
+          "action": "Aceptar",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F11-03",
+          "action": "Cambiar preferencias",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F11-04",
+          "action": "No terceros prematuros",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F11-05",
+          "action": "Alta QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F11-06",
+          "action": "Confirmación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "F11-07",
+          "action": "Baja",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "X01",
+      "surface": "Transversal",
+      "name": "Compra completa",
+      "route": "/",
+      "candidateTestFiles": [
+        "tests/orders-admin.test.mjs",
+        "tests/storefront-payments.test.mjs",
+        "tests/after-sales-admin.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "X01-01",
+          "action": "Catálogo QA",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X01-02",
+          "action": "Publicación",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X01-03",
+          "action": "Compra sandbox",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X01-04",
+          "action": "Pedido",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X01-05",
+          "action": "Stock",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X01-06",
+          "action": "Factura",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X01-07",
+          "action": "Envío",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X01-08",
+          "action": "Postventa",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X01-09",
+          "action": "Refund",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X01-10",
+          "action": "Cierre",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    },
+    {
+      "id": "X02",
+      "surface": "Transversal",
+      "name": "Calidad y recuperación",
+      "route": "/",
+      "candidateTestFiles": [
+        "tests/security-hardening.test.mjs",
+        "tests/admin-drawer-size.test.mjs"
+      ],
+      "cases": [
+        {
+          "id": "X02-01",
+          "action": "Desktop 1440",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X02-02",
+          "action": "Tablet 768",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X02-03",
+          "action": "Móvil 390",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X02-04",
+          "action": "Teclado",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X02-05",
+          "action": "Axe",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X02-06",
+          "action": "Sin overflow",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X02-07",
+          "action": "Timeout",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X02-08",
+          "action": "Conflicto",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X02-09",
+          "action": "Doble envío",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        },
+        {
+          "id": "X02-10",
+          "action": "Performance",
+          "status": "NO_EJECUTADO",
+          "evidence": []
+        }
+      ],
+      "requiredChecks": [
+        "Persistencia tras recarga",
+        "Permisos y scope",
+        "Validación y errores",
+        "Ausencia de efectos duplicados",
+        "Responsive y accesibilidad"
+      ],
+      "integrationStatus": "NO_EJECUTADO"
+    }
+  ],
+  "commands": {
+    "allIsolated": "npm run test:full-app",
+    "selectedPhases": "npm run test:full-app -- --phases=unit,contracts",
+    "rebuildReport": "npm run test:full-app -- --refresh",
+    "listPhases": "npm run test:full-app -- --list"
+  }
+}

@@ -1,3 +1,4 @@
+import {assessHealth,type HealthAssessment} from "../configuracion/health-assessment";
 import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
@@ -54,6 +55,7 @@ export type AnalyticsSummary = {
 };
 
 export type AnalyticsHealth = {
+  assessment?: HealthAssessment;
   status?: string;
   service?: string;
   persistenceDriver?: string;
@@ -201,6 +203,7 @@ function scopedParams(context: AdminContext, extra?: Record<string, string | num
 function normalizeHealth(value: unknown): AnalyticsHealth {
   const source = asRecord(value);
   return {
+    assessment:assessHealth(value),
     status: asOptionalString(source.status),
     service: asOptionalString(source.service),
     persistenceDriver: asOptionalString(source.persistenceDriver),

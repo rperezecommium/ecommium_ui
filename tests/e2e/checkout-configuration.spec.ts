@@ -6,6 +6,13 @@ import net from "node:net";
 
 const organizationId = "11111111-1111-4111-8111-111111111111";
 const shopId = "22222222-2222-4222-8222-222222222222";
+// Sessions returns a JWT. The compact UI cookie rehydrates scoped permissions from its claims.
+// This token is accepted only by this in-process BFF fixture, never by real Sessions.
+const mockAccessToken = [
+  Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url"),
+  Buffer.from(JSON.stringify({ sub: "employee-checkout", principalType: "EMPLOYEE", scope: "admin", permissions: ["checkout.configuration.write"], roles: ["admin"] })).toString("base64url"),
+  "fixture-signature",
+].join(".");
 
 let bffServer: Server;
 let bffPort = 0;
@@ -84,9 +91,9 @@ async function startBffMock() {
 
     if (request.method === "POST" && url.pathname === "/api/v1/auth/login") {
       sendJson(response, 200, {
-        profile: { principalId: "employee-checkout", principalType: "EMPLOYEE", email: "admin@example.com" },
-        session: { sessionId: "session-checkout", principalType: "EMPLOYEE", scope: "admin" },
-        tokens: { accessToken: "access-token", refreshToken: "refresh-token", expiresInSeconds: 900 },
+        profile: { principalId: "employee-checkout", principalType: "EMPLOYEE", email: "admin@example.com", permissions: ["checkout.configuration.write"], roles: ["admin"] },
+        session: { sessionId: "session-checkout", principalType: "EMPLOYEE", scope: "admin", permissions: ["checkout.configuration.write"], roles: ["admin"] },
+        tokens: { accessToken: mockAccessToken, refreshToken: "refresh-token", expiresInSeconds: 900 },
       });
       return;
     }
@@ -130,7 +137,7 @@ async function startBffMock() {
         sendJson(response, 400, { message: "invalid tenant context" });
         return;
       }
-      if (request.headers.authorization !== "Bearer access-token") {
+      if (request.headers.authorization !== `Bearer ${mockAccessToken}`) {
         sendJson(response, 401, { message: "missing authorization" });
         return;
       }
@@ -171,7 +178,7 @@ async function waitForNext(url: string) {
   const deadline = Date.now() + 45_000;
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
       if (response.status < 500) return;
     } catch {
       // Next is still starting.
@@ -184,10 +191,13 @@ async function waitForNext(url: string) {
 
 async function startNext() {
   nextPort = await freePort();
-  nextProcess = spawn("npx", ["next", "start", "-p", String(nextPort)], {
+  nextProcess = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(nextPort)], {
     cwd: process.cwd(),
     env: {
       ...process.env,
+      ECOMMIUM_STOREFRONT_BFF_BASE_URL: "https://storefront.example.invalid/api/v1",
+      ECOMMIUM_STOREFRONT_ORGANIZATION_ID: organizationId,
+      ECOMMIUM_STOREFRONT_SHOP_ID: shopId,
       ECOMMIUM_ADMIN_BFF_BASE_URL: `http://127.0.0.1:${bffPort}/api/v1`,
     },
   });
@@ -197,7 +207,7 @@ async function startNext() {
 async function login(page: Page) {
   await page.goto(`http://127.0.0.1:${nextPort}/auth/login`);
   await page.getByLabel("Email").fill("admin@example.com");
-  await page.getByLabel("Password").fill("secret123");
+  await page.locator('input[name="password"]').fill("secret123");
   await page.getByRole("button", { name: "Entrar con BFF Auth" }).click();
   await page.waitForURL(`http://127.0.0.1:${nextPort}/admin`);
 }

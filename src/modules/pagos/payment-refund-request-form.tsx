@@ -24,12 +24,11 @@ export function PaymentRefundRequestForm({
       <input name="currency" type="hidden" value={currency} />
       <input name="refundId" type="hidden" value={refundId} />
       <label className="adminField">
-        <span>Importe a reembolsar ({currency}, céntimos)</span>
-        <input defaultValue={refundableMinor} max={refundableMinor} min="1" name="valueMinor" required type="number" />
+        <input defaultValue={refundableMinor} max={refundableMinor} min="1" name="valueMinor" aria-label={`Importe en céntimos de ${currency}`} title={`Introduce el importe en céntimos de ${currency}`} step="1" required type="number" />
       </label>
-      <label className="adminCheckbox">
+      <label className="adminCheckbox" title="El importe se devolverá al método de pago original.">
         <input name="confirmed" required type="checkbox" />
-        Confirmo que este importe se devolverá al método de pago original.
+        Confirmar reembolso
       </label>
       <button className="adminButton adminButtonPrimary" type="submit">
         Solicitar reembolso

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { AdminResourceDrawer } from "../../shared/ui/admin-resource-drawer";
+import { OfferingActionsMenu } from "./offering-actions-menu";
 import type { ProductOfferingRecord } from "./product-editor-types";
 
 type Action = (formData: FormData) => Promise<void>;
@@ -10,9 +11,14 @@ type OfferingFilters = {
   status?: string;
   panel?: "create" | "edit" | "";
   offeringId?: string;
+  offeringMessage?: string;
+  createdOfferingId?: string;
 };
 
 type Props = {
+  canManage: boolean;
+  defaultCurrency: string;
+  error?: string;
   offerings: ProductOfferingRecord[];
   filters: OfferingFilters;
   createAction: Action;
@@ -51,6 +57,9 @@ function priceValue(offering?: ProductOfferingRecord) {
 }
 
 export function CatalogOfferingsPage({
+  canManage,
+  defaultCurrency,
+  error,
   offerings,
   filters,
   createAction,
@@ -62,36 +71,32 @@ export function CatalogOfferingsPage({
     : undefined;
   const isCreatePanel = filters.panel === "create";
   const isEditPanel = filters.panel === "edit" && selectedOffering;
-  const showDrawer = isCreatePanel || Boolean(isEditPanel);
+  const showDrawer = canManage && (isCreatePanel || Boolean(isEditPanel));
   const closeDrawerHref = offeringHref(filters, { panel: "", offeringId: "" });
 
   return (
-    <main className={`adminPage adminFeaturePage ${showDrawer ? "adminFeaturePageWithDrawer" : ""}`}>
-      <div className="adminFeatureContent">
+    <main className="adminPage catalogEntityListPage offeringsListPage">
+      <div>
         <div className="adminBreadcrumb">Admin / Catalogo / Offerings</div>
         <div className="adminPageHeader">
           <div>
             <h1 className="adminPageTitle">Offerings / Servicios adicionales</h1>
             <p className="adminPageIntro">Crea servicios vendibles reutilizables y asignables a variantes de producto.</p>
           </div>
-          <Link className="adminButton adminButtonPrimary" href={offeringHref(filters, { panel: "create", offeringId: "" })}>
-            <Plus aria-hidden="true" size={16} />
-            Crear offering
-          </Link>
         </div>
 
-        <section className="adminFeatureListArea" aria-label="Offerings">
-          <div className="adminFeatureListHeader">
-            <div>
-              <h2>Servicios adicionales</h2>
-              <p>{offerings.length} registros encontrados.</p>
-            </div>
-            <Link className="adminButton" href="/admin/catalogo/offerings">
-              Refrescar
-            </Link>
+        <section className="offeringsListArea" aria-label="Offerings">
+          {error ? <div className="adminBanner adminBannerError" role="alert">{error}</div> : null}
+          {filters.offeringMessage ? <div className="adminBanner">{filters.offeringMessage}</div> : null}
+          {filters.createdOfferingId ? <div className="adminBanner adminBannerInfo" role="status">
+            <p>Servicio creado. Referencia: <code>{filters.createdOfferingId}</code>.</p>
+            {!offerings.some(item => item.offeringId === filters.createdOfferingId) ? <p>La creación está confirmada; el listado aún no refleja este servicio. Puedes volver a buscar por su referencia sin repetir el alta.</p> : null}
+          </div> : null}
+          <div className="employeesToolbar">
+            <p className="adminMuted">{offerings.length} servicios encontrados.</p>
+            {canManage ? <Link className="employeesTextAction" href={offeringHref(filters, {panel:"create",offeringId:""})}>Crear nueva</Link> : null}
           </div>
-
-          <form aria-label="Filtros de offerings" className="adminFeatureFilterBar" method="get">
+          <form aria-label="Filtros de offerings" className="offeringsSearchForm" method="get">
             <label className="adminField adminFeatureFilterName">
               <span>Nombre</span>
               <input aria-label="Filtrar offering por nombre" defaultValue={filters.q ?? ""} name="q" placeholder="Garantia" />
@@ -118,8 +123,8 @@ export function CatalogOfferingsPage({
             </Link>
           </form>
 
-          <div className="adminFeatureTableShell">
-            <table className="adminTable adminFeatureTable">
+          <div className="employeesWorkspace"><div className="adminTableScroller">
+            <table className="adminTable">
               <thead>
                 <tr>
                   <th scope="col">ID</th>
@@ -139,10 +144,16 @@ export function CatalogOfferingsPage({
                   <tr key={offering.offeringId}>
                     <td><strong>{offering.offeringId.slice(0, 8)}</strong></td>
                     <td>
-                      <div className="adminFeatureNameCell">
-                        <strong>{offeringName(offering)}</strong>
-                        <span>{offering.offeringId}</span>
-                      </div>
+                      {canManage ? <form action={updateAction} className="adminTableEditForm offeringInlineEdit">
+                        <input type="hidden" name="offeringId" value={offering.offeringId} />
+                        <input type="hidden" name="type" value={offering.type} />
+                        <input type="hidden" name="price" value={priceValue(offering)} />
+                        <input type="hidden" name="currency" value={offering.currency} />
+                        <input type="hidden" name="active" value={String(offering.active)} />
+                        <input type="hidden" name="returnPath" value={closeDrawerHref} />
+                        <input name="name" aria-label={`Nombre ${offeringName(offering)}`} defaultValue={offeringName(offering)} required />
+                        <button className="adminButton adminButtonTiny" type="submit">Guardar</button>
+                      </form> : <strong>{offeringName(offering)}</strong>}
                     </td>
                     <td>{offering.type}</td>
                     <td>{formatMoney(offering.priceMinor, offering.currency)}</td>
@@ -152,45 +163,19 @@ export function CatalogOfferingsPage({
                       </span>
                     </td>
                     <td>
-                      <div className="adminFeatureRowActions">
-                        <Link
-                          aria-label={`Editar ${offeringName(offering)}`}
-                          className="adminIconButton"
-                          href={offeringHref(filters, { panel: "edit", offeringId: offering.offeringId })}
-                          title="Editar"
-                        >
-                          <Pencil aria-hidden="true" size={16} />
-                        </Link>
-                        <form action={deactivateAction} aria-label={`Eliminar ${offeringName(offering)}`}>
-                          <input name="offeringId" type="hidden" value={offering.offeringId} />
-                          <button aria-label={`Eliminar ${offeringName(offering)}`} className="adminIconButton adminIconButtonDanger" title="Eliminar" type="submit">
-                            <Trash2 aria-hidden="true" size={16} />
-                          </button>
-                        </form>
-                      </div>
+                      {canManage ? <OfferingActionsMenu name={offeringName(offering)} offeringId={offering.offeringId} editHref={offeringHref(filters,{panel:"edit",offeringId:offering.offeringId})} returnPath={closeDrawerHref} deactivateAction={deactivateAction} /> : "Solo lectura"}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </div></div>
         </section>
       </div>
 
-      {showDrawer ? (
-        <>
-          <div aria-hidden="true" className="adminFeatureDrawerBackdrop" />
-          <aside aria-labelledby="offering-drawer-title" aria-modal="true" className="adminFeatureDrawer" role="dialog">
-            <div className="adminFeatureDrawerHeader">
-              <h2 id="offering-drawer-title">
-                {isCreatePanel ? "Crear offering" : `Editar offering: ${selectedOffering?.offeringId.slice(0, 8)}`}
-              </h2>
-              <Link aria-label="Cerrar panel" className="adminIconButton" href={closeDrawerHref}>
-                <X aria-hidden="true" size={18} />
-              </Link>
-            </div>
-
-            <form action={isCreatePanel ? createAction : updateAction} aria-label={isCreatePanel ? "Crear offering" : `Editar ${selectedOffering ? offeringName(selectedOffering) : "offering"}`} className="adminFeatureDrawerBody">
+      {showDrawer ? <AdminResourceDrawer drawerId="catalog-offerings-page-1" title={isCreatePanel ? "Crear offering" : `Editar offering: ${selectedOffering?.offeringId.slice(0,8)}`} description="Configura el servicio para la tienda y el locale activos." closeHref={closeDrawerHref}>
+            <form action={isCreatePanel ? createAction : updateAction} aria-label={isCreatePanel ? "Crear offering" : `Editar ${selectedOffering ? offeringName(selectedOffering) : "offering"}`} className="adminForm offeringEditorForm">
+              <input type="hidden" name="returnPath" value={isCreatePanel ? "/admin/catalogo/offerings" : closeDrawerHref} />
               {selectedOffering ? <input name="offeringId" type="hidden" value={selectedOffering.offeringId} /> : null}
               <div className="adminFeatureReadOnlyLine">
                 <span>ID</span>
@@ -210,11 +195,11 @@ export function CatalogOfferingsPage({
               </label>
               <label className="adminField">
                 <span>Precio</span>
-                <input inputMode="decimal" name="price" defaultValue={priceValue(selectedOffering)} placeholder="9.99" />
+                <input type="number" min="0" step="0.01" inputMode="decimal" name="price" defaultValue={priceValue(selectedOffering)} placeholder="9.99" />
               </label>
               <label className="adminField">
                 <span>Moneda</span>
-                <input name="currency" defaultValue={selectedOffering?.currency ?? "EUR"} maxLength={3} />
+                <input name="currency" defaultValue={selectedOffering?.currency ?? defaultCurrency} maxLength={3} />
               </label>
               <div className="adminFeatureToggleGroup">
                 <label className="adminSwitch">
@@ -226,9 +211,7 @@ export function CatalogOfferingsPage({
                 Guardar cambios
               </button>
             </form>
-          </aside>
-        </>
-      ) : null}
+      </AdminResourceDrawer> : null}
     </main>
   );
 }

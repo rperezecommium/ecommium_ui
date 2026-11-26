@@ -1,0 +1,12 @@
+{
+  "pageId": "f120030d-730c-4074-9b0a-61ff45afe966",
+  "oldVersion": "de9464a2-af7a-4dd2-8a88-88a6fd615289",
+  "status": "PASS",
+  "checks": [
+    "Real Admin Publish delivers independent Privacidad composition through public BFF",
+    "Real coordinated recovery restores original public blocks and path while retaining independent draft",
+    "Real recovery replay returns the same receipt",
+    "Real Admin republishes the retained independent draft after recovery"
+  ],
+  "finalVersion": "98dce4ff-249e-4a2a-9590-43454e5dfba9"
+}

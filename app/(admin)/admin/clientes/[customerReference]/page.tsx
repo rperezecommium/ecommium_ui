@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getAdminContext } from "../../../../../src/shared/config/admin-context";
-import { refreshAdminEmployeeSession } from "../../../../../src/modules/auth/admin-session-actions";
+import { getCurrentAdminSession as refreshAdminEmployeeSession } from "../../../../../src/modules/auth/current-admin-session";
 import {
   getCustomerByReference,
   getCustomerDetailAdminData,
@@ -20,6 +20,7 @@ type CustomerDetailPageProps = {
 const customerTabs = new Set<CustomerDetailTab>([
   "resumen",
   "perfil",
+  "direcciones",
   "compras",
   "facturacion",
   "comunicaciones",
@@ -54,7 +55,7 @@ export default async function CustomerDetailRoute({ params, searchParams }: Cust
     drawer: "detail",
     customerId: resolvedCustomer.data.customerId,
     addressId: query.addressId,
-    addressMode: query.addressMode,
+    addressMode: query.addressMode === "create" || query.addressMode === "edit" ? query.addressMode : undefined,
     customerMessage: query.customerMessage,
     purchasesLimit: query.purchasesLimit,
     purchasesOffset: query.purchasesOffset,
@@ -66,7 +67,7 @@ export default async function CustomerDetailRoute({ params, searchParams }: Cust
 
   return (
     <CustomerDetailPage
-      activeTab={customerTab(query.tab)}
+      activeTab={filters.addressMode ? "direcciones" : customerTab(query.tab)}
       capabilities={capabilities}
       data={data}
       filters={filters}

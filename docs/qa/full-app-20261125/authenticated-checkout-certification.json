@@ -1,0 +1,151 @@
+{
+  "incidentId": "QA-005",
+  "date": "2026-11-25",
+  "recordedAtUtc": "2026-11-25 21:44:51 UTC",
+  "timezone": "Europe/Madrid",
+  "scope": "Certificación del guardado y recuperación del contacto autenticado; comprobación de su continuidad inmediata en Entrega. Sin cambios de código/configuración, sin compras/cobros y sin auditoría global.",
+  "contactCertification": {
+    "state": "Certificada",
+    "login": {
+      "loginHttpStatus": 200,
+      "httpOnlyCustomerSession": true,
+      "loginRejected": false
+    },
+    "profileBaseline": {
+      "profileReadStatus": 200,
+      "customerMatchesSession": true,
+      "profileSnapshotHeldInMemory": true,
+      "cartContactInitiallyPresent": false,
+      "initialShippingSaved": false
+    },
+    "cart": {
+      "contextHttpStatus": 200,
+      "identity": "AUTHENTICATED",
+      "orderFormId": "of_7f712993-a832-4507-b9f7-6f4cc3a5fc8a",
+      "sameCart": true,
+      "items": 1,
+      "quantity": 1,
+      "currency": "EUR",
+      "grandTotalMinor": 8024,
+      "contactSummaryVisible": true,
+      "buttons": [
+        "Abrir",
+        "Modificar",
+        "Continuar a envío",
+        "Completar",
+        "Continuar",
+        "Revisar",
+        "Aplicar",
+        "Privacidad y cookies"
+      ]
+    },
+    "save": {
+      "documentInputsInitiallyEmpty": true,
+      "requestAction": "client-profile-data",
+      "saveHttpStatus": 201,
+      "orderFormId": "of_7f712993-a832-4507-b9f7-6f4cc3a5fc8a",
+      "contactPersisted": true,
+      "document": null,
+      "documentType": null,
+      "contactEqualsSubmitted": true,
+      "mutationScope": {
+        "appliedTo": "ORDERFORM_ONLY",
+        "profileUpdated": false,
+        "profileUpdateEndpoint": "/api/v1/storefront/me/profile",
+        "message": "Changes apply only to this checkout orderform. Update the customer profile explicitly when needed."
+      },
+      "profileReadStatus": 200,
+      "customerProfileUnchanged": true,
+      "shippingControlsAvailable": true
+    },
+    "orderOnlyEdit": {
+      "partialPairValidationShown": true,
+      "saveStatus": 201,
+      "samePhoneDigits": true,
+      "faithfulOrderOnlyFormattingChanged": true,
+      "storedOrderPhoneMatches": true,
+      "recoveredOrderPhoneMatches": true,
+      "profilePhoneRemainsOriginal": true,
+      "completeProfileUnchanged": true,
+      "documentStillAbsent": true,
+      "stalePairValidationCleared": true
+    },
+    "negativeValidationAndRestore": {
+      "partialPairBackendStatus": 400,
+      "rejectedPairPreservesContact": true,
+      "restoreStatus": 201,
+      "phoneRestoredToOriginal": true,
+      "documentAbsent": true,
+      "deliveryFormAvailable": true,
+      "addressBookBeforeCount": 2
+    },
+    "finalIntegrity": {
+      "contextStatus": 200,
+      "authenticated": true,
+      "profileStatus": 200,
+      "completeProfileUnchanged": true,
+      "addressBookUnchanged": true,
+      "shippingDataUnchanged": true,
+      "paymentDataUnchanged": true,
+      "phoneOriginal": true,
+      "contactSaved": true,
+      "orderFormId": "of_7f712993-a832-4507-b9f7-6f4cc3a5fc8a",
+      "items": 1
+    },
+    "cleanup": {
+      "status": 200,
+      "identity": "AUTHENTICATED",
+      "orderFormId": "of_7f712993-a832-4507-b9f7-6f4cc3a5fc8a",
+      "cartRestoredToOriginalEmptyState": true,
+      "contactPersisted": true,
+      "documentAbsent": true,
+      "phoneRestored": true,
+      "profileUnchanged": true,
+      "addressBookUnchanged": true,
+      "shippingDataUnchanged": true,
+      "paymentDataUnchanged": true
+    }
+  },
+  "privacy": {
+    "credentialsSource": "Cuenta Customer existente proporcionada explícitamente por el usuario.",
+    "credentialsPersistedInArtifacts": false,
+    "profileAndAddressDataPersistedInArtifacts": false,
+    "authorization": "Sesión Customer real en cookie httpOnly. Peticiones exclusivamente por UI/BFF; sin suplantación técnica.",
+    "testData": "Datos reales existentes del cliente. Solo se cambió temporalmente el formato del teléfono conservando exactamente sus dígitos, y se restauró. Sin documento ficticio."
+  },
+  "deliveryContinuity": {
+    "state": "Bloqueada",
+    "uiHttpStatus": 400,
+    "bffHttpStatus": 400,
+    "endpoint": "POST /api/v1/shipping/options/resolve",
+    "message": "items[0].weightGrams (Catalog package required) must be a non-negative integer",
+    "productId": "dcf7de25-f48c-4a09-8f96-5474f5807625",
+    "variantId": "70865d36-2750-4453-8279-4be787ed8e0b",
+    "adminReadObservation": {
+      "httpStatus": 200,
+      "productId": "dcf7de25-f48c-4a09-8f96-5474f5807625",
+      "isActive": true,
+      "selectedVariantPackage": null,
+      "modifiedProduct": false
+    },
+    "evidence": "La UI envía variante, cantidad y precio; Shipping intenta resolver el perfil logístico de Catalog antes de validar weightGrams. La cotización rechaza ese peso como ausente o inválido. No se atribuye todavía a una causa de persistencia/configuración concreta.",
+    "sources": [
+      "src/modules/storefront/checkout-client.tsx:2230",
+      "services/shipping/src/application/use-cases/shipping/options/resolve/shipping-options.resolve.use-case.ts:166",
+      "services/shipping/src/application/use-cases/shipping/options/resolve/shipping-options.resolve.use-case.ts:316",
+      "services/shipping/src/infrastructure/gateways/http.catalog-shipping-profile-reader.ts:20"
+    ],
+    "productOrShippingConfigurationModified": false,
+    "arbitraryWeightSupplied": false,
+    "paymentOrOrderCreated": false,
+    "limit": "No permite certificar entrega completa, pago ni compra completa. La observación se registra como dependencia directa de QA-005, sin crear una tarea/caso ni modificar los estados de otros casos."
+  },
+  "verification": {
+    "mode": "Operaciones reales UI → BFF → persistencia → recuperación BFF/UI",
+    "applicationCodeChanged": false,
+    "fullAuditRun": false,
+    "pendingCasesContinued": false,
+    "automatedTestsRerun": false,
+    "existing154TestResultsPreserved": true
+  }
+}

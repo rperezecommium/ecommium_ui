@@ -1,0 +1,17 @@
+{
+  "scope": "isolated PostgreSQL owner; not UI/BFF/Media E2E",
+  "checks": [
+    "migration preview reads real source without writes",
+    "real migration commit rejects an in-flight legacy publication before writes",
+    "source revision includes legacy publication changes",
+    "conversion atomically adds draft and preserves legacy published snapshot and path",
+    "migration replay creates no version and mixed receipt reopens correctly",
+    "late legacy publication is rejected before Routing after conversion",
+    "public owner reader keeps legacy until explicit coordinated publication",
+    "receipt persistence failure rolls back draft and page contract atomically",
+    "settings changes invalidate the source revision",
+    "simultaneous replay returns one migration without duplicated versions"
+  ],
+  "cleanup": true,
+  "status": "PASS"
+}

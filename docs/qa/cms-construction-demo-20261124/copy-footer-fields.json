@@ -1,0 +1,132 @@
+[
+  {
+    "name": "Logo Ecommium",
+    "index": 0,
+    "fields": [
+      {
+        "label": "Imagen",
+        "value": "/assets/brand/ecommium-logo.png"
+      },
+      {
+        "label": "Texto alternativo",
+        "value": "Ecommium"
+      },
+      {
+        "label": "Etiqueta",
+        "value": "Ecommium"
+      },
+      {
+        "label": "Destino",
+        "value": "/"
+      }
+    ]
+  },
+  {
+    "name": "Contacto",
+    "index": 0,
+    "fields": [
+      {
+        "label": "Título",
+        "value": "Información"
+      },
+      {
+        "label": "TextoVivimos el ciclismo en cada detalle. Componentes, equipamiento y pequeñas ideas para que tu próxima salida sea la mejor. Carretera, montaña y ciudad: aquí empieza tu siguiente ruta.",
+        "value": "Vivimos el ciclismo en cada detalle. Componentes, equipamiento y pequeñas ideas para que tu próxima salida sea la mejor. Carretera, montaña y ciudad: aquí empieza tu siguiente ruta."
+      }
+    ]
+  },
+  {
+    "name": "Contacto",
+    "index": 1,
+    "fields": [
+      {
+        "label": "Título",
+        "value": "Taller y comunidad"
+      },
+      {
+        "label": "TextoAvenida del Pedal, 24\n08001 Barcelona · España\nLunes a viernes · 9:00–18:00\nhola@ecommium.example",
+        "value": "Avenida del Pedal, 24\n08001 Barcelona · España\nLunes a viernes · 9:00–18:00\nhola@ecommium.example"
+      }
+    ]
+  },
+  {
+    "name": "Enlaces de footer",
+    "index": 0,
+    "fields": [
+      {
+        "label": "Título",
+        "value": "La tienda"
+      },
+      {
+        "label": "Elementos[\n  {\n    \"href\": \"/home\",\n    \"label\": \"Nuestra selección\"\n  },\n  {\n    \"href\": \"/search\",\n    \"label\": \"Descubre el catálogo\"\n  },\n  {\n    \"href\": \"/account\",\n    \"label\": \"Tu cuenta ciclista\"\n  },\n  {\n    \"href\": \"/search?q=ciclismo\",\n    \"label\": \"Novedades para tu ruta\"\n  },\n  {\n    \"href\": \"/home\",\n    \"label\": \"Comunidad Ecommium\"\n  }\n]",
+        "value": "[\n  {\n    \"href\": \"/home\",\n    \"label\": \"Nuestra selección\"\n  },\n  {\n    \"href\": \"/search\",\n    \"label\": \"Descubre el catálogo\"\n  },\n  {\n    \"href\": \"/account\",\n    \"label\": \"Tu cuenta ciclista\"\n  },\n  {\n    \"href\": \"/search?q=ciclismo\",\n    \"label\": \"Novedades para tu ruta\"\n  },\n  {\n    \"href\": \"/home\",\n    \"label\": \"Comunidad Ecommium\"\n  }\n]"
+      }
+    ]
+  },
+  {
+    "name": "Enlaces de footer",
+    "index": 1,
+    "fields": [
+      {
+        "label": "Título",
+        "value": "Ciclismo"
+      },
+      {
+        "label": "Elementos[\n  {\n    \"href\": \"/plp/imp-bf62d289bb-bicicletas-013320a6\",\n    \"label\": \"Bicicletas y cuadros\"\n  },\n  {\n    \"href\": \"/plp/imp-bf62d289bb-componentes-861c66b1\",\n    \"label\": \"Componentes\"\n  },\n  {\n    \"href\": \"/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57\",\n    \"label\": \"Ropa de ciclismo\"\n  },\n  {\n    \"href\": \"/plp/imp-bf62d289bb-nutritiom-pro-b03cb772\",\n    \"label\": \"Nutrición e hidratación\"\n  },\n  {\n    \"href\": \"/plp/bike-workshop\",\n    \"label\": \"Equipamiento de taller\"\n  }\n]",
+        "value": "[\n  {\n    \"href\": \"/plp/imp-bf62d289bb-bicicletas-013320a6\",\n    \"label\": \"Bicicletas y cuadros\"\n  },\n  {\n    \"href\": \"/plp/imp-bf62d289bb-componentes-861c66b1\",\n    \"label\": \"Componentes\"\n  },\n  {\n    \"href\": \"/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57\",\n    \"label\": \"Ropa de ciclismo\"\n  },\n  {\n    \"href\": \"/plp/imp-bf62d289bb-nutritiom-pro-b03cb772\",\n    \"label\": \"Nutrición e hidratación\"\n  },\n  {\n    \"href\": \"/plp/bike-workshop\",\n    \"label\": \"Equipamiento de taller\"\n  }\n]"
+      }
+    ]
+  },
+  {
+    "name": "Enlaces de footer",
+    "index": 2,
+    "fields": [
+      {
+        "label": "Título",
+        "value": "Te acompañamos"
+      },
+      {
+        "label": "Elementos[\n  {\n    \"href\": \"/account\",\n    \"label\": \"Mi cuenta y pedidos\"\n  },\n  {\n    \"href\": \"/search\",\n    \"label\": \"Encuentra tu equipamiento\"\n  },\n  {\n    \"href\": \"/search?q=accesorios\",\n    \"label\": \"Prepara tu próxima ruta\"\n  },\n  {\n    \"href\": \"/search?q=componentes\",\n    \"label\": \"Todo para tu bicicleta\"\n  },\n  {\n    \"href\": \"/home\",\n    \"label\": \"El club Ecommium\"\n  }\n]",
+        "value": "[\n  {\n    \"href\": \"/account\",\n    \"label\": \"Mi cuenta y pedidos\"\n  },\n  {\n    \"href\": \"/search\",\n    \"label\": \"Encuentra tu equipamiento\"\n  },\n  {\n    \"href\": \"/search?q=accesorios\",\n    \"label\": \"Prepara tu próxima ruta\"\n  },\n  {\n    \"href\": \"/search?q=componentes\",\n    \"label\": \"Todo para tu bicicleta\"\n  },\n  {\n    \"href\": \"/home\",\n    \"label\": \"El club Ecommium\"\n  }\n]"
+      }
+    ]
+  },
+  {
+    "name": "Enlaces de footer",
+    "index": 3,
+    "fields": [
+      {
+        "label": "Título",
+        "value": "Privacidad y confianza"
+      },
+      {
+        "label": "Elementos[\n  {\n    \"href\": \"/privacidad-newsletter\",\n    \"label\": \"Privacidad del newsletter\"\n  },\n  {\n    \"href\": \"/account\",\n    \"label\": \"Gestiona tu cuenta\"\n  },\n  {\n    \"href\": \"/privacidad-newsletter\",\n    \"label\": \"Tus comunicaciones\"\n  },\n  {\n    \"href\": \"/search\",\n    \"label\": \"Compra con información\"\n  }\n]",
+        "value": "[\n  {\n    \"href\": \"/privacidad-newsletter\",\n    \"label\": \"Privacidad del newsletter\"\n  },\n  {\n    \"href\": \"/account\",\n    \"label\": \"Gestiona tu cuenta\"\n  },\n  {\n    \"href\": \"/privacidad-newsletter\",\n    \"label\": \"Tus comunicaciones\"\n  },\n  {\n    \"href\": \"/search\",\n    \"label\": \"Compra con información\"\n  }\n]"
+      }
+    ]
+  },
+  {
+    "name": "Redes sociales",
+    "index": 0,
+    "fields": [
+      {
+        "label": "Etiqueta",
+        "value": "Síguenos en tu próxima ruta"
+      },
+      {
+        "label": "Elementos[\n  {\n    \"href\": \"https://www.instagram.com/\",\n    \"label\": \"Instagram\"\n  },\n  {\n    \"href\": \"https://www.facebook.com/\",\n    \"label\": \"Facebook\"\n  },\n  {\n    \"href\": \"https://www.youtube.com/\",\n    \"label\": \"YouTube\"\n  },\n  {\n    \"href\": \"https://x.com/\",\n    \"label\": \"X\"\n  }\n]",
+        "value": "[\n  {\n    \"href\": \"https://www.instagram.com/\",\n    \"label\": \"Instagram\"\n  },\n  {\n    \"href\": \"https://www.facebook.com/\",\n    \"label\": \"Facebook\"\n  },\n  {\n    \"href\": \"https://www.youtube.com/\",\n    \"label\": \"YouTube\"\n  },\n  {\n    \"href\": \"https://x.com/\",\n    \"label\": \"X\"\n  }\n]"
+      }
+    ]
+  },
+  {
+    "name": "Información legal",
+    "index": 0,
+    "fields": [
+      {
+        "label": "Texto© 2026 Ecommium · Cada ruta empieza con una buena elección.",
+        "value": "© 2026 Ecommium · Cada ruta empieza con una buena elección."
+      }
+    ]
+  }
+]

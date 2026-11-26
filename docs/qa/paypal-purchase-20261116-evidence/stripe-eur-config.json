@@ -1,0 +1,31 @@
+{
+  "rules": [
+    {
+      "ruleId": "stripe-rule",
+      "name": "stripe",
+      "priority": 300,
+      "active": true,
+      "affiliationId": "stripe-affiliate",
+      "paymentSystemId": "stripe-card",
+      "currency": "USD",
+      "country": "ES",
+      "salesChannel": "WEB",
+      "minValueMinor": 1000,
+      "maxValueMinor": null
+    },
+    {
+      "ruleId": "stripe-es-eur-web",
+      "name": "Stripe ES EUR WEB",
+      "priority": 300,
+      "active": true,
+      "affiliationId": "stripe-affiliate",
+      "paymentSystemId": "stripe-card",
+      "currency": "EUR",
+      "country": "ES",
+      "salesChannel": "WEB",
+      "minValueMinor": 1000,
+      "maxValueMinor": null
+    }
+  ],
+  "stripeTestKey": true
+}

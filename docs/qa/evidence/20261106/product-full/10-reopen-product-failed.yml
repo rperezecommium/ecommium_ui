@@ -1,0 +1,112 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Navegacion Admin" [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: E
+        - generic [ref=e6]:
+          - strong [ref=e7]: Ecommium
+          - generic [ref=e8]: Admin backoffice
+      - navigation [ref=e9]:
+        - generic [ref=e10]: Vender
+        - link [ref=e11] [cursor=pointer]:
+          - /url: /admin
+          - strong [ref=e16]: Inicio
+        - group [ref=e17]:
+          - generic [ref=e18] [cursor=pointer]:
+            - strong [ref=e23]: Configuracion
+            - generic [aria-hidden] [ref=e24]: ⌄
+        - group [ref=e25]:
+          - generic [ref=e26] [cursor=pointer]:
+            - strong [ref=e34]: Catalogo
+            - generic [aria-hidden] [ref=e35]: ⌄
+          - generic [ref=e36]:
+            - link "Resumen" [ref=e37] [cursor=pointer]:
+              - /url: /admin/catalogo
+            - link "Productos" [ref=e39] [cursor=pointer]:
+              - /url: /admin/products
+            - link "Categorias" [ref=e41] [cursor=pointer]:
+              - /url: /admin/catalogo/categorias
+            - link "Caracteristicas" [ref=e43] [cursor=pointer]:
+              - /url: /admin/catalogo/atributos-caracteristicas
+            - link "Busqueda" [ref=e45] [cursor=pointer]:
+              - /url: /admin/catalogo/search
+            - link "Marcas / Proveedores" [ref=e47] [cursor=pointer]:
+              - /url: /admin/catalogo/marcas
+            - link "Media / Archivos" [ref=e49] [cursor=pointer]:
+              - /url: /admin/catalogo/media
+            - link "Offerings / Servicios adicionales" [ref=e51] [cursor=pointer]:
+              - /url: /admin/catalogo/offerings
+            - link "Stock" [ref=e53] [cursor=pointer]:
+              - /url: /admin/catalogo/stock
+            - link "Importar" [ref=e55] [cursor=pointer]:
+              - /url: /admin/catalogo/importar
+        - group [ref=e57]:
+          - generic [ref=e58] [cursor=pointer]:
+            - strong [ref=e63]: CMS
+            - generic [aria-hidden] [ref=e64]: ⌄
+        - link [ref=e65] [cursor=pointer]:
+          - /url: /admin/promociones
+          - strong [ref=e70]: Promociones
+        - link [ref=e71] [cursor=pointer]:
+          - /url: /admin/analitica
+          - strong [ref=e75]: Analitica
+        - link [ref=e76] [cursor=pointer]:
+          - /url: /admin/pedidos
+          - strong [ref=e88]: Pedidos
+        - link [ref=e89] [cursor=pointer]:
+          - /url: /admin/postventa
+          - strong [ref=e98]: Postventa
+        - link [ref=e99] [cursor=pointer]:
+          - /url: /admin/clientes
+          - strong [ref=e105]: Clientes
+        - link [ref=e106] [cursor=pointer]:
+          - /url: /admin/pagos
+          - strong [ref=e110]: Pagos
+      - generic [ref=e111]:
+        - strong [ref=e112]: Perfil
+        - paragraph [ref=e113]: Operator
+        - strong [ref=e114]: Contexto
+        - paragraph [ref=e115]: 11111111-1111-4111-8111-111111111111 / 22222222-2222-4222-8222-222222222222
+    - generic [ref=e116]:
+      - generic [ref=e117]:
+        - form "Selector de contexto Admin" [ref=e118]:
+          - combobox "Organization" [ref=e119]:
+            - option "Organization"
+            - option "READPREP-20261104 Organización"
+            - option "QA-20261104 Integracion UI"
+            - option "ReadIndex Live b"
+            - option "ReadIndex Live a"
+            - option "Read Path Baseline b"
+            - option "Read Path Baseline a"
+            - option "Ecommium Default Organization" [selected]
+            - option "Ecommium UI Smoke 1780565751104"
+          - combobox "Shop" [ref=e120]:
+            - option "Shop"
+            - option "READPREP-20261104 Interrupción"
+            - option "READPREP-20261104 Tienda existente"
+            - option "Tienda UI 1780565845946"
+            - option "Activa - Tienda Barcelona" [selected]
+          - textbox "Shop alias" [ref=e121]:
+            - /placeholder: shopAlias
+            - text: tienda-barcelona
+          - combobox "Locale" [ref=e122]:
+            - option "es-ES" [selected]
+            - option "en-US"
+            - option "pt-PT"
+          - button "Aplicar" [ref=e123] [cursor=pointer]
+        - generic [ref=e124]:
+          - generic [aria-hidden] [ref=e125]: r
+          - generic [ref=e126]:
+            - strong [ref=e127]: [employee-email-redacted]
+            - generic [ref=e128]: [employee-email-redacted]
+          - button "Salir" [ref=e130] [cursor=pointer]
+      - main [ref=e131]:
+        - generic [ref=e132]: Admin / Catalogo / Productos / Editar
+        - generic [ref=e133]:
+          - paragraph [ref=e134]: No se pudo cargar el producto.
+          - paragraph [ref=e135]: El servicio no está disponible temporalmente.
+          - paragraph [ref=e136]: "Correlation: ui-1793972885797-ff541f7203095"
+        - link "Volver al catalogo" [ref=e137] [cursor=pointer]:
+          - /url: /admin/products
+  - button "Open Next.js Dev Tools" [ref=e143] [cursor=pointer]
+  - alert [ref=e147]

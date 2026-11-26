@@ -67,6 +67,7 @@ function makeShopPayload(formData: FormData) {
     name: asString(formData.get("name")),
     shopAlias: asString(formData.get("shopAlias")),
     primaryDomain: asString(formData.get("primaryDomain")),
+    ...(formData.has("adminDomain")?{adminDomain:asString(formData.get("adminDomain"))||null}:{}),
     ...(shopGroupId ? { shopGroupId } : {}),
     ...(status ? { status } : {}),
     settingsOverride,
@@ -86,6 +87,7 @@ function parseShop(value: unknown): ShopOption {
     organizationId: typeof record.organizationId === "string" ? record.organizationId : "",
     shopAlias: typeof record.shopAlias === "string" ? record.shopAlias : undefined,
     shopGroupId: typeof record.shopGroupId === "string" ? record.shopGroupId : undefined,
+    adminDomain: typeof record.adminDomain === "string" ? record.adminDomain : undefined,
     primaryDomain: typeof record.primaryDomain === "string" ? record.primaryDomain : undefined,
     status: typeof record.status === "string" ? record.status : undefined,
     locale: typeof effectiveSettings.defaultLocale === "string" ? effectiveSettings.defaultLocale : undefined,
@@ -252,13 +254,13 @@ export async function createShopAction(formData: FormData) {
 
   if (formData.get("setActive") === "on") {
     await saveAdminContext(shopToContext(createdShop, current));
-    revalidateAdminContextRoutes(redirectTo);
   }
 
-  safeRedirect(redirectTo, {
-    contextNotice: formData.get("setActive") === "on"
-      ? "Tienda creada y marcada como contexto activo."
-      : "Tienda creada. Puedes seleccionarla como contexto activo.",
+  revalidateAdminContextRoutes(redirectTo);
+  safeRedirect(`${redirectTo}?tab=create-shop`, {
+    preparationOrganizationId: organizationId,
+    preparationShopId: createdShop.id,
+    contextNotice: "Tienda creada. Completando el alta; no necesitas volver a crearla.",
   });
 }
 
@@ -310,4 +312,45 @@ export async function updateShopAction(formData: FormData) {
       ? "Tienda editada y contexto activo actualizado."
       : "Tienda editada.",
   });
+}
+
+export async function updateOrganizationTimezoneAction(formData: FormData) {
+  const current = await getAdminContext();
+  const session = await getAdminSession();
+  const organizationId = asString(formData.get("organizationId"));
+  const timezone = asString(formData.get("timezone"));
+  const target = "/admin/configuracion/contexto";
+  if (!session || !organizationId || organizationId !== current.organizationId) {
+    safeRedirect(target, { contextError: "Selecciona y guarda primero la organización activa." });
+  }
+  try {
+    if (!timezone || timezone.length > 100) throw new Error("invalid");
+    new Intl.DateTimeFormat("es-ES", { timeZone: timezone }).format();
+  } catch {
+    safeRedirect(target, { contextError: "Selecciona una zona horaria válida." });
+  }
+  const endpoint = `/admin/organizations-shops/organizations/${encodeURIComponent(organizationId)}`;
+  const existing = await requestAdminBff(endpoint, {
+    parse: (value) => {
+      const record = typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
+      return typeof record.defaultSettings === "object" && record.defaultSettings !== null
+        ? record.defaultSettings as Record<string, unknown> : null;
+    },
+  });
+  if (!existing.ok || !existing.data) {
+    safeRedirect(target, { contextError: "No se pudo leer la configuración de la organización. No se ha cambiado la zona horaria." });
+  }
+  const result = await requestAdminBff(endpoint, {
+    init: {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ defaultSettings: { ...existing.data, timezone } }),
+    },
+    parse: parseOrganization,
+  });
+  if (!result.ok) {
+    safeRedirect(target, { contextError: "No se pudo actualizar la zona horaria. Comprueba tus permisos de gestión de organizaciones." });
+  }
+  revalidateAdminContextRoutes(target);
+  safeRedirect(target, { contextNotice: "Zona horaria de la organización actualizada." });
 }

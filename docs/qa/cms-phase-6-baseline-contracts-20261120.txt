@@ -1,0 +1,153 @@
+
+> ecommium_ui@0.1.0 test:cms-contracts
+> node --test tests/contracts/cms-phase-*.test.mjs
+
+TAP version 13
+# Subtest: request and receipt have distinct strict envelopes
+ok 1 - request and receipt have distinct strict envelopes
+  ---
+  duration_ms: 6.89975
+  type: 'test'
+  ...
+# Subtest: 24 sections accepted; 25 rejected without truncation
+ok 2 - 24 sections accepted; 25 rejected without truncation
+  ---
+  duration_ms: 0.375417
+  type: 'test'
+  ...
+# Subtest: node budget applies to whole document and depth includes root
+ok 3 - node budget applies to whole document and depth includes root
+  ---
+  duration_ms: 1.240208
+  type: 'test'
+  ...
+# Subtest: duplicate identities and live visual references rejected
+ok 4 - duplicate identities and live visual references rejected
+  ---
+  duration_ms: 0.655375
+  type: 'test'
+  ...
+# Subtest: budget measures UTF-8 bytes, including embedded snapshots
+ok 5 - budget measures UTF-8 bytes, including embedded snapshots
+  ---
+  duration_ms: 5.133375
+  type: 'test'
+  ...
+# Subtest: unknown structural fields and unsupported versions fail closed
+ok 6 - unknown structural fields and unsupported versions fail closed
+  ---
+  duration_ms: 0.113375
+  type: 'test'
+  ...
+# Subtest: functional module payloads and envelopes reject unknown keys
+ok 7 - functional module payloads and envelopes reject unknown keys
+  ---
+  duration_ms: 0.422125
+  type: 'test'
+  ...
+# Subtest: visual IDs are unique across copied module instances
+ok 8 - visual IDs are unique across copied module instances
+  ---
+  duration_ms: 1.182209
+  type: 'test'
+  ...
+# Subtest: section and template create/update/receipt envelopes require locale and concurrency
+ok 9 - section and template create/update/receipt envelopes require locale and concurrency
+  ---
+  duration_ms: 0.586167
+  type: 'test'
+  ...
+# Subtest: template archive requires revision and template receipts require known state
+ok 10 - template archive requires revision and template receipts require known state
+  ---
+  duration_ms: 0.283875
+  type: 'test'
+  ...
+# {"sample":"120 independent small module payloads","bytes":31820,"elapsedMs":2,"scope":"schema/BFF/CMS normalization; not browser performance"}
+# Subtest: canonical visual snapshot passes schema, BFF and CMS
+ok 11 - canonical visual snapshot passes schema, BFF and CMS
+  ---
+  duration_ms: 4.091458
+  type: 'test'
+  ...
+# Subtest: unknown nested keys and incompatible functional shape rejected
+ok 12 - unknown nested keys and incompatible functional shape rejected
+  ---
+  duration_ms: 1.539834
+  type: 'test'
+  ...
+# Subtest: contract rejects duplicate identities, missing content and asset bindings
+ok 13 - contract rejects duplicate identities, missing content and asset bindings
+  ---
+  duration_ms: 1.417208
+  type: 'test'
+  ...
+# Subtest: CSS declarations, selectors and executable links use owner validation
+ok 14 - CSS declarations, selectors and executable links use owner validation
+  ---
+  duration_ms: 3.380209
+  type: 'test'
+  ...
+# Subtest: Media identity is preserved while unavailable references are rejected
+ok 15 - Media identity is preserved while unavailable references are rejected
+  ---
+  duration_ms: 0.364
+  type: 'test'
+  ...
+# Subtest: each functional type has a closed payload shape
+ok 16 - each functional type has a closed payload shape
+  ---
+  duration_ms: 0.396667
+  type: 'test'
+  ...
+# Subtest: bounded representative composition serializes and normalizes all module bodies
+ok 17 - bounded representative composition serializes and normalizes all module bodies
+  ---
+  duration_ms: 2.387
+  type: 'test'
+  ...
+# Subtest: new contract rejects the empty-asset-list loophole observed in the current owner
+ok 18 - new contract rejects the empty-asset-list loophole observed in the current owner
+  ---
+  duration_ms: 0.154542
+  type: 'test'
+  ...
+# Subtest: functional URLs reject executable schemes and private Admin proxies
+ok 19 - functional URLs reject executable schemes and private Admin proxies
+  ---
+  duration_ms: 0.272333
+  type: 'test'
+  ...
+# Subtest: media content bindings require a local asset even with an empty asset list
+ok 20 - media content bindings require a local asset even with an empty asset list
+  ---
+  duration_ms: 0.250833
+  type: 'test'
+  ...
+# Subtest: MODULE archive requires CAS and rejects document, authority and visible revision
+ok 21 - MODULE archive requires CAS and rejects document, authority and visible revision
+  ---
+  duration_ms: 20.6305
+  type: 'test'
+  ...
+# Subtest: MODULE receipt exposes canonical state for visual and registered pieces
+ok 22 - MODULE receipt exposes canonical state for visual and registered pieces
+  ---
+  duration_ms: 15.638083
+  type: 'test'
+  ...
+# Subtest: ARIA reference syntax is closed; existence remains a semantic owner check
+ok 23 - ARIA reference syntax is closed; existence remains a semantic owner check
+  ---
+  duration_ms: 2.613959
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 361.145875

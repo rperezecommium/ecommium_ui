@@ -66,7 +66,7 @@ test("storefront payments normalize installed PayPal and Stripe systems only", (
   const methods = normalizeStorefrontPaymentMethods({
     paymentSystems: [
       { paymentSystemId: "paypal-main", name: "PayPal", provider: "paypal", active: true },
-      { id: "stripe-card", name: "Tarjeta", affiliation: { provider: "stripe" }, installments: [{ count: 1 }, { count: 3 }] },
+      { id: "stripe-card", name: "Tarjeta", provider: "stripe", installments: [{ count: 1 }, { count: 3 }] },
       { id: "transfer", name: "Transferencia bancaria", active: true },
       { id: "old-paypal", name: "PayPal antiguo", provider: "paypal", active: false },
     ],
@@ -77,6 +77,12 @@ test("storefront payments normalize installed PayPal and Stripe systems only", (
   assert.equal(methods[1].provider, "stripe");
   assert.deepEqual(methods[1].installments, [1, 3]);
   assert.deepEqual(installedStorefrontPaymentMethods(methods).map((method) => method.paymentSystemId), ["paypal-main", "stripe-card"]);
+});
+
+test("payment names cannot impersonate an installed provider", () => {
+  const { installedStorefrontPaymentMethods, normalizeStorefrontPaymentMethods } = loadPaymentsModule();
+  const methods = normalizeStorefrontPaymentMethods({paymentSystems:[{id:"spoof",name:"PayPal Stripe",active:true}]});
+  assert.deepEqual(installedStorefrontPaymentMethods(methods), []);
 });
 
 test("storefront payments decide redirect and reject missing redirect urls", () => {
@@ -376,7 +382,7 @@ test("storefront payment return pages complete PSP returns idempotently", () => 
   assert.match(returnClientSource, /params\.orderFormId/);
   assert.match(returnClientSource, /params\.PayerID/);
   assert.match(returnClientSource, /params\.session_id/);
-  assert.match(returnClientSource, /params\.set\("guestSessionId", guestSessionId\)/);
+  assert.match(readFileSync(path.resolve(root,"src/modules/storefront/rotate-purchased-cart.ts"),"utf8"), /params\.set\("guestSessionId", guestSessionId\)/);
   assert.match(returnClientSource, /finalizePaidCheckout/);
   assert.match(returnClientSource, /orderStatusForPaymentStatus/);
   assert.match(returnClientSource, /status: orderStatus/);
@@ -385,7 +391,7 @@ test("storefront payment return pages complete PSP returns idempotently", () => 
   assert.doesNotMatch(returnClientSource, /status: "SETTLED",\n            transactionId: attempt\.transactionId/);
   assert.doesNotMatch(returnClientSource, /normalized === "AUTHORIZED" \|\|\n    normalized === "SUCCEEDED"/);
   assert.match(returnClientSource, /source: "storefront-payment-return"/);
-  assert.match(returnClientSource, /forceNewCart: "true"/);
+  assert.match(returnClientSource, /rotatePurchasedCart/);
   assert.match(returnClientSource, /cart-updated/);
   assert.doesNotMatch(returnClientSource, /Ver confirmación/);
   assert.doesNotMatch(returnClientSource, /Cerrar intento local/);
@@ -439,19 +445,13 @@ test("checkout gates review on server-confirmed settlement, not on a saved payme
   assert.doesNotMatch(checkoutSource, /payment: hasPayment\(orderform\)/);
 });
 
-test("paid checkout only resets the cart after Checkout confirms both transitions", () => {
-  const checkoutSource = readFileSync(path.resolve(root, "src/modules/storefront/checkout-client.tsx"), "utf8");
-  const returnClientSource = readFileSync(path.resolve(root, "src/modules/storefront/payment-return-client.tsx"), "utf8");
-
-  assert.match(checkoutSource, /El pedido se creó, pero no pudimos vaciar el carrito/);
-  assert.match(checkoutSource, /forceNewCart: "true", guestSessionId/);
-  assert.match(checkoutSource, /El pedido se creó, pero no pudimos preparar un carrito nuevo/);
-  assert.match(checkoutSource, /nextOrderform\.items\.length > 0/);
-  assert.doesNotMatch(checkoutSource, /if \(!response\.ok\) \{\n\s+return;\n\s+\}/);
-  assert.match(returnClientSource, /El pago fue confirmado, pero no pudimos vaciar el carrito/);
-  assert.match(returnClientSource, /El pago fue confirmado, pero no pudimos preparar un carrito nuevo/);
-  assert.match(returnClientSource, /if \(!deleteResponse\.ok\) \{/);
-  assert.match(returnClientSource, /if \(!nextResponse\.ok\) \{/);
+test("paid checkout rotates the current cart without deleting the purchased snapshot", () => {
+  for (const name of ["checkout-client.tsx", "payment-return-client.tsx"]) {
+    const source=readFileSync(path.resolve(root,"src/modules/storefront",name),"utf8");
+    assert.match(source,/await rotatePurchasedCart\(orderform.orderFormId, guestSessionId\)/);
+    assert.doesNotMatch(source,/method: "DELETE"/);
+    assert.doesNotMatch(source,/response.status !== 409/);
+  }
 });
 
 test("storefront payment attempts expire and return processing is idempotent per session", () => {

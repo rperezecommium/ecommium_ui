@@ -1,4 +1,6 @@
+import filterStyles from "./seo-filters.module.css";
 import Link from "next/link";
+import { AdminResourceDrawer as SeoDrawer } from "../../shared/ui/admin-resource-drawer";
 import type { ReactNode } from "react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
@@ -125,33 +127,6 @@ function seoConnectionSummary(data: SeoAdminData) {
   return "Disponibilidad parcial de Routing/SEO";
 }
 
-function SeoDrawer({
-  title,
-  description,
-  closeHref,
-  children,
-}: {
-  title: string;
-  description: string;
-  closeHref: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="adminDrawerBackdrop">
-      <aside className="adminSideDrawer" aria-label={title}>
-        <div className="adminSideDrawerHeader">
-          <div>
-            <h2>{title}</h2>
-            <p>{description}</p>
-          </div>
-          <Link className="adminButton adminButtonTiny" href={closeHref}>Cerrar</Link>
-        </div>
-        {children}
-      </aside>
-    </div>
-  );
-}
-
 function SeoFilters({
   filters,
   context,
@@ -164,7 +139,7 @@ function SeoFilters({
   }
 
   return (
-    <form className="pricingFilterBar" action="/admin/configuracion/seo">
+    <form className={`productListSearchPanel ${filterStyles.filters}`} aria-label="Filtrar rutas y redirecciones" action="/admin/configuracion/seo" method="get">
       <input type="hidden" name="tab" value={filters.tab} />
       <DrawerField label="Locale">
         <input name="locale" defaultValue={filters.locale ?? context.locale} placeholder="es-ES" />
@@ -327,7 +302,7 @@ function SeoResourceDrawer({
       : undefined;
 
     return (
-      <SeoDrawer
+      <SeoDrawer drawerId="seo-panel-1"
         closeHref={closeHref}
         description="Gestiona paths canonicos y aliases publicados por Routing/SEO."
         title={isEditing ? "Editar ruta SEO" : "Crear ruta SEO"}
@@ -342,7 +317,7 @@ function SeoResourceDrawer({
   }
 
   return (
-    <SeoDrawer
+    <SeoDrawer drawerId="seo-panel-2"
       closeHref={closeHref}
       description="Crea redirects manuales para preservar trafico y senales SEO."
       title="Crear redirect SEO"
@@ -360,13 +335,9 @@ function RoutesTable({
   filters: SeoAdminPageProps["filters"];
 }) {
   return (
-    <section className="pricingPanel">
-      <div className="pricingPanelHeader">
-        <div>
-          <h2>Rutas</h2>
-          <p>{data.routes.data.total} registros</p>
-        </div>
-        <Link className="adminButton adminButtonPrimary" href={drawerHref("routes", filters, "create")}>Crear ruta</Link>
+    <section className="seoList" aria-label="Rutas">
+      <div className="seoListActions">
+        <Link className="seoTextAction" href={drawerHref("routes", filters, "create")}>Crear ruta</Link>
       </div>
       <ResultBanner result={data.routes} />
       {data.routes.data.items.length === 0 ? (
@@ -398,10 +369,10 @@ function RoutesTable({
                   <td>{valueText(route.routeKind)}</td>
                   <td>{valueText(route.canonicalRouteId)}</td>
                   <td>{valueText(route.includeInSitemap)}</td>
-                  <td>{valueText(route.status)}</td>
+                  <td><span className={`adminBadge ${route.status === "ACTIVE" ? "adminBadgeOk" : "adminBadgeWarn"}`}>{valueText(route.status)}</span></td>
                   <td>{valueText(route.updatedAt)}</td>
                   <td>
-                    <Link className="adminButton adminButtonTiny" href={drawerHref("routes", filters, "edit", route.routeId)}>Editar</Link>
+                    <Link className="adminButton adminButtonTiny seoActionInfo" href={drawerHref("routes", filters, "edit", route.routeId)}>Editar</Link>
                   </td>
                 </tr>
               ))}
@@ -421,13 +392,9 @@ function RedirectsTable({
   filters: SeoAdminPageProps["filters"];
 }) {
   return (
-    <section className="pricingPanel">
-      <div className="pricingPanelHeader">
-        <div>
-          <h2>Redirecciones</h2>
-          <p>{data.redirects.data.total} registros</p>
-        </div>
-        <Link className="adminButton adminButtonPrimary" href={drawerHref("redirects", filters, "create")}>Crear redirect</Link>
+    <section className="seoList" aria-label="Redirecciones">
+      <div className="seoListActions">
+        <Link className="seoTextAction" href={drawerHref("redirects", filters, "create")}>Crear redirect</Link>
       </div>
       <ResultBanner result={data.redirects} />
       {data.redirects.data.items.length === 0 ? (
@@ -454,7 +421,7 @@ function RedirectsTable({
                   <td>{valueText(redirect.fromPath)}</td>
                   <td>{valueText(redirect.toPath)}</td>
                   <td>{valueText(redirect.statusCode)}</td>
-                  <td>{valueText(redirect.status)}</td>
+                  <td><span className={`adminBadge ${redirect.status === "ACTIVE" ? "adminBadgeOk" : "adminBadgeWarn"}`}>{valueText(redirect.status)}</span></td>
                   <td>{valueText(redirect.reason)}</td>
                   <td>{valueText(redirect.expiresAt)}</td>
                   <td>{valueText(redirect.updatedAt)}</td>
@@ -607,9 +574,6 @@ export function SeoAdminPage({ context, data, filters }: SeoAdminPageProps) {
         </div>
         <Link className="adminButton" href="/admin/products">Volver a productos</Link>
       </div>
-      <div className="adminContextHint">
-        {context.organizationId} / {context.shopId} / {activeLocale} / {context.currency} / {context.country} / {context.channel}
-      </div>
       {filters.seoMessage ? <div className="adminBanner"><p>{filters.seoMessage}</p></div> : null}
 
       <nav className="adminTabs pricingTabs" aria-label="SEO">
@@ -651,8 +615,8 @@ export function SeoAdminPage({ context, data, filters }: SeoAdminPageProps) {
               <h2>Operaciones</h2>
             </div>
             <div className="adminButtonRow">
-              <Link className="adminButton adminButtonPrimary" href={drawerHref("routes", filters, "create")}>Crear ruta</Link>
-              <Link className="adminButton" href={drawerHref("redirects", filters, "create")}>Crear redirect</Link>
+              <Link className="seoTextAction" href={drawerHref("routes", filters, "create")}>Crear ruta</Link>
+              <Link className="seoTextAction" href={drawerHref("redirects", filters, "create")}>Crear redirect</Link>
               <Link className="adminButton" href={tabHref("resolve", filters)}>Resolver path</Link>
             </div>
           </section>
@@ -668,13 +632,7 @@ export function SeoAdminPage({ context, data, filters }: SeoAdminPageProps) {
         </>
       ) : null}
       {activeTab === "sitemap" ? (
-        <section className="pricingPanel">
-          <div className="pricingPanelHeader">
-            <div>
-              <h2>Sitemap</h2>
-              <p>{data.sitemap?.data.entries.length ?? 0} entradas</p>
-            </div>
-          </div>
+        <section className="seoList" aria-label="Sitemap">
           {data.sitemap ? <ResultBanner result={data.sitemap} /> : null}
           <SitemapTable entries={data.sitemap?.data.entries ?? []} />
         </section>

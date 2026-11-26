@@ -48,6 +48,7 @@ export type StorefrontCouponOffer = {
 };
 
 export type StorefrontOrderform = {
+  commercialContext?: {currency:string;country:string;channel:string;locale:string;countrySource:string};
   availableCoupons: StorefrontCouponOffer[];
   clientProfileData?: Record<string, unknown> | null;
   couponData?: Record<string, unknown> | null;
@@ -67,12 +68,13 @@ export function normalizeOrderformPayload(payload: unknown): StorefrontOrderform
   const totals = normalizeTotals(orderform.totals);
   const context = asRecord(envelope.storefrontContext);
   const currency =
-    asString(context.currency) ??
-    asString(orderform.currency) ??
     asString(totals.currency) ??
+    asString(orderform.currency) ??
+    asString(context.currency) ??
     "EUR";
 
   return {
+    commercialContext: normalizeCommercialContext(orderform.commercialContext),
     availableCoupons: normalizeAvailableCoupons(orderform),
     clientProfileData: nullableRecord(orderform.clientProfileData),
     couponData: nullableRecord(orderform.couponData),
@@ -362,4 +364,11 @@ function asNumber(value: unknown) {
 
 function listItems(value: unknown) {
   return Array.isArray(value) ? value : [];
+}
+
+function normalizeCommercialContext(input:unknown): StorefrontOrderform['commercialContext'] {
+  const value=asRecord(input);
+  const currency=asString(value.currency),country=asString(value.country),channel=asString(value.channel),locale=asString(value.locale),countrySource=asString(value.countrySource);
+  if(!currency || !country || !channel || !locale || !countrySource)return undefined;
+  return {currency,country,channel,locale,countrySource};
 }

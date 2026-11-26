@@ -1,4 +1,7 @@
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
 import Link from "next/link";
+import { AdminResourceDrawer } from "../../shared/ui/admin-resource-drawer";
+import { MediaCollectionMenu } from "./media-collection-menu";
 import { ExternalLink, ImageIcon, Trash2, Upload } from "lucide-react";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { safeMediaInputAccept } from "../../shared/security/media-upload";
@@ -7,6 +10,7 @@ import type { MediaAdminAsset, MediaAdminCollection, MediaAdminListResult } from
 type Action = (formData: FormData) => Promise<void>;
 
 export type MediaAdminFilters = {
+  drawer?: "create";
   q?: string;
   status?: "active" | "all";
   collectionId?: string;
@@ -16,6 +20,7 @@ export type MediaAdminFilters = {
 };
 
 type Props = {
+  canManage: boolean;
   context: AdminContext;
   filters: MediaAdminFilters;
   collections: MediaAdminListResult;
@@ -32,6 +37,7 @@ type Props = {
 function mediaHref(filters: MediaAdminFilters, overrides: Partial<MediaAdminFilters> = {}) {
   const next = { ...filters, ...overrides };
   const params = new URLSearchParams();
+  if (next.drawer) params.set("drawer", next.drawer);
   if (next.q) params.set("q", next.q);
   if (next.status && next.status !== "active") params.set("status", next.status);
   if (next.collectionId) params.set("collectionId", next.collectionId);
@@ -165,7 +171,9 @@ function AssetGrid({
   returnPath,
   softDeleteAssetAction,
   updateAssetAction,
+  canManage,
 }: {
+  canManage: boolean;
   collection: MediaAdminCollection;
   context: AdminContext;
   returnPath: string;
@@ -210,7 +218,7 @@ function AssetGrid({
                 <ExternalLink aria-hidden="true" size={14} />
                 Original
               </Link>
-              <form action={updateAssetAction} className="mediaAdminAssetEditForm">
+              {canManage ? <><form action={updateAssetAction} className="mediaAdminAssetEditForm">
                 <input name="mediaCollectionId" type="hidden" value={collection.mediaCollectionId} />
                 <input name="mediaAssetId" type="hidden" value={asset.mediaAssetId} />
                 <input name="returnPath" type="hidden" value={returnPath} />
@@ -255,7 +263,7 @@ function AssetGrid({
                   <Trash2 aria-hidden="true" size={14} />
                   Desactivar asset
                 </button>
-              </form>
+              </form></> : null}
             </div>
           </article>
         );
@@ -274,7 +282,9 @@ function CollectionDetailDrawer({
   updateAssetAction,
   updateCollectionAction,
   closeHref,
+  canManage,
 }: {
+  canManage: boolean;
   collection?: MediaAdminCollection;
   context: AdminContext;
   selectedError?: string;
@@ -289,7 +299,7 @@ function CollectionDetailDrawer({
     return (
       <div className="adminDrawerBackdrop mediaAdminDrawerBackdrop">
         <Link aria-label="Cerrar detalle media" className="mediaAdminDrawerBackdropLink" href={closeHref} />
-        <aside aria-label="Detalle de coleccion media" aria-modal="true" className="adminSideDrawer mediaAdminSideDrawer" role="dialog">
+        <AdminResizableDrawer drawerId="media-admin-page-detalle-de-coleccion-media-1" aria-label="Detalle de coleccion media" aria-modal="true" className="adminSideDrawer mediaAdminSideDrawer" role="dialog">
           <div className="adminSideDrawerHeader">
             <div>
               <h2>No se pudo cargar la coleccion</h2>
@@ -300,7 +310,7 @@ function CollectionDetailDrawer({
           <div className="mediaAdminDrawerBody">
             <div className="adminBanner adminBannerError"><p>{selectedError}</p></div>
           </div>
-        </aside>
+        </AdminResizableDrawer>
       </div>
     );
   }
@@ -312,7 +322,7 @@ function CollectionDetailDrawer({
   return (
     <div className="adminDrawerBackdrop mediaAdminDrawerBackdrop">
       <Link aria-label="Cerrar detalle media" className="mediaAdminDrawerBackdropLink" href={closeHref} />
-      <aside aria-label="Detalle de coleccion media" aria-modal="true" className="adminSideDrawer mediaAdminSideDrawer" role="dialog">
+      <AdminResizableDrawer drawerId="media-admin-page-detalle-de-coleccion-media-2" aria-label="Detalle de coleccion media" aria-modal="true" className="adminSideDrawer mediaAdminSideDrawer" role="dialog">
       <div className="adminSideDrawerHeader">
         <div>
           <h2>{collection.title}</h2>
@@ -327,7 +337,7 @@ function CollectionDetailDrawer({
       </div>
 
       <div className="mediaAdminDrawerBody">
-        <form action={updateCollectionAction} className="mediaAdminCollectionEditForm">
+        {canManage ? <form action={updateCollectionAction} className="mediaAdminCollectionEditForm">
           <input name="mediaCollectionId" type="hidden" value={collection.mediaCollectionId} />
           <input name="returnPath" type="hidden" value={returnPath} />
           <label className="adminField">
@@ -337,9 +347,9 @@ function CollectionDetailDrawer({
           <button className="adminButton adminButtonPrimary" type="submit">
             Guardar coleccion
           </button>
-        </form>
+        </form> : null}
         <CollectionSummary collection={collection} context={context} />
-        <form action={addItemsAction} className="mediaAdminUploadForm" encType="multipart/form-data">
+        {canManage ? <form action={addItemsAction} className="mediaAdminUploadForm" encType="multipart/form-data">
           <input name="mediaCollectionId" type="hidden" value={collection.mediaCollectionId} />
           <input name="returnPath" type="hidden" value={returnPath} />
           <input name="defaultLocale" type="hidden" value={collection.defaultLocale ?? context.locale} />
@@ -367,8 +377,9 @@ function CollectionDetailDrawer({
               <input name="assetTitle" placeholder="Titulo opcional" />
             </label>
           </div>
-        </form>
+        </form> : null}
         <AssetGrid
+          canManage={canManage}
           collection={collection}
           context={context}
           returnPath={returnPath}
@@ -376,7 +387,7 @@ function CollectionDetailDrawer({
           updateAssetAction={updateAssetAction}
         />
 
-        <form action={softDeleteAction} className="mediaAdminDangerPanel">
+        {canManage ? <form id="media-collection-delete" action={softDeleteAction} className="mediaAdminDangerPanel">
           <input name="mediaCollectionId" type="hidden" value={collection.mediaCollectionId} />
           <input name="returnPath" type="hidden" value={closeHref} />
           <div>
@@ -391,14 +402,15 @@ function CollectionDetailDrawer({
             <Trash2 aria-hidden="true" size={16} />
             Desactivar coleccion
           </button>
-        </form>
+        </form> : null}
       </div>
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }
 
 export function MediaAdminPage({
+  canManage,
   context,
   filters,
   collections,
@@ -415,20 +427,18 @@ export function MediaAdminPage({
   const offset = filters.offset ?? collections.offset ?? 0;
   const nextOffset = offset + limit;
   const previousOffset = Math.max(0, offset - limit);
-  const closeDetailHref = mediaHref(filters, { collectionId: undefined });
-  const listReturnHref = mediaHref(filters, { collectionId: undefined, mediaMessage: undefined });
+  const closeDetailHref = mediaHref(filters, { collectionId: undefined, drawer: undefined });
+  const listReturnHref = mediaHref(filters, { collectionId: undefined, mediaMessage: undefined, drawer: undefined });
+  const createHref = mediaHref(filters, { collectionId: undefined, drawer: "create" });
 
   return (
-    <main className="adminPage mediaAdminPage">
+    <main className="adminPage mediaAdminPage mediaLibraryPage">
       <div className="adminBreadcrumb">Admin / Catalogo / Media</div>
       <div className="adminPageHeader">
         <div>
           <h1 className="adminPageTitle">Media / Archivos</h1>
           <p className="adminPageIntro">Biblioteca de colecciones y assets usados por productos y combinaciones.</p>
         </div>
-        <Link className="adminButton" href="/admin/catalogo/media">
-          Refrescar
-        </Link>
       </div>
 
       {filters.mediaMessage ? (
@@ -437,7 +447,14 @@ export function MediaAdminPage({
         </div>
       ) : null}
 
-      <form aria-label="Filtros media" className="pricingFilterBar" method="get">
+      <div className="employeesToolbar">
+        <p className="adminMuted">{collections.total} colecciones encontradas.</p>
+        <div className="adminButtonRow">
+          <Link className="employeesTextAction" href={listReturnHref}>Actualizar</Link>
+          {canManage ? <Link className="employeesTextAction" href={createHref}>Crear nueva</Link> : null}
+        </div>
+      </div>
+      <form aria-label="Filtros media" className="mediaLibrarySearchForm" method="get">
         <label className="adminField">
           <span>Buscar</span>
           <input name="q" defaultValue={filters.q ?? ""} placeholder="Producto o coleccion" />
@@ -452,6 +469,7 @@ export function MediaAdminPage({
         <label className="adminField">
           <span>Limite</span>
           <select name="limit" defaultValue={String(limit)}>
+            <option value="20">20</option>
             <option value="25">25</option>
             <option value="50">50</option>
             <option value="100">100</option>
@@ -464,17 +482,97 @@ export function MediaAdminPage({
       <ResultBanner result={collections} />
 
       <div className="mediaAdminLayout">
-        <section className="pricingPanel">
-          <div className="pricingPanelHeader">
-            <div>
-              <h2>Colecciones</h2>
-              <p>{collections.total} registros</p>
+        <section className="employeesWorkspace">
+          {collections.items.length === 0 ? (
+            <div className="adminEmptyState">
+              <ImageIcon aria-hidden="true" size={28} />
+              <p>No hay colecciones media para el filtro actual.</p>
             </div>
-            <span className="adminBadge">{context.organizationId || "Sin organization"} / {context.shopId || "Sin shop"}</span>
-          </div>
+          ) : (
+            <div className="adminTableScroller">
+              <table className="adminTable mediaAdminTable">
+                <thead>
+                  <tr>
+                    <th scope="col">Vista</th>
+                    <th scope="col">Coleccion</th>
+                    <th scope="col">Producto</th>
+                    <th scope="col">Assets</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Actualizada</th>
+                    <th scope="col">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {collections.items.map((collection) => (
+                    <tr
+                      className={filters.collectionId === collection.mediaCollectionId ? "mediaAdminSelectedRow" : undefined}
+                      key={collection.mediaCollectionId}
+                    >
+                      <td>
+                        <CollectionPreview collection={collection} context={context} />
+                      </td>
+                      <td>
+                        {canManage ? <form action={updateCollectionAction} className="adminTableEditForm mediaLibraryInlineEdit">
+                          <input type="hidden" name="mediaCollectionId" value={collection.mediaCollectionId} />
+                          <input type="hidden" name="returnPath" value={listReturnHref} />
+                          <input name="title" aria-label={`Título ${collection.title}`} defaultValue={collection.title} required />
+                          <button className="adminButton adminButtonTiny" type="submit">Guardar</button>
+                        </form> : <strong>{collection.title}</strong>}
+                      </td>
+                      <td>{valueText(collection.productId)}</td>
+                      <td>{collection.itemCount}</td>
+                      <td>
+                        <span className={`adminBadge ${collection.active ? "adminBadgeOk" : "adminBadgeWarn"}`}>
+                          {collection.active ? "Activa" : "Inactiva"}
+                        </span>
+                      </td>
+                      <td>{valueText(collection.updatedAt)}</td>
+                      <td>
+                        <MediaCollectionMenu title={collection.title} canManage={canManage} reviewHref={mediaHref(filters, {drawer:undefined,collectionId:collection.mediaCollectionId})} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-          <form action={createCollectionAction} className="mediaAdminCreateForm" encType="multipart/form-data">
-            <input name="returnPath" type="hidden" value={listReturnHref} />
+          <div className="productListPagination">
+            <Link
+              aria-disabled={offset === 0}
+              className={`adminButton ${offset === 0 ? "adminButtonDisabled" : ""}`}
+              href={mediaHref(filters, { offset: previousOffset })}
+            >
+              Anterior
+            </Link>
+            <span>{collections.total ? offset + 1 : 0}-{Math.min(nextOffset, collections.total)}</span>
+            <Link
+              aria-disabled={nextOffset >= collections.total}
+              className={`adminButton ${nextOffset >= collections.total ? "adminButtonDisabled" : ""}`}
+              href={mediaHref(filters, { offset: nextOffset })}
+            >
+              Siguiente
+            </Link>
+          </div>
+        </section>
+
+        <CollectionDetailDrawer
+          canManage={canManage}
+          collection={selectedCollection}
+          context={context}
+          closeHref={closeDetailHref}
+          selectedError={selectedError}
+          addItemsAction={addItemsAction}
+          softDeleteAssetAction={softDeleteAssetAction}
+          softDeleteAction={softDeleteAction}
+          updateAssetAction={updateAssetAction}
+          updateCollectionAction={updateCollectionAction}
+        />
+      </div>
+      {canManage && filters.drawer === "create" && !selectedCollection && !selectedError ? <AdminResourceDrawer drawerId="media-admin-page-1" title="Crear colección media" description="Crea una colección asociada a un producto y sube sus imágenes." closeHref={listReturnHref}>
+        {filters.mediaMessage ? <div className="adminBanner adminBannerError">{filters.mediaMessage}</div> : null}
+          <form action={createCollectionAction} aria-label="Crear colección media" className="mediaAdminCreateForm" encType="multipart/form-data">
+            <input name="returnPath" type="hidden" value={createHref} />
             <input name="defaultLocale" type="hidden" value={context.locale} />
             <label className="adminField">
               <span>Producto</span>
@@ -501,93 +599,7 @@ export function MediaAdminPage({
               Crear coleccion
             </button>
           </form>
-
-          {collections.items.length === 0 ? (
-            <div className="adminEmptyState">
-              <ImageIcon aria-hidden="true" size={28} />
-              <p>No hay colecciones media para el filtro actual.</p>
-            </div>
-          ) : (
-            <div className="adminTableScroller">
-              <table className="adminTable pricingTable mediaAdminTable">
-                <thead>
-                  <tr>
-                    <th scope="col">Vista</th>
-                    <th scope="col">Coleccion</th>
-                    <th scope="col">Producto</th>
-                    <th scope="col">Assets</th>
-                    <th scope="col">Estado</th>
-                    <th scope="col">Actualizada</th>
-                    <th scope="col">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {collections.items.map((collection) => (
-                    <tr
-                      className={filters.collectionId === collection.mediaCollectionId ? "mediaAdminSelectedRow" : undefined}
-                      key={collection.mediaCollectionId}
-                    >
-                      <td>
-                        <CollectionPreview collection={collection} context={context} />
-                      </td>
-                      <td>
-                        <strong>{collection.title}</strong>
-                        <div className="adminContextHint">{collection.mediaCollectionId}</div>
-                      </td>
-                      <td>{valueText(collection.productId)}</td>
-                      <td>{collection.itemCount}</td>
-                      <td>
-                        <span className={`adminBadge ${collection.active ? "adminBadgeOk" : "adminBadgeWarn"}`}>
-                          {collection.active ? "Activa" : "Inactiva"}
-                        </span>
-                      </td>
-                      <td>{valueText(collection.updatedAt)}</td>
-                      <td>
-                        <Link
-                          className="adminButton adminButtonTiny"
-                          href={mediaHref(filters, { collectionId: collection.mediaCollectionId })}
-                        >
-                          Revisar
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          <div className="productListPagination">
-            <Link
-              aria-disabled={offset === 0}
-              className={`adminButton ${offset === 0 ? "adminButtonDisabled" : ""}`}
-              href={mediaHref(filters, { offset: previousOffset })}
-            >
-              Anterior
-            </Link>
-            <span>{offset + 1}-{Math.min(nextOffset, collections.total || nextOffset)}</span>
-            <Link
-              aria-disabled={nextOffset >= collections.total}
-              className={`adminButton ${nextOffset >= collections.total ? "adminButtonDisabled" : ""}`}
-              href={mediaHref(filters, { offset: nextOffset })}
-            >
-              Siguiente
-            </Link>
-          </div>
-        </section>
-
-        <CollectionDetailDrawer
-          collection={selectedCollection}
-          context={context}
-          closeHref={closeDetailHref}
-          selectedError={selectedError}
-          addItemsAction={addItemsAction}
-          softDeleteAssetAction={softDeleteAssetAction}
-          softDeleteAction={softDeleteAction}
-          updateAssetAction={updateAssetAction}
-          updateCollectionAction={updateCollectionAction}
-        />
-      </div>
+      </AdminResourceDrawer> : null}
     </main>
   );
 }

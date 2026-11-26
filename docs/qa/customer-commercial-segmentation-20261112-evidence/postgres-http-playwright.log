@@ -1,0 +1,283 @@
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "commercial_qa_7a28e113b39b42fb9cff68f5fb7478f3", schema "public" at "127.0.0.1:5432"
+
+14 migrations found in prisma/migrations
+
+Applying migration `20260421123000_init_customers_persistence`
+Applying migration `20260504220500_customer_purchase_items_json`
+Applying migration `20260608120000_add_customer_address_roles`
+Applying migration `20260706123000_customer_profile_avatar`
+Applying migration `20260707170000_customer_admin_notes`
+Applying migration `20260707180000_customer_admin_tags`
+Applying migration `20260707190000_customer_admin_tasks`
+Applying migration `20260707200000_customer_privacy_requests`
+Applying migration `20260707210000_customer_consent_events`
+Applying migration `20260710130000_add_customer_address_alias`
+Applying migration `20260712121000_add_purchase_order_reference`
+Applying migration `20260721180000_add_customer_reference`
+Applying migration `20260923182000_customers_commerce_read_admin_state`
+Applying migration `20261112200000_commercial_membership`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260421123000_init_customers_persistence/
+    └─ migration.sql
+  └─ 20260504220500_customer_purchase_items_json/
+    └─ migration.sql
+  └─ 20260608120000_add_customer_address_roles/
+    └─ migration.sql
+  └─ 20260706123000_customer_profile_avatar/
+    └─ migration.sql
+  └─ 20260707170000_customer_admin_notes/
+    └─ migration.sql
+  └─ 20260707180000_customer_admin_tags/
+    └─ migration.sql
+  └─ 20260707190000_customer_admin_tasks/
+    └─ migration.sql
+  └─ 20260707200000_customer_privacy_requests/
+    └─ migration.sql
+  └─ 20260707210000_customer_consent_events/
+    └─ migration.sql
+  └─ 20260710130000_add_customer_address_alias/
+    └─ migration.sql
+  └─ 20260712121000_add_purchase_order_reference/
+    └─ migration.sql
+  └─ 20260721180000_add_customer_reference/
+    └─ migration.sql
+  └─ 20260923182000_customers_commerce_read_admin_state/
+    └─ migration.sql
+  └─ 20261112200000_commercial_membership/
+    └─ migration.sql
+      
+All migrations have been successfully applied.
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "commercial_qa_bb55fa7ad61b4c18b17c692b253bb385", schema "public" at "127.0.0.1:5432"
+
+12 migrations found in prisma/migrations
+
+Applying migration `0001_init`
+Applying migration `0002_session_device_policy`
+Applying migration `0003_auth_sessions_external_principal`
+Applying migration `0004_admin_sessions_optional_tenant`
+Applying migration `0005_customer_account_activation_tokens`
+Applying migration `0006_activation_email_maintenance`
+Applying migration `0007_customer_password_reset_tokens`
+Applying migration `0008_admin_session_lifecycle_policy`
+Applying migration `0009_admin_step_up_session_proof`
+Applying migration `0010_employee_password_recovery_tokens`
+Applying migration `0011_employee_credential_invitation_tokens`
+Applying migration `20261112200000_commercial_segmentation`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 0001_init/
+    └─ migration.sql
+  └─ 0002_session_device_policy/
+    └─ migration.sql
+  └─ 0003_auth_sessions_external_principal/
+    └─ migration.sql
+  └─ 0004_admin_sessions_optional_tenant/
+    └─ migration.sql
+  └─ 0005_customer_account_activation_tokens/
+    └─ migration.sql
+  └─ 0006_activation_email_maintenance/
+    └─ migration.sql
+  └─ 0007_customer_password_reset_tokens/
+    └─ migration.sql
+  └─ 0008_admin_session_lifecycle_policy/
+    └─ migration.sql
+  └─ 0009_admin_step_up_session_proof/
+    └─ migration.sql
+  └─ 0010_employee_password_recovery_tokens/
+    └─ migration.sql
+  └─ 0011_employee_credential_invitation_tokens/
+    └─ migration.sql
+  └─ 20261112200000_commercial_segmentation/
+    └─ migration.sql
+      
+All migrations have been successfully applied.
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "commercial_qa_07d774fe06194cd9b6eff42f253a895a", schema "public" at "127.0.0.1:5432"
+
+18 migrations found in prisma/migrations
+
+Applying migration `20260227004000_create_prices`
+Applying migration `20260327113000_add_offerings`
+Applying migration `20260330110000_add_offering_variant_activation`
+Applying migration `20260331101500_add_pricing_outbox_and_offering_variant_version`
+Applying migration `20260331113000_add_outbox_relay_retry_columns`
+Applying migration `20260331150000_add_event_consumption_guards`
+Applying migration `20260612162000_add_price_batch_resolution_indexes`
+Applying migration `20260626172000_add_pricing_reference_data`
+Applying migration `20260908211000_commerce_read_events`
+Applying migration `20260910100000_price_bulk`
+Applying migration `20260910100500_price_bulk_schedule_epoch`
+Applying migration `20260911170000_price_bulk_high_throughput_limits`
+Applying migration `20260911193000_price_bulk_10k_batches`
+Applying migration `20260915160000_price_import_bulk`
+Applying migration `20260923133000_admin_pricing_commerce_read_events`
+Applying migration `20260928170000_import_runtime_readiness`
+Applying migration `20261109150000_catalog_retirement`
+Applying migration `20261112160000_regular_price_identity`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260227004000_create_prices/
+    └─ migration.sql
+  └─ 20260327113000_add_offerings/
+    └─ migration.sql
+  └─ 20260330110000_add_offering_variant_activation/
+    └─ migration.sql
+  └─ 20260331101500_add_pricing_outbox_and_offering_variant_version/
+    └─ migration.sql
+  └─ 20260331113000_add_outbox_relay_retry_columns/
+    └─ migration.sql
+  └─ 20260331150000_add_event_consumption_guards/
+    └─ migration.sql
+  └─ 20260612162000_add_price_batch_resolution_indexes/
+    └─ migration.sql
+  └─ 20260626172000_add_pricing_reference_data/
+    └─ migration.sql
+  └─ 20260908211000_commerce_read_events/
+    └─ migration.sql
+  └─ 20260910100000_price_bulk/
+    └─ migration.sql
+  └─ 20260910100500_price_bulk_schedule_epoch/
+    └─ migration.sql
+  └─ 20260911170000_price_bulk_high_throughput_limits/
+    └─ migration.sql
+  └─ 20260911193000_price_bulk_10k_batches/
+    └─ migration.sql
+  └─ 20260915160000_price_import_bulk/
+    └─ migration.sql
+  └─ 20260923133000_admin_pricing_commerce_read_events/
+    └─ migration.sql
+  └─ 20260928170000_import_runtime_readiness/
+    └─ migration.sql
+  └─ 20261109150000_catalog_retirement/
+    └─ migration.sql
+  └─ 20261112160000_regular_price_identity/
+    └─ migration.sql
+      
+All migrations have been successfully applied.
+QA UI HTTP PUT /api/v1/admin/customers/commercial-segment-policy 200
+QA UI HTTP PUT /api/v1/admin/customers/commercial-segment-policy 200
+QA UI HTTP PUT /api/v1/admin/customers/commercial-segment-policy 409
+QA UI HTTP POST /api/v1/admin/customers 201
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 400
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 401
+QA UI HTTP GET /api/v1/admin/customers/38ff6e33-5c12-4946-b619-40e9b9fab60c/commercial-membership 401
+QA UI HTTP PUT /api/v1/admin/customers/38ff6e33-5c12-4946-b619-40e9b9fab60c/commercial-membership 403
+QA UI HTTP GET /api/v1/admin/customers/38ff6e33-5c12-4946-b619-40e9b9fab60c/commercial-membership 200
+QA UI HTTP PUT /api/v1/admin/customers/38ff6e33-5c12-4946-b619-40e9b9fab60c/commercial-membership 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP PUT /api/v1/admin/customers/38ff6e33-5c12-4946-b619-40e9b9fab60c/commercial-membership 200
+QA UI HTTP PUT /api/v1/admin/customers/38ff6e33-5c12-4946-b619-40e9b9fab60c/commercial-membership 409
+QA UI HTTP GET /api/v1/admin/customers/38ff6e33-5c12-4946-b619-40e9b9fab60c/commercial-membership 200
+QA UI HTTP PATCH /api/v1/admin/customers/38ff6e33-5c12-4946-b619-40e9b9fab60c 409
+QA UI HTTP PATCH /api/v1/admin/customers/38ff6e33-5c12-4946-b619-40e9b9fab60c 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP PATCH /api/v1/admin/customers/38ff6e33-5c12-4946-b619-40e9b9fab60c 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP POST /api/v1/admin/customers 409
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 403
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 503
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 200
+{"benchmark":"same SKU, warm HTTP pricing, guest vs verified registered context","samples":20,"guestMs":{"p50":0.4060830000000806,"p95":3.097208000000137},"authenticatedMs":{"p50":4.709041999999954,"p95":8.057042000000138},"limitation":"local synthetic sequential workload; not a before/after or production load certification"}
+QA UI HTTP GET /api/v1/auth/me 200
+QA UI HTTP GET /api/v1/admin/context/available 200
+QA UI HTTP GET /api/v1/admin/after-sales/tasks/summary 404
+QA UI HTTP GET /api/v1/admin/customers 200
+QA UI HTTP GET /api/v1/admin/pricing/customer-groups 200
+QA UI HTTP GET /api/v1/admin/session 404
+QA UI HTTP POST /api/v1/admin/customers 201
+QA UI HTTP GET /api/v1/auth/me 200
+QA UI HTTP GET /api/v1/admin/context/available 200
+QA UI HTTP GET /api/v1/admin/after-sales/tasks/summary 404
+QA UI HTTP GET /api/v1/admin/customers 200
+QA UI HTTP GET /api/v1/admin/customers/e34dd917-c72d-49fa-9d2e-632fd4de6dde/overview 200
+QA UI HTTP GET /api/v1/admin/customers 200
+QA UI HTTP GET /api/v1/admin/customers/e34dd917-c72d-49fa-9d2e-632fd4de6dde/commercial-membership 200
+QA UI HTTP GET /api/v1/auth/me 200
+QA UI HTTP GET /api/v1/admin/context/available 200
+QA UI HTTP GET /api/v1/admin/after-sales/tasks/summary 404
+QA UI HTTP GET /api/v1/admin/customers/by-reference 200
+QA UI HTTP GET /api/v1/admin/customers/e34dd917-c72d-49fa-9d2e-632fd4de6dde/overview 200
+QA UI HTTP GET /api/v1/admin/pricing/customer-groups 200
+QA UI HTTP GET /api/v1/admin/customers/e34dd917-c72d-49fa-9d2e-632fd4de6dde/commercial-membership 200
+QA UI HTTP GET /api/v1/admin/session 404
+QA UI HTTP PATCH /api/v1/admin/customers/e34dd917-c72d-49fa-9d2e-632fd4de6dde 200
+QA UI HTTP GET /api/v1/auth/me 200
+QA UI HTTP GET /api/v1/admin/context/available 200
+QA UI HTTP GET /api/v1/admin/after-sales/tasks/summary 404
+QA UI HTTP GET /api/v1/admin/customers/by-reference 200
+QA UI HTTP GET /api/v1/admin/customers/e34dd917-c72d-49fa-9d2e-632fd4de6dde/overview 200
+QA UI HTTP GET /api/v1/admin/pricing/customer-groups 200
+QA UI HTTP GET /api/v1/admin/customers/e34dd917-c72d-49fa-9d2e-632fd4de6dde/commercial-membership 200
+QA UI HTTP GET /api/v1/admin/customers/e34dd917-c72d-49fa-9d2e-632fd4de6dde/commercial-membership 200
+Playwright PASS: administrator selects VIP during customer creation, atomic profile submission persists membership and editing removes it; selector fits desktop/tablet/mobile and has an accessible label.
+QA UI HTTP GET /api/v1/storefront/pricing/products/430451c8-823a-42a5-bda2-8000fd91ae72 401
+Verified: manual assignment at profile creation, atomic edits/rollback, real signed sessions, tenant/permission boundaries, no public group claim, VIP/B2B/ordinary tax prices, warm-cache revocation, concurrent membership edits, owner outage/recovery, session revocation.
+✔ manual membership: authenticated BFF → Sessions → Customers and Pricing, isolated PostgreSQL (7831.563084ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7875.338125
+Owned commercial context database removed
+Owned commercial context database removed
+Owned commercial context database removed

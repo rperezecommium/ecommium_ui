@@ -5,6 +5,7 @@ import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 
 export type InvoiceAdminFilters = {
+  issueInvoice?: "true";
   invoiceId?: string;
   orderId?: string;
   status?: string;

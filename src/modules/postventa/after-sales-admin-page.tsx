@@ -1,3 +1,4 @@
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
 import Link from "next/link";
 import { randomUUID } from "crypto";
 import { ClipboardCheck, FileText, Headphones, ImagePlus, PackageCheck, RotateCcw, Search, Send, UserRound, X } from "lucide-react";
@@ -24,7 +25,6 @@ import { AfterSalesResolutionForm } from "./after-sales-resolution-form";
 import { AfterSalesSolutionProposalForm } from "./after-sales-solution-proposal-form";
 import {
   applyAfterSalesFiltersAction,
-  applyAfterSalesTaskFiltersAction,
   attendAfterSalesTaskAction,
   assignAfterSalesOwnerAction,
   authorizeAfterSalesReturnAction,
@@ -153,6 +153,13 @@ function caseTransitionOptions(caseRecord: AfterSalesAdminCase) {
 }
 
 
+function responsibleName(employeeId: string | null | undefined, employees: AfterSalesAdminEmployee[]) {
+  if (!employeeId) return "Sin responsable";
+  const employee = employees.find(item => item.employeeId === employeeId)
+    ?? employees.find(item => item.principalId === employeeId);
+  return employee?.label && employee.label !== employeeId ? employee.label : "Nombre no disponible";
+}
+
 function valueText(value: unknown) {
   if (typeof value === "boolean") {
     return value ? "Si" : "No";
@@ -238,82 +245,23 @@ function ResultBanner({ result }: { result: { ok: boolean; error?: string } }) {
 
 function FiltersPanel({ filters, employees }: { filters: AfterSalesAdminFilters; employees: AfterSalesAdminEmployee[] }) {
   return (
-    <section className="adminCard">
-      <div className="adminCardHeader">
-        <div>
-          <h2>Busqueda postventa</h2>
-          <p>Filtra por caso, pedido, cliente, estado o responsable.</p>
-        </div>
-        <Search aria-hidden="true" size={18} />
-      </div>
-      <form action={applyAfterSalesFiltersAction} className="pricingDenseForm">
-        <label className="adminField">
-          <span>Caso</span>
-          <input name="caseReference" placeholder="ASC-7H2K9Q4M8R (cuando esté habilitada)" defaultValue={filters.caseReference ?? ""} />
-        </label>
-        <label className="adminField">
-          <span>Pedido</span>
-          <input name="orderId" placeholder="orderId" defaultValue={filters.orderId ?? ""} />
-        </label>
-        <label className="adminField">
-          <span>Cliente</span>
-          <input name="customerId" placeholder="customerId" defaultValue={filters.customerId ?? ""} />
-        </label>
-        <label className="adminField">
-          <span>Responsable</span>
-          <select name="assignedEmployeeId" defaultValue={filters.assignedEmployeeId ?? ""}>
-            <option value="">Todos</option>
-            {employees.filter((employee) => employee.active).map((employee) => <option key={employee.employeeId} value={employee.employeeId}>{employee.label}</option>)}
-          </select>
-        </label>
-        <label className="adminField">
-          <span>Estado</span>
-          <select name="status" defaultValue={filters.status ?? ""}>
-            <option value="">Todos</option>
-            {statuses.map((status) => (
-              <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
-        </label>
-        <label className="adminField">
-          <span>Limite</span>
-          <input name="limit" min="1" max="100" type="number" defaultValue={filters.limit ?? "25"} />
-        </label>
-        <button className="adminButton adminButtonPrimary" type="submit">Buscar</button>
-      </form>
-    </section>
-  );
-}
-
-function CasesKpis({ data }: Pick<Props, "data">) {
-  const cases = data.cases.ok ? data.cases.data.items : [];
-  const open = cases.filter((item) => ["OPEN", "IN_PROGRESS"].includes(lifecycleStatus(item))).length;
-  const unassigned = cases.filter((item) => !item.assignedEmployeeId).length;
-  const awaitingReturn = cases.filter((item) => item.status === "AWAITING_RETURN").length;
-
-  return (
-    <section className="adminKpiGrid">
-      <div className="adminKpi">
-        <span>After Sales</span>
-        <strong>{data.health.ok ? valueText(data.health.data?.status) : "Sin conexion"}</strong>
-        <p>{data.health.ok ? `DB ${data.health.data?.databaseReachable ? "ok" : "pendiente"}` : data.health.error}</p>
-      </div>
-      <div className="adminKpi">
-        <span>Casos abiertos</span>
-        <strong>{open}</strong>
-        <p>{data.cases.ok ? `${data.cases.data.total} en filtro` : "Sin datos"}</p>
-      </div>
-      <div className="adminKpi">
-        <span>Sin responsable</span>
-        <strong>{unassigned}</strong>
-        <p>Requieren asignacion</p>
-      </div>
-      <div className="adminKpi">
-        <span>Esperando retorno</span>
-        <strong>{awaitingReturn}</strong>
-        <p>{data.health.ok && data.health.data?.publisherEnabled ? "Eventos activos" : "Eventos pendientes"}</p>
-      </div>
-    </section>
+    <form action={applyAfterSalesFiltersAction} aria-label="Buscar casos de postventa" className="productListSearchPanel afterSalesCasesSearchPanel">
+      <input aria-label="Caso" name="caseReference" placeholder="Referencia de caso" type="search" defaultValue={filters.caseReference ?? ""} />
+      <input aria-label="Pedido" name="orderId" placeholder="ID del pedido" type="search" defaultValue={filters.orderId ?? ""} />
+      <input aria-label="Cliente" name="customerId" placeholder="ID del cliente" type="search" defaultValue={filters.customerId ?? ""} />
+      <select aria-label="Responsable" name="assignedEmployeeId" defaultValue={filters.assignedEmployeeId ?? ""}>
+        <option value="">Todos los responsables</option>
+        {employees.filter((employee) => employee.active).map((employee) => <option key={employee.employeeId} value={employee.employeeId}>{employee.label}</option>)}
+      </select>
+      <select aria-label="Estado" name="status" defaultValue={filters.status ?? ""}>
+        <option value="">Todos los estados</option>
+        {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
+      </select>
+      <label className="productListPageSize">Por página
+        <input aria-label="Casos por pagina" name="limit" min="1" max="100" type="number" defaultValue={filters.limit ?? "25"} />
+      </label>
+      <button className="adminButton adminButtonPrimary" type="submit"><Search aria-hidden="true" size={16} />Buscar</button>
+    </form>
   );
 }
 
@@ -327,8 +275,8 @@ function CasesTable({ capabilities, data, filters }: Pick<Props, "capabilities" 
   }
 
   return (
-    <div className="adminTableScroller">
-      <table className="adminTable pricingTable">
+    <div className="adminTableScroller productListGrid">
+      <table className="adminTable pricingTable productListTable">
         <thead>
           <tr>
             <th>Caso</th>
@@ -363,11 +311,12 @@ function CasesTable({ capabilities, data, filters }: Pick<Props, "capabilities" 
                   <input name="caseId" type="hidden" value={item.caseId} />
                   <select aria-label={`Responsable del caso ${item.caseId}`} defaultValue={item.assignedEmployeeId ?? "__null__"} name="assignedEmployeeId">
                     <option value="__null__">Sin responsable</option>
+                    {item.assignedEmployeeId && !activeEmployees.some(employee => employee.employeeId === item.assignedEmployeeId) ? <option value={item.assignedEmployeeId}>{responsibleName(item.assignedEmployeeId, data.employees.ok ? data.employees.data : [])}</option> : null}
                     {activeEmployees.map((employee) => <option key={employee.employeeId} value={employee.employeeId}>{employee.label}</option>)}
                   </select>
                   <button className="adminButton adminButtonTiny" type="submit">Asignar</button>
                 </form>
-              ) : valueText(item.assignedEmployeeId)}</td>
+              ) : responsibleName(item.assignedEmployeeId, data.employees.ok ? data.employees.data : [])}</td>
               <td>
                 <Link className="adminButton adminButtonTiny" href={casesHref(filters, { caseId: item.caseId })}>
                   {capabilities.canManageAfterSales ? "Atender" : "Ver caso"}
@@ -404,39 +353,10 @@ function TaskInbox({ capabilities, data, filters }: Pick<Props, "capabilities" |
   const nextOffset = offset + limit;
 
   return (
-    <section className="adminCard afterSalesTasksCard">
-      <div className="adminCardHeader">
-        <div>
-          <h2>Cola operativa</h2>
-          <p>Tareas de casos, mensajes y evidencias; no contienen texto ni archivos privados.</p>
-        </div>
-        <span className="adminBadge adminBadgeWarn">{data.taskSummary.ok ? data.taskSummary.data?.pendingCount ?? 0 : "-"} pendientes</span>
-      </div>
-      <form action={applyAfterSalesTaskFiltersAction} className="pricingDenseForm afterSalesTaskFilters">
-        <label className="adminField">
-          <span>Tipo</span>
-          <select defaultValue={filters.taskType ?? ""} name="taskType">
-            <option value="">Todos</option>
-            <option value="NEW_CASE">Caso nuevo</option>
-            <option value="CUSTOMER_MESSAGE">Mensaje del cliente</option>
-            <option value="EVIDENCE_REVIEW">Evidencia</option>
-            <option value="SOLUTION_PROPOSAL_REJECTED">Propuesta rechazada</option>
-            <option value="SOLUTION_PROPOSAL_ACCEPTED">Propuesta aceptada</option>
-          </select>
-        </label>
-        <label className="adminField">
-          <span>Estado</span>
-          <select defaultValue={filters.taskStatus ?? ""} name="taskStatus">
-            <option value="">Todos</option>
-            <option value="OPEN">Abierta</option>
-            <option value="ASSIGNED">Asignada</option>
-          </select>
-        </label>
-        <button className="adminButton" type="submit">Filtrar tareas</button>
-      </form>
+    <section className="productListGrid afterSalesTasksCard" aria-label="Tareas pendientes">
       {items.length ? (
         <div className="adminTableScroller">
-          <table className="adminTable pricingTable">
+          <table className="adminTable pricingTable productListTable">
             <thead>
               <tr><th>Tarea</th><th>Caso</th><th>Estado</th><th>Actividad</th>{capabilities.canManageAfterSales ? <th>Acciones</th> : null}</tr>
             </thead>
@@ -462,9 +382,11 @@ function TaskInbox({ capabilities, data, filters }: Pick<Props, "capabilities" |
 function DetailSummary({
   selectedCase,
   customerReference,
+  employees,
 }: {
   selectedCase: AfterSalesAdminCase;
   customerReference: string | null;
+  employees: AfterSalesAdminEmployee[];
 }) {
   return (
     <>
@@ -480,7 +402,7 @@ function DetailSummary({
         <div><dt>Explicación de la resolución</dt><dd>{valueText(selectedCase.resolutionReason)}</dd></div>
         {lifecycleStatus(selectedCase) === "RESOLVED" ? <div><dt>Cierre automático</dt><dd>{dateText(selectedCase.autoCloseAt)}</dd></div> : null}
         {lifecycleStatus(selectedCase) === "CLOSED" ? <div><dt>Cerrado</dt><dd>{dateText(selectedCase.closedAt)}</dd></div> : null}
-        <div><dt>Responsable</dt><dd>{valueText(selectedCase.assignedEmployeeId)}</dd></div>
+        <div><dt>Responsable</dt><dd>{responsibleName(selectedCase.assignedEmployeeId, employees)}</dd></div>
         <div><dt>Categoría</dt><dd>{valueText(selectedCase.reasonCode)}</dd></div>
         <div><dt>Enviado</dt><dd>{dateText(selectedCase.submittedAt ?? selectedCase.createdAt)}</dd></div>
       </dl>
@@ -507,8 +429,8 @@ function CaseItemsPanel({ selectedCase }: { selectedCase: AfterSalesAdminCase })
   }
 
   return (
-    <div className="adminTableScroller">
-      <table className="adminTable pricingTable">
+    <div className="adminTableScroller productListGrid">
+      <table className="adminTable pricingTable productListTable">
         <thead>
           <tr>
             <th>Item</th>
@@ -828,7 +750,7 @@ function SolutionExecutionAction({
   );
 }
 
-function AfterSalesDrawerSummary({ selectedCase }: { selectedCase: AfterSalesAdminCase }) {
+function AfterSalesDrawerSummary({ selectedCase, employees }: { selectedCase: AfterSalesAdminCase; employees: AfterSalesAdminEmployee[] }) {
   const workflow = getAfterSalesWorkflowPresentation(selectedCase);
 
   return (
@@ -842,7 +764,7 @@ function AfterSalesDrawerSummary({ selectedCase }: { selectedCase: AfterSalesAdm
         <span className={statusBadgeClass(selectedCase.status)}>{workflow.title}</span>
       </div>
       <dl className="ordersFulfillmentSummaryMeta">
-        <div><dt>Responsable</dt><dd>{valueText(selectedCase.assignedEmployeeId)}</dd></div>
+        <div><dt>Responsable</dt><dd>{responsibleName(selectedCase.assignedEmployeeId, employees)}</dd></div>
         <div><dt>Pedido</dt><dd>{selectedCase.orderId}</dd></div>
         <div><dt>Productos</dt><dd>{selectedCase.items.length}</dd></div>
         {lifecycleStatus(selectedCase) === "RESOLVED" ? <div><dt>Confirmación hasta</dt><dd>{dateText(selectedCase.autoCloseAt)}</dd></div> : null}
@@ -1178,7 +1100,7 @@ function AfterSalesCaseDrawer({
     return (
       <div className="adminDrawerBackdrop afterSalesDrawerBackdrop">
         <Link aria-label="Cerrar detalle de postventa" className="afterSalesDrawerBackdropLink" href={closeHref} />
-        <aside aria-label="Detalle de caso postventa" aria-modal="true" className="adminSideDrawer afterSalesSideDrawer" role="dialog">
+        <AdminResizableDrawer drawerId="after-sales-admin-page-detalle-de-caso-postventa-1" aria-label="Detalle de caso postventa" aria-modal="true" className="adminSideDrawer afterSalesSideDrawer" role="dialog">
           <div className="adminSideDrawerHeader">
             <div>
               <h2>Atencion del caso</h2>
@@ -1191,7 +1113,7 @@ function AfterSalesCaseDrawer({
           <div className="afterSalesDrawerBody">
             <ResultBanner result={data.selectedCase} />
           </div>
-        </aside>
+        </AdminResizableDrawer>
       </div>
     );
   }
@@ -1207,7 +1129,7 @@ function AfterSalesCaseDrawer({
   return (
     <div className="adminDrawerBackdrop afterSalesDrawerBackdrop">
       <Link aria-label="Cerrar detalle de postventa" className="afterSalesDrawerBackdropLink" href={closeHref} />
-      <aside aria-label={`Atender caso ${selectedCase.caseReference ?? selectedCase.caseId}`} aria-modal="true" className="adminSideDrawer afterSalesSideDrawer" role="dialog">
+      <AdminResizableDrawer drawerId="after-sales-admin-page-aftersalescasedrawer-2" aria-label={`Atender caso ${selectedCase.caseReference ?? selectedCase.caseId}`} aria-modal="true" className="adminSideDrawer afterSalesSideDrawer" role="dialog">
         <div className="adminSideDrawerHeader">
           <div>
             <h2>Atencion del caso</h2>
@@ -1218,7 +1140,7 @@ function AfterSalesCaseDrawer({
           </Link>
         </div>
         <div className="afterSalesDrawerBody">
-          <AfterSalesDrawerSummary selectedCase={selectedCase} />
+          <AfterSalesDrawerSummary selectedCase={selectedCase} employees={data.employees.ok ? data.employees.data : []} />
           <AfterSalesDrawerTabs activeTab={activeTab} filters={filters} />
 
           {activeTab === "caso" ? (
@@ -1236,7 +1158,7 @@ function AfterSalesCaseDrawer({
                   ) : <TransitionForms caseTab={activeTab} selectedCase={selectedCase} /> : null}
                 </section>
               ) : null}
-              <section className="adminCard"><div className="adminCardHeader"><div><h3>Datos del caso</h3><p>Solicitud original, cliente y pedido relacionados.</p></div><FileText aria-hidden="true" size={18} /></div><DetailSummary customerReference={data.selectedCustomerReference} selectedCase={selectedCase} /></section>
+              <section className="adminCard"><div className="adminCardHeader"><div><h3>Datos del caso</h3><p>Solicitud original, cliente y pedido relacionados.</p></div><FileText aria-hidden="true" size={18} /></div><DetailSummary employees={data.employees.ok ? data.employees.data : []} customerReference={data.selectedCustomerReference} selectedCase={selectedCase} /></section>
               <div className={filters.caseFocus === "message" ? "afterSalesTaskFocus" : undefined}><CustomerConversationPanel canManage={capabilities.canManageAfterSales} caseTab={activeTab} messages={selectedCase.messages} selectedCase={selectedCase} /></div>
               <section className="adminCard"><div className="adminCardHeader"><div><h3>Lineas afectadas</h3><p>Unidades solicitadas, aprobadas y su estado.</p></div></div><CaseItemsPanel selectedCase={selectedCase} /></section>
               <div className={filters.caseFocus === "evidence" ? "afterSalesTaskFocus" : undefined}><AfterSalesEvidenceGallery caseId={selectedCase.caseId} evidences={selectedCase.evidences} /></div>
@@ -1267,14 +1189,16 @@ function AfterSalesCaseDrawer({
             </div>
           ) : null}
         </div>
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }
 
 export function AfterSalesAdminPage({ capabilities, data, filters }: Props) {
+  const activeTab = filters.tab ?? (filters.taskType || filters.taskStatus || filters.taskOffset || filters.taskLimit ? "tasks" : "cases");
+  const pendingCount = data.taskSummary.ok ? data.taskSummary.data?.pendingCount ?? 0 : "—";
   return (
-    <main className="adminPage afterSalesAdminPage">
+    <main className="adminPage productListPage afterSalesAdminPage">
       <div className="adminBreadcrumb">Admin / Postventa</div>
       <div className="adminPageHeader">
         <div>
@@ -1287,10 +1211,18 @@ export function AfterSalesAdminPage({ capabilities, data, filters }: Props) {
           <p>{filters.notice}</p>
         </div>
       ) : null}
-      <CasesKpis data={data} />
-      <div className="adminStatusList">
+      <nav className="adminTabs" aria-label="Postventa">
+        {([{ id: "cases", label: "Casos" }, { id: "tasks", label: "Pendientes" }] as const).map((tab) => (
+          <Link key={tab.id} className={activeTab === tab.id ? "adminTab adminTabActive" : "adminTab"}
+            aria-current={activeTab === tab.id ? "page" : undefined}
+            href={casesHref(filters, { tab: tab.id, caseId: undefined, caseTab: undefined, caseFocus: undefined, notice: undefined, noticeKind: undefined })}>
+            {tab.label}{tab.id === "tasks" ? ` · ${pendingCount}` : ""}
+          </Link>
+        ))}
+      </nav>
+      {activeTab === "cases" ? <div className="adminStatusList">
         <FiltersPanel employees={data.employees.ok ? data.employees.data : []} filters={filters} />
-        <section className="adminCard afterSalesCasesCard">
+        <section className="productListGrid afterSalesCasesCard">
           <div className="adminCardHeader">
             <div>
               <h2>Bandeja de casos</h2>
@@ -1300,41 +1232,24 @@ export function AfterSalesAdminPage({ capabilities, data, filters }: Props) {
           </div>
           <CasesTable capabilities={capabilities} data={data} filters={filters} />
         </section>
-      </div>
-      <TaskInbox capabilities={capabilities} data={data} filters={filters} />
+      </div> : <TaskInbox capabilities={capabilities} data={data} filters={filters} />}
 
-      <section className="adminGrid afterSalesSupportGrid">
-        <section className="adminCard">
-          <div className="adminCardHeader">
-            <div>
-              <h2>Flujo esperado</h2>
-              <p>Secuencia operativa conectada con Payments, Inventory e Invoice.</p>
-            </div>
-            <RotateCcw aria-hidden="true" size={18} />
-          </div>
-          <div className="customersOverviewList">
-            <div className="customersOverviewListItem"><strong>1. Revision</strong><span>UNDER_REVIEW</span></div>
-            <div className="customersOverviewListItem"><strong>2. Decision</strong><span>APPROVED / REJECTED</span></div>
-            <div className="customersOverviewListItem"><strong>3. Retorno</strong><span>AWAITING_RETURN / RETURN_RECEIVED</span></div>
-            <div className="customersOverviewListItem"><strong>4. Impactos</strong><span>Refund, inventario, documento</span></div>
-            <div className="customersOverviewListItem"><strong>5. Cierre</strong><span>RESOLVED / CLOSED</span></div>
-          </div>
-        </section>
-        <section className="adminCard">
-          <div className="adminCardHeader">
-            <div>
-              <h2>Continuidad</h2>
-              <p>Atajos al resto del backoffice.</p>
-            </div>
-            <PackageCheck aria-hidden="true" size={18} />
-          </div>
-          <div className="adminButtonRow">
-            <Link className="adminButton" href="/admin/clientes">Clientes</Link>
-            <Link className="adminButton" href="/admin/pedidos">Pedidos</Link>
-            <Link className="adminButton" href="/admin/pagos">Facturas</Link>
-          </div>
-        </section>
-      </section>
+      <div className="afterSalesWorkflowHelp">
+        <span>Cómo gestionar un caso</span>
+        <button aria-label="Ayuda: Cómo gestionar un caso" className="adminInfoTooltipTrigger" popoverTarget="after-sales-workflow-help" type="button">?</button>
+      </div>
+      <div aria-labelledby="after-sales-workflow-help-title" className="afterSalesWorkflowPopup" id="after-sales-workflow-help" popover="auto" role="dialog">
+        <h2 id="after-sales-workflow-help-title">Cómo gestionar un caso</h2>
+        <ol>
+          <li>Revisar la solicitud, conversar con el cliente y consultar sus evidencias.</li>
+          <li>Enviar una propuesta de solución y esperar la respuesta del cliente.</li>
+          <li>Cuando el cliente acepte, procesar la solución y consultar su avance en Ejecución.</li>
+          <li>Finalizar la solución registrando la explicación al cliente y la prueba interna de cierre.</li>
+          <li>Cerrar el expediente cuando esté habilitado. El cliente puede confirmar el cierre.</li>
+        </ol>
+        <p>Atender un aviso lo retira de Pendientes y abre el expediente; no resuelve el caso ni elimina sus otros avisos. Los casos anteriores al flujo guiado conservan su operativa en Ejecución.</p>
+        <button className="adminButton" popoverTarget="after-sales-workflow-help" popoverTargetAction="hide" type="button">Cerrar</button>
+      </div>
       {filters.caseId ? <AfterSalesCaseDrawer capabilities={capabilities} data={data} filters={filters} /> : null}
     </main>
   );

@@ -286,7 +286,6 @@ export function StockAdminPage({
               <h2>Productos</h2>
               <p>{products.total} registros</p>
             </div>
-            <span className="adminBadge">{context.organizationId || "Sin organization"} / {context.shopId || "Sin shop"}</span>
           </div>
           <ProductRows filters={filters} products={products} />
           <div className="productListPagination">

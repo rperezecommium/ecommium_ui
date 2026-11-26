@@ -1,8 +1,10 @@
 "use server";
 
+import {getCurrentAdminSession} from "../auth/current-admin-session";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { addMediaCollectionItems, createMediaCollection, listMediaCollections } from "../catalogo/media-admin";
+import { validateMediaUpload } from "../../shared/security/media-upload";
 import { getAdminContext } from "../../shared/config/admin-context";
 import {
   activateCmsVisualModuleDefinition,
@@ -13,12 +15,10 @@ import {
   createCmsPage,
   createCmsVisualModuleDefinition,
   createCmsVisualModuleDefinitionDraftRevision,
-  createCmsTemplate,
-  normalizeCmsVisualModuleProps,
+  deleteCmsPage,
   normalizeCmsVisualModuleV2Props,
   patchCmsGlobalSettings,
   patchCmsPageSettings,
-  patchCmsTemplate,
   publishCmsPage,
   unpublishCmsPage,
   updateCmsDraft,
@@ -30,8 +30,6 @@ import {
   type CmsLayout,
   type CmsRegionCode,
   type CmsPageType,
-  type CmsTemplateStatus,
-  type CmsVisualNode,
 } from "./cms-admin";
 
 function asString(value: FormDataEntryValue | null) {
@@ -39,7 +37,6 @@ function asString(value: FormDataEntryValue | null) {
 }
 
 const cmsSettingsPath = "/admin/cms/ajustes-basicos";
-const cmsBuilderPath = "/admin/cms/builder";
 const cmsBuilderMediaCollectionTitle = "CMS Builder Assets";
 const editableRegions: CmsRegionCode[] = ["header", "main", "footer"];
 
@@ -50,6 +47,7 @@ export type CmsBuilderMediaUploadReport = {
   mediaAssetId?: string;
   message: string;
   previewUrl?: string;
+  publicUrl?: string;
 };
 
 function parseJsonRecord<T>(value: FormDataEntryValue | null, fallback: T): T {
@@ -74,22 +72,6 @@ function finishCmsSettings(message: string, keep?: Record<string, string | undef
     }
   }
   redirect(`${cmsSettingsPath}?${params.toString()}`);
-}
-
-function finishCmsBuilder(
-  message: string,
-  keep?: Record<string, string | undefined>,
-  severity: "success" | "error" = "success",
-): never {
-  revalidatePath(cmsBuilderPath);
-  revalidatePath("/admin/cms");
-  const params = new URLSearchParams({ cmsBuilderMessage: message, cmsBuilderMessageSeverity: severity });
-  for (const [key, value] of Object.entries(keep ?? {})) {
-    if (value) {
-      params.set(key, value);
-    }
-  }
-  redirect(`${cmsBuilderPath}?${params.toString()}`);
 }
 
 function normalizedCssValue(value: FormDataEntryValue | null, fallback: string) {
@@ -252,21 +234,6 @@ function asPageType(value: FormDataEntryValue | null): CmsPageType {
   return "LANDING";
 }
 
-function asTemplateStatus(value: FormDataEntryValue | null): CmsTemplateStatus {
-  const text = asString(value);
-  if (text === "ACTIVE" || text === "ARCHIVED") {
-    return text;
-  }
-  return "DRAFT";
-}
-
-function asBoolean(value: FormDataEntryValue | null, fallback = true) {
-  const text = asString(value);
-  if (text === "false") return false;
-  if (text === "true") return true;
-  return fallback;
-}
-
 function uploadedBuilderFile(formData: FormData) {
   const file = formData.get("file");
   return file instanceof File && file.size > 0 ? file : null;
@@ -296,6 +263,12 @@ export async function uploadCmsBuilderMediaAction(formData: FormData): Promise<C
     return { ok: false, message: "Selecciona un archivo valido." };
   }
 
+  // Validate before looking up or creating a collection: rejected input must not create resources.
+  const validated = await validateMediaUpload(file);
+  if (!validated.ok) {
+    return { ok: false, message: validated.error };
+  }
+
   const assetKey = asString(formData.get("assetKey")) ?? `cms-bg-${crypto.randomUUID()}`;
   const alt = asString(formData.get("alt"));
   const assetTitle = asString(formData.get("assetTitle")) ?? assetKey;
@@ -303,14 +276,14 @@ export async function uploadCmsBuilderMediaAction(formData: FormData): Promise<C
   const result = existingCollectionId
     ? await addMediaCollectionItems(context, {
         mediaCollectionId: existingCollectionId,
-        files: [file],
+        files: [validated.file],
         defaultLocale: context.locale,
         alt,
         assetTitle,
       })
     : await createMediaCollection(context, {
         title: cmsBuilderMediaCollectionTitle,
-        files: [file],
+        files: [validated.file],
         defaultLocale: context.locale,
         alt,
         assetTitle,
@@ -332,57 +305,9 @@ export async function uploadCmsBuilderMediaAction(formData: FormData): Promise<C
     collectionId: result.data.mediaCollectionId,
     mediaAssetId,
     message: "Asset CMS subido.",
+    publicUrl: uploadedAsset?.previewUrl,
     previewUrl: cmsBuilderMediaPreviewUrl(mediaAssetId),
   };
-}
-
-function cmsTemplateMutationMessage(
-  result: { ok: true } | { ok: false; status?: number; error: string },
-  success: string,
-) {
-  if (result.ok) {
-    return success;
-  }
-  return result.status === 403 ? "Falta permiso cms.settings.write." : result.error;
-}
-
-function templateKeep(formData: FormData, templateId?: string) {
-  return {
-    tab: "templates",
-    locale: asString(formData.get("locale")),
-    pageType: asString(formData.get("pageTypeFilter")) ?? asString(formData.get("pageType")),
-    status: asString(formData.get("statusFilter")),
-    templateId: templateId ?? asString(formData.get("templateId")),
-  };
-}
-
-function templateTypographyOverrides(formData: FormData) {
-  const body = asString(formData.get("templateTypographyBody"));
-  const heading = asString(formData.get("templateTypographyHeading"));
-  const mono = asString(formData.get("templateTypographyMono"));
-  const typography: CmsDesignTokens["typography"] = {};
-
-  if (body) typography.body = cmsTypographyTokenFromFamily("body", body);
-  if (heading) typography.heading = cmsTypographyTokenFromFamily("heading", heading);
-  if (mono) typography.mono = cmsTypographyTokenFromFamily("mono", mono);
-
-  return typography;
-}
-
-function templateOverrides(formData: FormData) {
-  const maxWidth = asString(formData.get("templateMaxWidth"));
-  const layout = nextLayout(formData, maxWidth ?? "1280px");
-  const typography = templateTypographyOverrides(formData);
-  const overrides: Record<string, unknown> = { layout };
-
-  if (maxWidth) {
-    overrides.maxWidth = maxWidth;
-  }
-  if (Object.keys(typography).length) {
-    overrides.tokens = { typography };
-  }
-
-  return overrides;
 }
 
 function pageSettingsKeep(formData: FormData) {
@@ -508,22 +433,12 @@ function keepEditor(formData: FormData, pageId?: string) {
   };
 }
 
-function keepBuilder(formData: FormData, pageId?: string) {
-  return {
-    pageId: pageId ?? asString(formData.get("pageId")),
-    locale: asString(formData.get("locale")),
-  };
-}
-
 function finishCmsVisualModuleDefinition(
   formData: FormData,
   message: string,
   severity: "success" | "error" = "success",
 ): never {
-  if (asString(formData.get("visualDefinitionReturn")) === "editor") {
-    finish(message, keepEditor(formData));
-  }
-  finishCmsBuilder(message, keepBuilder(formData), severity);
+  finish(message, {...keepEditor(formData), cmsMessageSeverity: severity});
 }
 
 function pagePayload(formData: FormData, blocks: CmsBlock[]) {
@@ -547,19 +462,6 @@ function parseBlocksOrFinish(formData: FormData) {
   }
 }
 
-function parseBuilderBlocksOrFinish(formData: FormData) {
-  try {
-    const blocks = blocksFromJson(asString(formData.get("blocksJson")) ?? "[]");
-    const visualError = visualModuleSaveError(blocks);
-    if (visualError) {
-      finishCmsBuilder(visualError, keepBuilder(formData));
-    }
-    return blocks;
-  } catch (error) {
-    finishCmsBuilder(error instanceof Error ? error.message : "Bloques invalidos.", keepBuilder(formData));
-  }
-}
-
 function parseVisualModuleJsonOrFinish(formData: FormData) {
   const rawIntent = asString(formData.get("visualDefinitionIntent")) ?? "create";
   const visualBlockId = rawIntent.startsWith("publish:") ? rawIntent.slice("publish:".length) : asString(formData.get("visualBlockId"));
@@ -576,34 +478,14 @@ function parseVisualModuleJsonOrFinish(formData: FormData) {
   }
 }
 
-function visualNodeIds(node: CmsVisualNode): string[] {
-  return [node.nodeId, ...(node.children ?? []).flatMap(visualNodeIds)];
-}
-
-function visualModuleSaveError(blocks: CmsBlock[]) {
-  for (const block of blocks) {
-    if (block.type !== "visual.module") continue;
-    const moduleProps = normalizeCmsVisualModuleProps(block.props);
-    const ids = visualNodeIds(moduleProps.tree);
-    const duplicateId = ids.find((nodeId, index) => ids.indexOf(nodeId) !== index);
-    if (!moduleProps.tree.nodeId) {
-      return `Modulo visual ${block.blockId} no tiene root nodeId.`;
-    }
-    if (duplicateId) {
-      return `Modulo visual ${block.blockId} repite nodeId ${duplicateId}.`;
-    }
-  }
-  return null;
-}
-
 export async function createCmsPageAction(formData: FormData) {
   const context = await getAdminContext();
   const locale = asString(formData.get("locale")) ?? context.locale;
   const blocks = parseBlocksOrFinish(formData);
   const payload = pagePayload(formData, blocks);
 
-  if (!payload.title || !payload.path || !payload.seo.title) {
-    finish("Faltan titulo, path o SEO title.", { drawer: "create", locale });
+  if (!payload.title || !payload.path || !payload.seo.title || !payload.seo.description) {
+    finish("Faltan titulo, path, SEO title o SEO description.", { drawer: "create", locale });
   }
 
   const result = await createCmsPage(context, payload, locale);
@@ -623,34 +505,12 @@ export async function saveCmsDraftAction(formData: FormData) {
   if (!pageId) {
     finish("Falta pageId.", { locale });
   }
-  if (!payload.title || !payload.seo.title) {
-    finish("Faltan titulo o SEO title.", keepEditor(formData, pageId));
+  if (!payload.title || !payload.seo.title || !payload.seo.description) {
+    finish("Faltan titulo, SEO title o SEO description.", keepEditor(formData, pageId));
   }
 
   const result = await updateCmsDraft(context, pageId, payload, locale);
   finish(mutationMessage(result, "Draft CMS guardado.", "cms.pages.write"), keepEditor(formData, pageId));
-}
-
-export async function saveCmsBuilderDraftAction(formData: FormData) {
-  const context = await getAdminContext();
-  const pageId = asString(formData.get("pageId"));
-  const locale = asString(formData.get("locale")) ?? context.locale;
-  const blocks = parseBuilderBlocksOrFinish(formData);
-  const payload = pagePayload(formData, blocks);
-
-  if (!pageId) {
-    finishCmsBuilder("Selecciona una pagina antes de guardar.", { locale });
-  }
-  if (!payload.title || !payload.path || !payload.seo.title) {
-    finishCmsBuilder("Faltan titulo, path o SEO title para guardar el draft.", keepBuilder(formData, pageId));
-  }
-
-  const result = await updateCmsDraft(context, pageId, payload, locale);
-  finishCmsBuilder(
-    mutationMessage(result, "Draft CMS guardado desde Builder.", "cms.pages.write"),
-    keepBuilder(formData, pageId),
-    result.ok ? "success" : "error",
-  );
 }
 
 export async function saveCmsVisualModuleDefinitionAction(formData: FormData) {
@@ -777,6 +637,14 @@ export async function publishCmsPageAction(formData: FormData) {
   finish(mutationMessage(result, "Pagina CMS publicada y ruta SEO sincronizada.", "cms.pages.publish"), keepEditor(formData, pageId));
 }
 
+
+function pageLifecycleCommand(formData:FormData,operation:'UNPUBLISH'|'DELETE'|'CHANGE_PATH',nextPath?:string):object|undefined{
+ const value=asString(formData.get('pageLifecycleCommand'));
+ if(!value)return undefined;
+ const command=JSON.parse(value);
+ if(!command||command.operation!==operation)throw Error('La operación no corresponde al formulario.');
+ return {...command,...(operation==='CHANGE_PATH'?{nextPath}:{})};
+}
 export async function unpublishCmsPageAction(formData: FormData) {
   const context = await getAdminContext();
   const pageId = asString(formData.get("pageId"));
@@ -790,8 +658,46 @@ export async function unpublishCmsPageAction(formData: FormData) {
     finish("Falta pageId.", { locale });
   }
 
-  const result = await unpublishCmsPage(context, pageId, locale);
+  const result = await unpublishCmsPage(context, pageId, locale, pageLifecycleCommand(formData,"UNPUBLISH"));
   finish(mutationMessage(result, "Pagina CMS despublicada.", "cms.pages.publish"), keepEditor(formData, pageId));
+}
+
+export async function deleteCmsPageAction(formData: FormData) {
+  const context = await getAdminContext();
+  const pageId = asString(formData.get("pageId"));
+  const locale = asString(formData.get("locale")) ?? context.locale;
+  const confirmed = asString(formData.get("confirmDeletePage")) === "ELIMINAR";
+  const listState = {
+    q: asString(formData.get("q")),
+    status: asString(formData.get("status")),
+    pageType: asString(formData.get("pageType")),
+    locale,
+  };
+
+  if (!pageId) {
+    finish("Falta pageId.", { locale });
+  }
+  if (!confirmed) {
+    finish("Confirma escribiendo ELIMINAR.", {
+      ...listState,
+      drawer: "delete",
+      pageId,
+    });
+  }
+
+  const result = await deleteCmsPage(context, pageId, locale, pageLifecycleCommand(formData,"DELETE"));
+  const message = result.ok
+    ? "Pagina CMS eliminada definitivamente."
+    : result.status === 409
+      ? (formData.get("pageLifecycleCommand") ? result.error : "No se puede eliminar una pagina publicada. Despublicala primero.")
+      : result.status === 403
+        ? "Falta permiso cms.pages.write."
+        : result.error;
+
+  finish(
+    message,
+    result.ok ? listState : { ...listState, drawer: "delete", pageId },
+  );
 }
 
 export async function changeCmsPublishedPathAction(formData: FormData) {
@@ -804,72 +710,19 @@ export async function changeCmsPublishedPathAction(formData: FormData) {
     finish("Falta pageId o nuevo path.", keepEditor(formData, pageId));
   }
 
-  const result = await changeCmsPublishedPath(context, pageId, nextPath, locale);
+  const result = await changeCmsPublishedPath(context, pageId, nextPath, locale, pageLifecycleCommand(formData,"CHANGE_PATH",nextPath));
   finish(mutationMessage(result, "Path publicado actualizado con redirect 301.", "cms.pages.publish"), keepEditor(formData, pageId));
 }
 
 export async function saveCmsGlobalSettingsAction(formData: FormData) {
+  const session=await getCurrentAdminSession();
+  if(session?.scope!=='admin'||!session.permissions.some(permission=>['*','admin:*','system.admin','cms.settings.write'].includes(permission)))throw Error('No tienes permiso para modificar los ajustes CMS.');
   const context = await getAdminContext();
   const locale = asString(formData.get("locale")) ?? context.locale;
   const tokens = nextTokens(formData);
-  const layout = nextLayout(formData, tokens.maxWidth);
-  const result = await patchCmsGlobalSettings(context, { tokens, layout }, locale);
+  const result = await patchCmsGlobalSettings(context, { tokens }, locale);
 
   finishCmsSettings(cmsSettingsMutationMessage(result), { locale });
-}
-
-export async function createCmsTemplateAction(formData: FormData) {
-  const context = await getAdminContext();
-  const locale = asString(formData.get("locale")) ?? context.locale;
-  const name = asString(formData.get("name"));
-  const pageType = asPageType(formData.get("pageType"));
-  const status = asTemplateStatus(formData.get("status"));
-
-  if (!name) {
-    finishCmsSettings("Falta nombre de plantilla.", { tab: "templates", locale, drawer: "create" });
-  }
-
-  const result = await createCmsTemplate(context, {
-    pageType,
-    name,
-    status,
-    settings: {
-      inheritGlobalSettings: true,
-      templateId: null,
-      overrides: {},
-    },
-  }, locale);
-
-  finishCmsSettings(
-    cmsTemplateMutationMessage(result, "Plantilla CMS creada."),
-    result.ok ? templateKeep(formData, result.data.templateId) : { tab: "templates", locale, drawer: "create" },
-  );
-}
-
-export async function saveCmsTemplateSettingsAction(formData: FormData) {
-  const context = await getAdminContext();
-  const locale = asString(formData.get("locale")) ?? context.locale;
-  const templateId = asString(formData.get("templateId"));
-  const name = asString(formData.get("name"));
-
-  if (!templateId || !name) {
-    finishCmsSettings("Falta templateId o nombre de plantilla.", templateKeep(formData));
-  }
-
-  const result = await patchCmsTemplate(context, templateId, {
-    name,
-    status: asTemplateStatus(formData.get("status")),
-    settings: {
-      inheritGlobalSettings: asBoolean(formData.get("inheritGlobalSettings"), true),
-      templateId: null,
-      overrides: templateOverrides(formData),
-    },
-  }, locale);
-
-  finishCmsSettings(
-    cmsTemplateMutationMessage(result, "Plantilla CMS guardada."),
-    templateKeep(formData, templateId),
-  );
 }
 
 export async function saveCmsPageSettingsAction(formData: FormData) {
@@ -884,7 +737,6 @@ export async function saveCmsPageSettingsAction(formData: FormData) {
   const settingsMode = asString(formData.get("settingsMode")) ?? "inherit";
   const result = await patchCmsPageSettings(context, pageId, {
     inheritGlobalSettings: settingsMode !== "custom",
-    templateId: asString(formData.get("templateId")) ?? null,
     overrides: pageOverrides(formData),
   }, locale);
 

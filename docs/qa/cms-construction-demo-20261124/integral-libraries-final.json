@@ -1,0 +1,39 @@
+{
+  "modules": [
+    "Demostración CMS · Shell · Navegación de catálogoNavegación de catálogoDisponibleAbrirDuplicar",
+    "Demostración CMS · Prototype · DescargaVisualDisponibleAbrirDuplicar",
+    "Demostración CMS · Shell · Información legalInformación legalDisponibleAbrirDuplicar",
+    "Demostración CMS · Shell · Redes socialesRedes socialesDisponibleAbrirDuplicar",
+    "Demostración CMS · Shell · Enlaces de footerEnlaces de footerDisponibleAbrirDuplicar",
+    "Demostración CMS · Shell · Servicios y confianzaServicios y confianzaDisponibleAbrirDuplicar",
+    "Demostración CMS · Shell · AnuncioBarra de anuncioDisponibleAbrirDuplicar",
+    "Demostración CMS · Shell · Mercado e idiomaMercado e idiomaDisponibleAbrirDuplicar",
+    "Demostración CMS · Shell · CarritoCarritoDisponibleAbrirDuplicar",
+    "Demostración CMS · Shell · Cuenta de clienteCuenta de clienteDisponibleAbrirDuplicar",
+    "Demostración CMS · Shell · BuscadorBuscadorDisponibleAbrirDuplicar",
+    "Demostración CMS · Shell · Logo EcommiumLogo de tiendaDisponibleAbrirDuplicar",
+    "Demostración CMS · Shell · ContactoContactoDisponibleAbrirDuplicar",
+    "Demostración CMS · Consult Works · Doble CTAVisualDisponibleAbrirDuplicar",
+    "Demostración CMS · Slider · Prueba sin imagen originalSlider full widthDisponibleAbrirDuplicar",
+    "Demostración CMS · Destacados · TarjetasCarouselDisponibleAbrirDuplicar",
+    "Demostración CMS · Banner · Página memorableBanner heroDisponibleAbrirDuplicar",
+    "Demostración CMS · FourInfoSquares · AyudaVisualDisponibleAbrirDuplicar",
+    "Demostración CMS · Sol High · PresentaciónVisualDisponibleAbrirDuplicar"
+  ],
+  "sections": [
+    "Demostración CMS · Header · Tres franjases-ESDuplicar",
+    "Demostración CMS · Presentaciónes-ESDuplicar",
+    "Demostración CMS · Footer · Columnas y cierrees-ESDuplicar",
+    "Demostración CMS · Destacadoses-ESDuplicar",
+    "Demostración CMS · Slider de pruebaes-ESDuplicar",
+    "Demostración CMS · Promociones en columnases-ESDuplicar",
+    "Demostración CMS · Consulta y trabajoses-ESDuplicar",
+    "Demostración CMS · Descarga destacadaes-ESDuplicar",
+    "Demostración CMS · Ayudaes-ESDuplicar",
+    "Demostración CMS · Promociones desde plantillaes-ESDuplicar"
+  ],
+  "templates": [
+    "Demostración CMS · Plantilla de landing · Demostración visual completaPáginaes-ESDisponibleCrear páginaArchivar",
+    "Demostración CMS · Plantilla de sección · Promociones en columnasSecciónes-ESDisponibleCrear secciónArchivar"
+  ]
+}

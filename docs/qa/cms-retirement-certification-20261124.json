@@ -1,0 +1,38 @@
+{
+  "status": "PASS",
+  "scope": "Laboratorio Barcelona/es-ES; no despliegue productivo",
+  "implementationsCompleted": 7,
+  "pagesIndependent": 13,
+  "originalPagesPublished": 4,
+  "shellPartsPublished": 4,
+  "shellSurfacesVerified": 9,
+  "responsivePublicSamples": 12,
+  "testResults": {
+    "uiCmsAndContracts": 108,
+    "cmsOwner": 248,
+    "bffCms": 81,
+    "employeesPermissions": 14,
+    "postgresChecks": 13,
+    "readerControls": 8
+  },
+  "lint": {
+    "errors": 0,
+    "preexistingWarnings": 3
+  },
+  "build": "PASS",
+  "typecheck": "PASS",
+  "builder": {
+    "navigationRemoved": true,
+    "exclusiveRouteRemoved": true,
+    "exclusiveScreensAndMutationRemoved": true,
+    "sharedEditorsAndHistoricalReadersPreserved": true
+  },
+  "temporaryAccounts": "Inactive; all sessions revoked; credential file removed",
+  "limits": [
+    "Only authorized laboratory scope",
+    "Tablet768 overflow existed in before baseline",
+    "Axe browser checks excluded contrast",
+    "Module page mobile heading position differs4.5px after Media/font normalization; content, links and interactions retained",
+    "Removed URL uses Next not-found boundary; streamed HTTP200 is documented"
+  ]
+}

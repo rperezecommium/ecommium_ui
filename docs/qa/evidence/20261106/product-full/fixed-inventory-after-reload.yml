@@ -1,0 +1,151 @@
+- main [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - link "Admin" [ref=f2e3] [cursor=pointer]:
+      - /url: /admin
+    - text: /
+    - link "Catalogo" [ref=f2e4] [cursor=pointer]:
+      - /url: /admin/catalogo
+    - text: /
+    - link "Productos" [ref=f2e5] [cursor=pointer]:
+      - /url: /admin/products
+    - text: / Editar
+  - generic [ref=f2e6]:
+    - generic [ref=f2e7]:
+      - textbox "Nombre del producto" [ref=f2e8]:
+        - /placeholder: Nuevo producto
+        - text: Casco QA integral PW 20261106
+      - generic [ref=f2e9]:
+        - generic [ref=f2e10]: Sin publicar
+        - generic [ref=f2e11]: Producto con variantes
+        - generic [ref=f2e12]: es-ES / EUR
+    - generic [ref=f2e13]:
+      - link "Volver al catálogo" [ref=f2e14] [cursor=pointer]:
+        - /url: /admin/products
+      - generic "Tipo de producto" [ref=f2e15]:
+        - button "Producto simple" [ref=f2e16] [cursor=pointer]
+        - button "Producto con variantes" [ref=f2e17] [cursor=pointer]
+  - generic [ref=f2e18]:
+    - paragraph [ref=f2e19]: Hay un borrador local guardado para esta ficha.
+    - generic [ref=f2e20]:
+      - button "Restaurar borrador" [ref=f2e21] [cursor=pointer]
+      - button "Descartar borrador" [ref=f2e22] [cursor=pointer]
+  - navigation "Pestanas de producto" [ref=f2e23]:
+    - button "Ajustes basicos" [ref=f2e24] [cursor=pointer]
+    - button "Imagenes" [ref=f2e25] [cursor=pointer]
+    - button "Variantes" [ref=f2e26] [cursor=pointer]
+    - button "Precio" [ref=f2e27] [cursor=pointer]
+    - button "Inventario" [active] [ref=f2e28] [cursor=pointer]
+    - button "Transporte" [ref=f2e29] [cursor=pointer]
+    - button "SEO" [ref=f2e30] [cursor=pointer]
+    - button "Auditoria" [ref=f2e31] [cursor=pointer]
+  - generic [ref=f2e32]:
+    - generic [ref=f2e313]:
+      - generic [ref=f2e315]:
+        - heading "Inventario" [level=2] [ref=f2e316]
+        - paragraph [ref=f2e317]: Stock por variante y warehouse, separado del precio y la galeria.
+      - table [ref=f2e319]:
+        - rowgroup [ref=f2e320]:
+          - row [ref=f2e321]:
+            - columnheader "Stock del producto" [ref=f2e322]
+            - columnheader "Warehouse" [ref=f2e323]
+            - columnheader "On hand" [ref=f2e324]
+            - columnheader "Reservado" [ref=f2e325]
+            - columnheader "Safety" [ref=f2e326]
+            - columnheader "Disponible" [ref=f2e327]
+            - columnheader "Estado" [ref=f2e328]
+        - rowgroup [ref=f2e329]:
+          - row [ref=f2e330]:
+            - cell "Producto - Casco QA integral PW 20261106 variantId 5a77ecf9-e4e1-4669-8a6d-40c88641787b" [ref=f2e331]:
+              - strong [ref=f2e332]: Producto - Casco QA integral PW 20261106
+              - generic [ref=f2e333]: variantId 5a77ecf9-e4e1-4669-8a6d-40c88641787b
+            - cell [ref=f2e334]:
+              - textbox "Warehouse default" [ref=f2e335]: warehouse-default
+            - cell [ref=f2e336]:
+              - spinbutton "On hand default" [ref=f2e337]: "10"
+            - cell [ref=f2e338]:
+              - spinbutton "Reservado default" [ref=f2e339]: "2"
+            - cell [ref=f2e340]:
+              - spinbutton "Safety default" [ref=f2e341]: "1"
+            - cell [ref=f2e342]:
+              - strong [ref=f2e343]: "7"
+            - cell "Disponible" [ref=f2e344]
+      - table [ref=f2e347]:
+        - rowgroup [ref=f2e348]:
+          - row [ref=f2e349]:
+            - columnheader "Variante" [ref=f2e350]
+            - columnheader "Modo" [ref=f2e351]
+            - columnheader "Warehouse" [ref=f2e352]
+            - columnheader "On hand" [ref=f2e353]
+            - columnheader "Reservado" [ref=f2e354]
+            - columnheader "Safety" [ref=f2e355]
+            - columnheader "Disponible" [ref=f2e356]
+            - columnheader "Estado" [ref=f2e357]
+            - columnheader "Accion" [ref=f2e358]
+        - rowgroup [ref=f2e359]:
+          - row [ref=f2e360]:
+            - cell "Casco QA integral PW 20261106 / negro / L variantId cc38bf37-e361-4fb4-8262-76b5905ec049" [ref=f2e361]:
+              - strong [ref=f2e362]: Casco QA integral PW 20261106 / negro / L
+              - generic [ref=f2e363]: variantId cc38bf37-e361-4fb4-8262-76b5905ec049
+            - cell "Stock propio" [ref=f2e364]
+            - cell [ref=f2e366]:
+              - textbox "Warehouse CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L" [ref=f2e367]: warehouse-default
+            - cell [ref=f2e368]:
+              - spinbutton "On hand CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L" [ref=f2e369]: "5"
+            - cell [ref=f2e370]:
+              - spinbutton "Reservado CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L" [ref=f2e371]: "1"
+            - cell [ref=f2e372]:
+              - spinbutton "Safety CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L" [ref=f2e373]: "0"
+            - cell [ref=f2e374]:
+              - strong [ref=f2e375]: "4"
+            - cell "Disponible" [ref=f2e376]
+            - cell [ref=f2e378]:
+              - button "Stock propio guardado" [disabled] [ref=f2e379]
+          - row [ref=f2e380]:
+            - cell "Casco QA integral PW 20261106 / negro / M variantId fb263385-63b6-4d5a-baa5-3afbe8534ced" [ref=f2e381]:
+              - strong [ref=f2e382]: Casco QA integral PW 20261106 / negro / M
+              - generic [ref=f2e383]: variantId fb263385-63b6-4d5a-baa5-3afbe8534ced
+            - cell "Stock propio" [ref=f2e384]
+            - cell [ref=f2e386]:
+              - textbox "Warehouse CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M" [ref=f2e387]: warehouse-default
+            - cell [ref=f2e388]:
+              - spinbutton "On hand CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M" [ref=f2e389]: "8"
+            - cell [ref=f2e390]:
+              - spinbutton "Reservado CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M" [ref=f2e391]: "1"
+            - cell [ref=f2e392]:
+              - spinbutton "Safety CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M" [ref=f2e393]: "1"
+            - cell [ref=f2e394]:
+              - strong [ref=f2e395]: "6"
+            - cell "Disponible" [ref=f2e396]
+            - cell [ref=f2e398]:
+              - button "Stock propio guardado" [disabled] [ref=f2e399]
+      - generic [ref=f2e400]:
+        - strong [ref=f2e401]: "7"
+        - generic [ref=f2e402]: Disponible producto
+        - strong [ref=f2e403]: "10"
+        - generic [ref=f2e404]: Disponible stock propio
+        - strong [ref=f2e405]: 0/2
+        - generic [ref=f2e406]: Variantes heredando
+    - complementary [ref=f2e285]:
+      - generic [ref=f2e286]:
+        - heading "Resumen" [level=2] [ref=f2e287]
+        - generic [ref=f2e289]:
+          - generic [ref=f2e290]:
+            - term [ref=f2e291]: Tipo
+            - definition [ref=f2e292]: Con variantes
+          - generic [ref=f2e293]:
+            - term [ref=f2e294]: Precio base
+            - definition [ref=f2e295]: 121.00 EUR
+          - generic [ref=f2e296]:
+            - term [ref=f2e297]: Variantes
+            - definition [ref=f2e298]: "2"
+          - generic [ref=f2e299]:
+            - term [ref=f2e300]: Imagenes
+            - definition [ref=f2e301]: "2"
+  - group "Acciones del producto" [ref=f2e302]:
+    - status [ref=f2e303]:
+      - generic [ref=f2e304]: Sin publicar
+      - generic [ref=f2e305]: Sin cambios
+    - generic [ref=f2e306]:
+      - button "Vista previa" [ref=f2e307] [cursor=pointer]
+      - button "Guardar" [ref=f2e311] [cursor=pointer]
+      - button "Más acciones del producto" [ref=f2e312] [cursor=pointer]: ⋯

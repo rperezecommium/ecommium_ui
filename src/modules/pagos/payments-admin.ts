@@ -245,13 +245,13 @@ function hasPermission(session: Pick<AdminSession, "permissions" | "scope"> | nu
 export function getPaymentsAdminCapabilities(
   session: Pick<AdminSession, "permissions" | "scope"> | null | undefined,
 ): PaymentsAdminCapabilities {
-  const canManagePayments = hasPermission(session, ["payments.manage", "admin:payments:manage"]);
+  const canManagePayments = hasPermission(session, ["payments.configuration.write"]);
   const canViewOperations = hasPermission(session, ["payments.transactions.read"]);
   const canProcessTransactions = hasPermission(session, ["payments.transactions.process"]);
   const canRefundPayments = hasPermission(session, ["payments.refunds.write"]);
   return {
     canManagePayments,
-    canViewPayments: canManagePayments || hasPermission(session, ["payments.read", "admin:payments:view"]),
+    canViewPayments: canManagePayments || hasPermission(session, ["payments.configuration.read"]),
     canViewOperations,
     canProcessTransactions,
     canRefundPayments,
@@ -468,7 +468,7 @@ export async function getPaymentsAdminData(
   const transactionOffset = Number(filters.transactionOffset);
   const selectedTransactionId = filters.transactionId?.trim();
   const [paymentSystems, affiliations, rules, cardLookup, transactions, transactionEvidence] = await Promise.all([
-    requestAdminBff<PaymentSystemAdminRecord[]>(scopedPath("/admin/payments/payment-systems", context, { includeInactive }), {
+    requestAdminBff<PaymentSystemAdminRecord[]>(scopedPath("/admin/payments/payment-systems", context, { includeInactive: filters.tab === "metodos" ? "true" : includeInactive }), {
       context,
       parse: normalizePaymentSystems,
     }),

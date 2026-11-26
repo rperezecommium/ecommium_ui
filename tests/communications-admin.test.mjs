@@ -438,7 +438,7 @@ test("communications admin renders the global delivery audit as an operational t
   assert.match(pageSource, /deliverySourceEventId/);
   assert.match(pageSource, /deliveryCustomerId/);
   assert.match(pageSource, /No hay entregas para los filtros seleccionados/);
-  assert.match(pageSource, /Ver fallidas/);
+  assert.match(source("src/modules/configuracion/communications-delivery-status-filter.tsx"), /Ver fallidas/);
 });
 
 test("communications audit opens a safe delivery detail drawer", () => {

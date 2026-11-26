@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: page copy comparison permits only remapped identities and CSS targets
+ok 1 - page copy comparison permits only remapped identities and CSS targets
+  ---
+  duration_ms: 1.209042
+  type: 'test'
+  ...
+# Subtest: page budgets apply across all inserted sections
+ok 2 - page budgets apply across all inserted sections
+  ---
+  duration_ms: 3.815959
+  type: 'test'
+  ...
+# Subtest: public validation strips only transient commerce hydration without modifying response
+ok 3 - public validation strips only transient commerce hydration without modifying response
+  ---
+  duration_ms: 1.223542
+  type: 'test'
+  ...
+# Subtest: CHANGE_PATH requires revision and stable operation id at the UI boundary
+ok 4 - CHANGE_PATH requires revision and stable operation id at the UI boundary
+  ---
+  duration_ms: 0.681958
+  type: 'test'
+  ...
+# Subtest: UNPUBLISH requires revision and stable operation id at the UI boundary
+ok 5 - UNPUBLISH requires revision and stable operation id at the UI boundary
+  ---
+  duration_ms: 0.142833
+  type: 'test'
+  ...
+# Subtest: DELETE requires revision and stable operation id at the UI boundary
+ok 6 - DELETE requires revision and stable operation id at the UI boundary
+  ---
+  duration_ms: 0.161292
+  type: 'test'
+  ...
+# Subtest: shared history preserves bounded undo/redo and clears abandoned futures
+ok 7 - shared history preserves bounded undo/redo and clears abandoned futures
+  ---
+  duration_ms: 0.607708
+  type: 'test'
+  ...
+# Subtest: shared presets infer content and produce reusable independent node trees
+ok 8 - shared presets infer content and produce reusable independent node trees
+  ---
+  duration_ms: 0.977959
+  type: 'test'
+  ...
+# Subtest: system/area presentation shares safe responsive rendering and explicit preview scopes
+ok 9 - system/area presentation shares safe responsive rendering and explicit preview scopes
+  ---
+  duration_ms: 5.688209
+  type: 'test'
+  ...
+# Subtest: visual serialization preserves inline responsive nodes and keeps shared references compact
+ok 10 - visual serialization preserves inline responsive nodes and keeps shared references compact
+  ---
+  duration_ms: 0.694708
+  type: 'test'
+  ...
+# Subtest: one block CSS box reuses Builder properties for selectors and responsive sheets
+ok 11 - one block CSS box reuses Builder properties for selectors and responsive sheets
+  ---
+  duration_ms: 1.757916
+  type: 'test'
+  ...
+# Subtest: block CSS selectors cannot escape the block and unsafe CSS does not apply
+ok 12 - block CSS selectors cannot escape the block and unsafe CSS does not apply
+  ---
+  duration_ms: 3.202875
+  type: 'test'
+  ...
+# Subtest: independent module renderer scopes DOM, ARIA, fragments and CSS for two copies
+ok 13 - independent module renderer scopes DOM, ARIA, fragments and CSS for two copies
+  ---
+  duration_ms: 3.658875
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 820.347333

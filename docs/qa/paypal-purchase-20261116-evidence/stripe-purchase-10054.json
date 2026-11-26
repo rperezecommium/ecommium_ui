@@ -1,0 +1,66 @@
+{
+  "result": "PASS_SANDBOX_WITH_SIMULATED_DATA",
+  "orderReference": "10054",
+  "orderId": "ac8564e4-19b2-406b-83a5-8880cb74398a",
+  "transactionId": "ac8564e4-19b2-406b-83a5-8880cb74398a",
+  "cartId": "of_8cf06bff-e4d0-43d8-9280-a1ab1a314031",
+  "currency": "EUR",
+  "amountMinor": 419673,
+  "productMinor": 419612,
+  "shippingMinor": 61,
+  "pricingRuleId": "582250c8-69ec-4712-89b4-faf945403edb",
+  "context": {
+    "locale": "es-ES",
+    "channel": "web",
+    "country": "ES",
+    "currency": "EUR",
+    "tradePolicy": "default",
+    "countrySource": "DELIVERY_ADDRESS"
+  },
+  "orderCount": 1,
+  "settlementCount": 1,
+  "provider": "stripe",
+  "providerEnvironment": "sandbox",
+  "livemode": false,
+  "providerPaymentIntentId": "pi_3UcQk4CAxhBYlrpM09KbImPk",
+  "providerAuthorizedAmountMinor": 419673,
+  "providerCapturedAmountMinor": 419673,
+  "providerAmountReceivedMinor": 419673,
+  "guestIdentityVerified": true,
+  "providerCaptureId": "ch_3UcQk4CAxhBYlrpM0fy1EoLH",
+  "providerCaptureStatus": "succeeded",
+  "providerShippingMatchesCart": null,
+  "inventoryCommit": "COMMITTED",
+  "reservationCount": 1,
+  "stockMatchesExpectedDecrement": true,
+  "unitsCommitted": 1,
+  "expectedUnits": 1,
+  "testWarehouseOnHandBefore": 1,
+  "testWarehouseOnHandAfter": 0,
+  "simulatedData": [
+    "product package",
+    "warehouse stock",
+    "delivery address",
+    "order-only document",
+    "STRIPE_OFFICIAL_TEST_CARD"
+  ],
+  "limitations": [
+    "Not a production certification",
+    "Stripe shipping address not collected; Checkout/Orders retain validated delivery address"
+  ],
+  "browserActor": "guest",
+  "customerCookiePresent": false,
+  "paidCartSnapshotPreserved": "VERIFIED_BY_SHA256_MATCH",
+  "tracking": {
+    "path": "/pedido/10054/seguimiento",
+    "confirmed": true
+  },
+  "concurrentOrderReplays": {
+    "statuses": [
+      201,
+      201
+    ],
+    "sameOrderReference": "10054",
+    "postReplayOwnerVerification": "PASS single order/settlement/reservation; stock0"
+  }
+}

@@ -1,3 +1,4 @@
+import styles from "./health-dashboard.module.css";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 import type { AdminHealth, ServiceHealthStatus } from "./health";
@@ -10,7 +11,8 @@ type HealthDashboardProps = {
 const statusLabels: Record<ServiceHealthStatus, string> = {
   ok: "OK",
   degraded: "Degradado",
-  unavailable: "Sin conexion",
+  unavailable: "No disponible",
+  unknown: "Sin confirmar",
   skipped: "Pendiente",
 };
 
@@ -18,6 +20,7 @@ const statusClasses: Record<ServiceHealthStatus, string> = {
   ok: "adminBadge adminBadgeOk",
   degraded: "adminBadge adminBadgeWarn",
   unavailable: "adminBadge adminBadgeError",
+  unknown: "adminBadge adminBadgeWarn",
   skipped: "adminBadge",
 };
 
@@ -60,15 +63,15 @@ export function HealthDashboard({ context, health }: HealthDashboardProps) {
         <article className="adminKpi">
           <span>Servicios OK</span>
           <strong>{countStatus(health, "ok")}</strong>
-          <div className="adminMuted">Responden desde BFF</div>
+          <div className="adminMuted">Estado operativo confirmado</div>
         </article>
         <article className="adminKpi">
-          <span>Degradados</span>
-          <strong>{countStatus(health, "degraded")}</strong>
-          <div className="adminMuted">Requieren revision</div>
+          <span>Requieren revisión</span>
+          <strong>{countStatus(health, "degraded")+countStatus(health,"unknown")}</strong>
+          <div className="adminMuted">{countStatus(health,"degraded")} degradados · {countStatus(health,"unknown")} sin confirmar</div>
         </article>
         <article className="adminKpi">
-          <span>Sin conexion</span>
+          <span>No disponibles</span>
           <strong>{countStatus(health, "unavailable")}</strong>
           <div className="adminMuted">BFF no disponible o endpoint ausente</div>
         </article>
@@ -80,7 +83,7 @@ export function HealthDashboard({ context, health }: HealthDashboardProps) {
       </section>
 
       <section className="adminGrid">
-        <article className="adminCard">
+        <article className={`adminCard ${styles.services}`} aria-label="Salud de servicios">
           <div className="adminCardHeader">
             <div>
               <h2>Health BFF</h2>

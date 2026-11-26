@@ -125,8 +125,8 @@ test("BFF errors never expose raw upstream details", async () => {
 });
 
 test("Storefront wrapper does not receive an Admin token parameter", () => {
-  assert.match(storefrontClientSource, /requestBffAt\(getStorefrontBffBaseUrl\(\), path, options\)/);
-  assert.match(storefrontClientSource, /requestBffResponseAt\(getStorefrontBffBaseUrl\(\), path, options\)/);
+  assert.match(storefrontClientSource, /requestBffAt\(getStorefrontBffBaseUrl\(\), withStorefrontCommercialPolicy\(path\), options\)/);
+  assert.match(storefrontClientSource, /requestBffResponseAt\(getStorefrontBffBaseUrl\(\), withStorefrontCommercialPolicy\(path\), options\)/);
 });
 
 test("migrated Storefront readers, actions and technical handlers use the explicit client", () => {

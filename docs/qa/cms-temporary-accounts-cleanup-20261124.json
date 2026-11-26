@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "writer": {
+    "employeeId": "f32d19a9-c484-4d87-9b95-0995f055b4ee",
+    "allSessionsClosed": true,
+    "active": false,
+    "credentialFileRemoved": true,
+    "oldSessionStatus": 401
+  },
+  "reader": {
+    "employeeId": "e6aec6a7-47e7-4871-b86f-c1da9507aff6",
+    "allSessionsClosed": true,
+    "active": false,
+    "logoutStatus": 200
+  },
+  "humanEmployeesChanged": false
+}

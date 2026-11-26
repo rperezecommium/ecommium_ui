@@ -1,0 +1,8 @@
+PASS src/modules/cms/application/use-cases/manage-admin-cms.use-case.spec.ts
+PASS src/modules/cms/application/use-cases/manage-cms-page-composition.spec.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       19 passed, 19 total
+Snapshots:   0 total
+Time:        2.278 s
+Ran all test suites within paths "src/modules/cms/application/use-cases/manage-cms-page-composition.spec.ts", "src/modules/cms/application/use-cases/manage-admin-cms.use-case.spec.ts".

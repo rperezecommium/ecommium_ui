@@ -127,7 +127,7 @@ test("shipping admin reads configuration through scoped Admin BFF", async () => 
   };
   const { getShippingAdminData } = loadShippingAdminModule(requestAdminBff);
 
-  const data = await getShippingAdminData(context, { tab: "summary", includeInactive: false });
+  const data = await getShippingAdminData(context, { tab: "summary" });
 
   assert.equal(data.configuration.source, "bff");
   assert.equal(data.quote, null);
@@ -135,7 +135,7 @@ test("shipping admin reads configuration through scoped Admin BFF", async () => 
   assert.equal(data.configuration.data.carriers[0].carrierId, "carrier-standard");
   assert.equal(calls.length, 1);
   assertScopedPath(calls[0].path);
-  assert.match(calls[0].path, /[?&]includeInactive=false(?:&|$)/);
+  assert.doesNotMatch(calls[0].path, /includeInactive/);
 });
 
 test("shipping admin hides fulfillment from configuration tabs", () => {

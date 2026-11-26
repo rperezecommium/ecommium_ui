@@ -4,7 +4,7 @@ import { AdminSessionRefresher } from "../../../src/app-shell/admin-session-refr
 import { AdminSessionGuardian } from "../../../src/app-shell/admin-session-guardian";
 import { runWithAdminRequestSession } from "../../../src/shared/auth/admin-request-session";
 import { getAdminContext } from "../../../src/shared/config/admin-context";
-import { refreshAdminEmployeeSession } from "../../../src/modules/auth/admin-session-actions";
+import { getCurrentAdminSession as refreshAdminEmployeeSession } from "../../../src/modules/auth/current-admin-session";
 import { getOrganizationShopDirectory } from "../../../src/modules/configuracion/organization-shop";
 
 export default async function AdminLayout({

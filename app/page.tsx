@@ -14,6 +14,7 @@ type PageProps = {
 };
 
 const homeCategorySlug = "bike-brakes";
+const homeCmsPath = "/home";
 const hiddenStorefrontParams = new Set([
   "organizationId",
   "shopId",
@@ -26,7 +27,7 @@ const hiddenStorefrontParams = new Set([
 ]);
 
 const loadPublicHome = cache((page?: string, limit?: string, visitorId?: string) =>
-  getStorefrontPublicPage("/", { page, limit, visitorId }),
+  getStorefrontPublicPage(homeCmsPath, { page, limit, visitorId }),
 );
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
@@ -72,7 +73,7 @@ export default async function Home({ searchParams }: PageProps) {
     limit: first(query?.limit),
   });
 
-  return <StorefrontPlpPage result={result} categorySlug={homeCategorySlug} openCustomerLogin={openCustomerLogin} />;
+  return <StorefrontPlpPage result={result} categorySlug={homeCategorySlug} openCustomerLogin={openCustomerLogin} surface="HOME" />;
 }
 
 function first(value: string | string[] | undefined): string | undefined {

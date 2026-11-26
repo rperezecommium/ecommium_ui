@@ -1,0 +1,6 @@
+
+/Users/ricardoperez/Documents/ecommium/composable_ecommerce/services/checkout/src/domain/orderform/orderform.aggregate.ts
+  75:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+✖ 1 problem (1 error, 0 warnings)
+

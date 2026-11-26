@@ -1,82 +1,18 @@
-import Link from "next/link";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { hasRequiredAdminContext } from "../../shared/config/admin-context";
 import type { BffResult } from "../../shared/bff/types";
-import {
-  createCmsTemplateAction,
-  saveCmsGlobalSettingsAction,
-  saveCmsTemplateSettingsAction,
-} from "./cms-admin-actions";
-import { CmsLayoutAreaEditorClient } from "./cms-layout-area-editor-client";
-import {
-  CMS_FALLBACK_FONT_OPTIONS,
-  cmsTypographyFamily,
-  resolveCmsLayoutSpacing,
-} from "./cms-admin";
-import type {
-  CmsGlobalSettingsResponse,
-  CmsFontOption,
-  CmsFontOptionsResponse,
-  CmsLayout,
-  CmsPageType,
-  CmsRegionCode,
-  CmsTemplateSettings,
-  CmsTemplateSettingsList,
-  CmsTemplateStatus,
-} from "./cms-admin";
-
-type CmsSettingsTab = "global" | "templates";
+import { saveCmsGlobalSettingsAction } from "./cms-admin-actions";
+import { CMS_FALLBACK_FONT_OPTIONS, cmsTypographyFamily } from "./cms-admin";
+import type { CmsGlobalSettingsResponse, CmsFontOption, CmsFontOptionsResponse } from "./cms-admin";
 
 type CmsBasicSettingsPageProps = {
-  activeTab: CmsSettingsTab;
   context: AdminContext;
-  drawer?: "create";
+  canWrite: boolean;
   locale: string;
   message?: string;
   fontOptionsResult: BffResult<CmsFontOptionsResponse>;
   result: BffResult<CmsGlobalSettingsResponse>;
-  selectedTemplateId?: string;
-  templateFilters: {
-    pageType: CmsPageType | "all";
-    status: CmsTemplateStatus | "all";
-    limit: number;
-    offset: number;
-  };
-  templatesResult: BffResult<CmsTemplateSettingsList>;
 };
-
-const editableRegions: Array<{ code: CmsRegionCode; label: string }> = [
-  { code: "header", label: "Header" },
-  { code: "main", label: "Main" },
-  { code: "footer", label: "Footer" },
-];
-
-function settingsHref({
-  drawer,
-  locale,
-  pageType,
-  status,
-  tab,
-  templateId,
-}: {
-  drawer?: "create";
-  locale: string;
-  pageType?: CmsPageType | "all";
-  status?: CmsTemplateStatus | "all";
-  tab: CmsSettingsTab;
-  templateId?: string;
-}) {
-  const params = new URLSearchParams({ tab, locale });
-  if (pageType && pageType !== "all") params.set("pageType", pageType);
-  if (status && status !== "all") params.set("status", status);
-  if (templateId) params.set("templateId", templateId);
-  if (drawer) params.set("drawer", drawer);
-  return `/admin/cms/ajustes-basicos?${params.toString()}`;
-}
-
-function regionAreaCount(layout: CmsLayout, region: CmsRegionCode) {
-  return layout.regions[region]?.areas.length ?? 0;
-}
 
 function colorValue(value: string | undefined, fallback: string) {
   return /^#[0-9a-f]{6}$/i.test(value ?? "") ? value as string : fallback;
@@ -86,10 +22,6 @@ function entriesPreview(values: Record<string, string>, limit = 5) {
   const entries = Object.entries(values);
   if (!entries.length) return "Sin valores";
   return entries.slice(0, limit).map(([key, value]) => `${key}: ${value}`).join(" - ");
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
 function fontOptionsFromResult(result: BffResult<CmsFontOptionsResponse>) {
@@ -127,82 +59,16 @@ function TypographySelect({
   );
 }
 
-function overrideMaxWidth(template: CmsTemplateSettings, fallback: string) {
-  const overrides = template.settings.overrides;
-  const tokens = asRecord(overrides.tokens);
-  if (typeof overrides.maxWidth === "string" && overrides.maxWidth.trim()) return overrides.maxWidth;
-  if (typeof tokens.maxWidth === "string" && tokens.maxWidth.trim()) return tokens.maxWidth;
-  return fallback;
-}
-
-function overrideLayout(template: CmsTemplateSettings, fallback: CmsLayout) {
-  const layout = template.settings.overrides.layout;
-  return typeof layout === "object" && layout !== null && !Array.isArray(layout) ? layout as CmsLayout : fallback;
-}
-
-function overrideTypographyFamily(template: CmsTemplateSettings, slot: string, fallback: string) {
-  const tokens = asRecord(template.settings.overrides.tokens);
-  const typography = asRecord(tokens.typography);
-  const value = typography[slot];
-  if (typeof value === "string" && value.trim()) return value;
-  const token = asRecord(value);
-  return typeof token.family === "string" && token.family.trim() ? token.family : fallback;
-}
-
-function templateBadgeClass(status: CmsTemplateStatus) {
-  if (status === "ACTIVE") return "adminBadge adminBadgeSuccess";
-  if (status === "ARCHIVED") return "adminBadge adminBadgeWarning";
-  return "adminBadge";
-}
-
-function pageTypeLabel(value: string) {
-  if (value === "HOME") return "Home";
-  if (value === "CONTENT") return "Contenido";
-  return "Landing";
-}
-
-function SettingsTabs({
-  activeTab,
-  locale,
-  templateFilters,
-}: {
-  activeTab: CmsSettingsTab;
-  locale: string;
-  templateFilters: CmsBasicSettingsPageProps["templateFilters"];
-}) {
-  const tabs: Array<{ id: CmsSettingsTab; label: string }> = [
-    { id: "global", label: "Global" },
-    { id: "templates", label: "Plantillas" },
-  ];
-
-  return (
-    <nav className="productEditorTabs pricingTabs" aria-label="Ajustes CMS">
-      {tabs.map((item) => (
-        <Link
-          className={`productEditorTab${activeTab === item.id ? " productEditorTabActive" : ""}`}
-          href={settingsHref({
-            locale,
-            pageType: templateFilters.pageType,
-            status: templateFilters.status,
-            tab: item.id,
-          })}
-          key={item.id}
-        >
-          {item.label}
-        </Link>
-      ))}
-    </nav>
-  );
-}
-
 function GlobalSettingsPanel({
   context,
+  canWrite,
   fontOptionsResult,
   hasContext,
   locale,
   response,
 }: {
   context: AdminContext;
+  canWrite: boolean;
   fontOptionsResult: BffResult<CmsFontOptionsResponse>;
   hasContext: boolean;
   locale: string;
@@ -210,13 +76,10 @@ function GlobalSettingsPanel({
 }) {
   const settings = response.settings;
   const tokens = settings.tokens;
-  const layout = settings.layout;
   const colors = tokens.colors;
   const typography = tokens.typography;
   const spacing = tokens.spacing;
   const fonts = fontOptionsFromResult(fontOptionsResult);
-  const regionsConfigured = editableRegions.filter((region) => regionAreaCount(layout, region.code) > 0).length;
-  const totalAreas = editableRegions.reduce((total, region) => total + regionAreaCount(layout, region.code), 0);
 
   return (
     <>
@@ -226,16 +89,10 @@ function GlobalSettingsPanel({
         </div>
       ) : null}
 
-      <section className="adminSummaryGrid" aria-label="Resumen de ajustes CMS globales">
-        <div><span>Estado</span><strong>{response.configurationState}</strong></div>
-        <div><span>Max width</span><strong>{tokens.maxWidth}</strong></div>
-        <div><span>Regiones</span><strong>{regionsConfigured}/3</strong></div>
-        <div><span>Areas</span><strong>{totalAreas}</strong></div>
-      </section>
-
       <form action={saveCmsGlobalSettingsAction} className="adminForm cmsSettingsForm">
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="tokensJson" value={JSON.stringify(tokens)} />
+        <fieldset className="cmsSettingsGroups" disabled={!hasContext || !canWrite} style={{border:0,margin:0,padding:0,minWidth:0}}>
         <section className="pricingPanel cmsEditorPanel">
           <div className="pricingPanelHeader">
             <div>
@@ -278,339 +135,25 @@ function GlobalSettingsPanel({
           </div>
         </section>
 
-        <section className="pricingPanel cmsEditorPanel">
-          <div className="pricingPanelHeader"><div><h2>Layout base</h2><p>Areas reutilizables por region, preparadas para recibir modulos por columna.</p></div></div>
-          <CmsLayoutAreaEditorClient initialLayout={layout} maxWidth={tokens.maxWidth} />
-        </section>
-
         <div className="cmsEditorFooter">
-          <div className="adminContextHint">{context.shopName || context.shopAlias || "Shop"} - {locale} - Herencia: global a plantilla a pagina a modulo</div>
-          <button className="adminButton adminButtonPrimary" disabled={!hasContext} type="submit">Guardar ajustes globales</button>
+          <div className="adminContextHint">{context.shopName || context.shopAlias || "Shop"} - {locale}</div>
+          <button className="adminButton adminButtonPrimary" disabled={!hasContext || !canWrite} type="submit">Guardar ajustes globales</button>
         </div>
+        </fieldset>
       </form>
     </>
   );
 }
 
-function TemplateFilters({
-  locale,
-  templateFilters,
-}: {
-  locale: string;
-  templateFilters: CmsBasicSettingsPageProps["templateFilters"];
-}) {
-  return (
-    <form className="pricingFilterBar cmsTemplatesFilterBar" action="/admin/cms/ajustes-basicos">
-      <input type="hidden" name="tab" value="templates" />
-      <label className="adminField"><span>Locale</span><input name="locale" defaultValue={locale} placeholder="es-ES" /></label>
-      <label className="adminField">
-        <span>Tipo</span>
-        <select name="pageType" defaultValue={templateFilters.pageType}>
-          <option value="all">Todos</option>
-          <option value="LANDING">Landing</option>
-          <option value="CONTENT">Contenido</option>
-          <option value="HOME">Home</option>
-        </select>
-      </label>
-      <label className="adminField">
-        <span>Estado</span>
-        <select name="status" defaultValue={templateFilters.status}>
-          <option value="all">Todos</option>
-          <option value="DRAFT">Draft</option>
-          <option value="ACTIVE">Activa</option>
-          <option value="ARCHIVED">Archivada</option>
-        </select>
-      </label>
-      <button className="adminButton adminButtonPrimary" type="submit">Aplicar</button>
-    </form>
-  );
-}
-
-function CreateTemplateDrawer({
-  drawer,
-  locale,
-  templateFilters,
-}: {
-  drawer?: "create";
-  locale: string;
-  templateFilters: CmsBasicSettingsPageProps["templateFilters"];
-}) {
-  if (drawer !== "create") return null;
-
-  return (
-    <div className="adminDrawerBackdrop">
-      <aside className="adminSideDrawer" aria-label="Crear plantilla CMS">
-        <div className="adminSideDrawerHeader">
-          <div><h2>Crear plantilla</h2><p>Base reutilizable para paginas CMS.</p></div>
-          <Link className="adminButton adminButtonTiny" href={settingsHref({ locale, pageType: templateFilters.pageType, status: templateFilters.status, tab: "templates" })}>Cerrar</Link>
-        </div>
-        <form action={createCmsTemplateAction} className="pricingDenseForm">
-          <input type="hidden" name="locale" value={locale} />
-          <input type="hidden" name="pageTypeFilter" value={templateFilters.pageType} />
-          <input type="hidden" name="statusFilter" value={templateFilters.status} />
-          <label className="adminField"><span>Nombre</span><input name="name" placeholder="Landing editorial" /></label>
-          <label className="adminField">
-            <span>Tipo pagina</span>
-            <select name="pageType" defaultValue={templateFilters.pageType === "all" ? "LANDING" : templateFilters.pageType}>
-              <option value="LANDING">Landing</option>
-              <option value="CONTENT">Contenido</option>
-              <option value="HOME">Home</option>
-            </select>
-          </label>
-          <label className="adminField">
-            <span>Estado</span>
-            <select name="status" defaultValue="DRAFT">
-              <option value="DRAFT">Draft</option>
-              <option value="ACTIVE">Activa</option>
-            </select>
-          </label>
-          <button className="adminButton adminButtonPrimary" type="submit">Crear plantilla</button>
-        </form>
-      </aside>
-    </div>
-  );
-}
-
-function TemplatesList({
-  locale,
-  selectedTemplateId,
-  templateFilters,
-  templates,
-}: {
-  locale: string;
-  selectedTemplateId?: string;
-  templateFilters: CmsBasicSettingsPageProps["templateFilters"];
-  templates: CmsTemplateSettings[];
-}) {
-  if (!templates.length) {
-    return <div className="adminEmptyState">No hay plantillas CMS para los filtros actuales.</div>;
-  }
-
-  return (
-    <div className="adminTableScroller">
-      <table className="adminTable cmsTemplatesTable">
-        <thead><tr><th>Plantilla</th><th>Tipo</th><th>Estado</th><th>Overrides</th><th>Acciones</th></tr></thead>
-        <tbody>
-          {templates.map((template) => {
-            const overrideKeys = Object.keys(template.settings.overrides);
-            return (
-              <tr key={template.templateId}>
-                <td><strong>{template.name}</strong><div className="adminContextHint">{template.templateId}</div></td>
-                <td>{pageTypeLabel(template.pageType)}</td>
-                <td><span className={templateBadgeClass(template.status)}>{template.status}</span></td>
-                <td>{overrideKeys.length ? overrideKeys.join(", ") : "Hereda global"}</td>
-                <td>
-                  <Link
-                    className={`adminButton adminButtonTiny${selectedTemplateId === template.templateId ? " adminButtonPrimary" : ""}`}
-                    href={settingsHref({
-                      locale,
-                      pageType: templateFilters.pageType,
-                      status: templateFilters.status,
-                      tab: "templates",
-                      templateId: template.templateId,
-                    })}
-                  >
-                    Editar
-                  </Link>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function TemplateEditor({
-  fonts,
-  globalLayout,
-  globalResponse,
-  locale,
-  selectedTemplate,
-  templateFilters,
-}: {
-  fonts: CmsFontOption[];
-  globalLayout: CmsLayout;
-  globalResponse: CmsGlobalSettingsResponse;
-  locale: string;
-  selectedTemplate?: CmsTemplateSettings;
-  templateFilters: CmsBasicSettingsPageProps["templateFilters"];
-}) {
-  if (!selectedTemplate) {
-    return (
-      <section className="pricingPanel cmsTemplateEditorPanel">
-        <div className="adminEmptyState">Selecciona una plantilla para editar sus overrides.</div>
-      </section>
-    );
-  }
-
-  const globalTokens = globalResponse.settings.tokens;
-  const globalMaxWidth = globalTokens.maxWidth;
-  const templateMaxWidth = overrideMaxWidth(selectedTemplate, globalMaxWidth);
-  const templateLayout = resolveCmsLayoutSpacing(overrideLayout(selectedTemplate, globalLayout), globalTokens.spacing);
-  const bodyFamily = overrideTypographyFamily(selectedTemplate, "body", cmsTypographyFamily(globalTokens.typography.body, "Inter"));
-  const headingFamily = overrideTypographyFamily(selectedTemplate, "heading", cmsTypographyFamily(globalTokens.typography.heading, "Inter"));
-  const monoFamily = overrideTypographyFamily(selectedTemplate, "mono", cmsTypographyFamily(globalTokens.typography.mono, "Roboto Mono"));
-
-  return (
-    <form action={saveCmsTemplateSettingsAction} className="adminForm cmsSettingsForm cmsTemplateEditorPanel">
-      <input type="hidden" name="locale" value={locale} />
-      <input type="hidden" name="templateId" value={selectedTemplate.templateId} />
-      <input type="hidden" name="pageTypeFilter" value={templateFilters.pageType} />
-      <input type="hidden" name="statusFilter" value={templateFilters.status} />
-      <section className="pricingPanel cmsEditorPanel">
-        <div className="pricingPanelHeader">
-          <div><h2>{selectedTemplate.name}</h2><p>Overrides de plantilla aplicados entre global y pagina.</p></div>
-          <span className={templateBadgeClass(selectedTemplate.status)}>{selectedTemplate.status}</span>
-        </div>
-        <div className="adminFormGrid adminFormGridTwo">
-          <label className="adminField"><span>Nombre</span><input name="name" defaultValue={selectedTemplate.name} /></label>
-          <label className="adminField"><span>Tipo pagina</span><output>{pageTypeLabel(selectedTemplate.pageType)}</output></label>
-          <label className="adminField">
-            <span>Estado</span>
-            <select name="status" defaultValue={selectedTemplate.status}>
-              <option value="DRAFT">Draft</option>
-              <option value="ACTIVE">Activa</option>
-              <option value="ARCHIVED">Archivada</option>
-            </select>
-          </label>
-          <label className="adminField">
-            <span>Herencia global</span>
-            <select name="inheritGlobalSettings" defaultValue={String(selectedTemplate.settings.inheritGlobalSettings)}>
-              <option value="true">Heredar global</option>
-              <option value="false">No heredar</option>
-            </select>
-          </label>
-          <label className="adminField">
-            <span>Override max width</span>
-            <input name="templateMaxWidth" defaultValue={templateMaxWidth} placeholder={globalMaxWidth} />
-            <small>Se guarda como override de plantilla.</small>
-          </label>
-          <TypographySelect fonts={fonts} label="Tipografia body" name="templateTypographyBody" value={bodyFamily} />
-          <TypographySelect fonts={fonts} label="Tipografia headings" name="templateTypographyHeading" value={headingFamily} />
-          <TypographySelect fonts={fonts} label="Tipografia mono" name="templateTypographyMono" value={monoFamily} />
-        </div>
-      </section>
-
-      <section className="pricingPanel cmsEditorPanel">
-        <div className="pricingPanelHeader"><div><h2>Layout de plantilla</h2><p>Areas que reemplazan o amplian la base global para este tipo de pagina.</p></div></div>
-        <CmsLayoutAreaEditorClient initialLayout={templateLayout} maxWidth={templateMaxWidth} />
-      </section>
-
-      <div className="cmsEditorFooter">
-        <div className="adminContextHint">Template {selectedTemplate.templateId} - {locale}</div>
-        <button className="adminButton adminButtonPrimary" type="submit">Guardar plantilla</button>
-      </div>
-    </form>
-  );
-}
-
-function TemplatesPanel({
-  drawer,
-  fontOptionsResult,
-  globalResponse,
-  locale,
-  selectedTemplateId,
-  templateFilters,
-  templatesResult,
-}: {
-  drawer?: "create";
-  fontOptionsResult: BffResult<CmsFontOptionsResponse>;
-  globalResponse: CmsGlobalSettingsResponse;
-  locale: string;
-  selectedTemplateId?: string;
-  templateFilters: CmsBasicSettingsPageProps["templateFilters"];
-  templatesResult: BffResult<CmsTemplateSettingsList>;
-}) {
-  const templates = templatesResult.ok ? templatesResult.data.items : [];
-  const selectedTemplate = templates.find((template) => template.templateId === selectedTemplateId) ?? templates[0];
-  const fonts = fontOptionsFromResult(fontOptionsResult);
-
-  return (
-    <section className="cmsTemplatesPanel">
-      {!templatesResult.ok ? (
-        <div className="adminBanner adminBannerError">
-          <p>{templatesResult.error}</p>
-          {templatesResult.status ? <p>Estado BFF: {templatesResult.status}</p> : null}
-        </div>
-      ) : null}
-
-      <div className="pricingPanel cmsEditorPanel">
-        <div className="pricingPanelHeader">
-          <div><h2>Plantillas</h2><p>Layouts reutilizables por tipo de pagina, resueltos entre global y pagina.</p></div>
-          <Link className="adminButton adminButtonPrimary" href={settingsHref({ drawer: "create", locale, pageType: templateFilters.pageType, status: templateFilters.status, tab: "templates" })}>Crear plantilla</Link>
-        </div>
-        <TemplateFilters locale={locale} templateFilters={templateFilters} />
-        <TemplatesList locale={locale} selectedTemplateId={selectedTemplate?.templateId} templateFilters={templateFilters} templates={templates} />
-      </div>
-
-      <TemplateEditor
-        fonts={fonts}
-        globalLayout={globalResponse.settings.layout}
-        globalResponse={globalResponse}
-        locale={locale}
-        selectedTemplate={selectedTemplate}
-        templateFilters={templateFilters}
-      />
-      <CreateTemplateDrawer drawer={drawer} locale={locale} templateFilters={templateFilters} />
-    </section>
-  );
-}
-
-export function CmsBasicSettingsPageView({
-  activeTab,
-  context,
-  drawer,
-  fontOptionsResult,
-  locale,
-  message,
-  result,
-  selectedTemplateId,
-  templateFilters,
-  templatesResult,
-}: CmsBasicSettingsPageProps) {
-  const hasContext = hasRequiredAdminContext(context);
-  const response = result.ok ? result.data : undefined;
-
-  return (
-    <main className="adminPage cmsAdminPage cmsSettingsPage">
-      <header className="adminPageHeader">
-        <div>
-          <div className="adminBreadcrumb">Admin / CMS / Ajustes basicos</div>
-          <h1 className="adminPageTitle">Ajustes basicos</h1>
-          <p className="adminPageIntro">Configuracion global heredada por plantillas, paginas y modulos.</p>
-        </div>
-        <div className="adminButtonRow"><Link className="adminButton" href="/admin/cms">Volver a paginas</Link></div>
-      </header>
-
-      {!hasContext ? <div className="adminBanner adminBannerWarning"><p>Selecciona Organization y Shop para editar la configuracion CMS.</p></div> : null}
-      {message ? <div className="adminBanner">{message}</div> : null}
-      <SettingsTabs activeTab={activeTab} locale={locale} templateFilters={templateFilters} />
-
-      {!result.ok ? (
-        <section className="adminBanner adminBannerError">
-          <strong>No se pudo consultar la configuracion global CMS.</strong>
-          <p>{result.error}</p>
-          {result.status ? <p>Estado BFF: {result.status}</p> : null}
-          <p className="adminContextHint">Locale solicitado: {locale}</p>
-        </section>
-      ) : null}
-
-      {response && activeTab === "global" ? (
-        <GlobalSettingsPanel context={context} fontOptionsResult={fontOptionsResult} hasContext={hasContext} locale={locale} response={response} />
-      ) : null}
-      {response && activeTab === "templates" ? (
-        <TemplatesPanel
-          drawer={drawer}
-          fontOptionsResult={fontOptionsResult}
-          globalResponse={response}
-          locale={locale}
-          selectedTemplateId={selectedTemplateId}
-          templateFilters={templateFilters}
-          templatesResult={templatesResult}
-        />
-      ) : null}
-    </main>
-  );
+export function CmsBasicSettingsPageView({context,canWrite,fontOptionsResult,locale,message,result}:CmsBasicSettingsPageProps) {
+  const hasContext=hasRequiredAdminContext(context);
+  return <main className="adminPage cmsAdminPage cmsSettingsPage">
+    <header className="adminPageHeader">
+      <div><div className="adminBreadcrumb">Admin / CMS / Ajustes básicos</div><h1 className="adminPageTitle">Ajustes básicos</h1><p className="adminPageIntro">Valores predeterminados de diseño para el contenido CMS.</p></div>
+    </header>
+    {!hasContext?<div className="adminBanner adminBannerWarning"><p>Selecciona Organization y Shop para editar la configuracion CMS.</p></div>:null}
+    {!canWrite?<p role="status">Acceso de solo lectura.</p>:null}
+    {message?<div className="adminBanner">{message}</div>:null}
+    {!result.ok?<section className="adminBanner adminBannerError"><strong>No se pudo consultar la configuracion global CMS.</strong><p>{result.error}</p>{result.status?<p>Estado BFF: {result.status}</p>:null}<p className="adminContextHint">Locale solicitado: {locale}</p></section>:<GlobalSettingsPanel context={context} canWrite={canWrite} fontOptionsResult={fontOptionsResult} hasContext={hasContext} locale={locale} response={result.data}/>}
+  </main>;
 }

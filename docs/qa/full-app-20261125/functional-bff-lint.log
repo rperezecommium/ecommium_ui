@@ -1,0 +1,23 @@
+
+/Users/ricardoperez/Documents/ecommium/composable_ecommerce/apps/bff/src/modules/after-sales/presentation/http/admin-after-sales.controller.spec.ts
+    8:22  error  Replace `.fn()` with `⏎········.fn()⏎········`                                                                                                                                                    prettier/prettier
+   52:34  error  Replace `·listCases:·jest.fn().mockResolvedValue(response)` with `⏎······listCases:·jest.fn().mockResolvedValue(response),⏎···`                                                                   prettier/prettier
+   56:23  error  Replace `.fn()` with `⏎········.fn()⏎········`                                                                                                                                                    prettier/prettier
+   67:18  error  Insert `⏎······`                                                                                                                                                                                  prettier/prettier
+   68:7   error  Replace `'org-1',·'shop-1',·undefined,·undefined,·undefined,·undefined,` with `··'org-1',⏎········'shop-1',⏎········undefined,⏎········undefined,⏎········undefined,⏎········undefined,⏎·······`  prettier/prettier
+   69:7   error  Replace `'20',·'0',·'Bearer·admin',` with `··'20',⏎········'0',⏎········'Bearer·admin',⏎·······`                                                                                                  prettier/prettier
+   70:5   error  Replace `)` with `··),⏎····`                                                                                                                                                                      prettier/prettier
+   73:18  error  Insert `⏎······`                                                                                                                                                                                  prettier/prettier
+   74:7   error  Replace `'org-1',·'shop-1',·'ASC-7H2K9Q4M8R',·undefined,·undefined,` with `··'org-1',⏎········'shop-1',⏎········'ASC-7H2K9Q4M8R',⏎········undefined,⏎········undefined,⏎·······`                  prettier/prettier
+   75:7   error  Replace `undefined,·'20',·'0',·'Bearer·admin',` with `··undefined,⏎········'20',⏎········'0',⏎········'Bearer·admin',⏎·······`                                                                    prettier/prettier
+   76:1   error  Replace `····)` with `······),⏎····`                                                                                                                                                              prettier/prettier
+  333:12  error  Replace `afterSalesClient.finalizeSolutionWithClosureProof` with `⏎······afterSalesClient.finalizeSolutionWithClosureProof,⏎····`                                                                 prettier/prettier
+
+/Users/ricardoperez/Documents/ecommium/composable_ecommerce/apps/bff/src/modules/after-sales/presentation/http/admin-after-sales.controller.ts
+  1011:37  error  Replace `'private·evidence·only·accepts·image·files'` with `⏎········'private·evidence·only·accepts·image·files',⏎······`                                                      prettier/prettier
+  1035:22  error  Replace `·authorization:·string·|·undefined;·correlationId:·string·|·undefined` with `⏎······authorization:·string·|·undefined;⏎······correlationId:·string·|·undefined;⏎···`  prettier/prettier
+  1070:45  error  Replace `'ADMIN_AFTER_SALES_READ_INDEX_UNAVAILABLE'` with `⏎········'ADMIN_AFTER_SALES_READ_INDEX_UNAVAILABLE',⏎······`                                                        prettier/prettier
+
+✖ 15 problems (15 errors, 0 warnings)
+  15 errors and 0 warnings potentially fixable with the `--fix` option.
+

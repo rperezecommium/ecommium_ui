@@ -1,0 +1,19 @@
+.services :global(.adminBadge),
+.services :global(.adminMuted),
+.services :global(.adminCardHeader p) {
+  color: var(--admin-text);
+}
+
+.services :global(.adminStatusRow) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1024px) {
+  .services :global(.adminStatusRow) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .services :global(.adminStatusRow > .adminMuted) {
+    grid-column: 1 / -1;
+  }
+}

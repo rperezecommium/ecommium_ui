@@ -185,7 +185,7 @@ export function normalizeStorefrontPaymentMethod(value: unknown): StorefrontPaym
     methodType,
     name,
     paymentSystemId,
-    provider: inferPaymentProvider({ affiliation, groupName, methodType, name, paymentSystemId, raw }),
+    provider: raw.provider === "paypal" || raw.provider === "stripe" ? raw.provider : "unknown",
     raw,
   };
 }

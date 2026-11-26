@@ -1,0 +1,53 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Europe/Madrid",
+  "productId": "9fd81ffc-51b3-45cc-8448-80b60e666e13",
+  "currency": "EUR",
+  "country": "ES",
+  "channel": "web",
+  "specificPrice": {
+    "priceMinor": 9900,
+    "minimumQuantity": 3,
+    "customerGroup": "VIP",
+    "taxIncluded": true
+  },
+  "scenarios": [
+    {
+      "quantity": 1,
+      "customerGroup": "Todos",
+      "phase": "before_save",
+      "expectedAmountMinor": null,
+      "actual": "SERVICE_UNAVAILABLE",
+      "verified": false
+    },
+    {
+      "quantity": 2,
+      "customerGroup": "VIP",
+      "phase": "after_save",
+      "expectedAmountMinor": 12100,
+      "actual": "SERVICE_UNAVAILABLE",
+      "verified": false
+    },
+    {
+      "quantity": 3,
+      "customerGroup": "Todos",
+      "phase": "after_save",
+      "expectedAmountMinor": 12100,
+      "actual": "SERVICE_UNAVAILABLE",
+      "verified": false
+    },
+    {
+      "quantity": 3,
+      "customerGroup": "VIP",
+      "phase": "after_save",
+      "expectedAmountMinor": 9900,
+      "actual": "SERVICE_UNAVAILABLE",
+      "verified": false
+    }
+  ],
+  "control": {
+    "productId": "080eb6a9-11e6-45c9-8719-fc326225452e",
+    "mutated": false,
+    "actual": "SERVICE_UNAVAILABLE"
+  }
+}

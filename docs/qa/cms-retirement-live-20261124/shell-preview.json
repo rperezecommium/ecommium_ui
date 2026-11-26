@@ -1,0 +1,4229 @@
+[
+  {
+    "id": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+    "kind": "HEADER",
+    "width": 1440,
+    "before": {
+      "height": 182,
+      "width": 1440,
+      "text": "Enviar a:\nEspaña\nIdioma:\nEspañol\nEUR\n\n¡Siempre el mejor precio online!\n\nAyuda y contacto\nDevolucion facil en 30 dias\n4.5/5\nIniciar Sesion\nRegistrate\nCUENTA CLIENTE\nIniciar sesion\n\nAccede a tus pedidos y preferencias.\n\nIniciar sesion\nCrear cuenta\nEmail\nPassword\nIniciar sesion\nHe olvidado mi password\nCarrito\n0\nQA Categora Auditora 20261111 A\nBike Brakes\nBike Cockpit\nBike Drivetrain\nBike Workshop\nBikerShop\nNutritiom-pro\nnutritions\nbicicletas\nBikerShop\ncomponentes",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "He olvidado mi password",
+          "href": "/auth/password-reset"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        },
+        {
+          "text": "QA Categora Auditora 20261111 A",
+          "href": "/plp/qa-categoria-auditoria-20261111-a"
+        },
+        {
+          "text": "Bike Brakes",
+          "href": "/plp/bike-brakes"
+        },
+        {
+          "text": "Bike Cockpit",
+          "href": "/plp/bike-cockpit"
+        },
+        {
+          "text": "Bike Drivetrain",
+          "href": "/plp/bike-drivetrain"
+        },
+        {
+          "text": "Bike Workshop",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-9f92d709"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059"
+        },
+        {
+          "text": "Nutritiom-pro",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "nutritions",
+          "href": "/plp/imp-bf62d289bb-nutritions-8084421f"
+        },
+        {
+          "text": "bicicletas",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-a7371a92"
+        },
+        {
+          "text": "Ropa ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Accesorios y componentes",
+          "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a"
+        },
+        {
+          "text": "Zapatillas carretera",
+          "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e"
+        },
+        {
+          "text": "Zapatillas MTB",
+          "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d"
+        },
+        {
+          "text": "componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 20,
+          "y": 64.5,
+          "w": 172.765625,
+          "h": 40
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 20,
+          "y": 64.5,
+          "w": 170,
+          "h": 40
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 284.796875,
+          "y": 64,
+          "w": 870.390625,
+          "h": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar Sesion",
+          "x": 1175.1875,
+          "y": 66,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Registrate",
+          "x": 1221.1875,
+          "y": 66,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "BUTTON",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 1440,
+          "h": 1000
+        },
+        {
+          "tag": "H2",
+          "text": "Iniciar sesion",
+          "x": 1463,
+          "y": 42,
+          "w": 229.578125,
+          "h": 28
+        },
+        {
+          "tag": "BUTTON",
+          "text": "",
+          "x": 1810,
+          "y": 22,
+          "w": 38,
+          "h": 38
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar sesion",
+          "x": 1463,
+          "y": 129,
+          "w": 117.09375,
+          "h": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Crear cuenta",
+          "x": 1588.09375,
+          "y": 129,
+          "w": 113.484375,
+          "h": 36
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 1463,
+          "y": 205,
+          "w": 385,
+          "h": 42
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 1463,
+          "y": 283,
+          "w": 343,
+          "h": 42
+        },
+        {
+          "tag": "BUTTON",
+          "text": "",
+          "x": 1806,
+          "y": 283,
+          "w": 42,
+          "h": 42
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar sesion",
+          "x": 1463,
+          "y": 339,
+          "w": 385,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "He olvidado mi password",
+          "x": 1463,
+          "y": 397,
+          "w": 168.828125,
+          "h": 16
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 1277.1875,
+          "y": 66,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "A",
+          "text": "QA Categora Auditora 20261111 A",
+          "x": 20,
+          "y": 139,
+          "w": 227.375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Brakes",
+          "x": 249.375,
+          "y": 139,
+          "w": 94.453125,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Cockpit",
+          "x": 345.828125,
+          "y": 139,
+          "w": 98.75,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Drivetrain",
+          "x": 446.578125,
+          "y": 139,
+          "w": 111.765625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Workshop",
+          "x": 560.34375,
+          "y": 139,
+          "w": 114.390625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 676.734375,
+          "y": 139,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Nutritiom-pro",
+          "x": 781.75,
+          "y": 139,
+          "w": 103.046875,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "nutritions",
+          "x": 886.796875,
+          "y": 139,
+          "w": 79.9375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "bicicletas",
+          "x": 968.734375,
+          "y": 139,
+          "w": 79.265625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 1050,
+          "y": 139,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Ropa ciclismo",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Accesorios y componentes",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas carretera",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas MTB",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "componentes",
+          "x": 1155.015625,
+          "y": 139,
+          "w": 104.515625,
+          "h": 42
+        }
+      ]
+    },
+    "after": {
+      "height": 182,
+      "width": 1440,
+      "text": "Enviar a:\nEspaña\nIdioma:\nEspañol\nEUR\n\n¡Siempre el mejor precio online!\n\nAyuda y contacto\nDevolucion facil en 30 dias\n4.5/5\nIniciar Sesion\nRegistrate\nCarrito\n0\nQA Categora Auditora 20261111 A\nBike Brakes\nBike Cockpit\nBike Drivetrain\nBike Workshop\nBikerShop\nNutritiom-pro\nnutritions\nbicicletas\nBikerShop\ncomponentes",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        },
+        {
+          "text": "QA Categora Auditora 20261111 A",
+          "href": "/plp/qa-categoria-auditoria-20261111-a"
+        },
+        {
+          "text": "Bike Brakes",
+          "href": "/plp/bike-brakes"
+        },
+        {
+          "text": "Bike Cockpit",
+          "href": "/plp/bike-cockpit"
+        },
+        {
+          "text": "Bike Drivetrain",
+          "href": "/plp/bike-drivetrain"
+        },
+        {
+          "text": "Bike Workshop",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-9f92d709"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059"
+        },
+        {
+          "text": "Nutritiom-pro",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "nutritions",
+          "href": "/plp/imp-bf62d289bb-nutritions-8084421f"
+        },
+        {
+          "text": "bicicletas",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-a7371a92"
+        },
+        {
+          "text": "Ropa ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Accesorios y componentes",
+          "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a"
+        },
+        {
+          "text": "Zapatillas carretera",
+          "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e"
+        },
+        {
+          "text": "Zapatillas MTB",
+          "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d"
+        },
+        {
+          "text": "componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 20,
+          "y": 64.5,
+          "w": 172.765625,
+          "h": 40
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 20,
+          "y": 64.5,
+          "w": 170,
+          "h": 40
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 284.796875,
+          "y": 64,
+          "w": 870.390625,
+          "h": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar Sesion",
+          "x": 1175.1875,
+          "y": 66,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Registrate",
+          "x": 1221.1875,
+          "y": 66,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 1277.1875,
+          "y": 66,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "A",
+          "text": "QA Categora Auditora 20261111 A",
+          "x": 20,
+          "y": 139,
+          "w": 227.375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Brakes",
+          "x": 249.375,
+          "y": 139,
+          "w": 94.453125,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Cockpit",
+          "x": 345.828125,
+          "y": 139,
+          "w": 98.75,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Drivetrain",
+          "x": 446.578125,
+          "y": 139,
+          "w": 111.765625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Workshop",
+          "x": 560.34375,
+          "y": 139,
+          "w": 114.390625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 676.734375,
+          "y": 139,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Nutritiom-pro",
+          "x": 781.75,
+          "y": 139,
+          "w": 103.046875,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "nutritions",
+          "x": 886.796875,
+          "y": 139,
+          "w": 79.9375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "bicicletas",
+          "x": 968.734375,
+          "y": 139,
+          "w": 79.265625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 1050,
+          "y": 139,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Ropa ciclismo",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Accesorios y componentes",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas carretera",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas MTB",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "componentes",
+          "x": 1155.015625,
+          "y": 139,
+          "w": 104.515625,
+          "h": 42
+        }
+      ]
+    }
+  },
+  {
+    "id": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+    "kind": "HEADER",
+    "width": 768,
+    "before": {
+      "height": 234,
+      "width": 768,
+      "text": "Enviar a:\nEspaña\nIdioma:\nEspañol\nEUR\n\n¡Siempre el mejor precio online!\n\nAyuda y contacto\nDevolucion facil en 30 dias\n4.5/5\nIniciar Sesion\nRegistrate\nCUENTA CLIENTE\nIniciar sesion\n\nAccede a tus pedidos y preferencias.\n\nIniciar sesion\nCrear cuenta\nEmail\nPassword\nIniciar sesion\nHe olvidado mi password\nCarrito\n0\nQA Categora Auditora 20261111 A\nBike Brakes\nBike Cockpit\nBike Drivetrain\nBike Workshop\nBikerShop\nNutritiom-pro\nnutritions\nbicicletas\nBikerShop\ncomponentes",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "He olvidado mi password",
+          "href": "/auth/password-reset"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        },
+        {
+          "text": "QA Categora Auditora 20261111 A",
+          "href": "/plp/qa-categoria-auditoria-20261111-a"
+        },
+        {
+          "text": "Bike Brakes",
+          "href": "/plp/bike-brakes"
+        },
+        {
+          "text": "Bike Cockpit",
+          "href": "/plp/bike-cockpit"
+        },
+        {
+          "text": "Bike Drivetrain",
+          "href": "/plp/bike-drivetrain"
+        },
+        {
+          "text": "Bike Workshop",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-9f92d709"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059"
+        },
+        {
+          "text": "Nutritiom-pro",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "nutritions",
+          "href": "/plp/imp-bf62d289bb-nutritions-8084421f"
+        },
+        {
+          "text": "bicicletas",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-a7371a92"
+        },
+        {
+          "text": "Ropa ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Accesorios y componentes",
+          "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a"
+        },
+        {
+          "text": "Zapatillas carretera",
+          "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e"
+        },
+        {
+          "text": "Zapatillas MTB",
+          "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d"
+        },
+        {
+          "text": "componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 20,
+          "y": 90.5,
+          "w": 123.828125,
+          "h": 40
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 20,
+          "y": 90.5,
+          "w": 123.828125,
+          "h": 40
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 163.828125,
+          "y": 90,
+          "w": 440.328125,
+          "h": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar Sesion",
+          "x": 624.15625,
+          "y": 64,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Registrate",
+          "x": 670.15625,
+          "y": 64,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "BUTTON",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 768,
+          "h": 1000
+        },
+        {
+          "tag": "H2",
+          "text": "Iniciar sesion",
+          "x": 791,
+          "y": 42,
+          "w": 229.578125,
+          "h": 28
+        },
+        {
+          "tag": "BUTTON",
+          "text": "",
+          "x": 1138,
+          "y": 22,
+          "w": 38,
+          "h": 38
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar sesion",
+          "x": 791,
+          "y": 129,
+          "w": 117.09375,
+          "h": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Crear cuenta",
+          "x": 916.09375,
+          "y": 129,
+          "w": 113.484375,
+          "h": 36
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 791,
+          "y": 205,
+          "w": 385,
+          "h": 42
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 791,
+          "y": 283,
+          "w": 343,
+          "h": 42
+        },
+        {
+          "tag": "BUTTON",
+          "text": "",
+          "x": 1134,
+          "y": 283,
+          "w": 42,
+          "h": 42
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar sesion",
+          "x": 791,
+          "y": 339,
+          "w": 385,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "He olvidado mi password",
+          "x": 791,
+          "y": 397,
+          "w": 168.828125,
+          "h": 16
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 624.15625,
+          "y": 120,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "A",
+          "text": "QA Categora Auditora 20261111 A",
+          "x": 20,
+          "y": 191,
+          "w": 227.375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Brakes",
+          "x": 249.375,
+          "y": 191,
+          "w": 94.453125,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Cockpit",
+          "x": 345.828125,
+          "y": 191,
+          "w": 98.75,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Drivetrain",
+          "x": 446.578125,
+          "y": 191,
+          "w": 111.765625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Workshop",
+          "x": 560.34375,
+          "y": 191,
+          "w": 114.390625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 676.734375,
+          "y": 191,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Nutritiom-pro",
+          "x": 781.75,
+          "y": 191,
+          "w": 103.046875,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "nutritions",
+          "x": 886.796875,
+          "y": 191,
+          "w": 79.9375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "bicicletas",
+          "x": 968.734375,
+          "y": 191,
+          "w": 79.265625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 1050,
+          "y": 191,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Ropa ciclismo",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Accesorios y componentes",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas carretera",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas MTB",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "componentes",
+          "x": 1155.015625,
+          "y": 191,
+          "w": 104.515625,
+          "h": 42
+        }
+      ]
+    },
+    "after": {
+      "height": 234,
+      "width": 768,
+      "text": "Enviar a:\nEspaña\nIdioma:\nEspañol\nEUR\n\n¡Siempre el mejor precio online!\n\nAyuda y contacto\nDevolucion facil en 30 dias\n4.5/5\nIniciar Sesion\nRegistrate\nCarrito\n0\nQA Categora Auditora 20261111 A\nBike Brakes\nBike Cockpit\nBike Drivetrain\nBike Workshop\nBikerShop\nNutritiom-pro\nnutritions\nbicicletas\nBikerShop\ncomponentes",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        },
+        {
+          "text": "QA Categora Auditora 20261111 A",
+          "href": "/plp/qa-categoria-auditoria-20261111-a"
+        },
+        {
+          "text": "Bike Brakes",
+          "href": "/plp/bike-brakes"
+        },
+        {
+          "text": "Bike Cockpit",
+          "href": "/plp/bike-cockpit"
+        },
+        {
+          "text": "Bike Drivetrain",
+          "href": "/plp/bike-drivetrain"
+        },
+        {
+          "text": "Bike Workshop",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-9f92d709"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059"
+        },
+        {
+          "text": "Nutritiom-pro",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "nutritions",
+          "href": "/plp/imp-bf62d289bb-nutritions-8084421f"
+        },
+        {
+          "text": "bicicletas",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-a7371a92"
+        },
+        {
+          "text": "Ropa ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Accesorios y componentes",
+          "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a"
+        },
+        {
+          "text": "Zapatillas carretera",
+          "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e"
+        },
+        {
+          "text": "Zapatillas MTB",
+          "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d"
+        },
+        {
+          "text": "componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 20,
+          "y": 90.5,
+          "w": 123.828125,
+          "h": 40
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 20,
+          "y": 90.5,
+          "w": 123.828125,
+          "h": 40
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 163.828125,
+          "y": 90,
+          "w": 440.328125,
+          "h": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar Sesion",
+          "x": 624.15625,
+          "y": 64,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Registrate",
+          "x": 670.15625,
+          "y": 64,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 624.15625,
+          "y": 120,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "A",
+          "text": "QA Categora Auditora 20261111 A",
+          "x": 20,
+          "y": 191,
+          "w": 227.375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Brakes",
+          "x": 249.375,
+          "y": 191,
+          "w": 94.453125,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Cockpit",
+          "x": 345.828125,
+          "y": 191,
+          "w": 98.75,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Drivetrain",
+          "x": 446.578125,
+          "y": 191,
+          "w": 111.765625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Workshop",
+          "x": 560.34375,
+          "y": 191,
+          "w": 114.390625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 676.734375,
+          "y": 191,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Nutritiom-pro",
+          "x": 781.75,
+          "y": 191,
+          "w": 103.046875,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "nutritions",
+          "x": 886.796875,
+          "y": 191,
+          "w": 79.9375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "bicicletas",
+          "x": 968.734375,
+          "y": 191,
+          "w": 79.265625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 1050,
+          "y": 191,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Ropa ciclismo",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Accesorios y componentes",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas carretera",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas MTB",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "componentes",
+          "x": 1155.015625,
+          "y": 191,
+          "w": 104.515625,
+          "h": 42
+        }
+      ]
+    }
+  },
+  {
+    "id": "3bceeba0-ba5d-485a-a27d-537c0cd87949",
+    "kind": "HEADER",
+    "width": 390,
+    "before": {
+      "height": 328,
+      "width": 390,
+      "text": "Enviar a:\nEspaña\nIdioma:\nEspañol\nEUR\n\n¡Siempre el mejor precio online!\n\nAyuda y contacto\nDevolucion facil en 30 dias\n4.5/5\nIniciar Sesion\nRegistrate\nCUENTA CLIENTE\nIniciar sesion\n\nAccede a tus pedidos y preferencias.\n\nIniciar sesion\nCrear cuenta\nEmail\nPassword\nIniciar sesion\nHe olvidado mi password\nCarrito\n0\nQA Categora Auditora 20261111 A\nBike Brakes\nBike Cockpit\nBike Drivetrain\nBike Workshop\nBikerShop\nNutritiom-pro\nnutritions\nbicicletas\nBikerShop\ncomponentes",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "He olvidado mi password",
+          "href": "/auth/password-reset"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        },
+        {
+          "text": "QA Categora Auditora 20261111 A",
+          "href": "/plp/qa-categoria-auditoria-20261111-a"
+        },
+        {
+          "text": "Bike Brakes",
+          "href": "/plp/bike-brakes"
+        },
+        {
+          "text": "Bike Cockpit",
+          "href": "/plp/bike-cockpit"
+        },
+        {
+          "text": "Bike Drivetrain",
+          "href": "/plp/bike-drivetrain"
+        },
+        {
+          "text": "Bike Workshop",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-9f92d709"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059"
+        },
+        {
+          "text": "Nutritiom-pro",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "nutritions",
+          "href": "/plp/imp-bf62d289bb-nutritions-8084421f"
+        },
+        {
+          "text": "bicicletas",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-a7371a92"
+        },
+        {
+          "text": "Ropa ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Accesorios y componentes",
+          "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a"
+        },
+        {
+          "text": "Zapatillas carretera",
+          "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e"
+        },
+        {
+          "text": "Zapatillas MTB",
+          "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d"
+        },
+        {
+          "text": "componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 20,
+          "y": 103,
+          "w": 172.765625,
+          "h": 40
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 20,
+          "y": 103,
+          "w": 170,
+          "h": 40
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 20,
+          "y": 158,
+          "w": 350,
+          "h": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar Sesion",
+          "x": 20,
+          "y": 214,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Registrate",
+          "x": 66,
+          "y": 214,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "BUTTON",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 390,
+          "h": 1000
+        },
+        {
+          "tag": "H2",
+          "text": "Iniciar sesion",
+          "x": 409,
+          "y": 38,
+          "w": 229.578125,
+          "h": 28
+        },
+        {
+          "tag": "BUTTON",
+          "text": "",
+          "x": 724,
+          "y": 18,
+          "w": 38,
+          "h": 38
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar sesion",
+          "x": 409,
+          "y": 125,
+          "w": 117.09375,
+          "h": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Crear cuenta",
+          "x": 534.09375,
+          "y": 125,
+          "w": 113.484375,
+          "h": 36
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 409,
+          "y": 201,
+          "w": 353,
+          "h": 42
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 409,
+          "y": 279,
+          "w": 311,
+          "h": 42
+        },
+        {
+          "tag": "BUTTON",
+          "text": "",
+          "x": 720,
+          "y": 279,
+          "w": 42,
+          "h": 42
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar sesion",
+          "x": 409,
+          "y": 335,
+          "w": 353,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "He olvidado mi password",
+          "x": 409,
+          "y": 393,
+          "w": 168.828125,
+          "h": 16
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 330,
+          "y": 214,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "A",
+          "text": "QA Categora Auditora 20261111 A",
+          "x": 20,
+          "y": 285,
+          "w": 227.375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Brakes",
+          "x": 249.375,
+          "y": 285,
+          "w": 94.453125,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Cockpit",
+          "x": 345.828125,
+          "y": 285,
+          "w": 98.75,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Drivetrain",
+          "x": 446.578125,
+          "y": 285,
+          "w": 111.765625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Workshop",
+          "x": 560.34375,
+          "y": 285,
+          "w": 114.390625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 676.734375,
+          "y": 285,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Nutritiom-pro",
+          "x": 781.75,
+          "y": 285,
+          "w": 103.046875,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "nutritions",
+          "x": 886.796875,
+          "y": 285,
+          "w": 79.9375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "bicicletas",
+          "x": 968.734375,
+          "y": 285,
+          "w": 79.265625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 1050,
+          "y": 285,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Ropa ciclismo",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Accesorios y componentes",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas carretera",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas MTB",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "componentes",
+          "x": 1155.015625,
+          "y": 285,
+          "w": 104.515625,
+          "h": 42
+        }
+      ]
+    },
+    "after": {
+      "height": 330,
+      "width": 390,
+      "text": "Enviar a:\nEspaña\nIdioma:\nEspañol\nEUR\n\n¡Siempre el mejor precio online!\n\nAyuda y contacto\nDevolucion facil en 30 dias\n4.5/5\nIniciar Sesion\nRegistrate\nCarrito\n0\nQA Categora Auditora 20261111 A\nBike Brakes\nBike Cockpit\nBike Drivetrain\nBike Workshop\nBikerShop\nNutritiom-pro\nnutritions\nbicicletas\nBikerShop\ncomponentes",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        },
+        {
+          "text": "QA Categora Auditora 20261111 A",
+          "href": "/plp/qa-categoria-auditoria-20261111-a"
+        },
+        {
+          "text": "Bike Brakes",
+          "href": "/plp/bike-brakes"
+        },
+        {
+          "text": "Bike Cockpit",
+          "href": "/plp/bike-cockpit"
+        },
+        {
+          "text": "Bike Drivetrain",
+          "href": "/plp/bike-drivetrain"
+        },
+        {
+          "text": "Bike Workshop",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-9f92d709"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c1d21059"
+        },
+        {
+          "text": "Nutritiom-pro",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "nutritions",
+          "href": "/plp/imp-bf62d289bb-nutritions-8084421f"
+        },
+        {
+          "text": "bicicletas",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "BikerShop",
+          "href": "/plp/imp-bf62d289bb-bikershop-a7371a92"
+        },
+        {
+          "text": "Ropa ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Accesorios y componentes",
+          "href": "/plp/imp-bf62d289bb-accesorios-y-componentes-3f887e3a"
+        },
+        {
+          "text": "Zapatillas carretera",
+          "href": "/plp/imp-bf62d289bb-zapatillas-carretera-e25ad7ba"
+        },
+        {
+          "text": "Electrónica bike",
+          "href": "/plp/imp-bf62d289bb-electr-nica-bike-c62f610e"
+        },
+        {
+          "text": "Zapatillas MTB",
+          "href": "/plp/imp-bf62d289bb-zapatillas-mtb-e8bc059d"
+        },
+        {
+          "text": "componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 20,
+          "y": 105,
+          "w": 172.765625,
+          "h": 40
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 20,
+          "y": 105,
+          "w": 170,
+          "h": 40
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "x": 20,
+          "y": 160,
+          "w": 350,
+          "h": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Iniciar Sesion",
+          "x": 20,
+          "y": 216,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Registrate",
+          "x": 66,
+          "y": 216,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 330,
+          "y": 216,
+          "w": 40,
+          "h": 40
+        },
+        {
+          "tag": "A",
+          "text": "QA Categora Auditora 20261111 A",
+          "x": 20,
+          "y": 287,
+          "w": 227.375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Brakes",
+          "x": 249.375,
+          "y": 287,
+          "w": 94.453125,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Cockpit",
+          "x": 345.828125,
+          "y": 287,
+          "w": 98.75,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Drivetrain",
+          "x": 446.578125,
+          "y": 287,
+          "w": 111.765625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Bike Workshop",
+          "x": 560.34375,
+          "y": 287,
+          "w": 114.390625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 676.734375,
+          "y": 287,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Nutritiom-pro",
+          "x": 781.75,
+          "y": 287,
+          "w": 103.046875,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "nutritions",
+          "x": 886.796875,
+          "y": 287,
+          "w": 79.9375,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "bicicletas",
+          "x": 968.734375,
+          "y": 287,
+          "w": 79.265625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "BikerShop",
+          "x": 1050,
+          "y": 287,
+          "w": 103.015625,
+          "h": 42
+        },
+        {
+          "tag": "A",
+          "text": "Ropa ciclismo",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Accesorios y componentes",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas carretera",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Electrónica bike",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "Zapatillas MTB",
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "A",
+          "text": "componentes",
+          "x": 1155.015625,
+          "y": 287,
+          "w": 104.515625,
+          "h": 42
+        }
+      ]
+    }
+  },
+  {
+    "id": "559ca9dd-5a9b-4801-b3a2-45dfb31bd58b",
+    "kind": "HEADER",
+    "width": 1440,
+    "before": {
+      "height": 101,
+      "width": 1440,
+      "text": "ECOMMIUM start\nCarrito\n0",
+      "links": [
+        {
+          "text": "ECOMMIUM start",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "ECOMMIUM start",
+          "x": 40,
+          "y": 34.5,
+          "w": 210.90625,
+          "h": 31
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 996.796875,
+          "y": 30,
+          "w": 40,
+          "h": 40
+        }
+      ]
+    },
+    "after": {
+      "height": 101,
+      "width": 1440,
+      "text": "ECOMMIUM start\nCarrito\n0",
+      "links": [
+        {
+          "text": "ECOMMIUM start",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "ECOMMIUM start",
+          "x": 40,
+          "y": 42,
+          "w": 113.5625,
+          "h": 16
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 996.796875,
+          "y": 30,
+          "w": 40,
+          "h": 40
+        }
+      ]
+    }
+  },
+  {
+    "id": "559ca9dd-5a9b-4801-b3a2-45dfb31bd58b",
+    "kind": "HEADER",
+    "width": 768,
+    "before": {
+      "height": 101,
+      "width": 768,
+      "text": "ECOMMIUM start\nCarrito\n0",
+      "links": [
+        {
+          "text": "ECOMMIUM start",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "ECOMMIUM start",
+          "x": 40,
+          "y": 34.5,
+          "w": 210.90625,
+          "h": 31
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 526.390625,
+          "y": 30,
+          "w": 40,
+          "h": 40
+        }
+      ]
+    },
+    "after": {
+      "height": 101,
+      "width": 768,
+      "text": "ECOMMIUM start\nCarrito\n0",
+      "links": [
+        {
+          "text": "ECOMMIUM start",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "ECOMMIUM start",
+          "x": 40,
+          "y": 42,
+          "w": 113.5625,
+          "h": 16
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 526.390625,
+          "y": 30,
+          "w": 40,
+          "h": 40
+        }
+      ]
+    }
+  },
+  {
+    "id": "559ca9dd-5a9b-4801-b3a2-45dfb31bd58b",
+    "kind": "HEADER",
+    "width": 390,
+    "before": {
+      "height": 144,
+      "width": 390,
+      "text": "ECOMMIUM start\nCarrito\n0",
+      "links": [
+        {
+          "text": "ECOMMIUM start",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "ECOMMIUM start",
+          "x": 32,
+          "y": 30,
+          "w": 210.90625,
+          "h": 31
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 32,
+          "y": 73,
+          "w": 40,
+          "h": 40
+        }
+      ]
+    },
+    "after": {
+      "height": 129,
+      "width": 390,
+      "text": "ECOMMIUM start\nCarrito\n0",
+      "links": [
+        {
+          "text": "ECOMMIUM start",
+          "href": "/"
+        },
+        {
+          "text": "Carrito0",
+          "href": "/cart"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "ECOMMIUM start",
+          "x": 32,
+          "y": 30,
+          "w": 113.5625,
+          "h": 16
+        },
+        {
+          "tag": "A",
+          "text": "Carrito0",
+          "x": 32,
+          "y": 58,
+          "w": 40,
+          "h": 40
+        }
+      ]
+    }
+  },
+  {
+    "id": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+    "kind": "FOOTER",
+    "width": 1440,
+    "before": {
+      "height": 632.1875,
+      "width": 1440,
+      "text": "INFORMACIÓN\nVivimos el ciclismo en cada detalle. Componentes, equipamiento y pequeñas ideas para que tu próxima salida sea la mejor.\nCarretera, montaña y ciudad: aquí empieza tu siguiente ruta.\nTALLER Y COMUNIDAD\nAvenida del Pedal, 24\n08001 Barcelona · España\nLunes a viernes · 9:00–18:00\nhola@ecommium.example\nLA TIENDA\nNuestra selección\nDescubre el catálogo\nTu cuenta ciclista\nNovedades para tu ruta\nComunidad Ecommium\nCICLISMO\nBicicletas y cuadros\nComponentes\nRopa de ciclismo\nNutrición e hidratación\nEquipamiento de taller\nTE ACOMPAÑAMOS\nMi cuenta y pedidos\nEncuentra tu equipamiento\nPrepara tu próxima ruta\nTodo para tu bicicleta\nEl club Ecommium\nPRIVACIDAD Y CONFIANZA\nPrivacidad del newsletter\nGestiona tu cuenta\nTus comunicaciones\nCompra con información\nInstagram\nFacebook\nYouTube\nX\n\n© 2026 Ecommium · Cada ruta empieza con una buena elección.",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Nuestra selección",
+          "href": "/home"
+        },
+        {
+          "text": "Descubre el catálogo",
+          "href": "/search"
+        },
+        {
+          "text": "Tu cuenta ciclista",
+          "href": "/account"
+        },
+        {
+          "text": "Novedades para tu ruta",
+          "href": "/search?q=ciclismo"
+        },
+        {
+          "text": "Comunidad Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Bicicletas y cuadros",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "Componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        },
+        {
+          "text": "Ropa de ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Nutrición e hidratación",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "Equipamiento de taller",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "Mi cuenta y pedidos",
+          "href": "/account"
+        },
+        {
+          "text": "Encuentra tu equipamiento",
+          "href": "/search"
+        },
+        {
+          "text": "Prepara tu próxima ruta",
+          "href": "/search?q=accesorios"
+        },
+        {
+          "text": "Todo para tu bicicleta",
+          "href": "/search?q=componentes"
+        },
+        {
+          "text": "El club Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Privacidad del newsletter",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Gestiona tu cuenta",
+          "href": "/account"
+        },
+        {
+          "text": "Tus comunicaciones",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Compra con información",
+          "href": "/search"
+        },
+        {
+          "text": "Instagram",
+          "href": "https://www.instagram.com/"
+        },
+        {
+          "text": "Facebook",
+          "href": "https://www.facebook.com/"
+        },
+        {
+          "text": "YouTube",
+          "href": "https://www.youtube.com/"
+        },
+        {
+          "text": "X",
+          "href": "https://x.com/"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 120,
+          "y": 65,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 120,
+          "y": 65,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "H3",
+          "text": "La tienda",
+          "x": 452.15625,
+          "y": 65,
+          "w": 79.765625,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Nuestra selección",
+          "x": 452.15625,
+          "y": 97,
+          "w": 103.328125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Descubre el catálogo",
+          "x": 452.15625,
+          "y": 131.796875,
+          "w": 122.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tu cuenta ciclista",
+          "x": 452.15625,
+          "y": 166.59375,
+          "w": 99.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Novedades para tu ruta",
+          "x": 452.15625,
+          "y": 201.390625,
+          "w": 135.875,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Comunidad Ecommium",
+          "x": 452.15625,
+          "y": 236.1875,
+          "w": 135.109375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Ciclismo",
+          "x": 677.109375,
+          "y": 65,
+          "w": 73.078125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Bicicletas y cuadros",
+          "x": 677.109375,
+          "y": 97,
+          "w": 114.890625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Componentes",
+          "x": 677.109375,
+          "y": 131.796875,
+          "w": 80.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Ropa de ciclismo",
+          "x": 677.109375,
+          "y": 166.59375,
+          "w": 99,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Nutrición e hidratación",
+          "x": 677.109375,
+          "y": 201.390625,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Equipamiento de taller",
+          "x": 677.109375,
+          "y": 236.1875,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Te acompañamos",
+          "x": 902.078125,
+          "y": 65,
+          "w": 140.53125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Mi cuenta y pedidos",
+          "x": 902.078125,
+          "y": 97,
+          "w": 115.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Encuentra tu equipamiento",
+          "x": 902.078125,
+          "y": 131.796875,
+          "w": 155.390625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Prepara tu próxima ruta",
+          "x": 902.078125,
+          "y": 166.59375,
+          "w": 136.578125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Todo para tu bicicleta",
+          "x": 902.078125,
+          "y": 201.390625,
+          "w": 122.859375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "El club Ecommium",
+          "x": 902.078125,
+          "y": 236.1875,
+          "w": 107.640625,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Privacidad y confianza",
+          "x": 1127.03125,
+          "y": 65,
+          "w": 192.96875,
+          "h": 28
+        },
+        {
+          "tag": "A",
+          "text": "Privacidad del newsletter",
+          "x": 1127.03125,
+          "y": 111,
+          "w": 144.53125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Gestiona tu cuenta",
+          "x": 1127.03125,
+          "y": 145.796875,
+          "w": 109.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tus comunicaciones",
+          "x": 1127.03125,
+          "y": 180.59375,
+          "w": 118.015625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Compra con información",
+          "x": 1127.03125,
+          "y": 215.390625,
+          "w": 141.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Instagram",
+          "x": 614,
+          "y": 519.796875,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "Facebook",
+          "x": 670,
+          "y": 519.796875,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "YouTube",
+          "x": 726,
+          "y": 519.796875,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "X",
+          "x": 782,
+          "y": 519.796875,
+          "w": 44,
+          "h": 44
+        }
+      ]
+    },
+    "after": {
+      "height": 632.1875,
+      "width": 1440,
+      "text": "INFORMACIÓN\nVivimos el ciclismo en cada detalle. Componentes, equipamiento y pequeñas ideas para que tu próxima salida sea la mejor.\nCarretera, montaña y ciudad: aquí empieza tu siguiente ruta.\nTALLER Y COMUNIDAD\nAvenida del Pedal, 24\n08001 Barcelona · España\nLunes a viernes · 9:00–18:00\nhola@ecommium.example\nLA TIENDA\nNuestra selección\nDescubre el catálogo\nTu cuenta ciclista\nNovedades para tu ruta\nComunidad Ecommium\nCICLISMO\nBicicletas y cuadros\nComponentes\nRopa de ciclismo\nNutrición e hidratación\nEquipamiento de taller\nTE ACOMPAÑAMOS\nMi cuenta y pedidos\nEncuentra tu equipamiento\nPrepara tu próxima ruta\nTodo para tu bicicleta\nEl club Ecommium\nPRIVACIDAD Y CONFIANZA\nPrivacidad del newsletter\nGestiona tu cuenta\nTus comunicaciones\nCompra con información\nInstagram\nFacebook\nYouTube\nX\n\n© 2026 Ecommium · Cada ruta empieza con una buena elección.",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Nuestra selección",
+          "href": "/home"
+        },
+        {
+          "text": "Descubre el catálogo",
+          "href": "/search"
+        },
+        {
+          "text": "Tu cuenta ciclista",
+          "href": "/account"
+        },
+        {
+          "text": "Novedades para tu ruta",
+          "href": "/search?q=ciclismo"
+        },
+        {
+          "text": "Comunidad Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Bicicletas y cuadros",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "Componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        },
+        {
+          "text": "Ropa de ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Nutrición e hidratación",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "Equipamiento de taller",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "Mi cuenta y pedidos",
+          "href": "/account"
+        },
+        {
+          "text": "Encuentra tu equipamiento",
+          "href": "/search"
+        },
+        {
+          "text": "Prepara tu próxima ruta",
+          "href": "/search?q=accesorios"
+        },
+        {
+          "text": "Todo para tu bicicleta",
+          "href": "/search?q=componentes"
+        },
+        {
+          "text": "El club Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Privacidad del newsletter",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Gestiona tu cuenta",
+          "href": "/account"
+        },
+        {
+          "text": "Tus comunicaciones",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Compra con información",
+          "href": "/search"
+        },
+        {
+          "text": "Instagram",
+          "href": "https://www.instagram.com/"
+        },
+        {
+          "text": "Facebook",
+          "href": "https://www.facebook.com/"
+        },
+        {
+          "text": "YouTube",
+          "href": "https://www.youtube.com/"
+        },
+        {
+          "text": "X",
+          "href": "https://x.com/"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 120,
+          "y": 65,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 120,
+          "y": 65,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "H3",
+          "text": "La tienda",
+          "x": 452.15625,
+          "y": 65,
+          "w": 79.765625,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Nuestra selección",
+          "x": 452.15625,
+          "y": 97,
+          "w": 103.328125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Descubre el catálogo",
+          "x": 452.15625,
+          "y": 131.796875,
+          "w": 122.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tu cuenta ciclista",
+          "x": 452.15625,
+          "y": 166.59375,
+          "w": 99.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Novedades para tu ruta",
+          "x": 452.15625,
+          "y": 201.390625,
+          "w": 135.875,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Comunidad Ecommium",
+          "x": 452.15625,
+          "y": 236.1875,
+          "w": 135.109375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Ciclismo",
+          "x": 677.109375,
+          "y": 65,
+          "w": 73.078125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Bicicletas y cuadros",
+          "x": 677.109375,
+          "y": 97,
+          "w": 114.890625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Componentes",
+          "x": 677.109375,
+          "y": 131.796875,
+          "w": 80.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Ropa de ciclismo",
+          "x": 677.109375,
+          "y": 166.59375,
+          "w": 99,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Nutrición e hidratación",
+          "x": 677.109375,
+          "y": 201.390625,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Equipamiento de taller",
+          "x": 677.109375,
+          "y": 236.1875,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Te acompañamos",
+          "x": 902.078125,
+          "y": 65,
+          "w": 140.53125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Mi cuenta y pedidos",
+          "x": 902.078125,
+          "y": 97,
+          "w": 115.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Encuentra tu equipamiento",
+          "x": 902.078125,
+          "y": 131.796875,
+          "w": 155.390625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Prepara tu próxima ruta",
+          "x": 902.078125,
+          "y": 166.59375,
+          "w": 136.578125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Todo para tu bicicleta",
+          "x": 902.078125,
+          "y": 201.390625,
+          "w": 122.859375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "El club Ecommium",
+          "x": 902.078125,
+          "y": 236.1875,
+          "w": 107.640625,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Privacidad y confianza",
+          "x": 1127.03125,
+          "y": 65,
+          "w": 192.96875,
+          "h": 28
+        },
+        {
+          "tag": "A",
+          "text": "Privacidad del newsletter",
+          "x": 1127.03125,
+          "y": 111,
+          "w": 144.53125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Gestiona tu cuenta",
+          "x": 1127.03125,
+          "y": 145.796875,
+          "w": 109.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tus comunicaciones",
+          "x": 1127.03125,
+          "y": 180.59375,
+          "w": 118.015625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Compra con información",
+          "x": 1127.03125,
+          "y": 215.390625,
+          "w": 141.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Instagram",
+          "x": 614,
+          "y": 519.796875,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "Facebook",
+          "x": 670,
+          "y": 519.796875,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "YouTube",
+          "x": 726,
+          "y": 519.796875,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "X",
+          "x": 782,
+          "y": 519.796875,
+          "w": 44,
+          "h": 44
+        }
+      ]
+    }
+  },
+  {
+    "id": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+    "kind": "FOOTER",
+    "width": 768,
+    "before": {
+      "height": 1038.78125,
+      "width": 768,
+      "text": "INFORMACIÓN\nVivimos el ciclismo en cada detalle. Componentes, equipamiento y pequeñas ideas para que tu próxima salida sea la mejor.\nCarretera, montaña y ciudad: aquí empieza tu siguiente ruta.\nTALLER Y COMUNIDAD\nAvenida del Pedal, 24\n08001 Barcelona · España\nLunes a viernes · 9:00–18:00\nhola@ecommium.example\nLA TIENDA\nNuestra selección\nDescubre el catálogo\nTu cuenta ciclista\nNovedades para tu ruta\nComunidad Ecommium\nCICLISMO\nBicicletas y cuadros\nComponentes\nRopa de ciclismo\nNutrición e hidratación\nEquipamiento de taller\nTE ACOMPAÑAMOS\nMi cuenta y pedidos\nEncuentra tu equipamiento\nPrepara tu próxima ruta\nTodo para tu bicicleta\nEl club Ecommium\nPRIVACIDAD Y CONFIANZA\nPrivacidad del newsletter\nGestiona tu cuenta\nTus comunicaciones\nCompra con información\nInstagram\nFacebook\nYouTube\nX\n\n© 2026 Ecommium · Cada ruta empieza con una buena elección.",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Nuestra selección",
+          "href": "/home"
+        },
+        {
+          "text": "Descubre el catálogo",
+          "href": "/search"
+        },
+        {
+          "text": "Tu cuenta ciclista",
+          "href": "/account"
+        },
+        {
+          "text": "Novedades para tu ruta",
+          "href": "/search?q=ciclismo"
+        },
+        {
+          "text": "Comunidad Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Bicicletas y cuadros",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "Componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        },
+        {
+          "text": "Ropa de ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Nutrición e hidratación",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "Equipamiento de taller",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "Mi cuenta y pedidos",
+          "href": "/account"
+        },
+        {
+          "text": "Encuentra tu equipamiento",
+          "href": "/search"
+        },
+        {
+          "text": "Prepara tu próxima ruta",
+          "href": "/search?q=accesorios"
+        },
+        {
+          "text": "Todo para tu bicicleta",
+          "href": "/search?q=componentes"
+        },
+        {
+          "text": "El club Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Privacidad del newsletter",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Gestiona tu cuenta",
+          "href": "/account"
+        },
+        {
+          "text": "Tus comunicaciones",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Compra con información",
+          "href": "/search"
+        },
+        {
+          "text": "Instagram",
+          "href": "https://www.instagram.com/"
+        },
+        {
+          "text": "Facebook",
+          "href": "https://www.facebook.com/"
+        },
+        {
+          "text": "YouTube",
+          "href": "https://www.youtube.com/"
+        },
+        {
+          "text": "X",
+          "href": "https://x.com/"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 38.40625,
+          "y": 65,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 38.40625,
+          "y": 65,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "H3",
+          "text": "La tienda",
+          "x": 38.40625,
+          "y": 433.421875,
+          "w": 79.765625,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Nuestra selección",
+          "x": 38.40625,
+          "y": 465.421875,
+          "w": 103.328125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Descubre el catálogo",
+          "x": 38.40625,
+          "y": 500.21875,
+          "w": 122.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tu cuenta ciclista",
+          "x": 38.40625,
+          "y": 535.015625,
+          "w": 99.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Novedades para tu ruta",
+          "x": 38.40625,
+          "y": 569.8125,
+          "w": 135.875,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Comunidad Ecommium",
+          "x": 38.40625,
+          "y": 604.609375,
+          "w": 135.109375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Ciclismo",
+          "x": 402,
+          "y": 433.421875,
+          "w": 73.078125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Bicicletas y cuadros",
+          "x": 402,
+          "y": 465.421875,
+          "w": 114.890625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Componentes",
+          "x": 402,
+          "y": 500.21875,
+          "w": 80.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Ropa de ciclismo",
+          "x": 402,
+          "y": 535.015625,
+          "w": 99,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Nutrición e hidratación",
+          "x": 402,
+          "y": 569.8125,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Equipamiento de taller",
+          "x": 402,
+          "y": 604.609375,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Te acompañamos",
+          "x": 38.40625,
+          "y": 661.40625,
+          "w": 140.53125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Mi cuenta y pedidos",
+          "x": 38.40625,
+          "y": 693.40625,
+          "w": 115.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Encuentra tu equipamiento",
+          "x": 38.40625,
+          "y": 728.203125,
+          "w": 155.390625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Prepara tu próxima ruta",
+          "x": 38.40625,
+          "y": 763,
+          "w": 136.578125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Todo para tu bicicleta",
+          "x": 38.40625,
+          "y": 797.796875,
+          "w": 122.859375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "El club Ecommium",
+          "x": 38.40625,
+          "y": 832.59375,
+          "w": 107.640625,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Privacidad y confianza",
+          "x": 402,
+          "y": 661.40625,
+          "w": 198.28125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Privacidad del newsletter",
+          "x": 402,
+          "y": 693.40625,
+          "w": 144.53125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Gestiona tu cuenta",
+          "x": 402,
+          "y": 728.203125,
+          "w": 109.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tus comunicaciones",
+          "x": 402,
+          "y": 763,
+          "w": 118.015625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Compra con información",
+          "x": 402,
+          "y": 797.796875,
+          "w": 141.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Instagram",
+          "x": 278,
+          "y": 926.390625,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "Facebook",
+          "x": 334,
+          "y": 926.390625,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "YouTube",
+          "x": 390,
+          "y": 926.390625,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "X",
+          "x": 446,
+          "y": 926.390625,
+          "w": 44,
+          "h": 44
+        }
+      ]
+    },
+    "after": {
+      "height": 1038.78125,
+      "width": 768,
+      "text": "INFORMACIÓN\nVivimos el ciclismo en cada detalle. Componentes, equipamiento y pequeñas ideas para que tu próxima salida sea la mejor.\nCarretera, montaña y ciudad: aquí empieza tu siguiente ruta.\nTALLER Y COMUNIDAD\nAvenida del Pedal, 24\n08001 Barcelona · España\nLunes a viernes · 9:00–18:00\nhola@ecommium.example\nLA TIENDA\nNuestra selección\nDescubre el catálogo\nTu cuenta ciclista\nNovedades para tu ruta\nComunidad Ecommium\nCICLISMO\nBicicletas y cuadros\nComponentes\nRopa de ciclismo\nNutrición e hidratación\nEquipamiento de taller\nTE ACOMPAÑAMOS\nMi cuenta y pedidos\nEncuentra tu equipamiento\nPrepara tu próxima ruta\nTodo para tu bicicleta\nEl club Ecommium\nPRIVACIDAD Y CONFIANZA\nPrivacidad del newsletter\nGestiona tu cuenta\nTus comunicaciones\nCompra con información\nInstagram\nFacebook\nYouTube\nX\n\n© 2026 Ecommium · Cada ruta empieza con una buena elección.",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Nuestra selección",
+          "href": "/home"
+        },
+        {
+          "text": "Descubre el catálogo",
+          "href": "/search"
+        },
+        {
+          "text": "Tu cuenta ciclista",
+          "href": "/account"
+        },
+        {
+          "text": "Novedades para tu ruta",
+          "href": "/search?q=ciclismo"
+        },
+        {
+          "text": "Comunidad Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Bicicletas y cuadros",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "Componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        },
+        {
+          "text": "Ropa de ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Nutrición e hidratación",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "Equipamiento de taller",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "Mi cuenta y pedidos",
+          "href": "/account"
+        },
+        {
+          "text": "Encuentra tu equipamiento",
+          "href": "/search"
+        },
+        {
+          "text": "Prepara tu próxima ruta",
+          "href": "/search?q=accesorios"
+        },
+        {
+          "text": "Todo para tu bicicleta",
+          "href": "/search?q=componentes"
+        },
+        {
+          "text": "El club Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Privacidad del newsletter",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Gestiona tu cuenta",
+          "href": "/account"
+        },
+        {
+          "text": "Tus comunicaciones",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Compra con información",
+          "href": "/search"
+        },
+        {
+          "text": "Instagram",
+          "href": "https://www.instagram.com/"
+        },
+        {
+          "text": "Facebook",
+          "href": "https://www.facebook.com/"
+        },
+        {
+          "text": "YouTube",
+          "href": "https://www.youtube.com/"
+        },
+        {
+          "text": "X",
+          "href": "https://x.com/"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 38.40625,
+          "y": 65,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 38.40625,
+          "y": 65,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "H3",
+          "text": "La tienda",
+          "x": 38.40625,
+          "y": 433.421875,
+          "w": 79.765625,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Nuestra selección",
+          "x": 38.40625,
+          "y": 465.421875,
+          "w": 103.328125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Descubre el catálogo",
+          "x": 38.40625,
+          "y": 500.21875,
+          "w": 122.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tu cuenta ciclista",
+          "x": 38.40625,
+          "y": 535.015625,
+          "w": 99.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Novedades para tu ruta",
+          "x": 38.40625,
+          "y": 569.8125,
+          "w": 135.875,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Comunidad Ecommium",
+          "x": 38.40625,
+          "y": 604.609375,
+          "w": 135.109375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Ciclismo",
+          "x": 402,
+          "y": 433.421875,
+          "w": 73.078125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Bicicletas y cuadros",
+          "x": 402,
+          "y": 465.421875,
+          "w": 114.890625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Componentes",
+          "x": 402,
+          "y": 500.21875,
+          "w": 80.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Ropa de ciclismo",
+          "x": 402,
+          "y": 535.015625,
+          "w": 99,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Nutrición e hidratación",
+          "x": 402,
+          "y": 569.8125,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Equipamiento de taller",
+          "x": 402,
+          "y": 604.609375,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Te acompañamos",
+          "x": 38.40625,
+          "y": 661.40625,
+          "w": 140.53125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Mi cuenta y pedidos",
+          "x": 38.40625,
+          "y": 693.40625,
+          "w": 115.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Encuentra tu equipamiento",
+          "x": 38.40625,
+          "y": 728.203125,
+          "w": 155.390625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Prepara tu próxima ruta",
+          "x": 38.40625,
+          "y": 763,
+          "w": 136.578125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Todo para tu bicicleta",
+          "x": 38.40625,
+          "y": 797.796875,
+          "w": 122.859375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "El club Ecommium",
+          "x": 38.40625,
+          "y": 832.59375,
+          "w": 107.640625,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Privacidad y confianza",
+          "x": 402,
+          "y": 661.40625,
+          "w": 198.28125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Privacidad del newsletter",
+          "x": 402,
+          "y": 693.40625,
+          "w": 144.53125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Gestiona tu cuenta",
+          "x": 402,
+          "y": 728.203125,
+          "w": 109.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tus comunicaciones",
+          "x": 402,
+          "y": 763,
+          "w": 118.015625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Compra con información",
+          "x": 402,
+          "y": 797.796875,
+          "w": 141.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Instagram",
+          "x": 278,
+          "y": 926.390625,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "Facebook",
+          "x": 334,
+          "y": 926.390625,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "YouTube",
+          "x": 390,
+          "y": 926.390625,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "X",
+          "x": 446,
+          "y": 926.390625,
+          "w": 44,
+          "h": 44
+        }
+      ]
+    }
+  },
+  {
+    "id": "88a9bfd4-cd92-4e14-8e7a-7e66decfb3dd",
+    "kind": "FOOTER",
+    "width": 390,
+    "before": {
+      "height": 1457.03125,
+      "width": 390,
+      "text": "INFORMACIÓN\nVivimos el ciclismo en cada detalle. Componentes, equipamiento y pequeñas ideas para que tu próxima salida sea la mejor.\nCarretera, montaña y ciudad: aquí empieza tu siguiente ruta.\nTALLER Y COMUNIDAD\nAvenida del Pedal, 24\n08001 Barcelona · España\nLunes a viernes · 9:00–18:00\nhola@ecommium.example\nLA TIENDA\nNuestra selección\nDescubre el catálogo\nTu cuenta ciclista\nNovedades para tu ruta\nComunidad Ecommium\nCICLISMO\nBicicletas y cuadros\nComponentes\nRopa de ciclismo\nNutrición e hidratación\nEquipamiento de taller\nTE ACOMPAÑAMOS\nMi cuenta y pedidos\nEncuentra tu equipamiento\nPrepara tu próxima ruta\nTodo para tu bicicleta\nEl club Ecommium\nPRIVACIDAD Y CONFIANZA\nPrivacidad del newsletter\nGestiona tu cuenta\nTus comunicaciones\nCompra con información\nInstagram\nFacebook\nYouTube\nX\n\n© 2026 Ecommium · Cada ruta empieza con una buena elección.",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Nuestra selección",
+          "href": "/home"
+        },
+        {
+          "text": "Descubre el catálogo",
+          "href": "/search"
+        },
+        {
+          "text": "Tu cuenta ciclista",
+          "href": "/account"
+        },
+        {
+          "text": "Novedades para tu ruta",
+          "href": "/search?q=ciclismo"
+        },
+        {
+          "text": "Comunidad Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Bicicletas y cuadros",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "Componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        },
+        {
+          "text": "Ropa de ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Nutrición e hidratación",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "Equipamiento de taller",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "Mi cuenta y pedidos",
+          "href": "/account"
+        },
+        {
+          "text": "Encuentra tu equipamiento",
+          "href": "/search"
+        },
+        {
+          "text": "Prepara tu próxima ruta",
+          "href": "/search?q=accesorios"
+        },
+        {
+          "text": "Todo para tu bicicleta",
+          "href": "/search?q=componentes"
+        },
+        {
+          "text": "El club Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Privacidad del newsletter",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Gestiona tu cuenta",
+          "href": "/account"
+        },
+        {
+          "text": "Tus comunicaciones",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Compra con información",
+          "href": "/search"
+        },
+        {
+          "text": "Instagram",
+          "href": "https://www.instagram.com/"
+        },
+        {
+          "text": "Facebook",
+          "href": "https://www.facebook.com/"
+        },
+        {
+          "text": "YouTube",
+          "href": "https://www.youtube.com/"
+        },
+        {
+          "text": "X",
+          "href": "https://x.com/"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 19.5,
+          "y": 41,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 19.5,
+          "y": 41,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "H3",
+          "text": "La tienda",
+          "x": 19.5,
+          "y": 430.109375,
+          "w": 79.765625,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Nuestra selección",
+          "x": 19.5,
+          "y": 462.109375,
+          "w": 103.328125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Descubre el catálogo",
+          "x": 19.5,
+          "y": 496.90625,
+          "w": 122.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tu cuenta ciclista",
+          "x": 19.5,
+          "y": 531.703125,
+          "w": 99.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Novedades para tu ruta",
+          "x": 19.5,
+          "y": 566.5,
+          "w": 135.875,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Comunidad Ecommium",
+          "x": 19.5,
+          "y": 601.296875,
+          "w": 135.109375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Ciclismo",
+          "x": 19.5,
+          "y": 654.09375,
+          "w": 73.078125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Bicicletas y cuadros",
+          "x": 19.5,
+          "y": 686.09375,
+          "w": 114.890625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Componentes",
+          "x": 19.5,
+          "y": 720.890625,
+          "w": 80.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Ropa de ciclismo",
+          "x": 19.5,
+          "y": 755.6875,
+          "w": 99,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Nutrición e hidratación",
+          "x": 19.5,
+          "y": 790.484375,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Equipamiento de taller",
+          "x": 19.5,
+          "y": 825.28125,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Te acompañamos",
+          "x": 19.5,
+          "y": 878.078125,
+          "w": 140.53125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Mi cuenta y pedidos",
+          "x": 19.5,
+          "y": 910.078125,
+          "w": 115.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Encuentra tu equipamiento",
+          "x": 19.5,
+          "y": 944.875,
+          "w": 155.390625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Prepara tu próxima ruta",
+          "x": 19.5,
+          "y": 979.671875,
+          "w": 136.578125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Todo para tu bicicleta",
+          "x": 19.5,
+          "y": 1014.46875,
+          "w": 122.859375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "El club Ecommium",
+          "x": 19.5,
+          "y": 1049.265625,
+          "w": 107.640625,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Privacidad y confianza",
+          "x": 19.5,
+          "y": 1102.0625,
+          "w": 198.28125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Privacidad del newsletter",
+          "x": 19.5,
+          "y": 1134.0625,
+          "w": 144.53125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Gestiona tu cuenta",
+          "x": 19.5,
+          "y": 1168.859375,
+          "w": 109.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tus comunicaciones",
+          "x": 19.5,
+          "y": 1203.65625,
+          "w": 118.015625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Compra con información",
+          "x": 19.5,
+          "y": 1238.453125,
+          "w": 141.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Instagram",
+          "x": 89,
+          "y": 1324.25,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "Facebook",
+          "x": 145,
+          "y": 1324.25,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "YouTube",
+          "x": 201,
+          "y": 1324.25,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "X",
+          "x": 257,
+          "y": 1324.25,
+          "w": 44,
+          "h": 44
+        }
+      ]
+    },
+    "after": {
+      "height": 1457.03125,
+      "width": 390,
+      "text": "INFORMACIÓN\nVivimos el ciclismo en cada detalle. Componentes, equipamiento y pequeñas ideas para que tu próxima salida sea la mejor.\nCarretera, montaña y ciudad: aquí empieza tu siguiente ruta.\nTALLER Y COMUNIDAD\nAvenida del Pedal, 24\n08001 Barcelona · España\nLunes a viernes · 9:00–18:00\nhola@ecommium.example\nLA TIENDA\nNuestra selección\nDescubre el catálogo\nTu cuenta ciclista\nNovedades para tu ruta\nComunidad Ecommium\nCICLISMO\nBicicletas y cuadros\nComponentes\nRopa de ciclismo\nNutrición e hidratación\nEquipamiento de taller\nTE ACOMPAÑAMOS\nMi cuenta y pedidos\nEncuentra tu equipamiento\nPrepara tu próxima ruta\nTodo para tu bicicleta\nEl club Ecommium\nPRIVACIDAD Y CONFIANZA\nPrivacidad del newsletter\nGestiona tu cuenta\nTus comunicaciones\nCompra con información\nInstagram\nFacebook\nYouTube\nX\n\n© 2026 Ecommium · Cada ruta empieza con una buena elección.",
+      "links": [
+        {
+          "text": "",
+          "href": "/"
+        },
+        {
+          "text": "Nuestra selección",
+          "href": "/home"
+        },
+        {
+          "text": "Descubre el catálogo",
+          "href": "/search"
+        },
+        {
+          "text": "Tu cuenta ciclista",
+          "href": "/account"
+        },
+        {
+          "text": "Novedades para tu ruta",
+          "href": "/search?q=ciclismo"
+        },
+        {
+          "text": "Comunidad Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Bicicletas y cuadros",
+          "href": "/plp/imp-bf62d289bb-bicicletas-013320a6"
+        },
+        {
+          "text": "Componentes",
+          "href": "/plp/imp-bf62d289bb-componentes-861c66b1"
+        },
+        {
+          "text": "Ropa de ciclismo",
+          "href": "/plp/imp-bf62d289bb-ropa-ciclismo-70b07a57"
+        },
+        {
+          "text": "Nutrición e hidratación",
+          "href": "/plp/imp-bf62d289bb-nutritiom-pro-b03cb772"
+        },
+        {
+          "text": "Equipamiento de taller",
+          "href": "/plp/bike-workshop"
+        },
+        {
+          "text": "Mi cuenta y pedidos",
+          "href": "/account"
+        },
+        {
+          "text": "Encuentra tu equipamiento",
+          "href": "/search"
+        },
+        {
+          "text": "Prepara tu próxima ruta",
+          "href": "/search?q=accesorios"
+        },
+        {
+          "text": "Todo para tu bicicleta",
+          "href": "/search?q=componentes"
+        },
+        {
+          "text": "El club Ecommium",
+          "href": "/home"
+        },
+        {
+          "text": "Privacidad del newsletter",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Gestiona tu cuenta",
+          "href": "/account"
+        },
+        {
+          "text": "Tus comunicaciones",
+          "href": "/privacidad-newsletter"
+        },
+        {
+          "text": "Compra con información",
+          "href": "/search"
+        },
+        {
+          "text": "Instagram",
+          "href": "https://www.instagram.com/"
+        },
+        {
+          "text": "Facebook",
+          "href": "https://www.facebook.com/"
+        },
+        {
+          "text": "YouTube",
+          "href": "https://www.youtube.com/"
+        },
+        {
+          "text": "X",
+          "href": "https://x.com/"
+        }
+      ],
+      "elements": [
+        {
+          "tag": "A",
+          "text": "",
+          "x": 19.5,
+          "y": 41,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "IMG",
+          "text": "Ecommium",
+          "x": 19.5,
+          "y": 41,
+          "w": 210,
+          "h": 48.609375
+        },
+        {
+          "tag": "H3",
+          "text": "La tienda",
+          "x": 19.5,
+          "y": 430.109375,
+          "w": 79.765625,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Nuestra selección",
+          "x": 19.5,
+          "y": 462.109375,
+          "w": 103.328125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Descubre el catálogo",
+          "x": 19.5,
+          "y": 496.90625,
+          "w": 122.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tu cuenta ciclista",
+          "x": 19.5,
+          "y": 531.703125,
+          "w": 99.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Novedades para tu ruta",
+          "x": 19.5,
+          "y": 566.5,
+          "w": 135.875,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Comunidad Ecommium",
+          "x": 19.5,
+          "y": 601.296875,
+          "w": 135.109375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Ciclismo",
+          "x": 19.5,
+          "y": 654.09375,
+          "w": 73.078125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Bicicletas y cuadros",
+          "x": 19.5,
+          "y": 686.09375,
+          "w": 114.890625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Componentes",
+          "x": 19.5,
+          "y": 720.890625,
+          "w": 80.953125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Ropa de ciclismo",
+          "x": 19.5,
+          "y": 755.6875,
+          "w": 99,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Nutrición e hidratación",
+          "x": 19.5,
+          "y": 790.484375,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Equipamiento de taller",
+          "x": 19.5,
+          "y": 825.28125,
+          "w": 129.359375,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Te acompañamos",
+          "x": 19.5,
+          "y": 878.078125,
+          "w": 140.53125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Mi cuenta y pedidos",
+          "x": 19.5,
+          "y": 910.078125,
+          "w": 115.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Encuentra tu equipamiento",
+          "x": 19.5,
+          "y": 944.875,
+          "w": 155.390625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Prepara tu próxima ruta",
+          "x": 19.5,
+          "y": 979.671875,
+          "w": 136.578125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Todo para tu bicicleta",
+          "x": 19.5,
+          "y": 1014.46875,
+          "w": 122.859375,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "El club Ecommium",
+          "x": 19.5,
+          "y": 1049.265625,
+          "w": 107.640625,
+          "h": 20.796875
+        },
+        {
+          "tag": "H3",
+          "text": "Privacidad y confianza",
+          "x": 19.5,
+          "y": 1102.0625,
+          "w": 198.28125,
+          "h": 14
+        },
+        {
+          "tag": "A",
+          "text": "Privacidad del newsletter",
+          "x": 19.5,
+          "y": 1134.0625,
+          "w": 144.53125,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Gestiona tu cuenta",
+          "x": 19.5,
+          "y": 1168.859375,
+          "w": 109.140625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Tus comunicaciones",
+          "x": 19.5,
+          "y": 1203.65625,
+          "w": 118.015625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Compra con información",
+          "x": 19.5,
+          "y": 1238.453125,
+          "w": 141.625,
+          "h": 20.796875
+        },
+        {
+          "tag": "A",
+          "text": "Instagram",
+          "x": 89,
+          "y": 1324.25,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "Facebook",
+          "x": 145,
+          "y": 1324.25,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "YouTube",
+          "x": 201,
+          "y": 1324.25,
+          "w": 44,
+          "h": 44
+        },
+        {
+          "tag": "A",
+          "text": "X",
+          "x": 257,
+          "y": 1324.25,
+          "w": 44,
+          "h": 44
+        }
+      ]
+    }
+  }
+]

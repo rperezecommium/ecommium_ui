@@ -1,0 +1,16 @@
+{
+  "scope": "isolated PostgreSQL owner; not UI/BFF/Media E2E",
+  "checks": [
+    "migration preserves existing independent module",
+    "section and copied module identities persist and reopen",
+    "concurrent replay returns original receipt without duplicate",
+    "operation reuse with different input conflicts",
+    "one CAS writer succeeds and stale writer is rejected",
+    "replay after edit returns creation receipt without overwriting document",
+    "locale and tenant isolation",
+    "editing section preserves library module",
+    "section writes emit existing scope events"
+  ],
+  "cleanup": true,
+  "status": "PASS"
+}

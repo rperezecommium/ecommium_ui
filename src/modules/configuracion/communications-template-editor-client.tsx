@@ -1,4 +1,6 @@
 "use client";
+import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
+
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import Image from "@tiptap/extension-image";
@@ -823,7 +825,7 @@ export function CommunicationsTemplateEditor({
   const title = isCreate ? "Crear plantilla email" : "Editar plantilla email";
   return (
     <div className="adminDrawerBackdrop">
-      <aside
+      <AdminResizableDrawer drawerId="communications-template-editor-client-communicationstemplateeditor-1"
         className="adminSideDrawer communicationsProviderDrawer emailTemplateDrawer"
         aria-label={title}
         aria-modal="true"
@@ -1076,7 +1078,7 @@ export function CommunicationsTemplateEditor({
             {template ? <TemplateLifecycleActions template={template} /> : null}
           </>
         ) : null}
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }

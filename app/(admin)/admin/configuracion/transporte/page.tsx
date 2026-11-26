@@ -10,7 +10,6 @@ import { ShippingAdminPage } from "../../../../../src/modules/transporte/shippin
 type TransportePageProps = {
   searchParams?: Promise<{
     tab?: string;
-    includeInactive?: string;
     shippingMessage?: string;
     quote?: string;
     postalCode?: string;
@@ -80,7 +79,6 @@ export default async function TransportePage({ searchParams }: TransportePagePro
   const params = await searchParams;
   const filters = {
     tab: tabParam(params?.tab),
-    includeInactive: params?.includeInactive === "true",
     shippingMessage: params?.shippingMessage,
     quoteRequested: params?.quote === "1",
     postalCode: params?.postalCode,

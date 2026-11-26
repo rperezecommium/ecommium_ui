@@ -69,7 +69,8 @@ export type CmsVisualNodeType =
   | "icon"
   | "spacer"
   | "video"
-  | "htmlEmbed";
+  | "htmlEmbed"
+  | "newsletterForm";
 export type CmsVisualNodeStyle = {
   alignItems?: string;
   backgroundColor?: string;
@@ -95,6 +96,7 @@ export type CmsVisualNodeStyle = {
   gridTemplateColumns?: string;
   height?: string;
   justifyContent?: string;
+  left?: string;
   letterSpacing?: string;
   lineHeight?: string;
   margin?: string;
@@ -117,6 +119,7 @@ export type CmsVisualNodeStyle = {
   position?: string;
   rowGap?: string;
   textAlign?: string;
+  top?: string;
   transform?: string;
   width?: string;
 };
@@ -124,9 +127,19 @@ export type CmsVisualResponsiveStyles = Partial<Record<CmsVisualBreakpoint, CmsV
 export type CmsVisualStyleScope = "base" | CmsVisualBreakpoint;
 export type CmsVisualStyleDeclaration = Record<string, string>;
 export type CmsVisualStylesByScope = Partial<Record<CmsVisualStyleScope, CmsVisualStyleDeclaration>>;
+export type CmsPresentation = {
+  styles?: CmsVisualStylesByScope;
+  visibility?: CmsVisualResponsiveVisibility;
+  animation?: CmsVisualAnimation;
+  interactions?: CmsVisualInteractions;
+  assetRefs?: CmsVisualAssetRef[];
+};
 export type CmsVisualNodeProps = {
+  newsletterPart?: string;
   alt?: string;
   ariaLabel?: string;
+  ariaLabelledBy?: string;
+  ariaDescribedBy?: string;
   headingLevel?: string;
   href?: string;
   html?: string;
@@ -239,10 +252,12 @@ export type CmsVisualModuleRendererProps = CmsVisualModuleProps | CmsVisualModul
 export type CmsBlockType =
   | "banner.hero"
   | "slider.fullWidth"
+  | "category.imageTiles"
   | "plp.categoryIntro"
   | "plp.subcategoryTiles"
   | "accordion"
   | "carousel"
+  | "commerce.productGrid"
   | "visual.module";
 
 export type CmsBlock = {
@@ -258,6 +273,7 @@ export type CmsBlockEditorFieldType =
   | "textarea"
   | "url"
   | "boolean"
+  | "number"
   | "json"
   | "plpTarget";
 
@@ -696,6 +712,40 @@ const plpTargetField: CmsBlockEditorField = {
 
 const blockDefinitions: CmsBlockDefinition[] = [
   {
+    type: "commerce.productGrid",
+    label: "Cuadricula de productos",
+    description: "Productos reales de una categoria, con orden y distribucion editables.",
+    schemaVersion: 1,
+    placement: "main",
+    surface: "page",
+    supportedSurfaces: ["page"],
+    editorFields: [
+      { key: "heading", label: "Titulo", type: "text" },
+      { key: "subtitle", label: "Subtitulo", type: "text" },
+      { key: "limit", label: "Cantidad de productos (1–20)", type: "number", required: true },
+      { key: "columns", label: "Productos por fila (1–6)", type: "number" },
+      { key: "mobileColumns", label: "Productos por fila en movil (1–2)", type: "number" },
+      { key: "widthPercent", label: "Ancho del modulo (%)", type: "number" },
+      { key: "gap", label: "Separacion entre productos (px)", type: "number" },
+    ],
+    create: () => ({
+      blockId: makeBlockId("product-grid"),
+      type: "commerce.productGrid",
+      props: {
+        surface: "page",
+        placement: "main",
+        heading: "Productos destacados",
+        source: { kind: "CATEGORY", categorySlug: "" },
+        subtitle: "Descubre nuestra seleccion",
+        columns: 4, mobileColumns: 2, widthPercent: 90, gap: 24,
+        limit: 8,
+        sort: "RELEVANCE",
+        hydratedProducts: [],
+      },
+      children: [],
+    }),
+  },
+  {
     type: "banner.hero",
     label: "Banner hero",
     description: "Bloque principal con imagen, titular y CTA.",
@@ -735,6 +785,11 @@ const blockDefinitions: CmsBlockDefinition[] = [
     supportedSurfaces: ["page"],
     editorFields: [
       { key: "autoplay", label: "Autoplay", type: "boolean" },
+      { key: "autoplayDelay", label: "Intervalo autoplay", type: "number" },
+      { key: "heightDesktop", label: "Altura escritorio", type: "number" },
+      { key: "heightTablet", label: "Altura tablet", type: "number" },
+      { key: "heightMobile", label: "Altura movil", type: "number" },
+      { key: "overlayOpacity", label: "Oscurecer imagen", type: "number" },
       { key: "slides", label: "Slides JSON", type: "json", required: true },
     ],
     create: () => ({
@@ -743,15 +798,73 @@ const blockDefinitions: CmsBlockDefinition[] = [
       props: {
         surface: "page",
         placement: "main",
-        autoplay: false,
+        autoplay: true,
+        autoplayDelay: 2500,
+        heightDesktop: 380,
+        heightTablet: 350,
+        heightMobile: 320,
+        overlayOpacity: 28,
         slides: [
           {
             title: "Slide principal",
-            body: "Mensaje destacado para la tienda.",
+            subtitle: "Mensaje destacado para la tienda.",
             imageUrl: "",
             imageAlt: "",
             ctaLabel: "Comprar ahora",
             ctaHref: "/",
+            backgroundPosition: "center center",
+            contentPosition: "left",
+          },
+        ],
+      },
+      children: [],
+    }),
+  },
+  {
+    type: "category.imageTiles",
+    label: "Mosaico de categorias",
+    description: "Imagenes enlazadas a categorias con titulo centrado y efecto hover.",
+    schemaVersion: 1,
+    placement: "main",
+    surface: "page",
+    supportedSurfaces: ["page"],
+    editorFields: [
+      { key: "heading", label: "Titulo opcional", type: "text" },
+      { key: "columns", label: "Columnas", type: "number", required: true },
+      { key: "widthPercent", label: "Ancho (%)", type: "number", required: true },
+      { key: "gap", label: "Separacion (px)", type: "number", required: true },
+      { key: "tileHeight", label: "Altura tarjetas (px)", type: "number", required: true },
+      { key: "marginTop", label: "Margen superior (px)", type: "number", required: true },
+      { key: "marginBottom", label: "Margen inferior (px)", type: "number", required: true },
+      { key: "overlayOpacity", label: "Oscurecer imagen (%)", type: "number", required: true },
+      { key: "items", label: "Tarjetas", type: "json", required: true },
+    ],
+    create: () => ({
+      blockId: makeBlockId("category-tiles"),
+      type: "category.imageTiles",
+      props: {
+        surface: "page",
+        placement: "main",
+        heading: "",
+        columns: 2,
+        widthPercent: 90,
+        gap: 24,
+        tileHeight: 320,
+        marginTop: 24,
+        marginBottom: 24,
+        overlayOpacity: 24,
+        items: [
+          {
+            title: "Categoria",
+            imageUrl: "",
+            imageAlt: "",
+            href: "/",
+          },
+          {
+            title: "Categoria",
+            imageUrl: "",
+            imageAlt: "",
+            href: "/",
           },
         ],
       },
@@ -761,7 +874,7 @@ const blockDefinitions: CmsBlockDefinition[] = [
   {
     type: "plp.categoryIntro",
     label: "Cabecera PLP",
-    description: "Hero compacto de categoria con descripcion e imagen lateral.",
+    description: "Cabecera de categoria editable con imagen de fondo y textos.",
     schemaVersion: 1,
     placement: "beforeList",
     surface: "plp",
@@ -769,6 +882,11 @@ const blockDefinitions: CmsBlockDefinition[] = [
     editorFields: [
       plpTargetField,
       ...textContentFields,
+      { key: "backgroundMode", label: "Usar imagen como fondo", type: "boolean" },
+      { key: "height", label: "Altura (px)", type: "number" },
+      { key: "overlayOpacity", label: "Oscurecer imagen (%)", type: "number" },
+      { key: "textColor", label: "Color del texto", type: "text" },
+      { key: "backgroundPosition", label: "Posicion del fondo", type: "text" },
     ],
     create: () => ({
       blockId: makeBlockId("plp-intro"),
@@ -777,8 +895,13 @@ const blockDefinitions: CmsBlockDefinition[] = [
         surface: "plp",
         placement: "beforeList",
         target: createEmptyPlpTarget(),
-        heading: "Clothes",
-        body: "Discover our favorites fashionable discoveries, a selection of cool items to integrate in your wardrobe.",
+        heading: "Categoria",
+        body: "Encuentra tu equipamiento para la próxima ruta.",
+        backgroundMode: true,
+        height: 240,
+        overlayOpacity: 55,
+        textColor: "#ffffff",
+        backgroundPosition: "center",
         imageUrl: "",
         imageAlt: "",
       },
@@ -949,6 +1072,7 @@ const visualNodeTypes: CmsVisualNodeType[] = [
   "spacer",
   "video",
   "htmlEmbed",
+  "newsletterForm",
 ];
 const visualStyleKeys = [
   "alignItems",
@@ -975,6 +1099,7 @@ const visualStyleKeys = [
   "gridTemplateColumns",
   "height",
   "justifyContent",
+  "left",
   "letterSpacing",
   "lineHeight",
   "margin",
@@ -997,10 +1122,12 @@ const visualStyleKeys = [
   "position",
   "rowGap",
   "textAlign",
+  "top",
   "transform",
   "width",
 ] as const;
-const visualPropKeys = ["alt", "ariaLabel", "href", "html", "rel", "src", "text", "title"] as const;
+const visualPropKeys = [
+  "newsletterPart","alt", "ariaLabel", "ariaLabelledBy", "ariaDescribedBy", "href", "html", "rel", "src", "text", "title"] as const;
 const visualStyleKeyAliases = visualStyleKeys.reduce<Record<string, typeof visualStyleKeys[number]>>((aliases, key) => {
   aliases[key] = key;
   aliases[key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)] = key;
@@ -1556,7 +1683,7 @@ export function normalizeCmsBlock(value: unknown): CmsBlock {
   const placement = asPlacement(rawProps.placement);
   const surface = asSurface(rawProps.surface, placement);
   const type = stringValue(record.type, "banner.hero");
-  const props = {
+  const props = type === "cms.section" ? rawProps : {
     ...rawProps,
     surface,
     placement,
@@ -1648,4 +1775,20 @@ export function summarizePlpComposition(blocks: CmsBlock[]) {
     },
     { total: 0, beforeList: 0, afterList: 0, targets: [] as string[] },
   );
+}
+
+export type CmsScopedStyleSheet = Partial<Record<"base" | "desktop" | "tablet" | "mobile", Array<{ selector: string; styles: Record<string, string> }>>>;
+
+
+// Deliberately excludes sibling combinators, escapes and external/global scopes.
+const part = /^(?:(?:[a-zA-Z][\w-]*|\*|:scope)|(?:[.#][\w-]+)|(?:\[[\w-]+(?:=["']?[\w.:-]+["']?)?\]))(?:(?:[.#][\w-]+)|(?:\[[\w-]+(?:=["']?[\w.:-]+["']?)?\])|:(?:hover|focus|focus-visible|focus-within|active|disabled|checked|first-child|last-child))*$/;
+export function cmsStyleSelectorSafe(selector: string) {
+  if (!selector || selector.length > 256) return false;
+  const pieces = selector.trim().split(/\s*>\s*|\s+/);
+  return pieces.every((value, index) => part.test(value) && (index === 0 || !value.includes(":scope")));
+}
+export function cmsStyleSheetId(identity: string, sheet: CmsScopedStyleSheet) {
+  const value = identity + JSON.stringify(sheet); let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
+  return `cms-sheet-${(hash >>> 0).toString(36)}`;
 }

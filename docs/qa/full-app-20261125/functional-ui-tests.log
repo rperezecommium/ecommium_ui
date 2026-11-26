@@ -1,0 +1,238 @@
+TAP version 13
+# Subtest: after-sales admin route and navigation expose support cockpit
+ok 1 - after-sales admin route and navigation expose support cockpit
+  ---
+  duration_ms: 2.770708
+  type: 'test'
+  ...
+# Subtest: after-sales cases tray keeps its card scrollable
+ok 2 - after-sales cases tray keeps its card scrollable
+  ---
+  duration_ms: 0.70525
+  type: 'test'
+  ...
+# Subtest: after-sales drawer presents the guided flow and maps legacy deep links
+ok 3 - after-sales drawer presents the guided flow and maps legacy deep links
+  ---
+  duration_ms: 0.225667
+  type: 'test'
+  ...
+# Subtest: after-sales admin capabilities map after-sales permissions
+ok 4 - after-sales admin capabilities map after-sales permissions
+  ---
+  duration_ms: 63.731958
+  type: 'test'
+  ...
+# Subtest: after-sales read-only access can query the cockpit but never exposes mutations
+ok 5 - after-sales read-only access can query the cockpit but never exposes mutations
+  ---
+  duration_ms: 26.662625
+  type: 'test'
+  ...
+# Subtest: after-sales admin maps proposals to controlled human workflow states
+ok 6 - after-sales admin maps proposals to controlled human workflow states
+  ---
+  duration_ms: 30.156042
+  type: 'test'
+  ...
+# Subtest: after-sales admin only enables completion once agreed refund impacts are confirmed
+ok 7 - after-sales admin only enables completion once agreed refund impacts are confirmed
+  ---
+  duration_ms: 35.588584
+  type: 'test'
+  ...
+# Subtest: after-sales admin waits for customer confirmation after the internal proof
+ok 8 - after-sales admin waits for customer confirmation after the internal proof
+  ---
+  duration_ms: 15.893333
+  type: 'test'
+  ...
+# Subtest: after-sales history model narrates the case without technical references
+ok 9 - after-sales history model narrates the case without technical references
+  ---
+  duration_ms: 20.5395
+  type: 'test'
+  ...
+# Subtest: after-sales admin summarizes execution from BFF facts without deciding completion
+ok 10 - after-sales admin summarizes execution from BFF facts without deciding completion
+  ---
+  duration_ms: 13.707458
+  type: 'test'
+  ...
+# Subtest: after-sales admin loads health list and selected case through BFF
+ok 11 - after-sales admin loads health list and selected case through BFF
+  ---
+  duration_ms: 32.695541
+  type: 'test'
+  ...
+# Subtest: after-sales admin actions mutate case lifecycle through scoped BFF
+ok 12 - after-sales admin actions mutate case lifecycle through scoped BFF
+  ---
+  duration_ms: 38.649667
+  type: 'test'
+  ...
+# Subtest: after-sales admin registers an internal closure proof before customer confirmation
+ok 13 - after-sales admin registers an internal closure proof before customer confirmation
+  ---
+  duration_ms: 12.366333
+  type: 'test'
+  ...
+# Subtest: after-sales admin validates and sends an optional private closure image
+ok 14 - after-sales admin validates and sends an optional private closure image
+  ---
+  duration_ms: 19.292042
+  type: 'test'
+  ...
+# Subtest: after-sales admin finalizes the solution and registers its proof atomically
+ok 15 - after-sales admin finalizes the solution and registers its proof atomically
+  ---
+  duration_ms: 10.283125
+  type: 'test'
+  ...
+# Subtest: after-sales admin does not split finalization when BFF rejects the atomic command
+ok 16 - after-sales admin does not split finalization when BFF rejects the atomic command
+  ---
+  duration_ms: 10.326125
+  type: 'test'
+  ...
+# Subtest: after-sales closure proof returns a visible validation notice instead of a Server Action error
+ok 17 - after-sales closure proof returns a visible validation notice instead of a Server Action error
+  ---
+  duration_ms: 13.901042
+  type: 'test'
+  ...
+# Subtest: after-sales task attendance retires one alert, preserves the case focus and refreshes its badge
+ok 18 - after-sales task attendance retires one alert, preserves the case focus and refreshes its badge
+  ---
+  duration_ms: 7.06975
+  type: 'test'
+  ...
+# Subtest: after-sales proposal-rejection task opens the proposal tab after attendance
+ok 19 - after-sales proposal-rejection task opens the proposal tab after attendance
+  ---
+  duration_ms: 7.955083
+  type: 'test'
+  ...
+# Subtest: after-sales proposal-acceptance task opens the execution tab after attendance
+ok 20 - after-sales proposal-acceptance task opens the execution tab after attendance
+  ---
+  duration_ms: 8.46925
+  type: 'test'
+  ...
+# Subtest: after-sales guided solution actions only send the agreed proposal data
+ok 21 - after-sales guided solution actions only send the agreed proposal data
+  ---
+  duration_ms: 8.551625
+  type: 'test'
+  ...
+# Subtest: after-sales proposal normalizes human money formats and rejects ambiguous decimals
+ok 22 - after-sales proposal normalizes human money formats and rejects ambiguous decimals
+  ---
+  duration_ms: 15.088334
+  type: 'test'
+  ...
+# Subtest: after-sales guided actions validate input and return public failure notices
+ok 23 - after-sales guided actions validate input and return public failure notices
+  ---
+  duration_ms: 12.34375
+  type: 'test'
+  ...
+# Subtest: after-sales keeps canonical employee identity and principal alias for historical assignments
+ok 24 - after-sales keeps canonical employee identity and principal alias for historical assignments
+  ---
+  duration_ms: 11.661625
+  type: 'test'
+  ...
+# Subtest: opening a case retains detail and employee names within ReadIndex admission capacity
+ok 25 - opening a case retains detail and employee names within ReadIndex admission capacity
+  ---
+  duration_ms: 21.018875
+  type: 'test'
+  ...
+# Subtest: storefront checkout exposes a UI proxy for BFF checkout context
+ok 26 - storefront checkout exposes a UI proxy for BFF checkout context
+  ---
+  duration_ms: 1.397834
+  type: 'test'
+  ...
+# Subtest: storefront checkout client hydrates from checkout context
+ok 27 - storefront checkout client hydrates from checkout context
+  ---
+  duration_ms: 2.063625
+  type: 'test'
+  ...
+# Subtest: storefront checkout splits guest and authenticated contact UX
+ok 28 - storefront checkout splits guest and authenticated contact UX
+  ---
+  duration_ms: 2.410583
+  type: 'test'
+  ...
+# Subtest: storefront checkout lets unauthenticated buyers choose guest login or signup
+ok 29 - storefront checkout lets unauthenticated buyers choose guest login or signup
+  ---
+  duration_ms: 2.221208
+  type: 'test'
+  ...
+# Subtest: storefront checkout renders editable section cards with compact summaries
+ok 30 - storefront checkout renders editable section cards with compact summaries
+  ---
+  duration_ms: 3.63925
+  type: 'test'
+  ...
+# Subtest: storefront checkout respects BFF contact mutation scope
+ok 31 - storefront checkout respects BFF contact mutation scope
+  ---
+  duration_ms: 0.892
+  type: 'test'
+  ...
+# Subtest: storefront checkout validates section payloads before BFF mutations
+ok 32 - storefront checkout validates section payloads before BFF mutations
+  ---
+  duration_ms: 0.944916
+  type: 'test'
+  ...
+# Subtest: storefront checkout loads payment methods from Payments BFF proxy
+ok 33 - storefront checkout loads payment methods from Payments BFF proxy
+  ---
+  duration_ms: 0.909209
+  type: 'test'
+  ...
+# Subtest: storefront checkout starts payment transactions and persists redirect attempts
+ok 34 - storefront checkout starts payment transactions and persists redirect attempts
+  ---
+  duration_ms: 1.011584
+  type: 'test'
+  ...
+# Subtest: storefront checkout guides the next actionable section before review
+ok 35 - storefront checkout guides the next actionable section before review
+  ---
+  duration_ms: 2.297667
+  type: 'test'
+  ...
+# Subtest: storefront checkout context types model identity, sections and allowed actions
+ok 36 - storefront checkout context types model identity, sections and allowed actions
+  ---
+  duration_ms: 0.596125
+  type: 'test'
+  ...
+# Subtest: storefront checkout consumes authenticated address book by alias
+ok 37 - storefront checkout consumes authenticated address book by alias
+  ---
+  duration_ms: 1.6105
+  type: 'test'
+  ...
+# Subtest: storefront checkout saves new addresses through Storefront me proxy
+ok 38 - storefront checkout saves new addresses through Storefront me proxy
+  ---
+  duration_ms: 0.634791
+  type: 'test'
+  ...
+1..38
+# tests 38
+# suites 0
+# pass 38
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 651.134125

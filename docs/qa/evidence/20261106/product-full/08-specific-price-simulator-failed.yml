@@ -1,0 +1,416 @@
+- generic [active] [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - complementary "Navegacion Admin" [ref=f7e3]:
+      - generic [ref=f7e4]:
+        - generic [ref=f7e5]: E
+        - generic [ref=f7e6]:
+          - strong [ref=f7e7]: Ecommium
+          - generic [ref=f7e8]: Admin backoffice
+      - navigation [ref=f7e9]:
+        - generic [ref=f7e10]: Vender
+        - link [ref=f7e11] [cursor=pointer]:
+          - /url: /admin
+          - strong [ref=f7e16]: Inicio
+        - group [ref=f7e17]:
+          - generic [ref=f7e18] [cursor=pointer]:
+            - strong [ref=f7e23]: Configuracion
+            - generic [aria-hidden] [ref=f7e24]: ⌄
+        - group [ref=f7e25]:
+          - generic [ref=f7e26] [cursor=pointer]:
+            - strong [ref=f7e34]: Catalogo
+            - generic [aria-hidden] [ref=f7e35]: ⌄
+          - generic [ref=f7e36]:
+            - link "Resumen" [ref=f7e37] [cursor=pointer]:
+              - /url: /admin/catalogo
+            - link "Productos" [ref=f7e39] [cursor=pointer]:
+              - /url: /admin/products
+            - link "Categorias" [ref=f7e41] [cursor=pointer]:
+              - /url: /admin/catalogo/categorias
+            - link "Caracteristicas" [ref=f7e43] [cursor=pointer]:
+              - /url: /admin/catalogo/atributos-caracteristicas
+            - link "Busqueda" [ref=f7e45] [cursor=pointer]:
+              - /url: /admin/catalogo/search
+            - link "Marcas / Proveedores" [ref=f7e47] [cursor=pointer]:
+              - /url: /admin/catalogo/marcas
+            - link "Media / Archivos" [ref=f7e49] [cursor=pointer]:
+              - /url: /admin/catalogo/media
+            - link "Offerings / Servicios adicionales" [ref=f7e51] [cursor=pointer]:
+              - /url: /admin/catalogo/offerings
+            - link "Stock" [ref=f7e53] [cursor=pointer]:
+              - /url: /admin/catalogo/stock
+            - link "Importar" [ref=f7e55] [cursor=pointer]:
+              - /url: /admin/catalogo/importar
+        - group [ref=f7e57]:
+          - generic [ref=f7e58] [cursor=pointer]:
+            - strong [ref=f7e63]: CMS
+            - generic [aria-hidden] [ref=f7e64]: ⌄
+        - link [ref=f7e65] [cursor=pointer]:
+          - /url: /admin/promociones
+          - strong [ref=f7e70]: Promociones
+        - link [ref=f7e71] [cursor=pointer]:
+          - /url: /admin/analitica
+          - strong [ref=f7e75]: Analitica
+        - link [ref=f7e76] [cursor=pointer]:
+          - /url: /admin/pedidos
+          - strong [ref=f7e88]: Pedidos
+        - link [ref=f7e89] [cursor=pointer]:
+          - /url: /admin/postventa
+          - strong [ref=f7e98]: Postventa
+        - link [ref=f7e99] [cursor=pointer]:
+          - /url: /admin/clientes
+          - strong [ref=f7e105]: Clientes
+        - link [ref=f7e106] [cursor=pointer]:
+          - /url: /admin/pagos
+          - strong [ref=f7e110]: Pagos
+      - generic [ref=f7e111]:
+        - strong [ref=f7e112]: Perfil
+        - paragraph [ref=f7e113]: Operator
+        - strong [ref=f7e114]: Contexto
+        - paragraph [ref=f7e115]: 11111111-1111-4111-8111-111111111111 / 22222222-2222-4222-8222-222222222222
+    - generic [ref=f7e116]:
+      - generic [ref=f7e117]:
+        - form "Selector de contexto Admin" [ref=f7e118]:
+          - combobox "Organization" [ref=f7e119]:
+            - option "Organization"
+            - option "READPREP-20261104 Organización"
+            - option "QA-20261104 Integracion UI"
+            - option "ReadIndex Live b"
+            - option "ReadIndex Live a"
+            - option "Read Path Baseline b"
+            - option "Read Path Baseline a"
+            - option "Ecommium Default Organization" [selected]
+            - option "Ecommium UI Smoke 1780565751104"
+          - combobox "Shop" [ref=f7e120]:
+            - option "Shop"
+            - option "READPREP-20261104 Interrupción"
+            - option "READPREP-20261104 Tienda existente"
+            - option "Tienda UI 1780565845946"
+            - option "Activa - Tienda Barcelona" [selected]
+          - textbox "Shop alias" [ref=f7e121]:
+            - /placeholder: shopAlias
+            - text: tienda-barcelona
+          - combobox "Locale" [ref=f7e122]:
+            - option "es-ES" [selected]
+            - option "en-US"
+            - option "pt-PT"
+          - button "Aplicar" [ref=f7e123] [cursor=pointer]
+        - generic [ref=f7e124]:
+          - generic [aria-hidden] [ref=f7e125]: r
+          - generic [ref=f7e126]:
+            - strong [ref=f7e127]: [employee-email-redacted]
+            - generic [ref=f7e128]: [employee-email-redacted]
+          - button "Salir" [ref=f7e130] [cursor=pointer]
+      - main [ref=f7e131]:
+        - generic [ref=f7e132]:
+          - link "Admin" [ref=f7e133] [cursor=pointer]:
+            - /url: /admin
+          - text: /
+          - link "Catalogo" [ref=f7e134] [cursor=pointer]:
+            - /url: /admin/catalogo
+          - text: /
+          - link "Productos" [ref=f7e135] [cursor=pointer]:
+            - /url: /admin/products
+          - text: / Editar
+        - generic [ref=f7e136]:
+          - generic [ref=f7e137]:
+            - textbox "Nombre del producto" [ref=f7e138]:
+              - /placeholder: Nuevo producto
+              - text: Casco QA integral PW 20261106
+            - generic [ref=f7e139]:
+              - generic [ref=f7e140]: Sin publicar
+              - generic [ref=f7e141]: Producto con variantes
+              - generic [ref=f7e142]: es-ES / EUR
+          - generic [ref=f7e143]:
+            - link "Volver al catálogo" [ref=f7e144] [cursor=pointer]:
+              - /url: /admin/products
+            - generic "Tipo de producto" [ref=f7e145]:
+              - button "Producto simple" [ref=f7e146] [cursor=pointer]
+              - button "Producto con variantes" [ref=f7e147] [cursor=pointer]
+        - generic [ref=f7e1302]:
+          - paragraph [ref=f7e1303]: Producto actualizado.
+          - paragraph [ref=f7e1304]: Variantes guardadas.
+          - paragraph [ref=f7e1305]: Caracteristicas guardadas.
+          - paragraph [ref=f7e1306]: Precios guardados.
+          - paragraph [ref=f7e1307]: Stock guardado.
+          - paragraph [ref=f7e1308]: SEO de producto guardado.
+          - generic "Acciones de recuperacion recomendadas" [ref=f7e1309]:
+            - button "Continuar editando" [ref=f7e1310] [cursor=pointer]
+            - button "Continuar editando" [ref=f7e1311] [cursor=pointer]
+          - paragraph [ref=f7e1312]: "Correlation: ui-1793972797640-067704ff9afed"
+        - generic [ref=f7e1313]:
+          - paragraph [ref=f7e1314]: Hay un borrador local guardado para esta ficha.
+          - generic [ref=f7e1315]:
+            - button "Restaurar borrador" [ref=f7e1316] [cursor=pointer]
+            - button "Descartar borrador" [ref=f7e1317] [cursor=pointer]
+        - generic [ref=f7e148]:
+          - paragraph [ref=f7e533]: "Offerings: contrato BFF no disponible o sin permisos (El servicio no está disponible temporalmente.)."
+          - paragraph [ref=f7e534]: "Pricing price tables: El servicio no está disponible temporalmente."
+          - paragraph [ref=f7e150]: "Transporte: configuracion BFF no disponible o sin permisos (La solicitud no es válida.)."
+        - navigation "Pestanas de producto" [ref=f7e151]:
+          - button "Ajustes basicos" [ref=f7e152] [cursor=pointer]
+          - button "Imagenes" [ref=f7e153] [cursor=pointer]
+          - button "Variantes" [ref=f7e154] [cursor=pointer]
+          - button "Precio" [ref=f7e155] [cursor=pointer]
+          - button "Inventario" [ref=f7e156] [cursor=pointer]
+          - button "Transporte" [ref=f7e157] [cursor=pointer]
+          - button "SEO" [ref=f7e158] [cursor=pointer]
+          - button "Auditoria" [ref=f7e159] [cursor=pointer]
+        - generic [ref=f7e160]:
+          - generic [ref=f7e1324]:
+            - generic [ref=f7e1326]:
+              - heading "Precio" [level=2] [ref=f7e1327]
+              - paragraph [ref=f7e1328]: Define el precio base del producto y anade excepciones solo cuando las necesites.
+            - generic [ref=f7e1329]:
+              - generic [ref=f7e1330]:
+                - text: "Currency:"
+                - strong [ref=f7e1331]: EUR
+              - generic [ref=f7e1332]:
+                - text: "Country:"
+                - strong [ref=f7e1333]: ES
+              - generic [ref=f7e1334]:
+                - text: "Precio base:"
+                - strong [ref=f7e1335]: 121.00 EUR
+              - generic [ref=f7e1336]:
+                - text: "Reglas especificas:"
+                - strong [ref=f7e1337]: "1"
+            - paragraph [ref=f7e1339]: "Pricing price tables: El servicio no está disponible temporalmente."
+            - generic [ref=f7e1340]:
+              - generic [ref=f7e1341]:
+                - generic [ref=f7e1342]: Precio de venta (imp. excl.)
+                - spinbutton "Precio de venta sin impuestos" [ref=f7e1343]: "100.00"
+              - generic [ref=f7e1344]:
+                - generic [ref=f7e1345]: Precio de venta (imp. incl.)
+                - spinbutton "Precio de venta con impuestos" [ref=f7e1346]: "121.00"
+              - generic [ref=f7e1347]:
+                - generic [ref=f7e1348]: Impuesto
+                - combobox "Impuesto" [ref=f7e1349]:
+                  - option "Sin regla fiscal"
+                  - option "Default IVA (10%)"
+                  - option "rpf-especial (1.5%)"
+                  - option "IVA general España 21% (21%)" [selected]
+                  - option "IVA (21%)"
+                  - option "Bike VAT Included (21%)"
+              - generic [ref=f7e1350]:
+                - generic [ref=f7e1351]: Precio de coste
+                - spinbutton "Precio de coste" [ref=f7e1352]: "60.00"
+              - generic [ref=f7e1353]:
+                - generic [ref=f7e1354]: Precio tachado
+                - spinbutton "Precio tachado" [ref=f7e1355]: "150.00"
+            - generic [ref=f7e1356]:
+              - checkbox "Impuestos incluidos" [checked] [ref=f7e1357]
+              - text: Impuestos incluidos
+            - group [ref=f7e1358]:
+              - generic "Contexto avanzado de precio base" [ref=f7e1359] [cursor=pointer]
+              - option "Precio base" [selected]
+              - option "B2B Standard"
+              - option "Default" [selected]
+              - option "Pc comvencional"
+              - option "Marketplace"
+              - option "Web" [selected]
+              - option "Espana" [selected]
+              - option "Portugal"
+              - option "Todos" [selected]
+              - option "B2B Profesional"
+              - option "VIP"
+            - generic [ref=f7e1363]:
+              - generic [ref=f7e1364]:
+                - strong [ref=f7e1365]: 121.00 EUR
+                - generic [ref=f7e1366]: Precio producto
+              - generic [ref=f7e1367]:
+                - strong [ref=f7e1368]: 150.00 EUR
+                - generic [ref=f7e1369]: Precio tachado
+              - generic [ref=f7e1370]:
+                - strong [ref=f7e1371]: 100.00 EUR
+                - generic [ref=f7e1372]: Neto preview
+              - generic [ref=f7e1373]:
+                - strong [ref=f7e1374]: 21.00 EUR
+                - generic [ref=f7e1375]: Impuesto preview
+              - generic [ref=f7e1376]:
+                - strong [ref=f7e1377]: 121.00 EUR
+                - generic [ref=f7e1378]: Bruto preview
+            - group [ref=f7e1379]:
+              - generic "Precios especificos 1 regla(s)" [ref=f7e1380] [cursor=pointer]:
+                - generic [ref=f7e1381]: Precios especificos
+                - generic [ref=f7e1385]: 1 regla(s)
+              - option "Producto completo · QA-PW-20261106-CASCO" [selected]
+              - option "Casco QA integral PW 20261106 / negro / M · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M"
+              - option "Casco QA integral PW 20261106 / negro / L · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L"
+              - option "Todos"
+              - option "Espana" [selected]
+              - option "Portugal"
+              - option "Todos" [selected]
+              - option "B2B Profesional"
+              - option "VIP"
+              - option "Pc comvencional"
+              - option "Marketplace"
+              - option "Web" [selected]
+              - option "B2B Standard"
+              - option "Default" [selected]
+              - option "Sin tabla" [selected]
+            - group [ref=f7e1386]:
+              - generic "Simulador de precio aplicado Sin precio aplicable" [ref=f7e1387] [cursor=pointer]:
+                - generic [ref=f7e1388]: Simulador de precio aplicado
+                - generic [ref=f7e1392]: Sin precio aplicable
+              - paragraph [ref=f7e1471]: Confirma el precio que Pricing devuelve para producto, variante y contexto.
+              - generic [ref=f7e1472]:
+                - generic [ref=f7e1473]:
+                  - generic [ref=f7e1474]: Aplicar sobre
+                  - combobox "Aplicar sobre" [ref=f7e1475]:
+                    - option "Producto completo · QA-PW-20261106-CASCO" [selected]
+                    - option "Casco QA integral PW 20261106 / negro / M · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M"
+                    - option "Casco QA integral PW 20261106 / negro / L · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L"
+                - generic [ref=f7e1476]:
+                  - generic [ref=f7e1477]: Cantidad
+                  - spinbutton "Cantidad" [ref=f7e1478]: "3"
+                - generic [ref=f7e1479]:
+                  - generic [ref=f7e1480]: Pais
+                  - combobox "Pais" [ref=f7e1481]:
+                    - option "Espana" [selected]
+                    - option "Portugal"
+                - generic [ref=f7e1482]:
+                  - generic [ref=f7e1483]: Canal
+                  - combobox "Canal" [ref=f7e1484]:
+                    - option "Pc comvencional"
+                    - option "Marketplace"
+                    - option "Web" [selected]
+                - generic [ref=f7e1485]:
+                  - generic [ref=f7e1486]: Politica comercial
+                  - combobox "Politica comercial" [ref=f7e1487]:
+                    - option "B2B Standard"
+                    - option "Default" [selected]
+                - generic [ref=f7e1488]:
+                  - generic [ref=f7e1489]: Grupo cliente
+                  - combobox "Grupo cliente" [ref=f7e1490]:
+                    - option "Todos"
+                    - option "B2B Profesional"
+                    - option "VIP" [selected]
+                - generic [ref=f7e1491]:
+                  - generic [ref=f7e1492]: Price table
+                  - combobox "Price table" [ref=f7e1493]:
+                    - option "Auto / base" [selected]
+                - generic [ref=f7e1494]:
+                  - generic [ref=f7e1495]: Fecha de simulacion
+                  - textbox "Fecha de simulacion" [ref=f7e1496]
+              - generic [ref=f7e1497]:
+                - button "Simular precio" [ref=f7e1498] [cursor=pointer]
+                - button "Reiniciar" [ref=f7e1499] [cursor=pointer]
+              - generic [ref=f7e1500]:
+                - paragraph [ref=f7e1502]: No se pudo simular el precio. El servicio no está disponible temporalmente.
+                - generic [ref=f7e1503]:
+                  - generic [ref=f7e1504]:
+                    - text: "Target:"
+                    - strong [ref=f7e1505]: Producto - Casco QA integral PW 20261106
+                  - generic [ref=f7e1506]:
+                    - text: "Resolucion:"
+                    - strong [ref=f7e1507]: Sin precio aplicable
+                  - generic [ref=f7e1508]:
+                    - text: "Fallback:"
+                    - strong [ref=f7e1509]: "No"
+            - paragraph [ref=f7e1394]: La productVariantDefault se gestiona con el precio superior. Las variantes listadas abajo solo necesitan cambios si requieren precio, impuesto o tabla propios.
+            - generic [ref=f7e1395]:
+              - generic [ref=f7e1396]:
+                - generic [ref=f7e1397]:
+                  - heading "Override de variante adicional" [level=3] [ref=f7e1398]
+                  - paragraph [ref=f7e1399]: Casco QA integral PW 20261106 / negro / M
+                - generic [ref=f7e1400]: Fallback producto
+              - generic [ref=f7e1401]:
+                - generic [ref=f7e1402]:
+                  - generic [ref=f7e1403]: Variante adicional a editar
+                  - combobox "Variante adicional a editar" [ref=f7e1404]:
+                    - option "Casco QA integral PW 20261106 / negro / M · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M" [selected]
+                    - option "Casco QA integral PW 20261106 / negro / L · CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L"
+                - generic [ref=f7e1405]:
+                  - generic [ref=f7e1406]: Precio propio
+                  - spinbutton "Precio propio" [ref=f7e1407]
+                - generic [ref=f7e1408]:
+                  - generic [ref=f7e1409]: Impuesto de variante
+                  - 'combobox "Impuesto de variante Usa el impuesto del producto: IVA general España 21% (21%)." [disabled] [ref=f7e1410]':
+                    - option "Heredar/sin regla"
+                    - option "Default IVA (10%)"
+                    - option "rpf-especial (1.5%)"
+                    - option "IVA general España 21% (21%)" [selected]
+                    - option "IVA (21%)"
+                    - option "Bike VAT Included (21%)"
+                  - generic [ref=f7e1411]: "Usa el impuesto del producto: IVA general España 21% (21%)."
+                - generic [ref=f7e1412]:
+                  - generic [ref=f7e1413]: priceTableId de variante
+                  - combobox "priceTableId de variante" [disabled] [ref=f7e1414]:
+                    - option "Precio base" [selected]
+              - button "Quitar precio propio" [disabled] [ref=f7e1416]
+            - table [ref=f7e1418]:
+              - rowgroup [ref=f7e1419]:
+                - row [ref=f7e1420]:
+                  - columnheader "Seleccion" [ref=f7e1421]: Sel.
+                  - columnheader "Variante" [ref=f7e1422]
+                  - columnheader "Modo" [ref=f7e1423]
+                  - columnheader "Precio" [ref=f7e1424]
+                  - columnheader "Especificos" [ref=f7e1425]
+                  - columnheader "Fiscalidad" [ref=f7e1426]
+                  - columnheader "Accion" [ref=f7e1427]
+              - rowgroup [ref=f7e1428]:
+                - row [ref=f7e1429]:
+                  - cell [ref=f7e1430]:
+                    - radio "Editar precio de CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M" [checked] [ref=f7e1431]
+                  - cell "Casco QA integral PW 20261106 / negro / M CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M" [ref=f7e1432]:
+                    - strong [ref=f7e1433]: Casco QA integral PW 20261106 / negro / M
+                    - generic [ref=f7e1434]: CASCO_QA_INTEGRAL_PW_20261106_NEGRO_M
+                  - cell "Usa precio del producto Fallback activo" [ref=f7e1435]:
+                    - generic [ref=f7e1436]: Usa precio del producto
+                    - generic [ref=f7e1437]: Fallback activo
+                  - cell "121.00 EUR Producto" [ref=f7e1438]:
+                    - strong [ref=f7e1439]: 121.00 EUR
+                    - generic [ref=f7e1440]: Producto
+                  - cell "1 regla(s)" [ref=f7e1441]
+                  - cell "IVA general España 21% (21%) Precio base" [ref=f7e1443]:
+                    - generic [ref=f7e1444]: IVA general España 21% (21%)
+                    - generic [ref=f7e1445]: Precio base
+                  - cell [ref=f7e1446]:
+                    - generic [ref=f7e1447]:
+                      - button "Editar" [ref=f7e1448] [cursor=pointer]
+                      - button "Anadir especifico" [ref=f7e1449] [cursor=pointer]
+                - row [ref=f7e1450]:
+                  - cell [ref=f7e1451]:
+                    - radio "Editar precio de CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L" [ref=f7e1452]
+                  - cell "Casco QA integral PW 20261106 / negro / L CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L" [ref=f7e1453]:
+                    - strong [ref=f7e1454]: Casco QA integral PW 20261106 / negro / L
+                    - generic [ref=f7e1455]: CASCO_QA_INTEGRAL_PW_20261106_NEGRO_L
+                  - cell "Usa precio del producto Fallback activo" [ref=f7e1456]:
+                    - generic [ref=f7e1457]: Usa precio del producto
+                    - generic [ref=f7e1458]: Fallback activo
+                  - cell "121.00 EUR Producto" [ref=f7e1459]:
+                    - strong [ref=f7e1460]: 121.00 EUR
+                    - generic [ref=f7e1461]: Producto
+                  - cell "1 regla(s)" [ref=f7e1462]
+                  - cell "IVA general España 21% (21%) Precio base" [ref=f7e1464]:
+                    - generic [ref=f7e1465]: IVA general España 21% (21%)
+                    - generic [ref=f7e1466]: Precio base
+                  - cell [ref=f7e1467]:
+                    - generic [ref=f7e1468]:
+                      - button "Editar" [ref=f7e1469] [cursor=pointer]
+                      - button "Anadir especifico" [ref=f7e1470] [cursor=pointer]
+          - complementary [ref=f7e260]:
+            - generic [ref=f7e261]:
+              - heading "Resumen" [level=2] [ref=f7e262]
+              - generic [ref=f7e265]:
+                - generic [ref=f7e266]:
+                  - term [ref=f7e267]: Tipo
+                  - definition [ref=f7e268]: Con variantes
+                - generic [ref=f7e269]:
+                  - term [ref=f7e270]: Precio base
+                  - definition [ref=f7e271]: 121.00 EUR
+                - generic [ref=f7e272]:
+                  - term [ref=f7e273]: Variantes
+                  - definition [ref=f7e274]: "2"
+                - generic [ref=f7e275]:
+                  - term [ref=f7e276]: Imagenes
+                  - definition [ref=f7e277]: "2"
+        - group "Acciones del producto" [ref=f7e278]:
+          - status [ref=f7e279]:
+            - generic [ref=f7e280]: Sin publicar
+            - generic [ref=f7e281]: Guardado
+          - generic [ref=f7e282]:
+            - button "Vista previa" [ref=f7e283] [cursor=pointer]
+            - button "Guardar" [ref=f7e1323] [cursor=pointer]
+            - button "Más acciones del producto" [ref=f7e288] [cursor=pointer]: ⋯
+  - button "Open Next.js Dev Tools" [ref=f7e294] [cursor=pointer]
+  - alert [ref=f7e317]

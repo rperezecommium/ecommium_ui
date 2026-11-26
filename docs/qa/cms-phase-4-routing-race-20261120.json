@@ -1,0 +1,25 @@
+{
+  "scope": "isolated PostgreSQL owner; not UI/BFF/Media E2E",
+  "checks": [
+    "migration preserves existing independent module",
+    "atomic creation, concurrent replay and composition reopen",
+    "operation input mismatch is rejected",
+    "CAS permits one writer and keeps title SEO composition coherent",
+    "foreign locale shop and organization cannot write",
+    "PREPARED is durable and does not activate publication",
+    "failure at outbox rolls back page version and operation completion",
+    "publication snapshot outbox and receipt commit atomically with replay",
+    "editing a published page preserves active snapshot and stale publish fails",
+    "existing published reader returns only the active composition and metadata",
+    "page command materializes independent section identities",
+    "failed Routing preserves draft; retry completes and completed replay skips Routing"
+  ],
+  "cleanup": true,
+  "routingRace": {
+    "status": "REPRODUCED",
+    "ownerPath": "/qa-new-path",
+    "routingPath": "/qa-owner-command",
+    "scope": "actual CMS use cases and PostgreSQL, simulated Routing port; not real network"
+  },
+  "status": "PASS"
+}

@@ -1,0 +1,11 @@
+{
+  "scope": "disposable PostgreSQL + real CMS/Routing classes and HTTP adapter; no Employee/BFF E2E",
+  "checks": [
+    "inline snapshot survives real PostgreSQL reconnection independently",
+    "repository reads isolate page and definition context",
+    "same-path retry after injected failure reuses real route and publishes stored snapshot",
+    "routing same-path replay does not duplicate canonical route"
+  ],
+  "cleanup": true,
+  "status": "PASS"
+}

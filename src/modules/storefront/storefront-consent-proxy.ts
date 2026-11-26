@@ -42,7 +42,7 @@ function publicHost(request: Request): string | undefined {
   const requestUrl = new URL(request.url);
   if (process.env.NODE_ENV !== "production") return requestUrl.host.toLowerCase();
 
-  const configured = process.env.NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL?.trim();
+  const configured = process.env.ECOMMIUM_UI_STOREFRONT_ORIGIN || process.env.NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL?.trim();
   if (!configured) return undefined;
   try {
     const publicUrl = new URL(configured);
@@ -53,7 +53,7 @@ function publicHost(request: Request): string | undefined {
       publicUrl.pathname !== "/" ||
       publicUrl.search ||
       publicUrl.hash ||
-      requestUrl.host.toLowerCase() !== publicUrl.host.toLowerCase()
+      (request.headers.get("host") ?? requestUrl.host).toLowerCase() !== publicUrl.host.toLowerCase()
     ) return undefined;
     return publicUrl.host.toLowerCase();
   } catch {
@@ -215,12 +215,16 @@ export async function proxyConsentPolicy(request: Request) {
 }
 
 export async function proxyConsentDecision(request: Request) {
-  const sameOriginError = validateSameOriginMutation(request);
+  const context = await contextFor(request, false);
+  if (isResponse(context)) return context;
+  // Next puede construir request.url con la dirección interna del contenedor.
+  // El Host ya se ha contrastado con el origen público exacto configurado.
+  const publicRequest = new Request(`${process.env.NODE_ENV === "production" ? "https:" : new URL(request.url).protocol}//${context.publicHost}`, { headers: request.headers });
+  const sameOriginError = validateSameOriginMutation(publicRequest);
   if (sameOriginError && !sameOriginError.ok) return errorResponse(sameOriginError.message, sameOriginError.status);
   const body = await readJsonObject(request, maximumDecisionBytes);
   if (!body.ok || !validDecision(body.value)) {
     return errorResponse(body.ok ? "La decisión de consentimiento no tiene un formato válido." : body.message, body.ok ? 400 : body.status);
   }
-  const context = await contextFor(request, false);
-  return isResponse(context) ? context : requestBff(request, "decisions", context, body.value);
+  return requestBff(request, "decisions", context, body.value);
 }

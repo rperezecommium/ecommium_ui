@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getAdminSession } from "../../../../../../src/shared/auth/session";
+import { getCurrentAdminSession as getAdminSession } from "../../../../../../src/modules/auth/current-admin-session";
 import { getAdminContext } from "../../../../../../src/shared/config/admin-context";
 import { getInvoiceAdminCapabilities, getInvoiceAdminData } from "../../../../../../src/modules/pagos/invoices-admin";
 import { InvoiceDetailAdminPage } from "../../../../../../src/modules/pagos/invoices-admin-page";

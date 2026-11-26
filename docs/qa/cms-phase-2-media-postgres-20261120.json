@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "scope": "isolated real PostgreSQL; no object storage",
+  "checks": [
+    "migration preserves existing product association",
+    "unbound CMS collection persists and reopens without fake product",
+    "multiple independent null associations remain allowed",
+    "verified binding and CMS writes emit existing scope events",
+    "product lookup and unique association remain enforced"
+  ]
+}

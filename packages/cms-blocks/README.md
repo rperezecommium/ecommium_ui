@@ -16,6 +16,9 @@ Este paquete define tipos, presets, normalizacion, metadata de editor, helpers d
 - Normalizar imports legacy o externos con `normalizeCmsBlock` y `blocksFromJson`.
 - Serializar exports con `blocksToJson`.
 - Renderizar previews con `CmsBlockRenderer` y `CmsPlpStorefrontPreviewRenderer`.
+- Renderizar `category.imageTiles` como mosaico responsive de categorias con
+  tarjetas completamente enlazables y controles de columnas, ancho, altura,
+  separacion, margenes y overlay.
 
 ## Contrato para builders externos
 
@@ -154,3 +157,17 @@ builder externo deberia aplicar las mismas reglas antes de exportar. Para
 acciones sin link seguro, ausencia de heading renderizable y animaciones largas.
 La certificacion canonica se ejecuta desde el repo backend con
 `node scripts/cms-visual-module-builder-certification.mjs`.
+
+### Presentación compartida de áreas y bloques de sistema
+
+`CmsPresentation` reutiliza las declaraciones de estilos v2 (`base`, `desktop`,
+`tablet`, `mobile`), visibility, animation, interactions y assetRefs.
+`CmsPresentationView` usa las mismas funciones de estilos, hover y movimiento
+que `visual.module`. Sin presentación conserva el markup anterior. El renderer
+público emite CSS responsive acotado a cada nodo; un `visualViewport` explícito
+elige los estilos del simulador. No se aceptan declaraciones CSS arbitrarias;
+los valores emitidos se filtran y las URLs de fondos se escapan para CSS.
+
+Las referencias Media conservan `mediaAssetId`; `src` es opcional y solo debe
+persistir si es una URL pública HTTPS o un recurso `/assets/`. Los proxies
+privados Admin se usan para edición y no son una URL pública de publicación.

@@ -1,0 +1,13 @@
+
+> cms@0.0.1 test
+> jest --runInBand legacy-module-migration.spec.ts page-composition.spec.ts independent-module-copy.spec.ts
+
+PASS src/domain/page/legacy-module-migration.spec.ts
+PASS src/domain/page/independent-module-copy.spec.ts
+PASS src/domain/page/page-composition.spec.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       22 passed, 22 total
+Snapshots:   0 total
+Time:        2.668 s, estimated 3 s
+Ran all test suites matching /legacy-module-migration.spec.ts|page-composition.spec.ts|independent-module-copy.spec.ts/i.

@@ -1,0 +1,16 @@
+
+> ecommium_ui@0.1.0 lint
+> eslint .
+
+
+/Users/ricardoperez/Documents/ecommium_ui/src/modules/clientes/customers-admin-actions.ts
+  136:16  warning  'customerEmptyMutation' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/ricardoperez/Documents/ecommium_ui/src/shared/bff/request-client.ts
+  93:3  warning  'fallbackError' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/ricardoperez/Documents/ecommium_ui/src/shared/invoice/invoice-document-pdf.ts
+  1:6  warning  'PdfInvoicePayload' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 3 problems (0 errors, 3 warnings)
+

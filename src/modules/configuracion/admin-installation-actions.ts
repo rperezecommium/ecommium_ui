@@ -33,7 +33,7 @@ function passwordIsValid(value: string) {
 }
 
 function freshError(status?: number) {
-  if (status === 401) return "El claim fue rechazado. Solicita uno nuevo al operador y vuelve a intentarlo.";
+  if (status === 401) return "El código fue rechazado. Solicita una nueva invitación al operador y vuelve a intentarlo.";
   if (status === 409) return "La instalación cambió de estado. Recarga la pantalla antes de continuar.";
   if (status === 429) return "Se alcanzó el límite de intentos. Espera antes de volver a intentarlo.";
   return "No se pudo completar la instalación. No se creó ninguna sesión ni tenant.";
@@ -79,7 +79,7 @@ export async function completeFreshAdminInstallationAction(formData: FormData) {
   const lastName = normalizedText(formData.get("lastName"));
 
   if (!claim || claim.length > 512 || !email || email.length > 320) {
-    finish("error", "Claim y email son obligatorios y deben tener un formato válido.");
+    finish("error", "El código y el correo de la invitación son obligatorios y deben tener un formato válido.");
   }
   if (!passwordIsValid(password)) {
     finish("error", "La contraseña debe tener entre 8 y 256 caracteres y no puede estar vacía.");

@@ -1,0 +1,3 @@
+PASS: real Catalog/Pricing/Inventory, add/quantity/aggregated add, persisted commercial totals, stock rejection without partial save, concurrent-write conflict
+PASS: additive migration, two isolated shops, GBP/JPY snapshots persisted and read from PostgreSQL
+Owned context QA database removed

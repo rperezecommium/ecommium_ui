@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, RefreshCw, Search, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Search, Upload, Download, FileSpreadsheet } from "lucide-react";
+import styles from "./catalog-csv-import.module.css";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { importPhase, shouldPollImport, statusProgress, type ImportPhase as Phase, type ImportResponse, type ImportOutcomes, type OwnerJob } from "./catalog-csv-import-state";
 import { parseImportCategoryAssignment, type ImportCategoryAssignment } from "./catalog-csv-import-category";
@@ -56,7 +57,7 @@ export function CatalogCsvImportClient({ context, categories }: { context: Admin
 
 function CatalogCsvImportForm({ context, categories }: { context: AdminContext; categories: ProductLookupOption[] }) {
   const [phase, setPhase] = useState<Phase>("idle");
-  const [message, setMessage] = useState("Sube un CSV de productos para stagearlo antes de aplicar cambios.");
+  const [message, setMessage] = useState("Selecciona un archivo para preparar la importación.");
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -341,32 +342,41 @@ function CatalogCsvImportForm({ context, categories }: { context: AdminContext; 
 
   const busy = ["uploading", "preparing", "applying", "polling"].includes(phase);
   const categoryLocked = busy || !!importJobId;
+  const phaseLabels: Record<Phase, string> = {
+    idle: "Sin iniciar", uploading: "Subiendo archivo", preparing: "Preparando",
+    staged: "Listo para aplicar", applying: "Aplicando", polling: "En curso",
+    completed: "Finalizada", failed: "Con errores", paused: "En pausa",
+  };
   return (
-    <section className="adminCard pricingBulkImportCard" onChangeCapture={invalidateInfrastructure}>
-      <div className="adminCardHeader">
+    <section className={`pricingBulkImportCard ${styles.workspace}`} onChangeCapture={invalidateInfrastructure} aria-label="Importación de productos">
+      <header className={styles.header}>
         <div>
           <h2>Importar productos por CSV</h2>
-          <p>Stagea catálogo desde CSV y luego crea jobs owner para catálogo, precios, stock, media y ReadIndex.</p>
+          <p>Prepara el archivo y revisa las opciones antes de iniciar.</p>
         </div>
-        <span className={`adminBadge ${phase === "completed" ? "adminBadgeOk" : phase === "failed" ? "adminBadgeError" : ""}`}>{phase}</span>
-      </div>
-      {error ? <div className="adminBanner adminBannerError"><p>{error}</p></div> : null}
-      <div className="adminBanner adminBannerInfo"><p>Formato compatible con CSV de producto tipo PrestaShop. Los productos digitales se conservan pero no se publican automáticamente si bloquean vendibilidad.</p></div>
-      <div className="pricingBulkImportDropzone">
-        <label className="adminField"><span>Canal de venta</span><input disabled={busy} value={commercialContext.channel} onChange={(event) => updateCommercialField("channel", event.currentTarget.value)} /></label>
-        <label className="adminField"><span>Warehouse</span><input disabled={busy} value={commercialContext.warehouseId} onChange={(event) => updateCommercialField("warehouseId", event.currentTarget.value)} /></label>
-        <label className="adminField"><span>Moneda</span><input disabled={busy} value={commercialContext.currency} onChange={(event) => updateCommercialField("currency", event.currentTarget.value.toUpperCase())} /></label>
-        <label className="adminField"><span>País</span><input disabled={busy} value={commercialContext.country} onChange={(event) => updateCommercialField("country", event.currentTarget.value.toUpperCase())} /></label>
-        <label className="adminField"><span><input checked={commercialContext.publish} disabled={busy} onChange={(event) => updateCommercialField("publish", event.currentTarget.checked)} type="checkbox" /> Publicar productos</span></label>
-        <label className="adminField"><span><input checked={commercialContext.availableForSale} disabled={busy} onChange={(event) => updateCommercialField("availableForSale", event.currentTarget.checked)} type="checkbox" /> Disponibles para venta</span></label>
-        <label className="adminField"><span><input checked={commercialContext.manageInventory} disabled={busy} onChange={(event) => updateCommercialField("manageInventory", event.currentTarget.checked)} type="checkbox" /> Gestionar inventario</span></label>
-        <label className="adminField"><span><input checked={commercialContext.allowBackorder} disabled={busy} onChange={(event) => updateCommercialField("allowBackorder", event.currentTarget.checked)} type="checkbox" /> Permitir venta sin stock</span></label>
-      </div>
-      <fieldset className="adminFieldset" disabled={categoryLocked}>
-        <legend>Categoría de los productos</legend>
-        <div className="adminButtonRow" role="radiogroup" aria-label="Origen de la categoría">
+        <span className={`adminBadge ${phase === "completed" ? "adminBadgeOk" : phase === "failed" ? "adminBadgeError" : ""}`}>{phaseLabels[phase]}</span>
+      </header>
+      {error ? <div className="adminBanner adminBannerError" role="alert"><p>{error}</p></div> : null}
+      <div className={styles.layout}>
+        <div className={styles.sourceColumn}>
+          <section className={styles.section} aria-labelledby="import-file-title">
+            <div className={styles.sectionHeading}>
+              <h3 id="import-file-title"><span className={styles.stepNumber}>1</span> Archivo de productos</h3>
+              <a className={styles.templateLink} download="catalog-import-template.csv" href="data:text/csv;charset=utf-8,Product%20ID;Active;Name;Categories;Price%20tax%20excluded;Quantity;Manufacturer;Reference%0A1001;1;Producto%20demo;Demo;12.99;5;Marca;SKU-1001%0A"><Download size={15} aria-hidden="true" /> Descargar plantilla</a>
+            </div>
+            <div className={styles.fileArea}>
+              <FileSpreadsheet size={28} strokeWidth={1.5} aria-hidden="true" />
+              <div className={styles.fileContent}>
+                <label className="adminField"><span>CSV de productos</span><input ref={fileInput} accept=".csv,text/csv" aria-describedby="import-file-help" disabled={busy || !!importJobId || categoryLoading} onChange={(event) => selectFile(event.currentTarget.files?.[0] ?? null)} type="file" /></label>
+                <p id="import-file-help">Usa un CSV de productos compatible con PrestaShop. Puedes descargar la plantilla para empezar.</p>
+              </div>
+            </div>
+          </section>
+      <fieldset className={styles.categorySection} disabled={categoryLocked}>
+        <legend><span className={styles.stepNumber}>2</span> Categoría de los productos</legend>
+        <div className={styles.categoryChoices} role="radiogroup" aria-label="Origen de la categoría">
           {([{ mode: "csv", label: "Usar categorías del CSV" }, { mode: "existing", label: "Categoría existente" }, { mode: "new", label: "Nueva categoría" }] as const).map(({ mode, label }) => (
-            <label key={mode}>
+            <label className={styles.categoryChoice} key={mode}>
               <input type="radio" name="importCategoryMode" value={mode} checked={categoryAssignment.mode === mode} onChange={() => {
                 setCategoryError(null);
                 ++categoryRequest.current;
@@ -378,7 +388,7 @@ function CatalogCsvImportForm({ context, categories }: { context: AdminContext; 
           ))}
         </div>
         {categoryAssignment.mode === "existing" ? <>
-          <div className="adminButtonRow">
+          <div className={styles.categorySearch}>
             <label className="adminField"><span>Buscar categoría</span><input type="search" maxLength={200} value={categoryQuery} onChange={event => setCategoryQuery(event.currentTarget.value)} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); void searchCategories(); } }} /></label>
             <button className="adminButton" type="button" aria-label="Buscar categorías" title="Buscar categorías" disabled={categoryLoading} onClick={() => void searchCategories()}><Search size={16} aria-hidden="true" /></button>
           </div>
@@ -394,39 +404,66 @@ function CatalogCsvImportForm({ context, categories }: { context: AdminContext; 
           </div>
         </> : null}
         {categoryAssignment.mode === "new" ? <label className="adminField"><span>Nombre de la nueva categoría</span><input maxLength={200} required value={categoryAssignment.name} onChange={event => { setCategoryAssignment({ mode: "new", name: event.currentTarget.value }); setCategoryError(null); }} /></label> : null}
-        {categoryError ? <p role="alert">{categoryError}</p> : null}
+        {categoryError ? <p className={styles.fieldError} role="alert">{categoryError}</p> : null}
       </fieldset>
-      <div className="pricingBulkImportDropzone">
-        <label className="adminField pricingBulkImportFileField"><span>CSV de productos</span><input ref={fileInput} accept=".csv,text/csv" disabled={busy || !!importJobId || categoryLoading} onChange={(event) => selectFile(event.currentTarget.files?.[0] ?? null)} type="file" /></label>
-        {selectedFile && !importJobId && !busy ? <>
+        </div>
+        <section className={styles.section} aria-labelledby="import-options-title">
+          <h3 id="import-options-title"><span className={styles.stepNumber}>3</span> Opciones de importación</h3>
+          <p className={styles.sectionHelp}>Se aplicarán a los productos de este archivo.</p>
+          <div className={styles.fields}>
+            <label className="adminField"><span>Canal de venta</span><input disabled={busy} value={commercialContext.channel} onChange={(event) => updateCommercialField("channel", event.currentTarget.value)} /></label>
+            <label className="adminField"><span>Almacén</span><input disabled={busy} value={commercialContext.warehouseId} onChange={(event) => updateCommercialField("warehouseId", event.currentTarget.value)} /></label>
+            <label className="adminField"><span>Moneda</span><input disabled={busy} value={commercialContext.currency} onChange={(event) => updateCommercialField("currency", event.currentTarget.value.toUpperCase())} /></label>
+            <label className="adminField"><span>País</span><input disabled={busy} value={commercialContext.country} onChange={(event) => updateCommercialField("country", event.currentTarget.value.toUpperCase())} /></label>
+          </div>
+          <fieldset className={styles.options} disabled={busy}>
+            <legend>Publicación y venta</legend>
+            <label className={styles.checkbox}><input checked={commercialContext.publish} onChange={(event) => updateCommercialField("publish", event.currentTarget.checked)} type="checkbox" /><span>Publicar productos</span></label>
+            <label className={styles.checkbox}><input checked={commercialContext.availableForSale} onChange={(event) => updateCommercialField("availableForSale", event.currentTarget.checked)} type="checkbox" /><span>Disponibles para venta</span></label>
+          </fieldset>
+          <details className={styles.advanced}>
+            <summary>Opciones avanzadas de inventario</summary>
+            <div className={styles.advancedContent}>
+              <label className={styles.checkbox}><input checked={commercialContext.manageInventory} disabled={busy} onChange={(event) => updateCommercialField("manageInventory", event.currentTarget.checked)} type="checkbox" /><span>Gestionar inventario</span></label>
+              <label className={styles.checkbox}><input checked={commercialContext.allowBackorder} disabled={busy} onChange={(event) => updateCommercialField("allowBackorder", event.currentTarget.checked)} type="checkbox" /><span>Permitir venta sin stock</span></label>
+            </div>
+          </details>
+          <p className={styles.note}>Los productos digitales se guardan, pero solo se publican cuando cumplen las condiciones de venta.</p>
+        </section>
+      </div>
+      <section className={styles.review} aria-label="Revisión e inicio de importación">
+        {selectedFile && !importJobId && !busy ? (
           <div className={`adminBanner ${currentCheck?.state === "ready" ? "adminBannerSuccess" : currentCheck?.state === "failed" ? "adminBannerError" : "adminBannerInfo"}`} role="status" aria-live="polite">
             <p>{currentCheck?.state === "checking" ? "Comprobando infraestructura…" :
               currentCheck?.state === "ready" ? "Sugerencia: sistema listo para la importación" :
               currentCheck?.state === "failed" ? currentCheck.message : "Es necesario comprobar la infraestructura con los datos seleccionados."}</p>
           </div>
+        ) : null}
+        <div className={styles.actions}>
+          <p>{commercialContext.publish ? "Se solicitará publicar los productos que cumplan las condiciones de venta." : "Los productos se guardarán sin publicar."}</p>
           <div className="adminButtonRow">
-            <button className="adminButton" type="button" disabled={currentCheck?.state === "checking" || categoryLoading} onClick={() => void checkInfrastructure()}><RefreshCw size={16} aria-hidden="true" /> Comprobar infraestructura</button>
-            <button className="adminButton adminButtonPrimary" type="button" disabled={currentCheck?.state !== "ready" || categoryLoading} onClick={() => void upload()}><Upload size={16} aria-hidden="true" /> Iniciar importación</button>
+            {!busy && importJobId && (!payload?.managed || phase === "completed") ? <button className="adminButton" onClick={newImport} type="button">Nueva importación</button> : null}
+            {phase === "staged" && importJobId ? <button className="adminButton adminButtonPrimary" onClick={() => void apply()} type="button">Aplicar importación</button> : null}
+            {watching ? <button className="adminButton" onClick={() => { setWatching(false); setMessage("Seguimiento detenido."); }} type="button">Detener seguimiento</button> : null}
+            {!watching && importJobId && phase !== "staged" && phase !== "completed" ? <button className="adminButton" onClick={() => setWatching(true)} type="button">Consultar progreso</button> : null}
+            {payload?.managed && ["paused", "failed"].includes(phase) ? <button className="adminButton" onClick={() => void resume()} type="button">Reanudar importación</button> : null}
+            {!importJobId && !busy ? <>
+              <button className="adminButton" type="button" disabled={!selectedFile || currentCheck?.state === "checking" || categoryLoading} onClick={() => void checkInfrastructure()}><RefreshCw size={16} aria-hidden="true" /> Comprobar infraestructura</button>
+              <button className="adminButton adminButtonPrimary" type="button" disabled={!selectedFile || currentCheck?.state !== "ready" || categoryLoading} onClick={() => void upload()}><Upload size={16} aria-hidden="true" /> Iniciar importación</button>
+            </> : null}
           </div>
-        </> : null}
-        <div className="adminButtonRow">
-          {!busy && importJobId && (!payload?.managed || phase === "completed") ? <button className="adminButton" onClick={newImport} type="button">Nueva importación</button> : null}
-          {phase === "staged" && importJobId ? <button className="adminButton adminButtonPrimary" onClick={() => void apply()} type="button">Aplicar importación</button> : null}
-          {watching ? <button className="adminButton" onClick={() => { setWatching(false); setMessage("Seguimiento detenido."); }} type="button">Detener seguimiento</button> : null}
-          {!watching && importJobId && phase !== "staged" && phase !== "completed" ? <button className="adminButton" onClick={() => setWatching(true)} type="button">Consultar progreso</button> : null}
-          {payload?.managed && ["paused", "failed"].includes(phase) ? <button className="adminButton" onClick={() => void resume()} type="button">Reanudar importación</button> : null}
-          <a className="adminButton" download="catalog-import-template.csv" href="data:text/csv;charset=utf-8,Product%20ID;Active;Name;Categories;Price%20tax%20excluded;Quantity;Manufacturer;Reference%0A1001;1;Producto%20demo;Demo;12.99;5;Marca;SKU-1001%0A">Descargar plantilla</a>
         </div>
-      </div>
-      <div className="pricingBulkImportProgress" aria-live="polite">
-        <div className="pricingBulkImportProgressHeader"><strong>{fileName ?? "Sin archivo"}</strong><span>{message}</span></div>
-        <div className="pricingBulkImportProgressTrack" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><span style={{ width: `${percent}%` }} /></div>
-        <div className="pricingBulkImportMetrics"><span>Tenant: {context.organizationId || "-"} / {context.shopId || "-"}</span><span>Import job: {importJobId ?? "-"}</span><span>Owner jobs: {jobs.length}</span></div>
-      </div>
-      {importJobId && outcomes ? <div aria-label="Resultado por producto">
+      </section>
+      {selectedFile || importJobId ? <section className={styles.progress} aria-label="Progreso de importación" aria-live="polite">
+        <div className={styles.progressHeader}><strong>{fileName ?? "Importación en curso"}</strong><span>{message}</span></div>
+        <div className="pricingBulkImportProgressTrack" role="progressbar" aria-label="Progreso de importación" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><span style={{ width: `${percent}%` }} /></div>
+        {importJobId ? <details className={styles.technical}><summary>Detalles de seguimiento</summary><dl><div><dt>Organización</dt><dd>{context.organizationId}</dd></div><div><dt>Tienda</dt><dd>{context.shopId}</dd></div><div><dt>Importación</dt><dd>{importJobId}</dd></div><div><dt>Procesos asociados</dt><dd>{jobs.length}</dd></div></dl></details> : null}
+      </section> : null}
+      {importJobId && outcomes ? <div className={styles.results} aria-label="Resultado por producto">
+        <h3>Resultado por producto</h3>
         <p aria-live="polite">{outcomes.counts.published} publicados de {outcomes.counts.received}. {outcomes.counts.draft} guardados sin publicar. {outcomes.counts.rejected} rechazados. {outcomes.counts.pending} pendientes.</p>
         {outcomes.unidentifiedRows > 0 ? <p role="alert">{outcomes.unidentifiedRows} filas no pudieron identificarse como productos.</p> : null}
-        <div style={{ overflowX: "auto" }}><table className="adminTable">
+        <div className={styles.tableScroll}><table className="adminTable">
           <thead><tr><th>Referencia de origen</th><th>Estado</th><th>Motivo</th></tr></thead>
           <tbody>{outcomes.items.map(item => <tr key={item.externalId}><td style={{ overflowWrap: "anywhere" }}>{item.externalId}</td><td>{{ PUBLISHED: "Publicado", DRAFT: "Sin publicar", REJECTED: "Rechazado", PENDING: "Pendiente" }[item.state]}</td><td style={{ overflowWrap: "anywhere" }}>{item.reasons.join(", ") || "-"}</td></tr>)}</tbody>
         </table></div>
@@ -437,7 +474,6 @@ function CatalogCsvImportForm({ context, categories }: { context: AdminContext; 
         </div>
         {outcomeError ? <p role="alert">{outcomeError}</p> : null}
       </div> : null}
-      {payload?.errors?.length ? <div className="adminBanner adminBannerError">{payload.errors.map((entry) => <p key={`${entry.owner}-${entry.message}`}>{entry.owner}: {entry.message}</p>)}</div> : null}
     </section>
   );
 }

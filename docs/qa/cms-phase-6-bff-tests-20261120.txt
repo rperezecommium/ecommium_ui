@@ -1,0 +1,12 @@
+
+> bff@0.0.1 test
+> jest --runInBand manage-cms-page-migration.spec.ts manage-cms-page-composition.spec.ts
+
+PASS src/modules/cms/application/use-cases/manage-cms-page-migration.spec.ts
+PASS src/modules/cms/application/use-cases/manage-cms-page-composition.spec.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       11 passed, 11 total
+Snapshots:   0 total
+Time:        2.663 s, estimated 3 s
+Ran all test suites matching /manage-cms-page-migration.spec.ts|manage-cms-page-composition.spec.ts/i.

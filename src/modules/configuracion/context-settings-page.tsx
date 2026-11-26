@@ -1,3 +1,4 @@
+import { ShopReadPreparationPanel } from "./shop-read-preparation-panel";
 import type { AdminContext } from "../../shared/config/admin-context";
 import type {
   InheritanceStatus,
@@ -8,7 +9,9 @@ import type {
 import { isCurrentShop, withCurrentShopState } from "./organization-shop";
 
 type ContextSettingsPageProps = {
+  canManageReadPreparation?: boolean;
   activeTab?: string;
+  preparationTarget?: { organizationId: string; shopId: string };
   context: AdminContext;
   createOrganizationAction: (formData: FormData) => Promise<void>;
   createShopAction: (formData: FormData) => Promise<void>;
@@ -18,6 +21,7 @@ type ContextSettingsPageProps = {
   notice?: string;
   updateAction: (formData: FormData) => Promise<void>;
   updateShopAction: (formData: FormData) => Promise<void>;
+  updateOrganizationTimezoneAction: (formData: FormData) => Promise<void>;
 };
 
 type ContextSettingsTab = "context" | "create-organization" | "create-shop" | "edit-shop" | "inheritance";
@@ -93,7 +97,9 @@ function normalizeTab(value: string | undefined): ContextSettingsTab {
 }
 
 export function ContextSettingsPage({
+  canManageReadPreparation = false,
   activeTab,
+  preparationTarget,
   context,
   createOrganizationAction,
   createShopAction,
@@ -103,6 +109,7 @@ export function ContextSettingsPage({
   notice,
   updateAction,
   updateShopAction,
+  updateOrganizationTimezoneAction,
 }: ContextSettingsPageProps) {
   const tab = normalizeTab(activeTab);
   const shops = allShops(directory, context);
@@ -123,6 +130,8 @@ export function ContextSettingsPage({
     : [];
   const selectedOrganizationHasNoShops =
     directory.source === "bff" && Boolean(selectedOrganization) && selectedOrganizationShops.length === 0;
+  const organizationTimezone = selectedOrganization?.timezone ?? "Europe/Madrid";
+  const timezones = Array.from(new Set([organizationTimezone, "UTC", ...Intl.supportedValuesOf("timeZone")]));
   const editShop = currentShop ?? shops[0];
   const activeOrganizationName = currentShop?.organizationName ?? context.organizationId;
   const activeShopName = currentShop?.name ?? context.shopName;
@@ -131,7 +140,7 @@ export function ContextSettingsPage({
   const activePrimaryDomain = currentShop?.primaryDomain ?? context.primaryDomain;
 
   return (
-    <main className="adminPage">
+    <main className="adminPage contextSettingsPage">
       <div className="adminPageHeader">
         <div>
           <div className="adminBreadcrumb">Admin / Configuracion / Contexto</div>
@@ -145,26 +154,6 @@ export function ContextSettingsPage({
           <a className="adminButton" href={contextTabHref("inheritance")}>
             Restaurar herencia
           </a>
-          {tab === "context" ? (
-            <button className="adminButton adminButtonPrimary" form="context-settings-form" type="submit">
-              Guardar contexto
-            </button>
-          ) : null}
-          {tab === "create-shop" ? (
-            <button className="adminButton adminButtonPrimary" form="create-shop-form" type="submit">
-              Crear tienda
-            </button>
-          ) : null}
-          {tab === "create-organization" ? (
-            <button className="adminButton adminButtonPrimary" form="create-organization-form" type="submit">
-              Crear Organization
-            </button>
-          ) : null}
-          {tab === "edit-shop" && editShop ? (
-            <button className="adminButton adminButtonPrimary" form="edit-shop-form" type="submit">
-              Guardar tienda
-            </button>
-          ) : null}
         </div>
       </div>
 
@@ -234,58 +223,24 @@ export function ContextSettingsPage({
         </div>
       ) : null}
 
-      <section className="adminKpiGrid" aria-label="Resumen de contexto activo">
-        <article className="adminKpi">
-          <span>Organization activa</span>
-          <strong>{activeOrganizationName || "Pendiente"}</strong>
-          <div className="adminMuted">{context.organizationId || "Sin organizationId"}</div>
-        </article>
-        <article className="adminKpi">
-          <span>Shop activa</span>
-          <strong>{activeShopName || "Pendiente"}</strong>
-          <div className="adminMuted">{activeShopAlias || "Sin shopAlias"}</div>
-        </article>
-        <article className="adminKpi">
-          <span>Contexto activo</span>
-          <strong>{hasActiveContext ? "Activa" : "Pendiente"}</strong>
-          <div className="adminMuted">{context.locale} / {context.currency} / {context.country}</div>
-        </article>
-        <article className="adminKpi">
-          <span>Estado operativo</span>
-          <strong>{activeShopStatus || "N/D"}</strong>
-          <div className="adminMuted">{activePrimaryDomain || "Sin dominio"}</div>
-        </article>
-      </section>
-
-      <section className="adminCard adminSection">
-        <div className="adminTabs" role="tablist" aria-label="Configuracion de contexto">
-          {tabs.map((item) => (
-            <a
-              aria-selected={tab === item.id}
-              className={tab === item.id ? "adminTab adminTabActive" : "adminTab"}
-              href={contextTabHref(item.id)}
-              key={item.id}
-              role="tab"
-            >
-              {item.label}
-            </a>
-          ))}
-        </div>
-      </section>
+      <nav className="contextSettingsNavigation adminSection" aria-label="Configuración de contexto">
+        {tabs.map((item) => (
+          <a
+            aria-current={tab === item.id ? "page" : undefined}
+            className="contextSettingsBadge"
+            href={contextTabHref(item.id)}
+            key={item.id}
+          >
+            {item.label}
+          </a>
+        ))}
+      </nav>
 
       <section className="adminGrid" hidden={tab !== "context"}>
         <article className="adminCard">
-          <div className="adminCardHeader">
-            <div>
-              <h2>Selector multistore</h2>
-              <p>El contexto activo se guarda en cookie httpOnly por sesion Admin.</p>
-            </div>
-            <span className="adminBadge">
-              {hasDirectory ? "BFF" : hasNoOrganizations ? "Sin Organizations" : "Manual"}
-            </span>
-          </div>
 
-          <form action={updateAction} className="adminForm" id="context-settings-form">
+
+          <form action={updateAction} className="adminForm contextSettingsForm" id="context-settings-form">
             <input type="hidden" name="redirectTo" value="/admin/configuracion/contexto" />
             <label className="adminField">
               <span>Organization</span>
@@ -353,7 +308,7 @@ export function ContextSettingsPage({
               </small>
             </label>
 
-            <div className="adminFormGrid">
+            <div className="adminFormGrid contextSettingsFields">
               <label className="adminField">
                 <span>Locale</span>
                 <select name="locale" defaultValue={context.locale}>
@@ -386,8 +341,22 @@ export function ContextSettingsPage({
                   <option value="mobile">mobile</option>
                 </select>
               </label>
+              <label className="adminField">
+                <span>Zona horaria de la organización</span>
+                <select name="timezone" form="organization-timezone-form" defaultValue={organizationTimezone}>
+                  {timezones.map((timezone) => <option key={timezone} value={timezone}>{timezone}</option>)}
+                </select>
+              </label>
             </div>
           </form>
+          <form action={updateOrganizationTimezoneAction} id="organization-timezone-form">
+            <input type="hidden" name="organizationId" value={selectedOrganization?.id ?? context.organizationId} />
+          </form>
+          <div className="contextSettingsActions">
+            <button className="adminButton" form="organization-timezone-form" type="submit">Guardar zona horaria</button>
+            <button className="adminButton adminButtonPrimary" form="context-settings-form" type="submit">Guardar contexto</button>
+          </div>
+          <small className="adminMuted">Este cambio afecta a la organización; las tiendas pueden tener una zona propia.</small>
         </article>
 
         <aside className="adminCard">
@@ -435,15 +404,10 @@ export function ContextSettingsPage({
         </aside>
       </section>
 
-      <section className="adminGrid adminSection" hidden={tab !== "create-organization"}>
+      <section className="contextSettingsFullWidth adminSection" hidden={tab !== "create-organization"}>
         <article className="adminCard">
-          <div className="adminCardHeader">
-            <div>
-              <h2>Crear Organization</h2>
-              <p>Este es el onboarding normal del tenant. No forma parte del instalador de Admin 0.</p>
-            </div>
-          </div>
-          <form action={createOrganizationAction} className="adminForm" id="create-organization-form">
+
+          <form action={createOrganizationAction} className="adminForm contextSettingsForm" id="create-organization-form">
             <div className="adminFormGrid">
               <label className="adminField">
                 <span>Nombre</span>
@@ -488,22 +452,28 @@ export function ContextSettingsPage({
           </form>
         </article>
 
-        <aside className="adminCard">
-          <h2>Siguiente paso</h2>
-          <p>Después crearás una Shop con nombre y shopAlias. El backend generará ambos IDs técnicos.</p>
-          <p className="adminMuted">La sesión SYSTEM se conserva durante este proceso sin inventar un tenant ni una tienda por defecto.</p>
-        </aside>
+
       </section>
 
-      <section className="adminGrid adminSection" hidden={tab !== "create-shop" && tab !== "edit-shop"}>
-        <article className="adminCard" hidden={tab !== "create-shop"}>
-          <div className="adminCardHeader">
-            <div>
-              <h2>Crear tienda</h2>
-              <p>No se pide shopId. Backend genera la identidad canonica.</p>
-            </div>
-          </div>
-          <form action={createShopAction} className="adminForm" id="create-shop-form">
+      <section className="contextSettingsFullWidth adminSection" hidden={tab !== "create-shop" && tab !== "edit-shop"}>
+        {tab === "create-shop" && preparationTarget ? (
+          <ShopReadPreparationPanel
+            key={`${preparationTarget.organizationId}:${preparationTarget.shopId}`}
+            scopeKey={`${preparationTarget.organizationId}:${preparationTarget.shopId}`}
+            target={preparationTarget}
+            canManage={canManageReadPreparation}
+          />
+        ) : null}
+        {tab === "edit-shop" && editShop ? (
+          <ShopReadPreparationPanel
+            key={`${editShop.organizationId}:${editShop.id}`}
+            scopeKey={`${editShop.organizationId}:${editShop.id}`}
+            target={{ organizationId: editShop.organizationId, shopId: editShop.id }}
+            canManage={canManageReadPreparation}
+          />
+        ) : null}
+        <article className="adminCard" hidden={tab !== "create-shop" || Boolean(preparationTarget)}>
+          <form action={createShopAction} className="adminForm contextSettingsForm" id="create-shop-form">
             <label className="adminField">
               <span>Organization</span>
               {hasDirectory ? (
@@ -533,26 +503,17 @@ export function ContextSettingsPage({
                 <input name="primaryDomain" placeholder="barcelona.example.com" />
               </label>
               <label className="adminField">
-                <span>Shop group</span>
-                <select name="shopGroupId" defaultValue="">
-                  <option value="">Sin grupo</option>
-                  {directory.organizations.flatMap((organization) =>
-                    organization.shopGroups.map((group) => (
-                      <option value={group.id} key={`${organization.id}:${group.id}`}>
-                        {organization.name} / {group.name}
-                      </option>
-                    )),
-                  )}
-                </select>
+                <span>Dominio de administración</span>
+                <input name="adminDomain" placeholder="admin.barcelona.example.com" />
               </label>
+
             </div>
             <div className="adminFormGrid">
               <label className="adminField">
                 <span>Estado operativo</span>
-                <select name="status" defaultValue="DRAFT">
-                  <option value="DRAFT">DRAFT</option>
+                <select name="status" defaultValue="INACTIVE">
+                  <option value="INACTIVE">INACTIVE</option>
                   <option value="ACTIVE">ACTIVE</option>
-                  <option value="DISABLED">DISABLED</option>
                 </select>
               </label>
               <label className="adminField">
@@ -580,6 +541,21 @@ export function ContextSettingsPage({
                 </select>
               </label>
             </div>
+            <div className="adminFormGrid">
+              <label className="adminField">
+                <span>Shop group</span>
+                <select name="shopGroupId" defaultValue="">
+                  <option value="">Sin grupo</option>
+                  {directory.organizations.flatMap((organization) =>
+                    organization.shopGroups.map((group) => (
+                      <option value={group.id} key={`${organization.id}:${group.id}`}>
+                        {organization.name} / {group.name}
+                      </option>
+                    )),
+                  )}
+                </select>
+              </label>
+            </div>
             <label className="adminCheckbox">
               <input name="setActive" type="checkbox" defaultChecked />
               <span>Dejar esta tienda como contexto activo</span>
@@ -591,16 +567,15 @@ export function ContextSettingsPage({
         </article>
 
         <article className="adminCard" hidden={tab !== "edit-shop"}>
-          <div className="adminCardHeader">
-            <div>
-              <h2>Editar tienda</h2>
-              <p>Usa shopId internamente; el usuario edita nombre, alias, dominio y estado.</p>
-            </div>
-          </div>
+
           {editShop ? (
-            <form action={updateShopAction} className="adminForm" id="edit-shop-form">
+            <form action={updateShopAction} className="adminForm contextSettingsForm" id="edit-shop-form">
               <input type="hidden" name="organizationId" value={editShop.organizationId} />
               <input type="hidden" name="shopId" value={editShop.id} />
+              <label className="adminField">
+                <span>Organization</span>
+                <input value={directory.organizations.find((organization) => organization.id === editShop.organizationId)?.name ?? editShop.organizationId} readOnly />
+              </label>
               <div className="adminFormGrid">
                 <label className="adminField">
                   <span>Nombre</span>
@@ -615,15 +590,19 @@ export function ContextSettingsPage({
                   <input name="primaryDomain" defaultValue={editShop.primaryDomain} />
                 </label>
                 <label className="adminField">
-                  <span>Estado operativo</span>
-                  <select name="status" defaultValue={editShop.status ?? "DRAFT"}>
-                    <option value="DRAFT">DRAFT</option>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="DISABLED">DISABLED</option>
-                  </select>
+                  <span>Dominio de administración</span>
+                  <input name="adminDomain" defaultValue={editShop.adminDomain} />
                 </label>
+
               </div>
               <div className="adminFormGrid">
+                <label className="adminField">
+                  <span>Estado operativo</span>
+                  <select name="status" defaultValue={editShop.status ?? "INACTIVE"}>
+                    <option value="INACTIVE">INACTIVE</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                  </select>
+                </label>
                 <label className="adminField">
                   <span>Locale</span>
                   <select name="locale" defaultValue={editShop.locale ?? context.locale}>
@@ -649,7 +628,7 @@ export function ContextSettingsPage({
                   </select>
                 </label>
               </div>
-              <button className="adminButton" type="submit">
+              <button className="adminButton adminButtonPrimary" type="submit">
                 Guardar cambios de tienda
               </button>
             </form>
@@ -670,15 +649,7 @@ export function ContextSettingsPage({
         </div>
       ) : null}
 
-      <section className="adminCard adminSection" hidden={tab !== "inheritance"}>
-        <div className="adminCardHeader">
-          <div>
-            <h2>Settings heredables</h2>
-            <p>Metadata por campo: valor efectivo, origen y override local.</p>
-          </div>
-          <span className="adminBadge">{inheritance.source === "bff" ? "Contrato activo" : "Contrato pendiente"}</span>
-        </div>
-
+      <section className="contextInheritanceList adminSection" aria-label="Herencia de configuración" hidden={tab !== "inheritance"}>
         <div className="adminTableScroller">
           <table className="adminTable">
             <thead>

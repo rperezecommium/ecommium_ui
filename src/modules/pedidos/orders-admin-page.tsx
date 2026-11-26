@@ -1,3 +1,4 @@
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
 import Link from "next/link";
 import { Boxes, CreditCard, FileText, LifeBuoy, Search, Truck, X } from "lucide-react";
 import type { ReactNode } from "react";
@@ -378,7 +379,7 @@ function OrdersTable({ data, filters }: Props) {
   return (
     <>
       <div className="adminTableScroller">
-        <table className="adminTable pricingTable">
+        <table className="adminTable pricingTable productListTable">
           <thead>
             <tr>
               <th>Pedido</th>
@@ -1131,7 +1132,7 @@ function OrderDetailDrawer({
   return (
     <div className="adminDrawerBackdrop ordersDrawerBackdrop">
       <Link className="ordersDrawerBackdropLink" href={closeHref} aria-label="Cerrar panel de pedido" />
-      <aside className="adminSideDrawer ordersSideDrawer" aria-label={title} aria-modal="true" role="dialog">
+      <AdminResizableDrawer drawerId="orders-admin-page-orderdetaildrawer-1" className="adminSideDrawer ordersSideDrawer" aria-label={title} aria-modal="true" role="dialog">
         <div className="adminSideDrawerHeader">
           <div>
             <h2>{title}</h2>
@@ -1145,50 +1146,26 @@ function OrderDetailDrawer({
         <div className="ordersSideDrawerBody">
           <OrderDetailPanel capabilities={capabilities} data={data} filters={filters} />
         </div>
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }
 
 export function OrdersAdminPage({ capabilities, data, filters }: Props) {
-  const total = data.orders.ok ? data.orders.data.total : 0;
-  const selectedOrderId = filters.orderId;
 
   return (
-    <main className="adminPage">
+    <main className="adminPage productListPage ordersAdminPage">
       <div className="adminPageHeader">
         <div>
           <div className="adminBreadcrumb">Admin / Pedidos</div>
           <h1 className="adminPageTitle">Pedidos</h1>
           <p className="adminPageIntro">Gestiona cada parte del pedido en su contexto: operacion, pedido, pagos, documentos fiscales y postventa.</p>
         </div>
-        <div className="adminButtonRow">
-          <Link className="adminButton" href="/admin/clientes">Customer 360</Link>
-        </div>
       </div>
 
       {filters.notice ? <div className={noticeBannerClass(filters.noticeKind)}>{filters.notice}</div> : null}
 
-      <section className="adminKpiGrid">
-        <article className="adminKpi">
-          <span>Pedidos</span>
-          <strong>{total}</strong>
-          <div className="adminMuted">Filtro actual</div>
-        </article>
-        <article className="adminKpi">
-          <span>Detalle</span>
-          <strong>{selectedOrderId ?? "Sin seleccionar"}</strong>
-          <div className="adminMuted">Operacion, pagos, documentos y postventa</div>
-        </article>
-      </section>
-
-      <section className="pricingPanel">
-        <div className="pricingPanelHeader">
-          <div>
-            <h2>Buscar pedidos</h2>
-            <p>Filtra por orderId o customerId y abre el detalle operativo.</p>
-          </div>
-        </div>
+      <div className="productListSearchPanel ordersSearchPanel">
         <form action={applyOrdersFiltersAction} className="adminToolbar ordersSearchToolbar">
           <label className="adminField">
             <span>Order ID</span>
@@ -1212,6 +1189,9 @@ export function OrdersAdminPage({ capabilities, data, filters }: Props) {
           </button>
           <Link className="adminButton" href="/admin/pedidos">Limpiar</Link>
         </form>
+      </div>
+
+      <section className="productListGrid" aria-label="Listado de pedidos">
         <OrdersTable capabilities={capabilities} data={data} filters={filters} />
       </section>
 

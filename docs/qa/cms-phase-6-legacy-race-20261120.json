@@ -1,0 +1,12 @@
+{
+  "scope": "isolated PostgreSQL owner; not UI/BFF/Media E2E",
+  "checks": [
+    "reproduced: an in-flight legacy publish changes publication after conversion commit"
+  ],
+  "cleanup": true,
+  "observed": {
+    "convertedDraftPreserved": true,
+    "legacyPublicationChangedAfterConversion": true
+  },
+  "status": "UNSAFE_BEHAVIOR_REPRODUCED"
+}

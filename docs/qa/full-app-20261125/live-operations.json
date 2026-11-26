@@ -1,0 +1,240 @@
+{
+  "mode": "real-ui-real-bff",
+  "operations": [
+    {
+      "id": "A01-01",
+      "status": "APROBADO",
+      "action": "Login Employee con BFF real",
+      "evidence": "Login UI y navegación autenticada sin leer tokens"
+    },
+    {
+      "id": "A02-03",
+      "status": "APROBADO",
+      "action": "Selección de Tienda Barcelona",
+      "evidence": "Selector UI y navegación entre pantallas conservando contexto"
+    },
+    {
+      "id": "A15-01",
+      "status": "APROBADO",
+      "action": "Crear módulo visual QA y guardar",
+      "resourceId": "b2291736-d3ad-4305-86ec-703124abf153",
+      "evidence": "Módulo guardado.; URL canónica con id"
+    },
+    {
+      "id": "A15-06",
+      "status": "APROBADO",
+      "action": "Reabrir módulo QA tras recarga",
+      "resourceId": "b2291736-d3ad-4305-86ec-703124abf153",
+      "evidence": "Nombre y nodos heading conservados"
+    },
+    {
+      "id": "A16-01",
+      "status": "APROBADO",
+      "action": "Crear sección QA e insertar copia de módulo",
+      "resourceId": "fb6e054b-99dd-496e-b57f-4c88464f496f",
+      "evidence": "Sección guardada.; URL canónica"
+    },
+    {
+      "id": "A16-06",
+      "status": "APROBADO",
+      "action": "Reabrir sección QA",
+      "resourceId": "fb6e054b-99dd-496e-b57f-4c88464f496f",
+      "evidence": "Nombre y preview conservados tras recarga"
+    },
+    {
+      "id": "A17-01",
+      "status": "APROBADO",
+      "action": "Guardar plantilla SECTION desde sección QA y localizar en biblioteca",
+      "resourceId": "a06b84bd-69dc-474b-a426-307e28f290f8",
+      "evidence": "Plantilla presente en biblioteca con enlace canónico"
+    },
+    {
+      "id": "A18-01",
+      "status": "APROBADO",
+      "action": "Componer página QA con copia de sección",
+      "resourceId": "3cbd8811-4eda-46b1-b2a5-5fc16b9af51a",
+      "evidence": "UI BFF real"
+    },
+    {
+      "id": "A18-02",
+      "status": "APROBADO",
+      "action": "Guardar borrador QA",
+      "resourceId": "3cbd8811-4eda-46b1-b2a5-5fc16b9af51a",
+      "evidence": "UI BFF real"
+    },
+    {
+      "id": "A18-03",
+      "status": "APROBADO",
+      "action": "Reabrir página y verificar título y sección",
+      "resourceId": "3cbd8811-4eda-46b1-b2a5-5fc16b9af51a",
+      "evidence": "UI BFF real"
+    },
+    {
+      "id": "A18-04",
+      "status": "APROBADO",
+      "action": "Previsualizar composición",
+      "resourceId": "3cbd8811-4eda-46b1-b2a5-5fc16b9af51a",
+      "evidence": "UI BFF real"
+    },
+    {
+      "id": "A18-05",
+      "status": "APROBADO",
+      "action": "Publicar página y comprobar HTML Storefront",
+      "resourceId": "3cbd8811-4eda-46b1-b2a5-5fc16b9af51a",
+      "evidence": "HTTP 200; cms-page-3cbd8811-4eda-46b1-b2a5-5fc16b9af51a; title QA completo CMS"
+    },
+    {
+      "id": "A18-07",
+      "status": "APROBADO",
+      "action": "Despublicar página QA",
+      "resourceId": "3cbd8811-4eda-46b1-b2a5-5fc16b9af51a",
+      "evidence": "Confirmación DESPUBLICAR; el contenido CMS deja de renderizarse"
+    },
+    {
+      "id": "F02-01",
+      "status": "APROBADO",
+      "action": "Abrir categoría real con productos",
+      "evidence": "/plp/bike-brakes; enlaces PDP presentes"
+    },
+    {
+      "id": "F03-01",
+      "status": "APROBADO",
+      "action": "Abrir PDP real y comprobar precio, variantes y disponibilidad",
+      "evidence": "PDP muestra opciones y Disponible: 10"
+    },
+    {
+      "id": "F03-07",
+      "status": "APROBADO",
+      "action": "Añadir producto al carrito",
+      "evidence": "Carrito contiene una línea tras añadir desde PDP"
+    },
+    {
+      "id": "F06-01",
+      "status": "APROBADO",
+      "action": "Añadir línea desde PDP",
+      "evidence": "Carrito guest de ensayo; cantidad 1"
+    },
+    {
+      "id": "F06-02",
+      "status": "APROBADO",
+      "action": "Modificar cantidad",
+      "evidence": "Aumentar cantidad a 2"
+    },
+    {
+      "id": "F06-05",
+      "status": "APROBADO",
+      "action": "Persistencia del carrito tras recarga",
+      "evidence": "Cantidad 2 después de reload"
+    },
+    {
+      "id": "F07-07",
+      "status": "APROBADO",
+      "action": "Validación de contacto vacío",
+      "evidence": "Aviso de email, nombre, apellidos y teléfono obligatorios"
+    },
+    {
+      "id": "F07-01",
+      "status": "APROBADO",
+      "action": "Checkout invitado con contacto QA",
+      "evidence": "POST /api/storefront/checkout HTTP 400 La solicitud no es válida.; no avanza a Entrega; feedback conserva errores previos de campos vacíos | Certificación 2026-11-25: Contacto invitado certificado: guardar201 sin documento, recuperar200 y avanzar a Entrega; errores locales limpiados y pareja parcial400 sin mutación. Rama autenticada bloqueada por falta de sesión Customer; compra y pagos no certificados. | Recertificación Customer: contacto autenticado201, recuperación200 y ORDERFORM_ONLY verificados; perfil intacto. Cotización de Entrega400 por weightGrams; compra/pagos no certificados. Ver authenticated-checkout-certification.json.",
+      "history": [
+        {
+          "id": "F07-01",
+          "status": "FALLIDO",
+          "action": "Checkout invitado con contacto QA",
+          "evidence": "POST /api/storefront/checkout HTTP 400 La solicitud no es válida.; no avanza a Entrega; feedback conserva errores previos de campos vacíos"
+        },
+        {
+          "id": "F07-01",
+          "status": "APROBADO",
+          "action": "Checkout invitado con contacto QA",
+          "evidence": "POST /api/storefront/checkout HTTP 400 La solicitud no es válida.; no avanza a Entrega; feedback conserva errores previos de campos vacíos | Certificación 2026-11-25: Contacto invitado certificado: guardar201 sin documento, recuperar200 y avanzar a Entrega; errores locales limpiados y pareja parcial400 sin mutación. Rama autenticada bloqueada por falta de sesión Customer; compra y pagos no certificados."
+        }
+      ]
+    },
+    {
+      "id": "F08-01",
+      "status": "BLOQUEADO",
+      "action": "Stripe sandbox",
+      "evidence": "Checkout no supera contacto; no se inicia pago"
+    },
+    {
+      "id": "F08-02",
+      "status": "BLOQUEADO",
+      "action": "PayPal sandbox",
+      "evidence": "Checkout no supera contacto; no se inicia pago"
+    },
+    {
+      "id": "X01-03",
+      "status": "BLOQUEADO",
+      "action": "Compra completa sandbox",
+      "evidence": "Dependencia F07-01 fallida; sin pedido nuevo para probar fulfillment y refund"
+    },
+    {
+      "id": "A05-01",
+      "status": "APROBADO",
+      "action": "Crear categoría QA inactiva",
+      "resourceId": "8d3bd955-5ab1-4a10-85ed-15596469ff70",
+      "evidence": "Categoría creada.; buscador status=all confirma registro"
+    },
+    {
+      "id": "A05-02",
+      "status": "APROBADO",
+      "action": "Editar categoría QA y reabrir",
+      "resourceId": "8d3bd955-5ab1-4a10-85ed-15596469ff70",
+      "evidence": "Nombre QA-FULL-20261125 Categoría editada persistido tras respuesta de guardado y reload"
+    },
+    {
+      "id": "F06-03",
+      "status": "APROBADO",
+      "action": "Eliminar línea del carrito guest QA",
+      "evidence": "Carrito vacío; cero controles Cantidad"
+    },
+    {
+      "id": "A07-01",
+      "status": "APROBADO",
+      "action": "Crear borrador de producto QA",
+      "evidence": "UI rechaza guardado: operation La solicitud no es válida. Correlation ui-1795635745344-b25e197ce20d7. No se reintenta para evitar duplicados. | Certificación 2026-11-25: QA-006 certificada: borrador original creado sin marca, edición y reapertura reales; producto fbf5cc5b-aec5-4fd7-9f26-f47a2b8faf3e, una coincidencia. Activo sin marca400/referencia inválida404. Ver functional-fixes-evidence.json.",
+      "history": [
+        {
+          "id": "A07-01",
+          "status": "FALLIDO",
+          "action": "Crear borrador de producto QA",
+          "evidence": "UI rechaza guardado: operation La solicitud no es válida. Correlation ui-1795635745344-b25e197ce20d7. No se reintenta para evitar duplicados."
+        }
+      ]
+    },
+    {
+      "id": "A07-publication-guard",
+      "status": "APROBADO",
+      "action": "Bloquear publicación de producto incompleto",
+      "evidence": "Diálogo identifica imagen, precio y stock pendientes y ofrece Guardar borrador"
+    },
+    {
+      "id": "A05-03",
+      "status": "APROBADO",
+      "action": "Nombre de categoría en listado Productos",
+      "evidence": "20 filas reales muestran nombres; cero UUID en columna Categoría"
+    },
+    {
+      "id": "A28-02",
+      "status": "APROBADO",
+      "action": "Nombre de responsable en Postventa",
+      "evidence": "25 filas revisadas; cero UUID visibles, pero11 responsables sin nombre resoluble (Nombre no disponible) | Certificación 2026-11-25: QA-010 certificada: once alias históricos resuelven nombre, 25 filas sin nombres no disponibles; autoasignación/reasignación canónicas y tres recargas del detalle correctas. Históricos intactos. Ver functional-fixes-evidence.json.",
+      "history": [
+        {
+          "id": "A28-02",
+          "status": "FALLIDO",
+          "action": "Nombre de responsable en Postventa",
+          "evidence": "25 filas revisadas; cero UUID visibles, pero11 responsables sin nombre resoluble (Nombre no disponible)"
+        }
+      ]
+    },
+    {
+      "id": "F01-06",
+      "status": "FALLIDO",
+      "action": "Respuesta pública tras despublicar página QA",
+      "evidence": "Contenido retirado; muestra No encontramos esta página con HTTP200 y sin meta robots detectada en servidor dev. Pendiente contraste producción."
+    }
+  ]
+}

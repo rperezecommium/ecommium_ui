@@ -1,3 +1,4 @@
+import { getStorefrontCommercialReadOptions } from "./storefront-commercial-context";
 import { requestStorefrontBff } from "../../shared/bff/storefront-client";
 import { normalizeStorefrontVisitorId } from "./visitor";
 import { getStorefrontContext, type StorefrontContext } from "./storefront-context";
@@ -135,7 +136,7 @@ export async function getStorefrontPdp(
   const requestedPath = `/storefront/pdp/${encodeURIComponent(productSlug)}?${contextParams.toString()}`;
   const result = await requestStorefrontBff<unknown>(requestedPath, {
     context: { locale: context.locale },
-    withAuth: false,
+    ...await getStorefrontCommercialReadOptions(),
   });
 
   if (!result.ok) {
@@ -197,7 +198,7 @@ async function getPdpFromPlp(
       `/storefront/plp/${encodeURIComponent(categorySlug)}?${params.toString()}`,
       {
         context: { locale: context.locale },
-        withAuth: false,
+        ...await getStorefrontCommercialReadOptions(),
       },
     );
 
@@ -233,8 +234,8 @@ async function getPdpSearchCategories(
     "art",
   ].filter((slug): slug is string => Boolean(slug));
 
-  const result = await requestStorefrontBff<unknown>("/storefront/navigation/categories/tree/3", {
-    context: { locale: context.locale },
+  const result = await requestStorefrontBff<unknown>(`/storefront/navigation/categories/tree/3?${new URLSearchParams({ organizationId: context.organizationId, shopId: context.shopId, locale: context.locale }).toString()}`, {
+    context,
     withAuth: false,
   });
 
@@ -274,8 +275,8 @@ async function resolvePdpCategoryMeta(
     return null;
   }
 
-  const result = await requestStorefrontBff<unknown>("/storefront/navigation/categories/tree/3", {
-    context: { locale: context.locale },
+  const result = await requestStorefrontBff<unknown>(`/storefront/navigation/categories/tree/3?${new URLSearchParams({ organizationId: context.organizationId, shopId: context.shopId, locale: context.locale }).toString()}`, {
+    context,
     withAuth: false,
   });
 

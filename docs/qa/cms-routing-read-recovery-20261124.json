@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "pageId": "f120030d-730c-4074-9b0a-61ff45afe966",
+  "operationId": "13c58b24-9318-47b6-8354-8e7eaae1bc1e",
+  "cause": "Terminal HTTP403 on pre-mutation Routing GET; no external writes",
+  "confirmedRouteId": "6c55562a-f5a6-4595-9807-e43404590286",
+  "result": "Same reserved command PREPARED; original publication and draft retained"
+}

@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { createServer as createHttpsServer } from "node:https";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { once } from "node:events";
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import net from "node:net";
 
 const organizationId = "11111111-1111-4111-8111-111111111111";
@@ -13,6 +15,7 @@ let bffServer: Server;
 let bffPort = 0;
 let nextPort = 0;
 let nextProcess: ChildProcessWithoutNullStreams;
+let nextOutput = "";
 let recoveryRequests = 0;
 let claimRequests = 0;
 let activationRequests = 0;
@@ -36,7 +39,7 @@ async function freePort() {
 async function waitForNext(url: string) {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
       if (response.status < 500) return;
     } catch {
       // Next is still booting.
@@ -60,8 +63,13 @@ function trackingPayload() {
 
 async function startBffMock() {
   bffPort = await freePort();
-  bffServer = createServer((request: IncomingMessage, response: ServerResponse) => {
+  bffServer = createHttpsServer({ key: readFileSync("tests/e2e/fixtures/loopback.key"), cert: readFileSync("tests/e2e/fixtures/loopback.crt") }, (request: IncomingMessage, response: ServerResponse) => {
     const url = new URL(request.url ?? "/", `http://${request.headers.host}`);
+    if (request.method === "GET" && url.pathname === "/api/v1/storefront/context/resolve") {
+      sendJson(response, 200, { organizationId, shopId, shopAlias: "e2e-shop", locale: "es-ES", currency: "EUR", country: "ES", channel: "web" });
+      return;
+    }
+
     const tenantMatches = url.searchParams.get("organizationId") === organizationId
       && url.searchParams.get("shopId") === shopId;
 
@@ -115,23 +123,31 @@ async function startBffMock() {
 
 async function startNext() {
   nextPort = await freePort();
-  nextProcess = spawn("npx", ["next", "start", "-p", String(nextPort)], {
+  nextProcess = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(nextPort)], {
     cwd: process.cwd(),
     env: {
       ...process.env,
+      // HTTPS loopback fixture trusted only by the test process.
+      NODE_ENV: "production",
       ECOMMIUM_ADMIN_BFF_BASE_URL: "http://127.0.0.1:1/api/v1",
-      ECOMMIUM_STOREFRONT_BFF_BASE_URL: `http://127.0.0.1:${bffPort}/api/v1`,
+      ECOMMIUM_STOREFRONT_BFF_BASE_URL: `https://127.0.0.1:${bffPort}/api/v1`,
       ECOMMIUM_STOREFRONT_ORGANIZATION_ID: organizationId,
       ECOMMIUM_STOREFRONT_SHOP_ID: shopId,
       NEXT_PUBLIC_ECOMMIUM_PUBLIC_BASE_URL: `http://127.0.0.1:${nextPort}`,
     },
   });
-  await waitForNext(`http://127.0.0.1:${nextPort}/pedido/${orderReference}/seguimiento`);
+  nextProcess.stdout.on("data", chunk => { nextOutput = (nextOutput + chunk.toString()).slice(-16000); });
+  nextProcess.stderr.on("data", chunk => { nextOutput = (nextOutput + chunk.toString()).slice(-16000); });
+  await waitForNext(`http://127.0.0.1:${nextPort}/api/health`);
 }
 
 test.beforeAll(async () => {
   await startBffMock();
   await startNext();
+});
+
+test.afterEach(async ({}, info) => {
+  if (info.status !== info.expectedStatus) await info.attach("next-server.log", { body: nextOutput, contentType: "text/plain" });
 });
 
 test.afterAll(async () => {

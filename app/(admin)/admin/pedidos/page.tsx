@@ -1,5 +1,5 @@
 import { getAdminContext } from "../../../../src/shared/config/admin-context";
-import { refreshAdminEmployeeSession } from "../../../../src/modules/auth/admin-session-actions";
+import { getCurrentAdminSession as refreshAdminEmployeeSession } from "../../../../src/modules/auth/current-admin-session";
 import { getOrdersAdminCapabilities, getOrdersAdminData } from "../../../../src/modules/pedidos/orders-admin";
 import { OrdersAdminPage } from "../../../../src/modules/pedidos/orders-admin-page";
 import type { OrdersAdminFilters } from "../../../../src/modules/pedidos/orders-admin";

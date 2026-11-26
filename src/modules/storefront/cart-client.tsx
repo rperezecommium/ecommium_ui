@@ -77,10 +77,11 @@ type StorefrontCouponControlProps = {
   pendingCouponCode?: string;
 };
 
-export function StorefrontCartStatus() {
+export function StorefrontCartStatus({ compact = false, preview = false }: { compact?: boolean; preview?: boolean }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
+    if (preview) return;
     const syncFromOrderform = (orderform: StorefrontOrderform) => setCount(cartTotalItems(orderform));
     const syncFromEvent = (event: Event) => {
       const detail = (event as CustomEvent<unknown>).detail;
@@ -96,12 +97,12 @@ export function StorefrontCartStatus() {
     }
 
     return () => window.removeEventListener(cartUpdatedEventName, syncFromEvent);
-  }, []);
+  }, [preview]);
 
   return (
-    <Link className="storefrontCartStatus" href="/cart">
+    <Link aria-label="Carrito" className={`storefrontCartStatus${compact ? " storefrontCartStatusCompact" : ""}`} href="/cart" title="Carrito">
       <ShoppingCart aria-hidden="true" size={18} />
-      <span>Carrito</span>
+      <span className={compact ? "storefrontVisuallyHidden" : undefined}>Carrito</span>
       <strong className="storefrontCartBadge">{count}</strong>
     </Link>
   );

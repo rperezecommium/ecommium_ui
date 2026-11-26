@@ -508,3 +508,16 @@ export async function removeCatalogSpecificationValue(
     parse: (value) => parseGroup(value, context.locale),
   });
 }
+
+export async function linkCatalogSpecificationGroupToCategory(context: AdminContext, groupId: string, categoryId: string) {
+  const current = await getCatalogSpecificationGroup(context, groupId);
+  if (!current.ok) return current;
+  return requestAdminBff(`/admin/specifications/groups/${encodeURIComponent(groupId)}?${makeScopedParams(context).toString()}`, {
+    context,
+    init: { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(groupToPayload({
+      ...current.data,
+      linkedCategoryIds: [...new Set([current.data.categoryId, ...current.data.linkedCategoryIds, categoryId])],
+    }, current.data.fields.map(fieldToPayload))) },
+    parse: value => parseGroup(value, context.locale),
+  });
+}

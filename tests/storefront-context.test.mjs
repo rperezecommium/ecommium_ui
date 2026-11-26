@@ -104,6 +104,7 @@ test("Production validates the Storefront configuration before accepting request
   assert.doesNotMatch(instrumentationSource, /getStorefrontRuntimeContext\(\)/);
 
   const startup = loadModule("instrumentation.ts", {
+    "./src/shared/config/deployment-routing": { adminOnlyOrigin: () => null },
     "./src/shared/config/storefront-env": {
       getStorefrontBffBaseUrl: () => { throw new Error("missing Storefront BFF URL"); },
     },
@@ -128,4 +129,13 @@ test("Customer sessions cannot cross the active Storefront tenant", () => {
     customerSession.isStorefrontCustomerSessionForContext({ organizationId: undefined, shopId: "shop-1" }, session),
     false,
   );
+});
+
+test("Explicit Admin startup validates its profile without requiring Storefront", () => {
+ let storefrontCalls=0;
+ const startup=loadModule("instrumentation.ts", {
+  "./src/shared/config/deployment-routing": {adminOnlyOrigin:()=>new URL("https://admin.example.test")},
+  "./src/shared/config/storefront-env":{getStorefrontBffBaseUrl:()=>{storefrontCalls++;throw Error("not configured");}},
+ },{process:{env:{NODE_ENV:"production"}}});
+ startup.register();assert.equal(storefrontCalls,0);
 });

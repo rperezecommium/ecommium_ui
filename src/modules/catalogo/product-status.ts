@@ -26,3 +26,9 @@ export function productStatusIsActive(record: Record<string, unknown>, fallback 
 
   return fallback;
 }
+
+// The BFF currently exposes activation, not a durable draft/unpublished lifecycle.
+export function productPublicationLabel(productId: string | undefined, isActive: boolean) {
+  if (isActive) return "Activo";
+  return productId ? "Sin publicar" : "Borrador";
+}

@@ -1,11 +1,38 @@
 "use client";
+import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
+
+import { loadProductWarehouseStockAction } from "./product-inventory-actions";
+import { dateTimeLocalToIso, isoToDateTimeLocal } from "./product-price-dates";
+import { ProductInventoryPanel } from "./product-inventory-panel";
+import { reloadProductTaxesAction } from "./product-tax-lookup-actions";
+import type {CatalogDeletionContext} from "./catalog-deletion-contract";
+import {CatalogDeletionButton} from "./catalog-deletion-button";
+
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import type { StorefrontPdpData } from "../storefront/pdp";
+const ProductPdpPreviewModal = dynamic(() => import("./product-pdp-preview-modal").then(module => module.ProductPdpPreviewModal));
+import { registeredCombinations, registeredVariantName, registeredVariantSku } from "./product-registered-combinations";
+import { assignVariantImage, effectiveVariantImage, normalizeVariantMedia, ownVariantImage } from "./product-variant-media";
+import { ProductVariantImagePicker } from "./product-variant-image-picker";
+import { ProductSummaryGallery } from "./product-summary-gallery";
+import { ProductSeoResolutionNotice } from "./product-seo-resolution-notice";
+import {remoteProductIdentityMatches} from "./product-draft-identity";
+import { acknowledgeProductSaveAttempt, applyProductSavePatch, prepareProductSaveAttempt, productSaveSignature, type ProductSaveAttempt } from "./product-save-attempt";
+import { type productSpecificationCatalog } from "./product-specification-fields";
+import { ProductFeatureManager } from "./product-feature-manager";
+import { addProductFeatureValueAction, loadProductFeaturesAction } from "./product-feature-actions";
+import { productPublicationLabel } from "./product-status";
+import { AdminResourceDrawer } from "../../shared/ui/admin-resource-drawer";
+import { AdminMutationForm } from "../../shared/ui/admin-mutation-form";
+import { CatalogEntityFields } from "./catalog-entity-fields";
+import type { CatalogCreateInput } from "./catalog-taxonomy-schema";
 import { useRouter } from "next/navigation";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Bold, ChevronRight, Copy, ExternalLink, Eye, Italic, List, ListOrdered, Plus, Redo2, RemoveFormatting, Strikethrough, Trash2, Undo2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Bold, ChevronRight, Copy, Eye, Italic, List, ListOrdered, Pencil, Plus, Redo2, RemoveFormatting, RotateCcw, Strikethrough, Trash2, Undo2, X } from "lucide-react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import type { ChangeEvent, InputHTMLAttributes } from "react";
 import {
   attachExistingOfferingToVariantAction,
@@ -23,10 +50,11 @@ import {
   canonicalPathFromSlug,
   editorBasePrice,
   editorBasePriceVariantKey,
-  ensureSingleMainImage,
   makeProductMediaItem,
   makeRefIdFromName,
   mergeStoredProductDraft,
+  pricesForNewVariants,
+  variantPriceForEdit,
   sanitizeDraftForStorage,
   slugifyProductValue,
   withEditorBasePrice,
@@ -45,7 +73,6 @@ import type {
   ProductSaveReport,
   ProductSpecificationLookupField,
   ProductTaxLookupOption,
-  SaveBlockStatus,
   SpecificPriceDraft,
   StockDraft,
 } from "./product-editor-types";
@@ -54,9 +81,14 @@ import {
   validateProductDraft,
   validateProductPublicationReadiness,
 } from "./product-editor-validation";
-import { sanitizeRichTextHtml } from "../../shared/security/rich-text";
 
 type ProductEditorClientProps = {
+  canDeleteProducts?:boolean;
+  deletionContext?:CatalogDeletionContext;
+  canManageFeatures?: boolean;
+  canManageWarehouses?: boolean;
+  canCreateCategories?: boolean;
+  canCreateBrands?: boolean;
   contextIdentity: string;
   initialDraft: ProductDraft;
   initialVariantRows?: ProductEditorVariantRow[];
@@ -80,28 +112,14 @@ type ProductVariantRowView = ProductDraftVariant & {
   effectiveMediaSource: ProductEditorVariantRow["effectiveMediaSource"];
 };
 
-type ProductPreviewAttributeChoice = {
-  valueCode: string;
-  variantLocalId: string | null;
-  variantLabel: string;
-  availableQuantity: number;
-  available: boolean;
-  selected: boolean;
-  disabled: boolean;
-};
-
-type ProductPreviewAttributeGroup = {
-  attributeCode: string;
-  values: ProductPreviewAttributeChoice[];
-};
-
 type SpecificPriceFormState = {
   targetKey: string;
   fixedPrice: string;
   minQuantity: string;
   validFrom: string;
   validUntil: string;
-  unlimited: boolean;
+  originalValidFrom?: string | null;
+  originalValidUntil?: string | null;
   country: string;
   customerGroup: string;
   channel: string;
@@ -126,48 +144,24 @@ type PricingPreviewFormState = {
 type SpecificationPickerStep = "fields" | "values";
 type OfferingPickerStep = "list" | "details";
 type VariantAttributePickerStep = "fields" | "values";
-type VariantLifecycleFilter = "all" | "active" | "inactive";
-type VariantVisibilityFilter = "all" | "visible" | "hidden";
-type VariantBulkAction = "activate" | "deactivate" | "show" | "hide";
 
 type TabId =
   | "basic"
   | "images"
   | "variants"
   | "pricing"
-  | "inventory"
-  | "shipping"
-  | "seo"
   | "audit";
 
 const tabs: Array<{ id: TabId; label: string }> = [
   { id: "basic", label: "Ajustes basicos" },
-  { id: "images", label: "Imagenes" },
   { id: "variants", label: "Variantes" },
   { id: "pricing", label: "Precio" },
-  { id: "inventory", label: "Inventario" },
-  { id: "shipping", label: "Transporte" },
-  { id: "seo", label: "SEO" },
   { id: "audit", label: "Auditoria" },
 ];
 
-function tabForPublicationItem(itemId: string | undefined): TabId {
-  if (itemId === "media") {
-    return "images";
-  }
-  if (itemId === "price") {
-    return "pricing";
-  }
-  if (itemId === "stock") {
-    return "inventory";
-  }
-
-  return "basic";
-}
-
 function tabForRecoveryBlock(block: string | undefined): TabId {
   if (block === "media" || block === "variantMedia") {
-    return "images";
+    return "basic";
   }
   if (block === "variants") {
     return "variants";
@@ -176,13 +170,13 @@ function tabForRecoveryBlock(block: string | undefined): TabId {
     return "pricing";
   }
   if (block === "inventory") {
-    return "inventory";
+    return "variants";
   }
   if (block === "shipping") {
-    return "shipping";
+    return "variants";
   }
   if (block === "routingSeo") {
-    return "seo";
+    return "basic";
   }
   if (block === "specifications") {
     return "basic";
@@ -273,28 +267,13 @@ function centsToInput(value: number | undefined) {
   return (value / 100).toFixed(2);
 }
 
-function formatMoney(value: number | undefined, currency: string) {
+function formatMoney(value: number | undefined, currency: string, locale?: string) {
+  if (locale) return new Intl.NumberFormat(locale, {style: "currency", currency, useGrouping: false}).format((value ?? 0) / 100);
   if (!value) {
     return "0.00";
   }
 
   return `${(value / 100).toFixed(2)} ${currency}`;
-}
-
-function pricePreview(price: ProductDraft["pricing"]["productPrice"], tax: ProductTaxLookupOption | null | undefined) {
-  const base = price?.basePriceMinor ?? 0;
-  const rate = tax?.calculationType === "PERCENTAGE" ? tax.rate : undefined;
-  if (!rate || base <= 0) {
-    return null;
-  }
-
-  if (price?.taxIncluded ?? true) {
-    const net = Math.round(base / (1 + rate));
-    return { net, tax: base - net, gross: base };
-  }
-
-  const taxAmount = Math.round(base * rate);
-  return { net: base, tax: taxAmount, gross: base + taxAmount };
 }
 
 function clampInteger(value: number) {
@@ -342,28 +321,6 @@ function baseMinorFromGrossInput(value: string, price: ProductDraft["pricing"]["
   return !(price?.taxIncluded ?? true) && rate ? Math.round(gross / (1 + rate)) : gross;
 }
 
-function dateTimeLocalToIso(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
-function isoToDateTimeLocal(value: string | null | undefined) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return date.toISOString().slice(0, 16);
-}
-
 function availableQuantity(stock: StockDraft | undefined) {
   if (!stock) {
     return 0;
@@ -380,6 +337,7 @@ function stockWithAvailability(stock: StockDraft): StockDraft {
 
   return {
     ...stock,
+    availabilityEstimated: true,
     availableQuantity: available,
     available: available > 0,
     reasons: available > 0 ? [] : ["OUT_OF_STOCK"],
@@ -417,19 +375,6 @@ export function localStorageKey(
   return `ecommium-product-draft:v4:${contextIdentity}:${mode}:${storageScope ?? draft.productId ?? "new"}:${locale}:${currency}`;
 }
 
-function statusLabel(status: SaveBlockStatus) {
-  const labels: Record<SaveBlockStatus, string> = {
-    pending: "Pendiente",
-    running: "Guardando",
-    success: "Correcto",
-    failed: "Fallo",
-    skipped: "Sin cambios",
-    blocked: "Bloqueado",
-  };
-
-  return labels[status];
-}
-
 function defaultSpecificPriceForm(
   productPrice: ProductDraft["pricing"]["productPrice"],
   targetKey = "__product__",
@@ -440,11 +385,10 @@ function defaultSpecificPriceForm(
     minQuantity: "1",
     validFrom: "",
     validUntil: "",
-    unlimited: true,
     country: productPrice?.country ?? "",
     customerGroup: productPrice?.customerGroup ?? "",
-    channel: productPrice?.channel ?? "web",
-    tradePolicy: productPrice?.tradePolicy ?? "default",
+    channel: "",
+    tradePolicy: "",
     priceTableId: productPrice?.priceTableId ?? "",
     taxIncluded: productPrice?.taxIncluded ?? true,
     active: true,
@@ -459,9 +403,9 @@ function defaultPricingPreviewForm(
   return {
     targetKey,
     quantity: "1",
-    country: productPrice?.country ?? "ES",
-    channel: productPrice?.channel ?? "web",
-    tradePolicy: productPrice?.tradePolicy ?? "default",
+    country: "",
+    channel: "",
+    tradePolicy: "",
     customerGroup: productPrice?.customerGroup ?? "",
     priceTableId: productPrice?.priceTableId ?? "",
     at: "",
@@ -528,11 +472,12 @@ function specificPriceToForm(
     minQuantity: String(price.minQuantity || 1),
     validFrom: isoToDateTimeLocal(price.validFrom),
     validUntil: isoToDateTimeLocal(price.validUntil),
-    unlimited: price.unlimited ?? !price.validUntil,
+    originalValidFrom: price.validFrom,
+    originalValidUntil: price.validUntil,
     country: price.country ?? "",
     customerGroup: price.customerGroup ?? "",
-    channel: price.channel ?? productPrice?.channel ?? "web",
-    tradePolicy: price.tradePolicy ?? productPrice?.tradePolicy ?? "default",
+    channel: price.channel ?? "",
+    tradePolicy: price.tradePolicy ?? "",
     priceTableId: price.priceTableId ?? productPrice?.priceTableId ?? "",
     taxIncluded: price.taxIncluded ?? productPrice?.taxIncluded ?? true,
     active: price.active ?? true,
@@ -589,38 +534,6 @@ function fieldErrorSummary(fieldErrors: ProductSaveReport["fieldErrors"]) {
       label: fieldErrorLabel(key),
       message,
     }));
-}
-
-function productSaveBlocksFromState(
-  saveState: ProductDraft["saveState"],
-  publish: SaveBlockStatus = saveState.publish ?? "pending",
-): ProductSaveReport["blocks"] {
-  return {
-    catalog: saveState.catalog ?? "pending",
-    variants: saveState.variants ?? "pending",
-    media: saveState.media ?? "pending",
-    variantMedia: saveState.variantMedia ?? "pending",
-    specifications: saveState.specifications ?? "pending",
-    pricing: saveState.pricing ?? "pending",
-    inventory: saveState.inventory ?? "pending",
-    shipping: saveState.shipping ?? "pending",
-    routingSeo: saveState.routingSeo ?? "pending",
-    publish,
-  };
-}
-
-function statusClass(status: SaveBlockStatus) {
-  if (status === "success") {
-    return "adminBadgeOk";
-  }
-  if (status === "failed") {
-    return "adminBadgeError";
-  }
-  if (status === "running" || status === "pending" || status === "blocked") {
-    return "adminBadgeWarn";
-  }
-
-  return "";
 }
 
 function readStoredDraft(key: string, initialDraft: ProductDraft) {
@@ -707,6 +620,7 @@ function mergeRemoteDraftMediaState(
     mediaItems: ProductDraftMediaStateItem[];
   },
 ): ProductDraft {
+  if(!remoteProductIdentityMatches(draft,remote))return draft;
   const remoteItems = remote.mediaItems.map(remoteDraftMediaItemToDraftItem);
   if (!remote.productId && !remote.defaultVariantId && !remote.mediaCollectionId && remoteItems.length === 0) {
     return draft;
@@ -730,7 +644,7 @@ function mergeRemoteDraftMediaState(
         ...remoteItem.title,
         ...localItem.title,
       },
-      isMain: localItem.isMain || remoteItem.isMain,
+      isMain: localItem.isMain,
       active: localItem.active ?? remoteItem.active,
       previewUrl: remoteItem.previewUrl ?? localItem.previewUrl,
     };
@@ -754,40 +668,6 @@ function mergeRemoteDraftMediaState(
       media: hasRemoteMedia ? "success" : draft.saveState.media,
     },
   };
-}
-
-function combinationRows(colorValues: string, sizeValues: string, productName: string): ProductDraftVariant[] {
-  const colors = colorValues.split(",").map((value) => value.trim()).filter(Boolean);
-  const sizes = sizeValues.split(",").map((value) => value.trim()).filter(Boolean);
-  const colorList = colors.length ? colors : [""];
-  const sizeList = sizes.length ? sizes : [""];
-
-  return colorList.flatMap((color) =>
-    sizeList.map((size) => {
-      const parts = [color, size].filter(Boolean);
-      const name = parts.length ? `${productName} / ${parts.join(" / ")}` : productName;
-      const refBase = makeRefIdFromName(parts.length ? `${productName} ${parts.join(" ")}` : productName);
-
-      return {
-        localId: `variant-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        name,
-        refId: refBase,
-        ean: null,
-        options: [
-          ...(color ? [{ attributeCode: "color", valueCode: slugifyProductValue(color) }] : []),
-          ...(size ? [{ attributeCode: "size", valueCode: slugifyProductValue(size) }] : []),
-        ],
-        isActive: true,
-        isVisible: true,
-      };
-    }),
-  );
-}
-
-function optionLabel(variant: ProductDraftVariant) {
-  return variant.options.length
-    ? variant.options.map((option) => `${option.attributeCode}: ${option.valueCode}`).join(", ")
-    : "Sin atributos";
 }
 
 function variantAttributeCode(field: ProductSpecificationLookupField) {
@@ -821,27 +701,6 @@ function offeringName(
     offering.name;
 }
 
-type RichTextPreviewProps = {
-  className?: string;
-  emptyLabel: string;
-  html: string;
-};
-
-function RichTextPreview({ className = "", emptyLabel, html }: RichTextPreviewProps) {
-  const sanitizedHtml = useMemo(() => sanitizeRichTextHtml(html), [html]);
-
-  if (!html.trim() || !sanitizedHtml) {
-    return <p className="productPreviewEmpty">{emptyLabel}</p>;
-  }
-
-  return (
-    <div
-      className={`productPreviewRichText ${className}`.trim()}
-      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-    />
-  );
-}
-
 type RichTextEditorProps = {
   label: string;
   minHeight?: number;
@@ -850,6 +709,7 @@ type RichTextEditorProps = {
 };
 
 function RichTextEditor({ label, minHeight = 180, value, onChange }: RichTextEditorProps) {
+  const [sourceOpen, setSourceOpen] = useState(false);
   const editor = useEditor({
     extensions: [StarterKit],
     content: value || "",
@@ -991,13 +851,16 @@ function RichTextEditor({ label, minHeight = 180, value, onChange }: RichTextEdi
           </button>
         </div>
         <EditorContent editor={editor} style={{ minHeight }} />
-        <textarea
+        <button className="adminButton adminButtonTiny richTextSourceToggle" type="button" aria-expanded={sourceOpen} onClick={() => setSourceOpen(!sourceOpen)}>
+          {sourceOpen ? "Ocultar código HTML" : "Mostrar código HTML"}
+        </button>
+        {sourceOpen ? <textarea
           aria-label={`${label} HTML`}
           className="richTextSource"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           rows={3}
-        />
+        /> : null}
       </div>
     </div>
   );
@@ -1005,95 +868,119 @@ function RichTextEditor({ label, minHeight = 180, value, onChange }: RichTextEdi
 
 type EntitySelectorProps = {
   label: string;
-  placeholder: string;
+  kind: "categories" | "brands";
   selectedId?: string;
   options: ProductLookupOption[];
   fieldError?: string;
+  canCreate: boolean;
   onSelect(option: ProductLookupOption): void;
-  createAction(name: string): Promise<{ ok: boolean; options: ProductLookupOption[]; option?: ProductLookupOption; message?: string }>;
+  createAction(input: CatalogCreateInput): Promise<{ ok: boolean; options: ProductLookupOption[]; option?: ProductLookupOption; message?: string; fieldErrors?: Record<string, string> }>;
 };
 
-function ProductEntitySelector({
-  label,
-  placeholder,
-  selectedId,
-  options,
-  fieldError,
-  onSelect,
-  createAction,
-}: EntitySelectorProps) {
-  const [newName, setNewName] = useState("");
+function ProductEntitySelector({ label, kind, selectedId, options, fieldError, onSelect, createAction, canCreate }: EntitySelectorProps) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [localOptions, setLocalOptions] = useState(options);
-  const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-
-  function runCreate() {
-    const name = newName.trim();
-    if (!name) {
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await createAction(name);
-      setLocalOptions(result.options.length ? result.options : localOptions);
-      if (result.ok && result.option) {
-        onSelect(result.option);
-        setNewName("");
-        setMessage(null);
-        return;
-      }
-
-      setMessage(result.message ?? "No se pudo crear la entidad en BFF.");
-    });
-  }
-
+  const selectedOption = localOptions.find(option => option.id === selectedId) ?? options.find(option => option.id === selectedId);
+  const displayedOptions = selectedOption && !localOptions.some(option => option.id === selectedId) ? [selectedOption, ...localOptions] : localOptions;
   return (
+    <>
     <div className="adminField productEntitySelector">
       <span>{label}</span>
       <div className="productEntitySelectorRow">
-        <select
-          aria-label={label}
-          value={selectedId ?? ""}
-          onChange={(event) => {
-            const option = localOptions.find((item) => item.id === event.target.value);
-            if (option) {
-              onSelect(option);
-            }
-          }}
-        >
+        <select aria-label={label} value={selectedId ?? ""} onChange={(event) => {
+          const option = displayedOptions.find((item) => item.id === event.target.value);
+          onSelect(option ?? {id: "", label: ""});
+        }}>
           <option value="">Selecciona</option>
-          {localOptions.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
+          {selectedId && !selectedOption ? <option value={selectedId}>Asignación no disponible</option> : null}
+          {displayedOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
         </select>
-        <input
-          aria-label={`Nueva ${label.toLowerCase()}`}
-          autoComplete="off"
-          placeholder={placeholder}
-          value={newName}
-          onChange={(event) => setNewName(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              runCreate();
-            }
-          }}
-        />
-        <button className="adminButton" disabled={isPending || !newName.trim()} type="button" onClick={runCreate}>
-          Crear nueva
-        </button>
+        {canCreate ? <button className="adminButton" aria-label={kind === "categories" ? "Crear categoría" : "Crear marca o proveedor"} type="button" onClick={() => setDrawerOpen(true)}>
+          <Plus aria-hidden="true" size={16} />
+        </button> : null}
       </div>
-      {localOptions.length === 0 ? <small>No hay opciones precargadas desde BFF.</small> : null}
+      {localOptions.length === 0 ? <small>No hay opciones precargadas.</small> : null}
       {fieldError ? <small>{fieldError}</small> : null}
-      {message ? <small>{message}</small> : null}
     </div>
+      {drawerOpen && canCreate ? <AdminResourceDrawer drawerId={`product-inline-${kind}`} title={kind === "categories" ? "Crear categoría" : "Crear marca / proveedor"} description="Se creará en la tienda y el idioma actuales." onClose={() => setDrawerOpen(false)}>
+        <AdminMutationForm label={kind === "categories" ? "Crear categoría" : "Crear marca"} className="adminForm" action={async (_state, data) => {
+          const text = (key: string) => String(data.get(key) ?? "").trim();
+          const result = await createAction({name: text("name"), slug: text("slug"), description: text("description"), title: text("title"), text: text("text"), siteTitle: text("siteTitle"), keywords: text("keywords"), isActive: data.get("isActive") === "on"});
+          if (!result.ok || !result.option) return {error: result.message ?? "No se pudo crear el registro.", fieldErrors: result.fieldErrors};
+          const option = result.option;
+          setLocalOptions(current => [...current.filter(item => item.id !== option.id), option]);
+          onSelect(option);
+          setDrawerOpen(false);
+          return {success: "Registro creado."};
+        }}>
+          <CatalogEntityFields kind={kind} />
+          <button className="adminButton adminButtonPrimary" type="submit">Crear y asignar</button>
+        </AdminMutationForm>
+      </AdminResourceDrawer> : null}
+    </>
   );
+}
+
+function ProductSaveDecision({ missing, preservingActive = false, onClose, onSave }: {
+  missing: ReturnType<typeof getProductPublicationChecklist>;
+  preservingActive?: boolean;
+  onClose(): void;
+  onSave(publish: boolean): void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    dialog.current?.showModal();
+    return () => { document.body.style.overflow = previousOverflow; previous?.focus(); };
+  }, []);
+  return <dialog ref={dialog} className="productSaveDecision" aria-labelledby="product-save-decision-title" aria-describedby="product-save-decision-description" onCancel={onClose}>
+    <h2 id="product-save-decision-title">{preservingActive ? "No se pueden guardar los cambios" : missing.length ? "Producto incompleto para publicar" : "Producto preparado para publicar"}</h2>
+    <p id="product-save-decision-description">{preservingActive ? "Revisa los requisitos pendientes antes de guardar. No se ha enviado el guardado y el producto conserva su estado activo." : missing.length ? "Completa los requisitos pendientes o guarda un borrador para continuar después." : "Los requisitos de portada, precio y stock están completos. Elige cómo guardar."}</p>
+    {missing.length ? <ul>{missing.map(item => <li key={item.id}>{item.message}</li>)}</ul> : null}
+    <div className="adminButtonRow">
+      <button className="adminButton" type="button" onClick={onClose}>Seguir editando</button>
+      {!preservingActive ? <button className={missing.length ? "adminButton adminButtonPrimary" : "adminButton"} type="button" onClick={() => onSave(false)}>Guardar borrador</button> : null}
+      {!preservingActive && !missing.length ? <button className="adminButton adminButtonPrimary" type="button" onClick={() => onSave(true)}>Publicar</button> : null}
+    </div>
+  </dialog>;
+}
+
+function ProductEditorActions({ productId, disabled }: {productId?: string; disabled: boolean}) {
+  const popupId = useId();
+  const popup = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({left: 0, top: 0});
+  return <>
+    <button className="adminButton productMoreActionsTrigger" aria-label="Más acciones del producto" popoverTarget={popupId} disabled={disabled} type="button" onClick={event => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setPosition({left: Math.max(8, Math.min(rect.right - 220, window.innerWidth - 228)), top: Math.max(8, rect.top - 152)});
+    }}>⋯</button>
+    <div className="productActionsPopover" id={popupId} popover="auto" ref={popup} style={position} role="group" aria-label="Más acciones del producto">
+      {productId ? <Link className="adminButton" href={`/admin/products/new?duplicateFrom=${encodeURIComponent(productId)}`} onClick={() => popup.current?.hidePopover()}>
+        <Copy aria-hidden="true" size={16} />Duplicar
+      </Link> : <button className="adminButton" disabled type="button" title="Guarda el producto antes de duplicarlo"><Copy aria-hidden="true" size={16} />Duplicar</button>}
+      <Link className="adminButton" href="/admin/products/new" onClick={() => popup.current?.hidePopover()}><Plus aria-hidden="true" size={16} />Crear otro producto</Link>
+      {productId ? <form action={deactivateProductAction} onSubmit={event => {
+        if (!window.confirm("¿Desactivar este producto? Se ocultará de la tienda y sus rutas dejarán de aparecer en el sitemap.")) event.preventDefault();
+        popup.current?.hidePopover();
+      }}>
+        <input name="productId" type="hidden" value={productId} />
+        <input name="returnTo" type="hidden" value="/admin/products" />
+        <input name="confirmDeactivate" type="hidden" value="yes" />
+        <button className="adminButton productActionsDanger" type="submit"><Trash2 aria-hidden="true" size={16} />Desactivar</button>
+      </form> : null}
+    </div>
+  </>;
 }
 
 export function ProductEditorClient({
   contextIdentity,
+  canDeleteProducts = false,
+  deletionContext,
+  canManageFeatures = false,
+  canCreateCategories = false,
+  canCreateBrands = false,
   initialDraft,
   initialVariantRows = [],
   locale,
@@ -1114,7 +1001,12 @@ export function ProductEditorClient({
 	      key={editorInstanceKey}
 	      initialDraft={initialDraft}
 	      initialVariantRows={initialVariantRows}
-	      locale={locale}
+	      canDeleteProducts={canDeleteProducts}
+      deletionContext={deletionContext}
+      canManageFeatures={canManageFeatures}
+      canCreateCategories={canCreateCategories}
+      canCreateBrands={canCreateBrands}
+      locale={locale}
       currency={currency}
       lookups={lookups}
       storageKey={storageKey}
@@ -1127,6 +1019,11 @@ export function ProductEditorClient({
 function ProductEditorClientInner({
   initialDraft,
   initialVariantRows = [],
+  canDeleteProducts = false,
+  deletionContext,
+  canManageFeatures = false,
+  canCreateCategories = false,
+  canCreateBrands = false,
   locale,
   currency,
   lookups = defaultProductEditorLookups,
@@ -1136,32 +1033,56 @@ function ProductEditorClientInner({
 }: ProductEditorClientInnerProps) {
   const router = useRouter();
   const [draft, setDraft] = useState<ProductDraft>(initialDraft);
+  const warehouseOptions = lookups.warehouses ?? [];
+  const [taxLookups, setTaxLookups] = useState(lookups.taxes);
+  const [taxReloadMessage, setTaxReloadMessage] = useState<string>();
+  const [taxReloadSucceeded, setTaxReloadSucceeded] = useState(false);
+  const [taxReloadPending, startTaxReload] = useTransition();
+  const [stockWarehouseLoading, setStockWarehouseLoading] = useState(false);
+  const [stockWarehouseMessage, setStockWarehouseMessage] = useState<string>();
+  // Only initial BFF data and a save acknowledgement can change this snapshot.
+  // Local recovery drafts must never turn an active product into an inactive one.
+  const [persistedPublication, setPersistedPublication] = useState({
+    isActive: Boolean(initialDraft.productId && initialDraft.basic.isActive),
+    isVisible: initialDraft.basic.isVisible,
+  });
   const [storedDraft, setStoredDraft] = useState<ProductDraft | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("basic");
   const [dirty, setDirty] = useState(false);
+  const [saveDecisionOpen, setSaveDecisionOpen] = useState(false);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(draft.media.items[0]?.localId ?? null);
   const [selectedVariantKey, setSelectedVariantKey] = useState<string>("default");
+  const [variantAttributeFields, setVariantAttributeFields] = useState(lookups.variantAttributeFields);
+  const [attributeManagerOpen, setAttributeManagerOpen] = useState(false);
+  const [attributeGroups, setAttributeGroups] = useState(lookups.specificationGroups ?? []);
+  const [attributeLoadError, setAttributeLoadError] = useState<string | null>(null);
   const [specificPriceForm, setSpecificPriceForm] = useState<SpecificPriceFormState>(() =>
     defaultSpecificPriceForm(editorBasePrice(initialDraft), "__product__"),
   );
   const [specificPriceEditIndex, setSpecificPriceEditIndex] = useState<number | null>(null);
+  const [specificPriceDateError, setSpecificPriceDateError] = useState<string | null>(null);
+  const [specificPriceDrawerOpen, setSpecificPriceDrawerOpen] = useState(false);
+  const closeSpecificPriceDrawer = useCallback(() => {
+    setSpecificPriceDrawerOpen(false);
+    setSpecificPriceDateError(null);
+  }, []);
+  const [pricingPreviewDateError, setPricingPreviewDateError] = useState<string | null>(null);
   const [pricingPreviewForm, setPricingPreviewForm] = useState<PricingPreviewFormState>(() =>
     defaultPricingPreviewForm(editorBasePrice(initialDraft), "__product__"),
   );
   const [pricingPreviewResult, setPricingPreviewResult] = useState<ProductAppliedPricePreview | null>(null);
   const [pricingPreviewBusy, setPricingPreviewBusy] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(initialPreviewOpen);
-  const [previewVariantKey, setPreviewVariantKey] = useState<string>("default");
   const [filesByLocalId, setFilesByLocalId] = useState<Record<string, File>>({});
   const mediaFileInputRef = useRef<HTMLInputElement>(null);
   const [mediaPickerBusy, setMediaPickerBusy] = useState(false);
   const [mediaPickerMessage, setMediaPickerMessage] = useState<string | null>(null);
-  const [variantColors, setVariantColors] = useState("");
-  const [variantSizes, setVariantSizes] = useState("");
-  const [variantFilterQuery, setVariantFilterQuery] = useState("");
-  const [variantLifecycleFilter, setVariantLifecycleFilter] = useState<VariantLifecycleFilter>("all");
-  const [variantVisibilityFilter, setVariantVisibilityFilter] = useState<VariantVisibilityFilter>("all");
-  const [pendingGeneratedVariants, setPendingGeneratedVariants] = useState<ProductDraftVariant[] | null>(null);
+  const [generatorSelections, setGeneratorSelections] = useState<Record<string, string[]>>({});
+  const [generatingVariants, setGeneratingVariants] = useState(false);
+  const generationVersion = useRef(0);
+  useEffect(() => {
+    generationVersion.current += 1;
+  }, [draft.basic.categoryId]);
   const [variantMessage, setVariantMessage] = useState<string | null>(null);
   const [brokenMediaPreviewIds, setBrokenMediaPreviewIds] = useState<Record<string, true>>({});
   const [offeringMessage, setOfferingMessage] = useState<{
@@ -1172,29 +1093,31 @@ function ProductEditorClientInner({
   const [offeringPickerOpen, setOfferingPickerOpen] = useState(false);
   const [offeringPickerStep, setOfferingPickerStep] = useState<OfferingPickerStep>("list");
   const [offeringPickerOfferingId, setOfferingPickerOfferingId] = useState<string | null>(null);
-  const [dismissedVariantAttributeNotices, setDismissedVariantAttributeNotices] = useState({
-    persisted: false,
-    guidance: false,
-  });
   const [variantAttributePickerOpen, setVariantAttributePickerOpen] = useState(false);
   const [variantAttributePickerStep, setVariantAttributePickerStep] = useState<VariantAttributePickerStep>("fields");
   const [variantAttributePickerFieldId, setVariantAttributePickerFieldId] = useState<string | null>(null);
+  const [featureFields, setFeatureFields] = useState(lookups.specificationFields);
+  const [featureGroups, setFeatureGroups] = useState(lookups.specificationGroups ?? []);
+  const [featureLoadError, setFeatureLoadError] = useState(lookups.specificationLoadError);
+  const [featureManagerOpen, setFeatureManagerOpen] = useState(false);
+  const [featureSearch, setFeatureSearch] = useState("");
+  const [featureRefreshing, setFeatureRefreshing] = useState(false);
   const [specificationPickerOpen, setSpecificationPickerOpen] = useState(false);
   const [specificationPickerStep, setSpecificationPickerStep] = useState<SpecificationPickerStep>("fields");
   const [specificationPickerFieldId, setSpecificationPickerFieldId] = useState<string | null>(null);
   const [report, setReport] = useState<ProductSaveReport | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const saveOperationKeyRef = useRef<string | null>(null);
+  const saveAttemptRef = useRef<ProductSaveAttempt | null>(null);
   const hydratedRemoteDraftIdsRef = useRef<Set<string>>(new Set());
   const savingActive = isSaving || isPending;
   const selectedMedia = draft.media.items.find((item) => item.localId === selectedMediaId) ?? draft.media.items[0];
-  const productStatus = draft.basic.isActive ? "Activo" : "Fuera de linea";
+  const productStatus = productPublicationLabel(draft.productId, persistedPublication.isActive);
   const selectedSpecifications = useMemo(() => {
     return draft.specifications.selections
       .filter((selection) => !selection.markedForDeletion)
       .map((selection) => {
-        const field = lookups.specificationFields.find((item) => item.fieldId === selection.fieldId) ?? {
+        const field = featureFields.find((item) => item.fieldId === selection.fieldId) ?? {
           fieldId: selection.fieldId,
           groupId: selection.groupId ?? "",
           groupName: selection.groupId ?? "Caracteristica",
@@ -1211,16 +1134,28 @@ function ProductEditorClientInner({
         return { field, selection, value };
       })
       .filter((item) => item.selection.fieldId && item.selection.fieldValueId);
-  }, [draft.specifications.selections, lookups.specificationFields]);
+  }, [draft.specifications.selections, featureFields]);
+  function mergeFeatureCatalog(catalog: ReturnType<typeof productSpecificationCatalog>) {
+    setFeatureFields(current => [...current.filter(field => !catalog.groups.some(group => group.groupId === field.groupId)), ...catalog.fields]);
+    setFeatureGroups(current => [...current.filter(group => !catalog.groups.some(item => item.groupId === group.groupId)), ...catalog.groups]);
+  }
+  async function refreshFeatureCatalog() {
+    setFeatureRefreshing(true);
+    try {
+      const result = await loadProductFeaturesAction();
+      if (result.ok) { setFeatureFields(result.catalog.fields); setFeatureGroups(result.catalog.groups); setFeatureLoadError(undefined); }
+      else setFeatureLoadError(result.message);
+    } catch { setFeatureLoadError("No se pudieron actualizar las características. Inténtalo de nuevo."); } finally { setFeatureRefreshing(false); }
+  }
   const specificationPickerField = specificationPickerFieldId
-    ? lookups.specificationFields.find((field) => field.fieldId === specificationPickerFieldId)
+    ? featureFields.find((field) => field.fieldId === specificationPickerFieldId)
     : undefined;
   const variantRowsById = useMemo(
     () => new Map(initialVariantRows.map((row) => [row.variantId, row])),
     [initialVariantRows],
   );
   const allVariantRows = useMemo<ProductVariantRowView[]>(() => {
-    const hasDirectMediaForKey = (variantKey: string) => (draft.media.assignments[variantKey] ?? []).length > 0;
+    const hasDirectMediaForKey = (variantKey: string) => Boolean(ownVariantImage(draft, variantKey));
     const productName = draft.basic.name || "Producto";
     const productRefId = draft.defaultVariant.refId || "Sin referencia";
     const productPresentation = draft.defaultVariantId ? variantRowsById.get(draft.defaultVariantId) : undefined;
@@ -1240,9 +1175,9 @@ function ProductEditorClientInner({
         role: productPresentation?.role ?? (draft.variants.length > 0 ? "PRODUCT_DEFAULT" : "PRODUCT_SIMPLE"),
         displayLabel: productPresentation?.displayLabel ?? `Producto - ${productName}`,
         selectorLabel: productPresentation?.selectorLabel ?? `Producto - ${productName} (${productRefId})`,
-        effectiveMediaSource: productPresentation?.effectiveMediaSource ?? (productDirectMedia ? "DIRECT" : "NONE"),
+        effectiveMediaSource: productDirectMedia ? "DIRECT" : "NONE",
       },
-      ...draft.variants.map((variant, index) => {
+      ...draft.variants.map((variant, index): ProductVariantRowView => {
         const presentation = variant.variantId ? variantRowsById.get(variant.variantId) : undefined;
         const directMedia = hasDirectMediaForKey(variant.localId);
         const inheritsFromProduct = !directMedia && productDirectMedia;
@@ -1254,38 +1189,11 @@ function ProductEditorClientInner({
           role: presentation?.role ?? "VARIANT",
           displayLabel: presentation?.displayLabel ?? `Variante ${index + 1} - ${labelBase}`,
           selectorLabel: presentation?.selectorLabel ?? `Variante ${index + 1} - ${labelBase} (${variant.refId || "Sin referencia"})`,
-          effectiveMediaSource: presentation?.effectiveMediaSource ?? (directMedia ? "DIRECT" : inheritsFromProduct ? "DEFAULT_VARIANT" : "NONE"),
+          effectiveMediaSource: directMedia ? "DIRECT" : inheritsFromProduct ? "DEFAULT_VARIANT" : "NONE",
         };
       }),
     ];
   }, [draft, variantRowsById]);
-  const filteredDraftVariants = useMemo(() => {
-    const query = variantFilterQuery.trim().toLowerCase();
-
-    return draft.variants.filter((variant) => {
-      const matchesQuery = !query || [
-        variant.name,
-        variant.refId,
-        variant.ean ?? "",
-        optionLabel(variant),
-      ].some((value) => value.toLowerCase().includes(query));
-      const matchesLifecycle =
-        variantLifecycleFilter === "all" ||
-        (variantLifecycleFilter === "active" && variant.isActive) ||
-        (variantLifecycleFilter === "inactive" && !variant.isActive);
-      const matchesVisibility =
-        variantVisibilityFilter === "all" ||
-        (variantVisibilityFilter === "visible" && variant.isVisible) ||
-        (variantVisibilityFilter === "hidden" && !variant.isVisible);
-
-      return matchesQuery && matchesLifecycle && matchesVisibility;
-    });
-  }, [draft.variants, variantFilterQuery, variantLifecycleFilter, variantVisibilityFilter]);
-  const hasVariantFilters = Boolean(
-    variantFilterQuery.trim() ||
-    variantLifecycleFilter !== "all" ||
-    variantVisibilityFilter !== "all",
-  );
   const selectedVariant =
     allVariantRows.find((variant) => variant.localId === selectedVariantKey || variant.variantId === selectedVariantKey) ??
     allVariantRows[0];
@@ -1297,19 +1205,27 @@ function ProductEditorClientInner({
     : undefined;
   const activeSelectedVariantOptions = selectedVariant.options.filter((option) => !option.markedForDeletion && option.isActive !== false);
   const variantAttributePickerField = variantAttributePickerFieldId
-    ? lookups.variantAttributeFields.find((field) => field.fieldId === variantAttributePickerFieldId)
+    ? variantAttributeFields.find((field) => field.fieldId === variantAttributePickerFieldId)
     : undefined;
   const productPrice = editorBasePrice(draft);
+  const selectedPanelOwnPrice = selectedVariant.isDefault ? undefined : scopedDraftValue(draft.pricing.variantPrices, selectedVariant);
+  const selectedPanelHasOwnPrice = Boolean(selectedPanelOwnPrice && !selectedPanelOwnPrice.markedForDeletion);
+  const selectedPanelPrice = selectedPanelHasOwnPrice ? selectedPanelOwnPrice : productPrice;
+  const selectedPanelStock = selectedVariant.isDefault ? { key: "default", stock: stockForKey("default"), mode: "own" } : stockForVariantRow(selectedVariant);
   const basePriceVariantKey = editorBasePriceVariantKey(draft);
+  const inheritPriceLabel = basePriceVariantKey ? "Heredar precio de la variante 0" : "Heredar precio del producto";
   const basePriceTaxErrorKey = basePriceVariantKey
     ? `pricing.variantPrices:${basePriceVariantKey}:tax`
     : "pricing.productPrice.tax";
   const selectedTax =
     productPrice?.tax ??
-    lookups.taxes.find((tax) => tax.id === productPrice?.taxCode || tax.taxCode === productPrice?.taxCode);
-  const taxOptions = selectedTax && !lookups.taxes.some((tax) => tax.id === selectedTax.id)
-    ? [selectedTax, ...lookups.taxes]
-    : lookups.taxes;
+    taxLookups.find((tax) => tax.id === productPrice?.taxCode || tax.taxCode === productPrice?.taxCode);
+  const selectedPanelTaxErrorKey = selectedVariant.isDefault ? basePriceTaxErrorKey : `pricing.variantPrices:${selectedVariant.localId}:tax`;
+  const selectedPanelTax = selectedPanelPrice?.tax ?? taxLookups.find((tax) => tax.id === selectedPanelPrice?.taxCode || tax.taxCode === selectedPanelPrice?.taxCode);
+  const selectedPanelTaxOptions = selectedPanelTax && !taxLookups.some((tax) => tax.id === selectedPanelTax.id) ? [selectedPanelTax, ...taxLookups] : taxLookups;
+  const taxOptions = selectedTax && !taxLookups.some((tax) => tax.id === selectedTax.id)
+    ? [selectedTax, ...taxLookups]
+    : taxLookups;
   const selectedPriceTable = productPrice?.priceTableId
     ? lookups.priceTables.find((table) => table.id === productPrice.priceTableId) ?? {
         id: productPrice.priceTableId,
@@ -1319,21 +1235,15 @@ function ProductEditorClientInner({
   const priceTableOptions = selectedPriceTable && !lookups.priceTables.some((table) => table.id === selectedPriceTable.id)
     ? [selectedPriceTable, ...lookups.priceTables]
     : lookups.priceTables;
-  const productChannelOptions = lookupOptionsWithCurrent(lookups.channels, productPrice?.channel ?? "web");
-  const productTradePolicyOptions = lookupOptionsWithCurrent(lookups.tradePolicies, productPrice?.tradePolicy ?? "default");
-  const productCountryOptions = lookupOptionsWithCurrent(lookups.countries, productPrice?.country ?? "ES");
-  const productCustomerGroupOptions = lookupOptionsWithCurrent(lookups.customerGroups, productPrice?.customerGroup);
-  const specificChannelOptions = lookupOptionsWithCurrent(lookups.channels, specificPriceForm.channel || productPrice?.channel || "web");
-  const specificTradePolicyOptions = lookupOptionsWithCurrent(lookups.tradePolicies, specificPriceForm.tradePolicy || productPrice?.tradePolicy || "default");
+  const specificChannelOptions = lookupOptionsWithCurrent(lookups.channels, specificPriceForm.channel);
+  const specificTradePolicyOptions = lookupOptionsWithCurrent(lookups.tradePolicies, specificPriceForm.tradePolicy);
   const specificCountryOptions = lookupOptionsWithCurrent(lookups.countries, specificPriceForm.country);
   const specificCustomerGroupOptions = lookupOptionsWithCurrent(lookups.customerGroups, specificPriceForm.customerGroup);
-  const previewChannelOptions = lookupOptionsWithCurrent(lookups.channels, pricingPreviewForm.channel || productPrice?.channel || "web");
-  const previewTradePolicyOptions = lookupOptionsWithCurrent(lookups.tradePolicies, pricingPreviewForm.tradePolicy || productPrice?.tradePolicy || "default");
-  const previewCountryOptions = lookupOptionsWithCurrent(lookups.countries, pricingPreviewForm.country || productPrice?.country || "ES");
+  const previewChannelOptions = lookupOptionsWithCurrent(lookups.channels, pricingPreviewForm.channel);
+  const previewTradePolicyOptions = lookupOptionsWithCurrent(lookups.tradePolicies, pricingPreviewForm.tradePolicy);
+  const previewCountryOptions = lookupOptionsWithCurrent(lookups.countries, pricingPreviewForm.country);
   const previewCustomerGroupOptions = lookupOptionsWithCurrent(lookups.customerGroups, pricingPreviewForm.customerGroup);
-  const pricingTaxWarning = lookups.warnings.find((warning) => warning.startsWith("Pricing taxes:"));
-  const pricingTablesWarning = lookups.warnings.find((warning) => warning.startsWith("Pricing price tables:"));
-  const currentPricePreview = pricePreview(productPrice, selectedTax);
+  const pricingTaxWarning = taxReloadSucceeded ? undefined : lookups.warnings.find((warning) => warning.startsWith("Pricing taxes:"));
   const priceVariantRows = draft.variants;
   const specificPrices = draft.pricing.specificPrices ?? [];
   const visibleSpecificPrices = specificPrices.filter((price) => !price.markedForDeletion);
@@ -1349,78 +1259,38 @@ function ProductEditorClientInner({
       refId: variant.refId,
     })),
   ];
-  const selectedPriceVariant =
-    priceVariantRows.find((variant) => variant.localId === selectedVariantKey || variant.variantId === selectedVariantKey) ??
-    priceVariantRows[0];
-  const selectedVariantPrice = selectedPriceVariant
-    ? draft.pricing.variantPrices[selectedPriceVariant.localId]
-    : undefined;
-  const selectedVariantUsesOwnPrice = Boolean(selectedVariantPrice && !selectedVariantPrice.markedForDeletion);
-  const selectedVariantTax =
-    selectedVariantPrice?.tax ??
-    selectedTax ??
-    lookups.taxes.find((tax) => tax.id === selectedVariantPrice?.taxCode || tax.taxCode === selectedVariantPrice?.taxCode);
-  const variantTaxOptions = selectedVariantTax && !taxOptions.some((tax) => tax.id === selectedVariantTax.id)
-    ? [selectedVariantTax, ...taxOptions]
-    : taxOptions;
-  const selectedVariantPriceTable = selectedVariantPrice?.priceTableId
-    ? priceTableOptions.find((table) => table.id === selectedVariantPrice.priceTableId) ?? {
-        id: selectedVariantPrice.priceTableId,
-        label: selectedVariantPrice.priceTableId,
-      }
-    : null;
-  const variantPriceTableOptions = selectedVariantPriceTable && !priceTableOptions.some((table) => table.id === selectedVariantPriceTable.id)
-    ? [selectedVariantPriceTable, ...priceTableOptions]
-    : priceTableOptions;
+  const auditContext = (price: { country?: string | null; channel?: string | null; tradePolicy?: string | null; customerGroup?: string | null; priceTableId?: string | null }) => [
+    price.country && `País: ${price.country}`, price.channel && `Canal: ${price.channel}`,
+    price.tradePolicy && `Política: ${price.tradePolicy}`, price.customerGroup && `Grupo: ${price.customerGroup}`,
+    price.priceTableId && `Tabla: ${price.priceTableId}`,
+  ].filter(Boolean).join(" · ") || "Todos";
+  const auditValidity = (price: { validFrom?: string | null; validUntil?: string | null }) =>
+    `${price.validFrom ? isoToDateTimeLocal(price.validFrom).replace("T", " ") : "Sin inicio"} → ${price.validUntil ? isoToDateTimeLocal(price.validUntil).replace("T", " ") : "Sin fin"}`;
+  const seenAuditPrices = new Set<string>();
+  const auditPriceRows = [
+    ...Object.entries({ ...(draft.pricing.productPrice ? { __product__: draft.pricing.productPrice } : {}), ...draft.pricing.variantPrices }).flatMap(([key, price]) => {
+      if (!price || price.markedForDeletion || (price.pricingId && seenAuditPrices.has(price.pricingId))) return [];
+      if (price.pricingId) seenAuditPrices.add(price.pricingId);
+      const variant = allVariantRows.find(row => row.localId === key || row.variantId === key);
+      return [{ key: `base-${key}`, name: key === "__product__" ? draft.basic.name || "Producto" : variant?.name || variant?.refId || key,
+        type: "Precio habitual", amount: formatMoney(price.basePriceMinor, price.currency || currency, locale), quantity: 1,
+        context: auditContext(price), validity: auditValidity(price), active: price.active !== false }];
+    }),
+    ...specificPrices.flatMap((price, index) => price.markedForDeletion ? [] : [{ key: `specific-${index}`, name: specificPriceTargetLabel(price),
+      type: "Precio específico", amount: price.fixedPriceMinor == null ? "—" : formatMoney(price.fixedPriceMinor, price.currency || currency, locale),
+      quantity: price.minQuantity || 1, context: auditContext(price), validity: auditValidity(price), active: price.active }]),
+  ];
   const specificPriceTarget = specificPriceTargetOptions.find((target) => target.key === specificPriceForm.targetKey) ?? specificPriceTargetOptions[0];
   const pricingPreviewTarget =
     pricingPreviewForm.targetKey === "__product__"
       ? allVariantRows[0]
       : allVariantRows.find((variant) => variant.localId === pricingPreviewForm.targetKey || variant.variantId === pricingPreviewForm.targetKey);
-  const selectedVariantAssignments = draft.media.assignments[selectedVariant.localId] ?? [];
-  const selectedVariantMain = draft.media.mainByVariant[selectedVariant.localId];
-  const previewVariant =
-    allVariantRows.find((variant) => variant.localId === previewVariantKey || variant.variantId === previewVariantKey) ??
-    selectedVariant;
-  const previewVariantKeyResolved = previewVariant?.localId ?? "default";
-  const previewMediaItems = previewVariant
-    ? assignedMediaForVariant(previewVariantKeyResolved)
-    : draft.media.items.filter((item) => item.isMain).slice(0, 1);
-  const previewMainMediaId = previewVariant ? draft.media.mainByVariant[previewVariantKeyResolved] : undefined;
-  const previewHeroMedia =
-    previewMediaItems.find((item) => item.localId === previewMainMediaId) ??
-    previewMediaItems.find((item) => item.isMain) ??
-    previewMediaItems[0] ??
-    draft.media.items.find((item) => item.isMain);
-  const previewOwnPrice = !previewVariant?.isDefault
-    ? scopedDraftValue(draft.pricing.variantPrices, previewVariant)
-    : undefined;
-  const previewEffectivePrice = previewOwnPrice && !previewOwnPrice.markedForDeletion
-    ? previewOwnPrice
-    : productPrice;
-  const previewTax =
-    previewEffectivePrice?.tax ??
-    selectedTax ??
-    lookups.taxes.find((tax) => tax.id === previewEffectivePrice?.taxCode || tax.taxCode === previewEffectivePrice?.taxCode);
-  const previewPriceBreakdown = pricePreview(previewEffectivePrice, previewTax);
-  const previewAvailability = previewVariantAvailability(previewVariant);
-  const previewAvailableQuantity = previewAvailability.availableQuantity;
-  const previewIsAvailable = previewAvailability.available;
-  const previewOfferings = scopedDraftValue(draft.offerings.byVariant, previewVariant) ?? [];
-  const previewOptions = previewVariant?.options.filter((option) => !option.markedForDeletion) ?? [];
-  const activePreviewVariants = allVariantRows.filter((variant) => variant.isActive && variant.isVisible);
-  const previewVariantChoiceBase = activePreviewVariants.length ? activePreviewVariants : allVariantRows;
-  const previewVariantChoices = previewVariantChoiceBase.some((variant) => variant.localId === previewVariantKeyResolved)
-    ? previewVariantChoiceBase
-    : [previewVariant, ...previewVariantChoiceBase];
-  const previewAttributeGroups = buildPreviewAttributeGroups(previewVariantChoices, previewOptions);
   const publicationChecklist = useMemo(() => getProductPublicationChecklist(draft), [draft]);
-  const publicationReady = publicationChecklist.every((item) => item.ok);
   const allowedCarrierOptions = draft.shipping.allowedCarrierIds
     .filter((carrierId) => !lookups.carriers.some((carrier) => carrier.id === carrierId))
     .map((carrierId) => ({ id: carrierId, label: carrierId }));
   const carrierOptions = [...lookups.carriers, ...allowedCarrierOptions];
-  const shippingPackage = draft.shipping.package;
+  const shippingPackage = { ...draft.shipping.package, ...(!selectedVariant.isDefault ? selectedVariant.shippingPackage ?? {} : {}) };
   const shippingDimensionsComplete = Boolean(
     shippingPackage.widthMm &&
       shippingPackage.heightMm &&
@@ -1469,6 +1339,7 @@ function ProductEditorClientInner({
         return;
       }
 
+      if(!remoteProductIdentityMatches({productId:initialDraft.productId,defaultVariantId:initialDraft.defaultVariantId,mediaCollectionId:initialDraft.mediaCollectionId},result)){setMediaPickerMessage("El borrador remoto pertenece a otra ficha. Recarga antes de recuperar sus imágenes.");return;}
       if (result.mediaItems.length === 0 && !result.productId && !result.mediaCollectionId) {
         return;
       }
@@ -1485,7 +1356,7 @@ function ProductEditorClientInner({
     return () => {
       cancelled = true;
     };
-  }, [draft.clientDraftId]);
+  }, [draft.clientDraftId,initialDraft.productId,initialDraft.defaultVariantId,initialDraft.mediaCollectionId]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -1501,30 +1372,17 @@ function ProductEditorClientInner({
   }, [dirty]);
 
   useEffect(() => {
-    if (!dirty) {
+    // Keep the acknowledged IDs too: a successful write does not guarantee
+    // that the asynchronous read projection can reopen the product yet.
+    if (!dirty && !report?.productId) {
       return;
     }
 
     window.localStorage.setItem(storageKey, JSON.stringify(sanitizeDraftForStorage(draft)));
-  }, [dirty, draft, storageKey]);
-
-  useEffect(() => {
-    if (!previewOpen) {
-      return;
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setPreviewOpen(false);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [previewOpen]);
+  }, [dirty, draft, report?.productId, storageKey]);
 
   function updateDraft(updater: (current: ProductDraft) => ProductDraft) {
-    setDraft((current) => updater(current));
+    setDraft((current) => normalizeVariantMedia(updater(current)));
     setDirty(true);
   }
 
@@ -1549,7 +1407,6 @@ function ProductEditorClientInner({
   }
 
   function openProductPreview() {
-    setPreviewVariantKey(selectedVariant.localId);
     setPreviewOpen(true);
   }
 
@@ -1567,6 +1424,10 @@ function ProductEditorClientInner({
   }
 
   function updateBasic(field: keyof ProductDraft["basic"], value: string | boolean) {
+    if (field === "categoryId") {
+      generationVersion.current += 1;
+      setGeneratorSelections({});
+    }
     updateDraft((current) => {
       const previousSlug = current.basic.slug;
       const nextBasic = {
@@ -1669,7 +1530,7 @@ function ProductEditorClientInner({
 
   function updateSpecificationSelection(fieldId: string, fieldValueId: string) {
     updateDraft((current) => {
-      const field = lookups.specificationFields.find((item) => item.fieldId === fieldId);
+      const field = featureFields.find((item) => item.fieldId === fieldId);
       const value = field?.values.find((item) => item.fieldValueId === fieldValueId);
       const remaining = current.specifications.selections.filter((selection) => selection.fieldId !== fieldId);
 
@@ -1699,6 +1560,7 @@ function ProductEditorClientInner({
   }
 
   function openSpecificationPicker() {
+    setFeatureSearch("");
     setSpecificationPickerStep("fields");
     setSpecificationPickerFieldId(null);
     setSpecificationPickerOpen(true);
@@ -1731,7 +1593,6 @@ function ProductEditorClientInner({
       return;
     }
 
-    const hasMain = draft.media.items.some((item) => item.isMain);
     const newItems = files.map((file, index) => ({
       ...makeProductMediaItem({
         fileName: file.name,
@@ -1741,7 +1602,7 @@ function ProductEditorClientInner({
         locale,
         index: draft.media.items.length + index,
         previewUrl: URL.createObjectURL(file),
-        isMain: !hasMain && index === 0,
+        isMain: false,
       }),
       uploadStatus: "uploading" as const,
     }));
@@ -1818,7 +1679,8 @@ function ProductEditorClientInner({
         return null;
       }
 
-      setDraft((current) => ({
+      if(!remoteProductIdentityMatches(draft,result)){markMediaUploadFailed(item.localId,"La respuesta de subida pertenece a otra ficha. No se ha cambiado la identidad del producto.");return null;}
+      setDraft((current) => remoteProductIdentityMatches(current,result)?({
         ...current,
         productId: result.productId ?? current.productId,
         defaultVariantId: result.defaultVariantId ?? current.defaultVariantId,
@@ -1832,7 +1694,11 @@ function ProductEditorClientInner({
                   ...result.mediaItem,
                   localId: currentItem.localId,
                   previewUrl: result.mediaItem?.previewUrl ?? currentItem.previewUrl,
-                  isMain: result.mediaItem?.isMain ?? currentItem.isMain,
+                  isMain: currentItem.isMain,
+                  active: currentItem.active,
+                  alt: currentItem.alt,
+                  title: currentItem.title,
+                  metadataDirty: currentItem.metadataDirty,
                   uploadStatus: "uploaded",
                   uploadError: undefined,
                   persisted: true,
@@ -1844,7 +1710,7 @@ function ProductEditorClientInner({
           ...current.saveState,
           media: "success",
         },
-      }));
+      }):current);
       setFilesByLocalId((currentFiles) => {
         const nextFiles = { ...currentFiles };
         delete nextFiles[item.localId];
@@ -1871,6 +1737,7 @@ function ProductEditorClientInner({
     for (let attempt = 1; attempt <= remoteMediaConfirmationAttempts; attempt += 1) {
       const result = await readProductDraftMediaStateAction(normalizedClientDraftId);
       if (result.ok) {
+        if(!remoteProductIdentityMatches(draft,result)){setMediaPickerMessage("El borrador remoto pertenece a otra ficha. No se han adoptado sus imágenes.");return;}
         setDraft((current) =>
           current.clientDraftId === normalizedClientDraftId
             ? mergeRemoteDraftMediaState(current, result)
@@ -1945,7 +1812,7 @@ function ProductEditorClientInner({
       ...current,
       media: {
         ...current.media,
-        items: current.media.items.map((item) => item.localId === localId ? updater(item) : item),
+        items: current.media.items.map((item) => item.localId === localId ? { ...updater(item), metadataDirty: true } : item),
       },
     }));
   }
@@ -1954,9 +1821,7 @@ function ProductEditorClientInner({
     updateDraft((current) => {
       const removedItem = current.media.items.find((item) => item.localId === localId);
       const remaining = current.media.items.filter((item) => item.localId !== localId);
-      const nextItems = remaining.some((item) => item.isMain) || remaining.length === 0
-        ? remaining
-        : remaining.map((item, index) => ({ ...item, isMain: index === 0 }));
+      const nextItems = remaining;
       const nextRemovedItems = removedItem?.persisted && removedItem.mediaAssetId
         ? [
             ...(current.media.removedItems ?? []).filter((item) => item.mediaAssetId !== removedItem.mediaAssetId),
@@ -2010,60 +1875,37 @@ function ProductEditorClientInner({
   }
 
   function assignedMediaForVariant(variantKey: string) {
-    const assignedIds = draft.media.assignments[variantKey] ?? [];
-    const assigned = assignedIds
-      .map((localId) => draft.media.items.find((item) => item.localId === localId))
-      .filter((item): item is ProductDraftMediaItem => Boolean(item));
-
-    return assigned.length
-      ? assigned
-      : draft.media.items.filter((item) => item.isMain).slice(0, 1);
+    const image = effectiveVariantImage(draft, variantKey);
+    return image ? [image] : [];
   }
 
   function hasDirectMediaForVariant(variantKey: string) {
-    return (draft.media.assignments[variantKey] ?? []).length > 0;
+    return Boolean(ownVariantImage(draft, variantKey));
   }
 
-  function clearVariantMedia(variantKey: string) {
-    updateDraft((current) => {
-      const nextMainByVariant = { ...current.media.mainByVariant };
-      delete nextMainByVariant[variantKey];
-
-      return {
-        ...current,
-        media: {
-          ...current.media,
-          assignments: {
-            ...current.media.assignments,
-            [variantKey]: [],
-          },
-          mainByVariant: nextMainByVariant,
-        },
-      };
-    });
-  }
-
-  function setVariantMainMedia(variantKey: string, mediaLocalId: string) {
-    updateDraft((current) => ({
-      ...current,
-      media: {
-        ...current.media,
-        assignments: {
-          ...current.media.assignments,
-          [variantKey]: [mediaLocalId],
-        },
-        mainByVariant: {
-          ...current.media.mainByVariant,
-          [variantKey]: mediaLocalId,
-        },
-      },
-    }));
+  function renderVariantImagePicker(variantKey: string, label: string) {
+    const current = effectiveVariantImage(draft, variantKey);
+    return <ProductVariantImagePicker
+      label={label}
+      currentImage={current ? { id: current.localId, src: hasRenderableMediaPreview(current) ? mediaPreviewSrc(current) : undefined, label: current.title[locale] || current.fileName } : undefined}
+      choices={draft.media.items.filter((item) => item.active).map((item) => ({ id: item.localId, src: hasRenderableMediaPreview(item) ? mediaPreviewSrc(item) : undefined, label: item.title[locale] || item.fileName }))}
+      inherited={!hasDirectMediaForVariant(variantKey)}
+      isDefault={variantKey === "default"}
+      onAssign={(imageId) => updateDraft((currentDraft) => assignVariantImage(currentDraft, variantKey, imageId))}
+      onImageError={markMediaPreviewBroken}
+    />;
   }
 
   function updateVariant(localId: string, updater: (variant: ProductDraftVariant) => ProductDraftVariant) {
     updateDraft((current) => ({
       ...current,
-      variants: current.variants.map((variant) => variant.localId === localId ? updater(variant) : variant),
+      variants: current.variants.map((variant) => {
+        if (variant.localId !== localId) return variant;
+        const next = updater(variant);
+        return next.options !== variant.options
+          ? { ...next, name: registeredVariantName(current.basic.name, next.options, variantAttributeFields) }
+          : next;
+      }),
     }));
   }
 
@@ -2076,12 +1918,19 @@ function ProductEditorClientInner({
     updateDraft((current) => ({
       ...current,
       mode: "variants",
+      pricing: {
+        ...current.pricing,
+        variantPrices: {
+          ...current.pricing.variantPrices,
+          ...pricesForNewVariants(current, [{ localId }]),
+        },
+      },
       variants: [
         ...current.variants,
         {
           localId,
           name,
-          refId: makeRefIdFromName(name),
+          refId: registeredVariantSku(current.defaultVariant.refId, [], `V${variantNumber}`),
           ean: null,
           options: [],
           isActive: true,
@@ -2091,20 +1940,6 @@ function ProductEditorClientInner({
     }));
     setSelectedVariantKey(localId);
     setActiveTab("variants");
-  }
-
-  function addSelectedVariantOption() {
-    if (selectedVariant.isDefault) {
-      return;
-    }
-
-    updateVariant(selectedVariant.localId, (variant) => ({
-      ...variant,
-      options: [
-        ...variant.options,
-        { attributeCode: "", valueCode: "", isActive: true, createdInDraft: true },
-      ],
-    }));
   }
 
   function variantOptionWarning(variant: ProductDraftVariant) {
@@ -2119,21 +1954,6 @@ function ProductEditorClientInner({
       seenAttributes.add(option.attributeCode);
     }
     return null;
-  }
-
-  function updateSelectedVariantOption(index: number, field: "attributeCode" | "valueCode", value: string) {
-    if (selectedVariant.isDefault) {
-      return;
-    }
-
-    updateVariant(selectedVariant.localId, (variant) => ({
-      ...variant,
-      options: variant.options.map((option, optionIndex) =>
-        optionIndex === index
-          ? { ...option, [field]: slugifyProductValue(value) }
-          : option,
-      ),
-    }));
   }
 
   function removeSelectedVariantOption(index: number) {
@@ -2153,6 +1973,21 @@ function ProductEditorClientInner({
           : [];
       }),
     }));
+  }
+
+  function mergeAttributeCatalog(catalog: ReturnType<typeof productSpecificationCatalog>) {
+    setVariantAttributeFields((current) => [...current.filter((field) => !catalog.fields.some((next) => next.fieldId === field.fieldId)), ...catalog.fields]);
+    setAttributeGroups((current) => [...current.filter((group) => !catalog.groups.some((next) => next.groupId === group.groupId)), ...catalog.groups]);
+  }
+
+  async function manageVariantAttributes() {
+    setAttributeLoadError(null);
+    try {
+      const result = await loadProductFeaturesAction("attributes");
+      if (!result.ok) { setAttributeLoadError(result.message); return; }
+      mergeAttributeCatalog(result.catalog);
+      setAttributeManagerOpen(true);
+    } catch { setAttributeLoadError("No se pudieron cargar los atributos. Inténtalo de nuevo."); }
   }
 
   function openVariantAttributePicker() {
@@ -2250,6 +2085,7 @@ function ProductEditorClientInner({
 
       return {
         ...current,
+        mode: current.variants.some((item) => item.localId !== variant.localId) ? "variants" : "simple",
         variants: current.variants.filter((item) => item.localId !== variant.localId),
         media: {
           ...current.media,
@@ -2280,103 +2116,29 @@ function ProductEditorClientInner({
     }
   }
 
-  function changeVariantLifecycle(variant: ProductDraftVariant) {
-    if (!variant.variantId) {
-      removeVariantFromDraft(variant);
-      setVariantMessage(`Variante ${variant.refId} quitada del borrador.`);
-      return;
-    }
 
-    const nextActive = !variant.isActive;
-    updateVariant(variant.localId, (item) => ({ ...item, isActive: nextActive }));
-    setVariantMessage(
-      nextActive
-        ? `Variante ${variant.refId} marcada para reactivar. Guarda el producto para persistir el cambio.`
-        : `Variante ${variant.refId} marcada para desactivar. Guarda el producto para persistir el cambio.`,
-    );
-  }
-
-  function applyVariantBulkAction(action: VariantBulkAction) {
-    const targetVariantIds = new Set(filteredDraftVariants.map((variant) => variant.localId));
-    if (targetVariantIds.size === 0) {
-      setVariantMessage("No hay variantes filtradas para aplicar la accion.");
-      return;
-    }
-
-    updateDraft((current) => ({
-      ...current,
-      variants: current.variants.map((variant) => {
-        if (!targetVariantIds.has(variant.localId)) {
-          return variant;
-        }
-
-        if (action === "activate") {
-          return { ...variant, isActive: true };
-        }
-        if (action === "deactivate") {
-          return { ...variant, isActive: false };
-        }
-        if (action === "show") {
-          return { ...variant, isVisible: true };
-        }
-
-        return { ...variant, isVisible: false };
-      }),
-    }));
-
-    const actionLabel = {
-      activate: "activar",
-      deactivate: "desactivar",
-      show: "mostrar",
-      hide: "ocultar",
-    }[action];
-    setVariantMessage(`${targetVariantIds.size} variante(s) marcada(s) para ${actionLabel}. Guarda el producto para persistir el cambio.`);
-  }
-
-  function updateVariantPrice(variantKey: string, value: string) {
-    updateVariantPriceField(variantKey, (price) => ({
-      ...price,
-      basePriceMinor: inputToCents(value),
-    }));
-  }
 
   function updateVariantPriceField(
     variantKey: string,
     updater: (current: NonNullable<ProductDraft["pricing"]["productPrice"]>) => NonNullable<ProductDraft["pricing"]["productPrice"]>,
   ) {
     updateDraft((current) => {
-      const existing = current.pricing.variantPrices[variantKey];
-      const inheritedPrice = {
-            basePriceMinor: current.pricing.variantPrices[variantKey]?.basePriceMinor ?? 0,
-            listPriceMinor: current.pricing.variantPrices[variantKey]?.listPriceMinor ?? null,
-            costPriceMinor: current.pricing.variantPrices[variantKey]?.costPriceMinor ?? null,
-            currency,
-            taxIncluded: current.pricing.productPrice?.taxIncluded ?? true,
-            taxCode: current.pricing.productPrice?.taxCode ?? current.basic.taxCode ?? "standard",
-            tax: current.pricing.productPrice?.tax ?? null,
-            priceTableId: current.pricing.productPrice?.priceTableId ?? null,
-            tradePolicy: current.pricing.productPrice?.tradePolicy ?? "default",
-            channel: current.pricing.productPrice?.channel ?? "web",
-            customerGroup: current.pricing.productPrice?.customerGroup ?? null,
-            country: current.pricing.productPrice?.country ?? "ES",
-            markedForDeletion: false,
-      };
-
       return {
         ...current,
         pricing: {
           ...current.pricing,
           variantPrices: {
             ...current.pricing.variantPrices,
-            [variantKey]: updater({
-              ...inheritedPrice,
-              ...existing,
-              markedForDeletion: false,
-            }),
+            [variantKey]: updater(variantPriceForEdit(current, variantKey, currency)),
           },
         },
       };
     });
+  }
+
+  function updateSelectedPanelPrice(updater: (price: NonNullable<ProductDraft["pricing"]["productPrice"]>) => NonNullable<ProductDraft["pricing"]["productPrice"]>) {
+    if (selectedVariant.isDefault) updateProductPriceField(updater);
+    else updateVariantPriceField(selectedVariant.localId, updater);
   }
 
   function updateProductPriceField(updater: (current: NonNullable<ProductDraft["pricing"]["productPrice"]>) => NonNullable<ProductDraft["pricing"]["productPrice"]>) {
@@ -2390,10 +2152,10 @@ function ProductEditorClientInner({
         taxCode: current.basic.taxCode || "standard",
         tax: null,
         priceTableId: null,
-        tradePolicy: "default",
-        channel: "web",
+        tradePolicy: undefined,
+        channel: undefined,
         customerGroup: null,
-        country: "ES",
+        country: undefined,
       };
 
       return withEditorBasePrice(current, updater(existing));
@@ -2433,18 +2195,15 @@ function ProductEditorClientInner({
     return target ? `${target.label} · ${target.refId}` : variantKey ?? "Variante";
   }
 
-  function specificPriceCountForVariant(variant: ProductDraftVariant) {
-    return visibleSpecificPrices.filter((price) =>
-      price.targetType === "PRODUCT" ||
-      price.variantKey === variant.localId ||
-      price.variantKey === variant.variantId ||
-      price.variantId === variant.variantId,
-    ).length;
-  }
-
   function resetSpecificPriceForm(targetKey = "__product__") {
+    setSpecificPriceDateError(null);
     setSpecificPriceEditIndex(null);
     setSpecificPriceForm(defaultSpecificPriceForm(productPrice, targetKey));
+  }
+
+  function openSpecificPriceDrawer() {
+    resetSpecificPriceForm();
+    setSpecificPriceDrawerOpen(true);
   }
 
   function editSpecificPrice(index: number) {
@@ -2453,8 +2212,10 @@ function ProductEditorClientInner({
       return;
     }
 
+    setSpecificPriceDateError(null);
     setSpecificPriceEditIndex(index);
     setSpecificPriceForm(specificPriceToForm(price, productPrice));
+    setSpecificPriceDrawerOpen(true);
   }
 
   function removeSpecificPrice(index: number) {
@@ -2490,6 +2251,16 @@ function ProductEditorClientInner({
   }
 
   function saveSpecificPriceForm() {
+    const validFrom = dateTimeLocalToIso(specificPriceForm.validFrom, specificPriceForm.originalValidFrom);
+    const validUntil = dateTimeLocalToIso(specificPriceForm.validUntil, specificPriceForm.originalValidUntil);
+    if ((specificPriceForm.validFrom && !validFrom) || (specificPriceForm.validUntil && !validUntil)) {
+      setSpecificPriceDateError("La fecha u hora no existe en tu zona horaria. Revisa el cambio de hora.");
+      return;
+    }
+    if (validFrom && validUntil && Date.parse(validUntil) < Date.parse(validFrom)) {
+      setSpecificPriceDateError("La fecha final no puede ser anterior a la inicial.");
+      return;
+    }
     const targetKey = specificPriceForm.targetKey || "__product__";
     const targetType = targetKey === "__product__" ? "PRODUCT" : "VARIANT";
     const fixedPriceMinor = inputToCents(specificPriceForm.fixedPrice);
@@ -2502,6 +2273,8 @@ function ProductEditorClientInner({
     const nextPrice: SpecificPriceDraft = {
       ...(specificPriceEditIndex !== null ? specificPrices[specificPriceEditIndex] : undefined),
       targetType,
+      dirty: true,
+      source: specificPriceEditIndex === null ? "FIXED" : specificPrices[specificPriceEditIndex].source ?? "FIXED",
       variantKey: targetType === "VARIANT" ? targetKey : undefined,
       variantId: targetType === "VARIANT"
         ? priceVariantRows.find((variant) => variant.localId === targetKey)?.variantId ?? null
@@ -2509,13 +2282,13 @@ function ProductEditorClientInner({
       currency: productPrice?.currency || currency,
       country: specificPriceForm.country.trim() || null,
       customerGroup: specificPriceForm.customerGroup.trim() || null,
-      channel: specificPriceForm.channel.trim() || productPrice?.channel || "web",
-      tradePolicy: specificPriceForm.tradePolicy.trim() || productPrice?.tradePolicy || "default",
+      channel: specificPriceForm.channel.trim() || null,
+      tradePolicy: specificPriceForm.tradePolicy.trim() || null,
       priceTableId: specificPriceForm.priceTableId || null,
       minQuantity,
-      validFrom: dateTimeLocalToIso(specificPriceForm.validFrom),
-      validUntil: specificPriceForm.unlimited ? null : dateTimeLocalToIso(specificPriceForm.validUntil),
-      unlimited: specificPriceForm.unlimited,
+      validFrom,
+      validUntil,
+      unlimited: validUntil === null,
       impactType: "FIXED_PRICE",
       fixedPriceMinor,
       reductionValue: null,
@@ -2544,9 +2317,16 @@ function ProductEditorClientInner({
       };
     });
     resetSpecificPriceForm(targetKey);
+    closeSpecificPriceDrawer();
   }
 
   async function runPricingPreview() {
+    if (pricingPreviewForm.at && !dateTimeLocalToIso(pricingPreviewForm.at)) {
+      setPricingPreviewDateError("La fecha u hora no existe en tu zona horaria. Revisa el cambio de hora.");
+      setPricingPreviewResult(null);
+      return;
+    }
+    setPricingPreviewDateError(null);
     const target = pricingPreviewTarget;
     const productId = draft.productId?.trim();
     const variantId = pricingPreviewForm.targetKey === "__product__" ? null : target?.variantId ?? null;
@@ -2561,9 +2341,9 @@ function ProductEditorClientInner({
           variantId,
           defaultVariantId: draft.defaultVariantId ?? null,
           currency: productPrice?.currency ?? currency,
-          country: pricingPreviewForm.country || productPrice?.country || "ES",
-          tradePolicy: pricingPreviewForm.tradePolicy || productPrice?.tradePolicy || "default",
-          channel: pricingPreviewForm.channel || productPrice?.channel || "web",
+          country: pricingPreviewForm.country,
+          tradePolicy: pricingPreviewForm.tradePolicy,
+          channel: pricingPreviewForm.channel,
           customerGroup: pricingPreviewForm.customerGroup || null,
           priceTableId: pricingPreviewForm.priceTableId || null,
           quantity: Math.max(1, clampInteger(Number(pricingPreviewForm.quantity || "1"))),
@@ -2587,9 +2367,9 @@ function ProductEditorClientInner({
           variantId: null,
           defaultVariantId: draft.defaultVariantId ?? null,
           currency: productPrice?.currency ?? currency,
-          country: pricingPreviewForm.country || productPrice?.country || "ES",
-          tradePolicy: pricingPreviewForm.tradePolicy || productPrice?.tradePolicy || "default",
-          channel: pricingPreviewForm.channel || productPrice?.channel || "web",
+          country: pricingPreviewForm.country,
+          tradePolicy: pricingPreviewForm.tradePolicy,
+          channel: pricingPreviewForm.channel,
           customerGroup: pricingPreviewForm.customerGroup || null,
           priceTableId: pricingPreviewForm.priceTableId || null,
           quantity: Math.max(1, clampInteger(Number(pricingPreviewForm.quantity || "1"))),
@@ -2610,9 +2390,9 @@ function ProductEditorClientInner({
         variantId,
         defaultVariantId: draft.defaultVariantId ?? null,
         currency: productPrice?.currency ?? currency,
-        country: pricingPreviewForm.country || productPrice?.country || "ES",
-        tradePolicy: pricingPreviewForm.tradePolicy || productPrice?.tradePolicy || "default",
-        channel: pricingPreviewForm.channel || productPrice?.channel || "web",
+        country: pricingPreviewForm.country,
+        tradePolicy: pricingPreviewForm.tradePolicy,
+        channel: pricingPreviewForm.channel,
         customerGroup: pricingPreviewForm.customerGroup || null,
         priceTableId: pricingPreviewForm.priceTableId || null,
         quantity: Math.max(1, clampInteger(Number(pricingPreviewForm.quantity || "1"))),
@@ -2626,7 +2406,7 @@ function ProductEditorClientInner({
 
   function stockForKey(variantKey: string) {
     return draft.inventory.stockByVariant[variantKey] ?? {
-      warehouseId: draft.inventory.stockByVariant.default?.warehouseId ?? "main-warehouse",
+      warehouseId: draft.inventory.stockByVariant.default?.warehouseId ?? "",
       onHandQuantity: 0,
       reservedQuantity: 0,
       safetyStockQuantity: 0,
@@ -2676,81 +2456,43 @@ function ProductEditorClientInner({
     };
   }
 
-  function activeVariantOptions(variant: ProductVariantRowView) {
-    return variant.options.filter((option) => !option.markedForDeletion && (option.isActive ?? true));
-  }
-
-  function variantHasOption(variant: ProductVariantRowView, attributeCode: string, valueCode: string) {
-    return activeVariantOptions(variant).some(
-      (option) => option.attributeCode === attributeCode && option.valueCode === valueCode,
-    );
-  }
-
-  function variantMatchesSelectedOptions(
-    variant: ProductVariantRowView,
-    selectedByAttribute: Map<string, string>,
-    ignoredAttributeCode: string,
-  ) {
-    for (const [attributeCode, valueCode] of selectedByAttribute.entries()) {
-      if (attributeCode === ignoredAttributeCode) {
-        continue;
-      }
-
-      if (!variantHasOption(variant, attributeCode, valueCode)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  function buildPreviewAttributeGroups(
-    variants: ProductVariantRowView[],
-    selectedOptions: ProductDraftVariant["options"],
-  ): ProductPreviewAttributeGroup[] {
-    const sellableVariants = variants.filter(
-      (variant) => !variant.isDefault && variant.isActive && variant.isVisible && activeVariantOptions(variant).length > 0,
-    );
-    const selectedByAttribute = new Map(
-      selectedOptions
-        .filter((option) => !option.markedForDeletion && (option.isActive ?? true))
-        .map((option) => [option.attributeCode, option.valueCode] as const),
-    );
-    const valuesByAttribute = new Map<string, string[]>();
-
-    for (const variant of sellableVariants) {
-      for (const option of activeVariantOptions(variant)) {
-        const values = valuesByAttribute.get(option.attributeCode) ?? [];
-        if (!values.includes(option.valueCode)) {
-          values.push(option.valueCode);
-        }
-        valuesByAttribute.set(option.attributeCode, values);
-      }
-    }
-
-    return Array.from(valuesByAttribute.entries()).map(([attributeCode, valueCodes]) => ({
-      attributeCode,
-      values: valueCodes.map((valueCode) => {
-        const candidate =
-          sellableVariants.find(
-            (variant) =>
-              variantHasOption(variant, attributeCode, valueCode) &&
-              variantMatchesSelectedOptions(variant, selectedByAttribute, attributeCode),
-          ) ??
-          sellableVariants.find((variant) => variantHasOption(variant, attributeCode, valueCode));
-        const availability = previewVariantAvailability(candidate);
-
-        return {
-          valueCode,
-          variantLocalId: candidate?.localId ?? null,
-          variantLabel: candidate?.selectorLabel ?? valueCode,
-          availableQuantity: availability.availableQuantity,
-          available: availability.available,
-          selected: selectedByAttribute.get(attributeCode) === valueCode,
-          disabled: !candidate || !availability.available,
-        };
-      }),
-    }));
+  function pdpPreviewData(): StorefrontPdpData {
+    const activeVariants = allVariantRows.filter(variant => variant.isActive && variant.isVisible);
+    const rows = activeVariants.length ? activeVariants : allVariantRows;
+    const variants = rows.map(variant => {
+      const ownPrice = !variant.isDefault ? scopedDraftValue(draft.pricing.variantPrices, variant) : undefined;
+      const price = ownPrice && !ownPrice.markedForDeletion ? ownPrice : productPrice;
+      const availability = previewVariantAvailability(variant);
+      const media = assignedMediaForVariant(variant.localId);
+      const cover = draft.media.mainByVariant[variant.localId];
+      const images = [...media].sort((a, b) => Number(b.localId === cover || b.isMain) - Number(a.localId === cover || a.isMain))
+        .filter(hasRenderableMediaPreview).flatMap(item => { const url = mediaPreviewSrc(item); return url ? [{ url, alt: item.alt[locale] ?? item.fileName }] : []; });
+      return {
+        variantId: variant.localId, name: variant.name || variant.refId || variant.displayLabel,
+        refId: variant.refId, ean: variant.ean ?? undefined, isDefault: variant.isDefault,
+        images, available: availability.available, availableQuantity: availability.availableQuantity,
+        priceAmountMinor: price?.basePriceMinor ?? undefined, previousPriceAmountMinor: price?.listPriceMinor ?? undefined,
+        priceDisplay: formatMoney(price?.basePriceMinor, price?.currency || currency),
+        previousPriceDisplay: price?.listPriceMinor ? formatMoney(price.listPriceMinor, price.currency || currency) : undefined,
+        offerings: (scopedDraftValue(draft.offerings.byVariant, variant) ?? []).map(offering => ({ ...offering, id: offering.offeringId })),
+        options: variant.options.filter(option => !option.markedForDeletion && (option.isActive ?? true)),
+      };
+    });
+    const primary = variants.find(variant => variant.isDefault) ?? variants[0];
+    return {
+      productId: draft.productId ?? undefined, slug: draft.basic.slug || "preview",
+      title: draft.basic.name || "Producto sin nombre",
+      brand: draft.basic.brandName || brandOptions.find(brand => brand.id === draft.basic.brandId)?.label,
+      category: draft.basic.categoryName || categoryOptions.find(category => category.id === draft.basic.categoryId)?.label,
+      shortDescription: draft.basic.shortDescription, description: draft.basic.description,
+      refId: primary?.refId, ean: primary?.ean, taxCode: draft.basic.taxCode,
+      images: primary?.images ?? [], priceDisplay: primary?.priceDisplay,
+      previousPriceDisplay: primary?.previousPriceDisplay, priceAmountMinor: primary?.priceAmountMinor,
+      previousPriceAmountMinor: primary?.previousPriceAmountMinor,
+      available: primary?.available ?? false, availableQuantity: primary?.availableQuantity,
+      variants, specifications: selectedSpecifications.length ? [{ group: "Características técnicas", fields: selectedSpecifications.map(({ field, value }) => ({ name: field.name, value: value?.name ?? "" })) }] : [],
+      contextQuery: "", eventContext: { organizationId: deletionContext?.organizationId ?? "", shopId: deletionContext?.shopId ?? "", visitorId: "" },
+    };
   }
 
   function enableVariantOwnStock(variant: ProductDraftVariant) {
@@ -2759,7 +2501,7 @@ function ProductEditorClientInner({
         current.inventory.stockByVariant[variant.localId] ??
         (variant.variantId ? current.inventory.stockByVariant[variant.variantId] : undefined);
       const defaultStock = current.inventory.stockByVariant.default ?? {
-        warehouseId: "main-warehouse",
+        warehouseId: "",
         onHandQuantity: 0,
         reservedQuantity: 0,
         safetyStockQuantity: 0,
@@ -2771,7 +2513,7 @@ function ProductEditorClientInner({
           ...current.inventory,
           stockByVariant: {
             ...current.inventory.stockByVariant,
-            [variant.localId]: stockWithAvailability(existing ?? defaultStock),
+            [variant.localId]: stockWithAvailability(existing ?? { ...defaultStock, persisted: false }),
           },
         },
       };
@@ -2779,6 +2521,7 @@ function ProductEditorClientInner({
   }
 
   function inheritVariantStock(variant: ProductDraftVariant) {
+    if (directStockEntryForVariant(variant)?.stock.persisted) return;
     updateDraft((current) => {
       const nextStockByVariant = { ...current.inventory.stockByVariant };
       delete nextStockByVariant[variant.localId];
@@ -2799,12 +2542,12 @@ function ProductEditorClientInner({
   function updateStock(variantKey: string, updater: (stock: StockDraft) => StockDraft) {
     updateDraft((current) => {
       const currentStock = current.inventory.stockByVariant[variantKey] ?? {
-        warehouseId: current.inventory.stockByVariant.default?.warehouseId ?? "main-warehouse",
+        warehouseId: current.inventory.stockByVariant.default?.warehouseId ?? "",
         onHandQuantity: 0,
         reservedQuantity: 0,
         safetyStockQuantity: 0,
       };
-      const nextStock = stockWithAvailability(updater(currentStock));
+      const nextStock = stockWithAvailability({ ...updater(currentStock), readOnlySelection: false });
 
       return {
         ...current,
@@ -2826,11 +2569,36 @@ function ProductEditorClientInner({
     }));
   }
 
-  function updateStockWarehouse(variantKey: string, value: string) {
-    updateStock(variantKey, (stock) => ({
-      ...stock,
-      warehouseId: value.trim() || "main-warehouse",
-    }));
+  function updateSelectedPanelStock(field: "onHandQuantity" | "reservedQuantity" | "safetyStockQuantity", value: string) {
+    if (!selectedVariant.isDefault && selectedPanelStock.mode === "inherited") {
+      enableVariantOwnStock(selectedVariant);
+      updateStockNumber(selectedVariant.localId, field, value);
+    } else {
+      updateStockNumber(selectedPanelStock.key, field, value);
+    }
+  }
+
+  async function selectStockWarehouse(value: string, base = false) {
+    const variant = base ? allVariantRows[0] : selectedVariant;
+    const state = variant.isDefault ? { key: "default", stock: stockForKey("default"), mode: "own" } : stockForVariantRow(variant);
+    if (value === state.stock.warehouseId) return;
+    if (state.stock.availabilityEstimated) {
+      setStockWarehouseMessage("Guarda las cantidades pendientes antes de cambiar de almacén.");
+      return;
+    }
+    setStockWarehouseMessage(undefined);
+    const key = variant.isDefault ? "default" : state.key;
+    if (!variant.variantId) {
+      updateDraft((current) => ({ ...current, inventory: { ...current.inventory, stockByVariant: { ...current.inventory.stockByVariant, [key]: { warehouseId: value, onHandQuantity: 0, reservedQuantity: 0, safetyStockQuantity: 0, persisted: false } } } }));
+      return;
+    }
+    if (!value) return;
+    setStockWarehouseLoading(true);
+    try {
+      const result = await loadProductWarehouseStockAction({ variantId: variant.variantId, warehouseId: value });
+      if (!result.ok) { setStockWarehouseMessage(result.message); return; }
+      setDraft((current) => ({ ...current, inventory: { ...current.inventory, stockByVariant: { ...current.inventory.stockByVariant, [key]: { ...result.stock, readOnlySelection: true } } } }));
+    } finally { setStockWarehouseLoading(false); }
   }
 
   function updateShipping(updater: (shipping: ProductDraft["shipping"]) => ProductDraft["shipping"]) {
@@ -2840,19 +2608,26 @@ function ProductEditorClientInner({
     }));
   }
 
-  function optionalIntegerFromInput(value: string) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
+  function updateShippingPackage(field: keyof ProductDraft["shipping"]["package"], value: string) {
+    const measurement = value.trim() === "" ? null : Number(value);
+    if (selectedVariant.isDefault) updateShipping((shipping) => ({ ...shipping, package: { ...shipping.package, [field]: measurement } }));
+    else updateVariant(selectedVariant.localId, (variant) => {
+      const shippingPackage = { ...variant.shippingPackage };
+      if (measurement === null) delete shippingPackage[field];
+      else shippingPackage[field] = measurement;
+      return { ...variant, shippingPackage };
+    });
   }
 
-  function updateShippingPackage(field: keyof ProductDraft["shipping"]["package"], value: string) {
-    updateShipping((shipping) => ({
-      ...shipping,
-      package: {
-        ...shipping.package,
-        [field]: optionalIntegerFromInput(value),
-      },
-    }));
+  function renderShippingMeasurement(field: keyof ProductDraft["shipping"]["package"], label: string) {
+    const own = !selectedVariant.isDefault && Object.prototype.hasOwnProperty.call(selectedVariant.shippingPackage ?? {}, field);
+    const id = `shipping-${selectedVariant.localId}-${field}`;
+    return <div className="adminField" key={field}>
+      <label htmlFor={id}>{label}</label>
+      <input id={id} type="number" inputMode="numeric" min="0" step="1" value={shippingPackage[field] ?? ""} onChange={(event) => updateShippingPackage(field, event.target.value)} />
+      {own ? <small>Valor propio</small> : null}
+      {own ? <button className="productImageAddLink" type="button" aria-label={`Restaurar herencia de ${label}`} onClick={() => updateShippingPackage(field, "")}>Restaurar herencia</button> : null}
+    </div>;
   }
 
   function updateShippingDeliveryNote(kind: "inStock" | "outOfStock", value: string) {
@@ -2894,132 +2669,41 @@ function ProductEditorClientInner({
     });
   }
 
-  function applyGeneratedCombinations(rows: ProductDraftVariant[], action: "replace" | "append") {
+  function applyGeneratedCombinations(rows: ProductDraftVariant[]) {
     updateDraft((current) => {
-      if (action === "append") {
-        return {
-          ...current,
-          mode: "variants",
-          variants: mergeVariantsByRef([...current.variants, ...rows]),
-        };
-      }
-
+      const variants = mergeVariantsByRef([...current.variants, ...rows]);
+      const newVariants = variants.filter((variant) => !current.variants.some((existing) => existing.localId === variant.localId));
       return {
         ...current,
         mode: "variants",
-        variants: rows,
-        media: {
-          ...current.media,
-          assignments: {},
-          mainByVariant: {},
-        },
+        variants,
         pricing: {
           ...current.pricing,
-          variantPrices: {},
-          specificPrices: (current.pricing.specificPrices ?? []).filter((price) => price.targetType !== "VARIANT"),
-        },
-        inventory: {
-          ...current.inventory,
-          stockByVariant: {
-            default: current.inventory.stockByVariant.default,
-          },
+          variantPrices: { ...current.pricing.variantPrices, ...pricesForNewVariants(current, newVariants) },
         },
       };
     });
-    setSelectedVariantKey(rows[0]?.localId ?? "default");
-    setPendingGeneratedVariants(null);
   }
 
-  function requestCombinationGeneration() {
-    const rows = combinationRows(variantColors, variantSizes, draft.basic.name || "Producto");
-    if (!rows.length) {
-      return;
-    }
-
-    if (draft.variants.length > 0) {
-      setPendingGeneratedVariants(rows);
-      return;
-    }
-
-    applyGeneratedCombinations(rows, "replace");
-  }
-
-  function prepareProductPublication() {
-    const publicationValidation = validateProductPublicationReadiness(draft);
-    if (!publicationValidation.ok) {
-      const errors = fieldErrorSummary(publicationValidation.fieldErrors);
-      const firstMissing = publicationChecklist.find((item) => !item.ok);
-      setReport({
-        ok: false,
-        blocks: productSaveBlocksFromState(draft.saveState, "blocked"),
-        messages: [
-          errors.length
-            ? `No se puede preparar la publicacion. Revisa: ${errors.map((error) => error.label).join(", ")}.`
-            : "No se puede preparar la publicacion todavia.",
-        ],
-        fieldErrors: publicationValidation.fieldErrors,
-        recoveryActions: [{
-          code: "review_publication",
-          label: "Revisar publicacion",
-          targetBlock: "publish",
-          retryable: false,
-        }],
-        correlationIds: [],
+  async function requestCombinationGeneration() {
+    if (generatingVariants) return;
+    const version = generationVersion.current;
+    setGeneratingVariants(true);
+    setVariantMessage(null);
+    try {
+      const latest = await loadProductFeaturesAction("attributes");
+      if (version !== generationVersion.current) return;
+      if (!latest.ok) { setVariantMessage(latest.message); return; }
+      mergeAttributeCatalog(latest.catalog);
+      const result = registeredCombinations(latest.catalog.fields, draft.basic.categoryId ?? "", generatorSelections);
+      if (result.error) { setVariantMessage(result.error); return; }
+      const rows = result.combinations.map((options) => {
+        const name = registeredVariantName(draft.basic.name, options, latest.catalog.fields);
+        return { localId: `variant-${crypto.randomUUID()}`, name, refId: registeredVariantSku(draft.defaultVariant.refId, options), ean: null, options, isActive: true, isVisible: true };
       });
-      setDraft((current) => ({
-        ...current,
-        saveState: {
-          ...current.saveState,
-          publish: "blocked",
-        },
-      }));
-      setActiveTab(tabForPublicationItem(firstMissing?.id));
-      return;
-    }
-
-    updateDraft((current) => ({
-      ...current,
-      basic: {
-        ...current.basic,
-        isVisible: true,
-        isActive: true,
-      },
-      saveState: {
-        ...current.saveState,
-        publish: "pending",
-      },
-    }));
-    setReport({
-      ok: true,
-      blocks: productSaveBlocksFromState(draft.saveState, "pending"),
-      messages: ["Producto preparado para publicar. Guarda producto para persistir la activacion por BFF."],
-      fieldErrors: {},
-      recoveryActions: [],
-      correlationIds: [],
-    });
-    setActiveTab("basic");
-  }
-
-  function keepProductOfflineInDraft() {
-    updateDraft((current) => ({
-      ...current,
-      basic: {
-        ...current.basic,
-        isActive: false,
-      },
-      saveState: {
-        ...current.saveState,
-        publish: "pending",
-      },
-    }));
-    setReport({
-      ok: true,
-      blocks: productSaveBlocksFromState(draft.saveState, "pending"),
-      messages: ["Solicitud de publicacion retirada del borrador. Guarda producto para persistirlo."],
-      fieldErrors: {},
-      recoveryActions: [],
-      correlationIds: [],
-    });
+      applyGeneratedCombinations(rows);
+    } catch { setVariantMessage("No se pudo comprobar el catálogo de atributos. Inténtalo de nuevo."); }
+    finally { setGeneratingVariants(false); }
   }
 
   function handleRecoveryAction(action: ProductSaveReport["recoveryActions"][number]) {
@@ -3029,8 +2713,22 @@ function ProductEditorClientInner({
     }
   }
 
-  function saveDraft() {
-    const validation = validateProductDraft(draft);
+  function saveDraft(publish?: boolean) {
+    if (publish === undefined && (!persistedPublication.isActive || publicationChecklist.some(item => !item.ok))) {
+      setSaveDecisionOpen(true);
+      return;
+    }
+    setSaveDecisionOpen(false);
+    const shouldActivate = persistedPublication.isActive || publish === true;
+    const savingDraft = {
+      ...draft,
+      basic: {
+        ...draft.basic,
+        isActive: shouldActivate,
+        isVisible: persistedPublication.isActive ? persistedPublication.isVisible : shouldActivate ? true : draft.basic.isVisible,
+      },
+    };
+    const validation = validateProductDraft(savingDraft);
     if (!validation.ok) {
       const errors = fieldErrorSummary(validation.fieldErrors);
       setReport({
@@ -3071,8 +2769,8 @@ function ProductEditorClientInner({
       return;
     }
 
-    if (draft.basic.isActive) {
-      const publicationValidation = validateProductPublicationReadiness(draft);
+    if (savingDraft.basic.isActive) {
+      const publicationValidation = validateProductPublicationReadiness(savingDraft);
       if (!publicationValidation.ok) {
         const errors = fieldErrorSummary(publicationValidation.fieldErrors);
         setReport({
@@ -3116,9 +2814,8 @@ function ProductEditorClientInner({
     }
 
     const formData = new FormData();
-    formData.set("draft", JSON.stringify(sanitizeDraftForStorage(draft)));
-    saveOperationKeyRef.current ??= crypto.randomUUID();
-    formData.set("idempotencyKey", saveOperationKeyRef.current);
+    const serializedDraft = JSON.stringify(sanitizeDraftForStorage(savingDraft));
+    formData.set("draft", serializedDraft);
     draft.media.items.forEach((item) => {
       const file = filesByLocalId[item.localId];
       if (file && !item.persisted && !item.mediaAssetId && (!item.uploadStatus || item.uploadStatus === "local")) {
@@ -3127,34 +2824,47 @@ function ProductEditorClientInner({
       }
     });
 
+    let attempt: ProductSaveAttempt;
+    try {
+      attempt = prepareProductSaveAttempt(saveAttemptRef.current, productSaveSignature(savingDraft, shouldActivate), formData, () => crypto.randomUUID());
+      saveAttemptRef.current = attempt;
+    } catch (error) {
+      setReport({
+        ...(report ?? {}),
+        ok: false,
+        messages: [error instanceof Error ? error.message : "No se pudo preparar el guardado."],
+        fieldErrors: { operation: "Hay un guardado anterior sin confirmar." },
+        blocks: report?.blocks ?? { catalog: "pending", variants: "pending", media: "pending", variantMedia: "pending", specifications: "pending", pricing: "pending", inventory: "pending", shipping: "pending", routingSeo: "pending", publish: "pending" },
+        recoveryActions: report?.recoveryActions ?? [],
+        correlationIds: report?.correlationIds ?? [],
+      });
+      return;
+    }
+
     setIsSaving(true);
     startTransition(async () => {
       try {
-        const result = await saveProductDraftAction(formData);
+        const result = await saveProductDraftAction(attempt.request);
         setReport(result);
-        if (result.ok || !result.retryable) {
-          saveOperationKeyRef.current = null;
+        const acknowledgedDraft = applyProductSavePatch(savingDraft, result);
+        saveAttemptRef.current = acknowledgeProductSaveAttempt(attempt, result, productSaveSignature(acknowledgedDraft, shouldActivate));
+
+        const confirmedPublication = result.draftPatch?.basic
+          ? { isActive: result.draftPatch.basic.isActive, isVisible: result.draftPatch.basic.isVisible }
+          : result.ok && result.blocks.publish === "success"
+            ? { isActive: savingDraft.basic.isActive, isVisible: savingDraft.basic.isVisible }
+            : persistedPublication;
+        setPersistedPublication(confirmedPublication);
+        if (result.draftPatch || result.ok) {
+          setDraft((current) => {
+            const patched = applyProductSavePatch(current, result);
+            return { ...patched, basic: { ...patched.basic, ...confirmedPublication } };
+          });
         }
 
-        if (result.draftPatch) {
-          setDraft((current) => ({
-            ...current,
-            ...result.draftPatch,
-            media: result.draftPatch?.media
-              ? result.draftPatch.media
-              : {
-                  ...current.media,
-                  items: result.blocks.media === "success"
-                    ? current.media.items.map((item) => ({ ...item, persisted: true }))
-                    : current.media.items,
-                },
-            saveState: result.draftPatch?.saveState ?? current.saveState,
-          }));
-        }
-
-        if (result.ok || result.productId) {
+        if (result.ok) {
           setDirty(false);
-          window.localStorage.removeItem(storageKey);
+          setStoredDraft(null);
         }
 
         if (result.blocks.variants === "success") {
@@ -3162,7 +2872,7 @@ function ProductEditorClientInner({
         }
 
         if (result.fieldErrors.media || result.blocks.media === "failed" || result.blocks.variantMedia === "failed") {
-          setActiveTab("images");
+          setActiveTab("basic");
         }
       } catch (error) {
         setReport({
@@ -3280,43 +2990,31 @@ function ProductEditorClientInner({
 
   return (
     <main className="adminPage productEditorPage" aria-busy={savingActive}>
+      {pricingTaxWarning || taxReloadMessage ? <div className={`adminBanner ${taxReloadSucceeded ? "adminBannerInfo" : "adminBannerWarn"}`} role="status">
+        <p>{taxReloadMessage ?? pricingTaxWarning}</p>
+        <button className="adminButton" type="button" disabled={taxReloadPending} onClick={() => startTaxReload(async () => {
+          const result = await reloadProductTaxesAction();
+          if (result.ok) setTaxLookups(result.taxes);
+          setTaxReloadSucceeded(result.ok);
+          setTaxReloadMessage(result.ok ? "Reglas fiscales actualizadas. Se conservan los datos del producto." : result.message ?? "No se pudieron cargar las reglas fiscales.");
+        })}>{taxReloadPending ? "Cargando reglas fiscales…" : "Volver a cargar impuestos"}</button>
+      </div> : null}
       <div className="adminBreadcrumb">
         <Link href="/admin">Admin</Link> / <Link href="/admin/catalogo">Catalogo</Link> / <Link href="/admin/products">Productos</Link> / {draft.productId ? "Editar" : "Nuevo"}
       </div>
 
       <div className="productEditorHeader">
         <div className="productEditorTitleGroup">
-          <input
-            aria-label="Nombre del producto"
-            className="productEditorTitleInput"
-            placeholder="Nuevo producto"
-            value={draft.basic.name}
-            onChange={(event) => updateBasic("name", event.target.value)}
-          />
           <div className="productEditorMeta">
-            <span className={`adminBadge ${draft.basic.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>
+            <span className={`adminBadge ${persistedPublication.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>
               {productStatus}
             </span>
-            <span>{draft.mode === "simple" ? "Producto simple" : "Producto con variantes"}</span>
             <span>{locale} / {currency}</span>
           </div>
         </div>
 
-        <div className="productEditorMode" aria-label="Tipo de producto">
-          <button
-            className={`adminButton ${draft.mode === "simple" ? "adminButtonPrimary" : ""}`}
-            type="button"
-            onClick={() => updateDraft((current) => ({ ...current, mode: "simple" }))}
-          >
-            Producto simple
-          </button>
-          <button
-            className={`adminButton ${draft.mode === "variants" ? "adminButtonPrimary" : ""}`}
-            type="button"
-            onClick={() => updateDraft((current) => ({ ...current, mode: "variants" }))}
-          >
-            Producto con variantes
-          </button>
+        <div className="productEditorHeaderActions">
+          <Link className="productImageAddLink" href="/admin/products/new">Agregar producto</Link>
         </div>
       </div>
 
@@ -3350,9 +3048,11 @@ function ProductEditorClientInner({
                   {action.label}
                 </button>
               ))}
-              <button className="adminButton" type="button" onClick={() => setReport(null)}>
-                Continuar editando
-              </button>
+              {!report.recoveryActions.some((action) => action.label === "Continuar editando") ? (
+                <button className="adminButton" type="button" onClick={() => setReport(null)}>
+                  Continuar editando
+                </button>
+              ) : null}
             </div>
           ) : null}
           {report.correlationIds.length > 0 ? (
@@ -3392,7 +3092,7 @@ function ProductEditorClientInner({
 
       {lookups.warnings.length > 0 ? (
         <section className="adminBanner adminBannerInfo" aria-live="polite">
-          {lookups.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+          {lookups.warnings.filter(warning => (!warning.startsWith("Caracteristicas:") || featureLoadError) && (!taxReloadSucceeded || !warning.startsWith("Pricing taxes:"))).map((warning) => <p key={warning}>{warning}</p>)}
         </section>
       ) : null}
 
@@ -3409,18 +3109,14 @@ function ProductEditorClientInner({
         ))}
       </nav>
 
-      <div className="productEditorLayout">
+      <div className={`productEditorLayout${activeTab === "audit" || activeTab === "pricing" ? " productEditorLayoutAudit" : ""}`}>
         <section className="productEditorContent">
           {activeTab === "basic" ? (
-            <div className="productEditorPanel">
-              <div className="adminTabPanel">
-                <div className="productEditorSectionHeader">
-                  <div>
-                    <h2>Ajustes basicos</h2>
-                    <p>Informacion esencial sincronizada con la ficha de producto.</p>
-                  </div>
-                </div>
-                <div className="adminFormGrid adminFormGridTwo">
+            <div className="productBasicSections">
+              <details className="productEditorPanel productBasicSection" open>
+                <summary>Datos principales</summary>
+                <div className="productBasicSectionBody">
+                <div className="adminFormGrid adminFormGridTwo productMainDataGrid">
                   <label className="adminField">
                     <span>Nombre</span>
                     <input value={draft.basic.name} onChange={(event) => updateBasic("name", event.target.value)} />
@@ -3431,40 +3127,8 @@ function ProductEditorClientInner({
                     <input value={draft.basic.slug} onChange={(event) => updateBasic("slug", event.target.value)} />
                     {report?.fieldErrors.slug ? <small>{report.fieldErrors.slug}</small> : null}
                   </label>
-                  <ProductEntitySelector
-                    createAction={createProductCategoryInlineAction}
-                    fieldError={report?.fieldErrors.categoryId}
-                    label="Categoria principal"
-                    onSelect={(option) => updateDraft((current) => ({
-                      ...current,
-                      basic: {
-                        ...current.basic,
-                        categoryId: option.id,
-                        categoryName: option.label,
-                        categorySlug: option.slug,
-                      },
-                    }))}
-                    options={categoryOptions}
-                    placeholder="Nueva categoria"
-                    selectedId={draft.basic.categoryId}
-                  />
-                  <ProductEntitySelector
-                    createAction={createProductBrandInlineAction}
-                    label="Marca / proveedor"
-                    onSelect={(option) => updateDraft((current) => ({
-                      ...current,
-                      basic: {
-                        ...current.basic,
-                        brandId: option.id,
-                        brandName: option.label,
-                      },
-                    }))}
-                    options={brandOptions}
-                    placeholder="Nueva marca/proveedor"
-                    selectedId={draft.basic.brandId}
-                  />
                   <label className="adminField">
-                    <span>Referencia principal</span>
+                    <span>Referencia / SKU</span>
                     <input
                       value={draft.defaultVariant.refId}
                       onChange={(event) => updateDraft((current) => ({
@@ -3472,6 +3136,7 @@ function ProductEditorClientInner({
                         defaultVariant: { ...current.defaultVariant, refId: event.target.value },
                       }))}
                     />
+                    <small>Código interno de la variante predeterminada.</small>
                     {report?.fieldErrors.refId ? <small>{report.fieldErrors.refId}</small> : null}
                   </label>
                   <label className="adminField">
@@ -3485,117 +3150,9 @@ function ProductEditorClientInner({
                     />
                   </label>
                 </div>
-                <section className="productSpecificationsBasic adminSection">
-                  <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
-                    <div>
-                      <h3>Caracteristicas y especificaciones</h3>
-                      <p>Agrega valores tecnicos propios del producto desde la lista maestra.</p>
-                    </div>
-                    <button className="adminButton adminButtonPrimary" type="button" onClick={openSpecificationPicker}>
-                      Caracteristicas
-                    </button>
-                  </div>
-
-                  <div className="productSpecificationSummary">
-                    {selectedSpecifications.length === 0 ? (
-                      <p className="adminContextHint">No hay caracteristicas seleccionadas para este producto.</p>
-                    ) : (
-                      <div className="productSpecificationSelectedList">
-                        {selectedSpecifications.map(({ field, value }) => (
-                          <div className="productSpecificationSelectedItem" key={field.fieldId}>
-                            <span>
-                              <small>{field.groupName}</small>
-                              <strong>{field.name}</strong>
-                            </span>
-                            <span>{value?.name}</span>
-                            <div className="adminButtonRow">
-                              <button className="adminButton adminButtonTiny" type="button" onClick={() => openSpecificationValues(field)}>
-                                Cambiar
-                              </button>
-                              <button className="adminButton adminButtonTiny" type="button" onClick={() => removeSpecificationSelection(field.fieldId)}>
-                                Quitar
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </section>
-                <section className="productBasicPricing adminSection">
-                  <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
-                    <div>
-                      <h3>Precio base</h3>
-                      <p>{formatMoney(productPrice?.basePriceMinor, productPrice?.currency || currency)} · {selectedTax?.label ?? "Sin regla fiscal"}</p>
-                    </div>
-                    <button className="adminButton" type="button" onClick={() => setActiveTab("pricing")}>
-                      Ver precio avanzado
-                    </button>
-                  </div>
-                  <div className="adminFormGrid adminFormGridTwo">
-                    <label className="adminField">
-                      <span>Precio venta imp. excl.</span>
-                      <DecimalNumberInput
-                        min="0"
-                        value={centsToInput(netMinorFromPrice(productPrice, selectedTax))}
-                        onValueChange={(value) => updateProductPriceField((price) => ({
-                          ...price,
-                          basePriceMinor: baseMinorFromNetInput(value, price, selectedTax),
-                          currency: price.currency || currency,
-                        }))}
-                      />
-                    </label>
-                    <label className="adminField">
-                      <span>Precio venta imp. incl.</span>
-                      <DecimalNumberInput
-                        min="0"
-                        value={centsToInput(grossMinorFromPrice(productPrice, selectedTax))}
-                        onValueChange={(value) => updateProductPriceField((price) => ({
-                          ...price,
-                          basePriceMinor: baseMinorFromGrossInput(value, price, selectedTax),
-                          currency: price.currency || currency,
-                        }))}
-                      />
-                    </label>
-                    <label className="adminField">
-                      <span>Regla de impuestos</span>
-                      <select
-                        disabled={taxOptions.length === 0}
-                        value={selectedTax?.id ?? ""}
-                        onChange={(event) => {
-                          const tax = taxOptions.find((item) => item.id === event.target.value) ?? null;
-                          updateProductPriceField((price) => ({
-                            ...price,
-                            taxCode: tax?.taxCode ?? draft.basic.taxCode ?? "standard",
-                            tax,
-                          }));
-                        }}
-                      >
-                        <option value="">{taxOptions.length ? "Sin regla fiscal" : "Sin reglas fiscales cargadas"}</option>
-                        {taxOptions.map((tax) => (
-                          <option key={tax.id} value={tax.id}>{tax.label}</option>
-                        ))}
-                      </select>
-                      {report?.fieldErrors[basePriceTaxErrorKey] ? (
-                        <small>{report.fieldErrors[basePriceTaxErrorKey]}</small>
-                      ) : null}
-                    </label>
-                    <label className="adminField">
-                      <span>Precio de coste</span>
-                      <DecimalNumberInput
-                        min="0"
-                        value={centsToInput(productPrice?.costPriceMinor ?? undefined)}
-                        onValueChange={(value) => updateProductPriceField((price) => ({
-                          ...price,
-                          costPriceMinor: inputToCents(value) || null,
-                        }))}
-                      />
-                    </label>
-                  </div>
-                </section>
                 <RichTextEditor
                   label="Resumen"
-                  minHeight={140}
+                  minHeight={64}
                   value={draft.basic.shortDescription}
                   onChange={(value) => updateBasic("shortDescription", value)}
                 />
@@ -3605,1942 +3162,14 @@ function ProductEditorClientInner({
                   value={draft.basic.description}
                   onChange={(value) => updateBasic("description", value)}
                 />
-                <div className="adminButtonRow adminSection">
-                  <label className="adminCheckbox">
-                    <input type="checkbox" checked={draft.basic.isVisible} onChange={(event) => updateBasic("isVisible", event.target.checked)} />
-                    Visible en canales
-                  </label>
-                  <label className="adminCheckbox">
-                    <input type="checkbox" checked={draft.basic.isActive} onChange={(event) => updateBasic("isActive", event.target.checked)} />
-                    Activo
-                  </label>
-                </div>
-                <div className={`adminBanner adminSection ${draft.basic.isActive && !publicationReady ? "adminBannerError" : ""}`}>
-                  <p>{publicationReady ? "Producto listo para activarse." : "Para activar el producto faltan datos comerciales minimos."}</p>
-                  <div className="productSaveBlocks">
-                    {publicationChecklist.map((item) => (
-                      <span className={`adminBadge ${item.ok ? "adminBadgeOk" : "adminBadgeWarn"}`} key={item.id}>
-                        {item.label}: {item.ok ? "Correcto" : "Pendiente"}
-                      </span>
-                    ))}
-                  </div>
-                  {report?.fieldErrors.publication ? <small>{report.fieldErrors.publication}</small> : null}
-                  {publicationChecklist.filter((item) => !item.ok).map((item) => (
-                    <small key={item.id}>{item.message}</small>
-                  ))}
-                  <div className="productPublicationActions">
-                    {!draft.basic.isActive ? (
-                      <button className="adminButton adminButtonPrimary" type="button" onClick={prepareProductPublication}>
-                        {publicationReady ? "Preparar publicacion" : "Revisar para publicar"}
-                      </button>
-                    ) : (
-                      <button className="adminButton" type="button" onClick={keepProductOfflineInDraft}>
-                        Quitar solicitud de publicacion
-                      </button>
-                    )}
-                    <p className="adminContextHint">
-                      Preparar publicacion marca el draft como activo y visible. Guardar producto persiste el cambio y el BFF conserva la validacion final.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {activeTab === "images" ? (
-            <div className="adminSplit">
-              <section className="productEditorPanel">
-                <div className="productEditorSectionHeader">
-                  <div>
-                    <h2>Imagenes</h2>
-                    <p>Galeria del producto, portada y captions localizados.</p>
-                  </div>
-                </div>
-                <div className="productMediaGrid">
-                  <input
-                    ref={mediaFileInputRef}
-                    className="productFileInput"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleMediaFileInputChange}
-                  />
-                  <button
-                    className="productMediaAdd"
-                    type="button"
-                    onClick={openMediaFilePicker}
-                    disabled={mediaPickerBusy}
-                  >
-                    <Plus aria-hidden="true" size={34} />
-                    <span>{mediaPickerBusy ? "Abriendo..." : "Anadir imagenes"}</span>
-                  </button>
-                  {draft.media.items.map((item) => (
-                    <div
-                      className={`productMediaTile ${selectedMedia?.localId === item.localId ? "productMediaTileActive" : ""}`}
-                      key={item.localId}
-                    >
-                      <button className="productMediaTileSelect" type="button" onClick={() => setSelectedMediaId(item.localId)}>
-                        {hasRenderableMediaPreview(item) ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={mediaPreviewSrc(item)} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
-                        ) : (
-                          <span>{item.fileName}</span>
-                        )}
-                        {item.isMain ? <strong>Portada</strong> : null}
-                        {item.uploadStatus === "uploading" ? <em>Subiendo...</em> : null}
-                        {item.uploadStatus === "uploaded" || item.persisted ? <em>Subida</em> : null}
-                        {item.uploadStatus === "failed" ? <em>{item.uploadError ?? "Error al subir"}</em> : null}
-                        {!item.persisted && (!item.uploadStatus || item.uploadStatus === "local") ? <em>Pendiente de subir</em> : null}
-                      </button>
-                      <button
-                        aria-label={`Eliminar ${item.alt[locale] ?? item.fileName}`}
-                        className="productMediaDeleteButton"
-                        type="button"
-                        onClick={() => removeMedia(item.localId)}
-                      >
-                        <Trash2 aria-hidden="true" size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                {mediaPickerMessage ? <p className="productMediaStatus">{mediaPickerMessage}</p> : null}
-                {report?.fieldErrors.media ? (
-                  <div className="adminBanner adminBannerError adminSection">
-                    <p>{report.fieldErrors.media}</p>
-                  </div>
-                ) : null}
-              </section>
-
-              <aside className="productEditorPanel">
-	                <h2>Metadata del asset</h2>
-	                {selectedMedia ? (
-	                  <div className="adminForm">
-	                    <p className="adminContextHint">Estos campos describen el archivo. El nombre comercial de la variante se edita en Variantes.</p>
-	                    <label className="adminCheckbox">
-                      <input
-                        type="checkbox"
-                        checked={selectedMedia.isMain}
-                        onChange={() => updateDraft((current) => ({
-                          ...current,
-                          media: {
-                            ...current.media,
-                            items: ensureSingleMainImage(current.media.items, selectedMedia.localId),
-                          },
-                        }))}
-                      />
-                      Imagen de portada
-                    </label>
-                    <label className="adminField">
-	                      <span>Alt del asset</span>
-                      <input value={selectedMedia.alt[locale] ?? ""} onChange={(event) => updateMedia(selectedMedia.localId, (item) => ({
-                        ...item,
-                        alt: { ...item.alt, [locale]: event.target.value },
-                      }))} />
-                    </label>
-                    <label className="adminField">
-	                      <span>Titulo del asset</span>
-                      <input value={selectedMedia.title[locale] ?? ""} onChange={(event) => updateMedia(selectedMedia.localId, (item) => ({
-                        ...item,
-                        title: { ...item.title, [locale]: event.target.value },
-                      }))} />
-                    </label>
-                    <label className="adminCheckbox">
-                      <input type="checkbox" checked={selectedMedia.active} onChange={(event) => updateMedia(selectedMedia.localId, (item) => ({ ...item, active: event.target.checked }))} />
-                      Activa
-                    </label>
-                    <button className="adminButton" type="button" onClick={() => removeMedia(selectedMedia.localId)}>
-                      Eliminar del borrador
-                    </button>
-                  </div>
-                ) : (
-                  <div className="adminEmptyState">Selecciona una imagen para editar metadata.</div>
-                )}
-              </aside>
-            </div>
-          ) : null}
-
-          {activeTab === "variants" ? (
-            <>
-            <div className="productEditorPanel">
-              <div className="productEditorSectionHeader">
-                <div>
-	                  <h2>Producto y variantes</h2>
-	                  <p>Gestiona producto y variantes vendibles con SKU, EAN, precio, stock, imagenes y estado propios.</p>
-                </div>
-                <div className="adminButtonRow">
-                  <details className="productListToolbarMenu productVariantToolbarMenu">
-                    <summary className="adminButton">Filtros</summary>
-                    <div className="productListToolbarPanel productVariantToolbarPanel">
-                      <label className="adminField">
-                        <span>Buscar variante</span>
-                        <input
-                          value={variantFilterQuery}
-                          onChange={(event) => setVariantFilterQuery(event.target.value)}
-                        />
-                      </label>
-                      <label className="adminField">
-                        <span>Estado</span>
-                        <select
-                          value={variantLifecycleFilter}
-                          onChange={(event) => setVariantLifecycleFilter(event.target.value as VariantLifecycleFilter)}
-                        >
-                          <option value="all">Todas</option>
-                          <option value="active">Activas</option>
-                          <option value="inactive">Inactivas</option>
-                        </select>
-                      </label>
-                      <label className="adminField">
-                        <span>Visibilidad</span>
-                        <select
-                          value={variantVisibilityFilter}
-                          onChange={(event) => setVariantVisibilityFilter(event.target.value as VariantVisibilityFilter)}
-                        >
-                          <option value="all">Todas</option>
-                          <option value="visible">Visibles</option>
-                          <option value="hidden">Ocultas</option>
-                        </select>
-                      </label>
-                      {hasVariantFilters ? (
-                        <button
-                          className="adminButton"
-                          type="button"
-                          onClick={() => {
-                            setVariantFilterQuery("");
-                            setVariantLifecycleFilter("all");
-                            setVariantVisibilityFilter("all");
-                          }}
-                        >
-                          Limpiar filtros
-                        </button>
-                      ) : null}
-                    </div>
-                  </details>
-                  <details className="productListToolbarMenu productVariantToolbarMenu">
-                    <summary className="adminButton">Acciones masivas</summary>
-                    <div className="productListToolbarPanel productVariantToolbarPanel productVariantBulkPanel">
-                      <strong>{filteredDraftVariants.length} variante(s) filtrada(s)</strong>
-                      <button className="adminButton" disabled={filteredDraftVariants.length === 0} type="button" onClick={() => applyVariantBulkAction("activate")}>
-                        Activar filtradas
-                      </button>
-                      <button className="adminButton" disabled={filteredDraftVariants.length === 0} type="button" onClick={() => applyVariantBulkAction("deactivate")}>
-                        Desactivar filtradas
-                      </button>
-                      <button className="adminButton" disabled={filteredDraftVariants.length === 0} type="button" onClick={() => applyVariantBulkAction("show")}>
-                        Mostrar filtradas
-                      </button>
-                      <button className="adminButton" disabled={filteredDraftVariants.length === 0} type="button" onClick={() => applyVariantBulkAction("hide")}>
-                        Ocultar filtradas
-                      </button>
-                      <p className="adminContextHint">Los cambios quedan en el borrador hasta guardar producto.</p>
-                    </div>
-                  </details>
-                  <button className="adminButton adminButtonPrimary" type="button" onClick={addManualVariant}>
-                    Anadir variante
-                  </button>
-                </div>
-              </div>
-              <div className="productCombinationGenerator">
-                <div>
-                  <strong>Generador rapido desde atributos</strong>
-	                  <p>Usalo solo cuando cada resultado generado sea una variante vendible.</p>
-                </div>
-                <div className="adminFormGrid adminFormGridTwo">
-                  <label className="adminField">
-                    <span>Color</span>
-                    <input placeholder="rojo, azul" value={variantColors} onChange={(event) => setVariantColors(event.target.value)} />
-                  </label>
-                  <label className="adminField">
-                    <span>Talla</span>
-                    <input placeholder="S, M, L" value={variantSizes} onChange={(event) => setVariantSizes(event.target.value)} />
-                  </label>
-                </div>
-                <button
-                  className="adminButton adminButtonPrimary"
-                  type="button"
-                  onClick={requestCombinationGeneration}
-                >
-	                  Generar variantes
-                </button>
-              </div>
-              {pendingGeneratedVariants ? (
-                <div className="adminBanner adminSection">
-                  <p>Ya existen variantes en la ficha. Elige como aplicar las {pendingGeneratedVariants.length} variantes nuevas.</p>
-                  <div className="adminButtonRow">
-                    <button className="adminButton adminButtonPrimary" type="button" onClick={() => applyGeneratedCombinations(pendingGeneratedVariants, "replace")}>
-                      Reemplazar variantes
-                    </button>
-                    <button className="adminButton" type="button" onClick={() => applyGeneratedCombinations(pendingGeneratedVariants, "append")}>
-                      Agregar a existentes
-                    </button>
-                    <button className="adminButton" type="button" onClick={() => setPendingGeneratedVariants(null)}>
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-              {variantMessage ? (
-                <div className="adminBanner adminSection" aria-live="polite">
-                  <p>{variantMessage}</p>
-                </div>
-              ) : null}
-              <div className="adminTableScroller adminSection">
-                <table className="adminTable productCombinationTable">
-                  <thead>
-                    <tr>
-                      <th aria-label="Seleccion">Sel.</th>
-                      <th>Imagen</th>
-	                      <th>Producto / variante</th>
-                      <th>SKU / referencia</th>
-                      <th>EAN</th>
-                      <th>Precio</th>
-                      <th>Stock</th>
-                      <th>Configuracion</th>
-                      <th>Accion</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className={`productDefaultVariantRow ${selectedVariant.isDefault ? "productRowSelected" : ""}`}>
-                      <td>
-                        <input
-	                          aria-label="Seleccionar producto"
-                          checked={selectedVariant.isDefault}
-                          type="radio"
-                          onChange={() => setSelectedVariantKey("default")}
-                        />
-                      </td>
-                      <td>
-                        <div className="productCombinationImageCell">
-                          <div className={`productTinyThumb ${hasDirectMediaForVariant("default") ? "" : "productTinyThumbInherited"}`}>
-                            {hasRenderableMediaPreview(assignedMediaForVariant("default")[0]) ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={mediaPreviewSrc(assignedMediaForVariant("default")[0])}
-                                alt=""
-                                onError={() => markMediaPreviewBroken(assignedMediaForVariant("default")[0].localId)}
-                              />
-                            ) : (
-                              <span>No image</span>
-                            )}
-                          </div>
-                          <span className={`productMediaStateBadge ${hasDirectMediaForVariant("default") ? "productMediaStateDirect" : "productMediaStateInherited"}`}>
-                            {hasDirectMediaForVariant("default") ? "Directa" : "Portada producto"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <input
-	                          aria-label="Nombre del producto"
-                          readOnly
-                          value={draft.basic.name}
-                        />
-                        <div className="adminContextHint">
-                          {draft.defaultVariantId ? `variantId ${draft.defaultVariantId}` : "Se resolvera al guardar"}
-                        </div>
-	                        <div className="adminContextHint">{allVariantRows[0]?.displayLabel ?? "Producto base"}</div>
-                      </td>
-                      <td>
-                        <input
-	                          aria-label="Referencia principal"
-                          readOnly
-                          value={draft.defaultVariant.refId}
-                        />
-                      </td>
-                      <td>
-                        <input
-	                          aria-label="EAN principal"
-                          readOnly
-                          value={draft.defaultVariant.ean ?? ""}
-                        />
-                      </td>
-                      <td>
-                        <div className="productInlinePriceCell">
-                          <input
-	                            aria-label="Precio del producto / defaultVariant"
-                            readOnly
-                            value={centsToInput(productPrice?.basePriceMinor)}
-                          />
-                          <span className="adminBadge adminBadgeOk">Precio del producto</span>
-                        </div>
-                      </td>
-                      <td>
-                        <input
-	                          aria-label="Stock principal"
-                          readOnly
-                          value={stockForKey("default").onHandQuantity}
-                        />
-                      </td>
-                      <td>
-                        <div className="productVariantStateStack">
-                          <span className={`adminBadge ${draft.basic.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>
-                            {draft.basic.isActive ? "Activa" : "Inactiva"}
-                          </span>
-                          <span className={`adminBadge ${draft.basic.isVisible ? "adminBadgeOk" : "adminBadgeWarn"}`}>
-                            {draft.basic.isVisible ? "Visible" : "Oculta"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <button className="adminButton" type="button" onClick={() => setActiveTab("basic")}>
-                          Editar base
-                        </button>
-                      </td>
-                    </tr>
-                    {draft.variants.length === 0 ? (
-                      <tr>
-                        <td colSpan={9}>Sin variantes adicionales. El producto usa solo la variante predeterminada.</td>
-                      </tr>
-                    ) : filteredDraftVariants.length === 0 ? (
-                      <tr>
-                        <td colSpan={9}>Sin variantes que coincidan con los filtros actuales.</td>
-                      </tr>
-                    ) : filteredDraftVariants.map((variant, index) => {
-                      const rowError =
-                        report?.fieldErrors[`variant:${variant.localId}`] ??
-                        report?.fieldErrors[`variant:${variant.localId}:options`] ??
-                        report?.fieldErrors[`pricing.variantPrices:${variant.localId}:tax`];
-                      const refError = report?.fieldErrors[`variant:${variant.localId}:refId`];
-                      const variantPrice = draft.pricing.variantPrices[variant.localId];
-                      const usesOwnPrice = Boolean(variantPrice && !variantPrice.markedForDeletion);
-
-                      return (
-                        <tr className={selectedVariant.localId === variant.localId ? "productRowSelected" : ""} key={variant.localId}>
-                          <td>
-                            <input
-                              aria-label={`Seleccionar ${variant.refId}`}
-                              checked={selectedVariant.localId === variant.localId}
-                              type="radio"
-                              onChange={() => setSelectedVariantKey(variant.localId)}
-                            />
-                          </td>
-                          <td>
-                            <div className="productCombinationImageCell">
-                              <div className={`productTinyThumb ${hasDirectMediaForVariant(variant.localId) ? "" : "productTinyThumbInherited"}`}>
-                                {hasRenderableMediaPreview(assignedMediaForVariant(variant.localId)[0]) ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={mediaPreviewSrc(assignedMediaForVariant(variant.localId)[0])}
-                                  alt=""
-                                  onError={() => markMediaPreviewBroken(assignedMediaForVariant(variant.localId)[0].localId)}
-                                />
-                              ) : (
-                                <span>No image</span>
-                              )}
-                              </div>
-                              <span className={`productMediaStateBadge ${hasDirectMediaForVariant(variant.localId) ? "productMediaStateDirect" : "productMediaStateInherited"}`}>
-                                {hasDirectMediaForVariant(variant.localId) ? "Directa" : "Heredada"}
-                              </span>
-                            </div>
-                          </td>
-                          <td>
-                            <input
-                              aria-label={`Nombre variante ${index + 1}`}
-                              value={variant.name}
-                              onChange={(event) => updateVariant(variant.localId, (item) => ({ ...item, name: event.target.value }))}
-                            />
-                            <div className="adminContextHint">
-                              {variant.variantId ? `variantId ${variant.variantId}` : "Pendiente de guardar"}
-                            </div>
-                            <div className="adminContextHint">Atributos: {optionLabel(variant)}</div>
-                            {rowError ? <small>{rowError}</small> : null}
-                          </td>
-                          <td>
-                            <input
-                              aria-label={`Referencia variante ${index + 1}`}
-                              value={variant.refId}
-                              onChange={(event) => updateVariant(variant.localId, (item) => ({ ...item, refId: event.target.value }))}
-                            />
-                            {refError ? <small>{refError}</small> : null}
-                          </td>
-                          <td>
-                            <input
-                              aria-label={`EAN variante ${index + 1}`}
-                              value={variant.ean ?? ""}
-                              onChange={(event) => updateVariant(variant.localId, (item) => ({ ...item, ean: event.target.value || null }))}
-                            />
-                          </td>
-                          <td>
-                            <div className="productInlinePriceCell">
-                              <DecimalNumberInput
-                                aria-label={`Precio variante ${index + 1}`}
-                                min="0"
-                                value={centsToInput(variantPrice?.markedForDeletion ? undefined : variantPrice?.basePriceMinor)}
-                                onValueChange={(value) => updateVariantPrice(variant.localId, value)}
-                              />
-                              <button
-                                className="adminButton"
-                                disabled={!usesOwnPrice}
-                                type="button"
-                                onClick={() => removeVariantPrice(variant.localId)}
-                              >
-                                Heredar
-                              </button>
-                              <span className={`adminBadge ${usesOwnPrice ? "adminBadgeOk" : ""}`}>
-                                {usesOwnPrice ? "Precio propio" : "Usa precio del producto"}
-                              </span>
-                            </div>
-                          </td>
-                          <td>
-                            <input
-                              aria-label={`Stock variante ${index + 1}`}
-                              min="0"
-                              type="number"
-                              value={stockForKey(variant.localId).onHandQuantity}
-                              onChange={(event) => updateStockNumber(variant.localId, "onHandQuantity", event.target.value)}
-                            />
-                          </td>
-                          <td>
-                            <div className="productVariantStateStack">
-                              <span className={`adminBadge ${variant.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>
-                                {variant.isActive ? "Activa" : "Inactiva"}
-                              </span>
-                              <label className="adminCheckbox">
-                                <input
-                                  aria-label={`Activa variante ${index + 1}`}
-                                  type="checkbox"
-                                  checked={variant.isActive}
-                                  onChange={(event) => updateVariant(variant.localId, (item) => ({ ...item, isActive: event.target.checked }))}
-                                />
-                                Activa
-                              </label>
-                              <label className="adminCheckbox">
-                                <input
-                                  aria-label={`Visible variante ${index + 1}`}
-                                  type="checkbox"
-                                  checked={variant.isVisible}
-                                  onChange={(event) => updateVariant(variant.localId, (item) => ({ ...item, isVisible: event.target.checked }))}
-                                />
-                                Visible
-                              </label>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="adminButtonRow">
-                              <button
-                                className="adminButton"
-                                disabled={isPending}
-                                type="button"
-                                onClick={() => changeVariantLifecycle(variant)}
-                              >
-                                {!variant.variantId ? "Quitar" : variant.isActive ? "Desactivar" : "Reactivar"}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-		                  </tbody>
-		                </table>
-		              </div>
-            </div>
-              <section className="productEditorPanel productOfferingPositionPanel adminSection">
-                <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
-                  <div>
-                    <h2>Servicios adicionales</h2>
-                    <p>{offeringTargetVariant?.selectorLabel ?? "Selecciona una variante"}</p>
-                  </div>
-                  <button className="adminButton" type="button" onClick={openOfferingPicker}>
-                    Servicios adicionales
-                  </button>
-                </div>
-                {!offeringTargetVariant?.variantId && !offeringPrerequisiteNoticeDismissed ? (
-                  <div className="adminBanner adminBannerInfo adminBannerDismissible">
-                    <p>Guarda primero esta variante para asociar servicios adicionales.</p>
-                    <button
-                      aria-label="Cerrar aviso de servicios adicionales"
-                      className="adminBannerClose"
-                      type="button"
-                      onClick={() => setOfferingPrerequisiteNoticeDismissed(true)}
-                    >
-                      <X aria-hidden="true" size={14} />
-                    </button>
-                  </div>
-                ) : null}
-                {offeringMessage ? (
-                  <div className={`adminBanner adminBanner${offeringMessage.tone[0].toUpperCase()}${offeringMessage.tone.slice(1)}`} aria-live="polite">
-                    <p>{offeringMessage.text}</p>
-                  </div>
-                ) : null}
-                <div className="productOfferingSummary">
-                  {offeringsForTarget.length === 0 ? (
-                    <p className="adminContextHint">No hay servicios adicionales asociados a esta variante.</p>
-                  ) : (
-                    <div className="productOfferingSelectedList">
-                      {offeringsForTarget.map((offering) => (
-                        <div className="productOfferingSelectedItem" key={offering.offeringId}>
-                          <span>
-                            <small>{offering.type}</small>
-                            <strong>{offeringName(offering, locale)}</strong>
-                          </span>
-                          <span>{formatMoney(offering.priceMinor, offering.currency || currency)}</span>
-                          <span className={offering.active ? "adminBadge adminBadgeOk" : "adminBadge adminBadgeWarn"}>
-                            {offering.active ? "Activo" : "Inactivo"}
-                          </span>
-                          <div className="adminButtonRow">
-                            <button
-                              className="adminButton adminButtonTiny"
-                              disabled={isPending}
-                              type="button"
-                              onClick={() => setOfferingActivation(offering.offeringId, !offering.active)}
-                            >
-                              {offering.active ? "Desactivar" : "Activar"}
-                            </button>
-                            <button
-                              className="adminButton adminButtonTiny"
-                              disabled={isPending}
-                              type="button"
-                              onClick={() => detachOffering(offering.offeringId)}
-                            >
-                              Quitar
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </section>
-              <section className="productEditorPanel productVariantAttributePanel adminSection">
-                  <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
-                    <div>
-                      <h2>Atributos de combinacion</h2>
-                      <p>{selectedVariant.isDefault ? "La variante predeterminada se configura desde Ajustes basicos." : selectedVariant.name}</p>
-                    </div>
-                    <div className="adminButtonRow">
-                      <span className="adminBadge">
-                        {activeSelectedVariantOptions.length} asociado{activeSelectedVariantOptions.length === 1 ? "" : "s"}
-                      </span>
-                      <button
-                        className="adminButton"
-                        disabled={selectedVariant.isDefault}
-                        type="button"
-                        onClick={openVariantAttributePicker}
-                      >
-                        Atributos de combinacion
-                      </button>
-                    </div>
-                  </div>
-                  {selectedVariant.variantId && !dismissedVariantAttributeNotices.persisted ? (
-                    <div className="adminBanner adminBannerDismissible">
-                      <p>Los atributos guardados se actualizaran al guardar la ficha. Quitar un atributo persistido lo desactiva de forma segura.</p>
-                      <button
-                        aria-label="Cerrar aviso de atributos guardados"
-                        className="adminBannerClose"
-                        type="button"
-                        onClick={() => setDismissedVariantAttributeNotices((current) => ({ ...current, persisted: true }))}
-                      >
-                        <X aria-hidden="true" size={14} />
-                      </button>
-                    </div>
-                  ) : null}
-                  {variantOptionWarning(selectedVariant) ? (
-                    <div className="adminBanner adminBannerError">
-                      <p>{variantOptionWarning(selectedVariant)}</p>
-                    </div>
-                  ) : !dismissedVariantAttributeNotices.guidance ? (
-                    <div className="adminBanner adminBannerDismissible">
-                      <p>Estos atributos identifican esta variante vendible. Si un color o talla necesita stock o imagen propia, crea una variante separada.</p>
-                      <button
-                        aria-label="Cerrar ayuda de atributos de combinacion"
-                        className="adminBannerClose"
-                        type="button"
-                        onClick={() => setDismissedVariantAttributeNotices((current) => ({ ...current, guidance: true }))}
-                      >
-                        <X aria-hidden="true" size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    null
-                  )}
-                  <div className="productVariantAttributeSummary">
-                    {activeSelectedVariantOptions.length === 0 ? (
-                      <p className="adminContextHint">No hay atributos de combinacion asociados a esta variante.</p>
-                  ) : (
-                    <div className="productVariantAttributeSelectedList">
-                      {selectedVariant.options
-                        .map((option, optionIndex) => ({ option, optionIndex }))
-                        .filter(({ option }) => !option.markedForDeletion && option.isActive !== false)
-                        .map(({ option, optionIndex }) => {
-                          const field = findVariantAttributeField(lookups.variantAttributeFields, option.attributeCode);
-                          const value = findVariantAttributeValue(field, option.valueCode);
-                          return (
-                            <div className="productVariantAttributeSelectedItem" key={`${selectedVariant.localId}-${optionIndex}`}>
-                              <span>
-                                <small>{field?.groupName ?? "Atributo"}</small>
-                                {field ? (
-                                  <strong>{field.name}</strong>
-                                ) : (
-                                  <input
-                                    aria-label={`Atributo de combinacion ${optionIndex + 1}`}
-                                    disabled={selectedVariant.isDefault}
-                                    placeholder="color"
-                                    value={option.attributeCode}
-                                    onChange={(event) => updateSelectedVariantOption(optionIndex, "attributeCode", event.target.value)}
-                                  />
-                                )}
-                              </span>
-                              <span>
-                                {field ? ((value?.name ?? option.valueCode) || "Sin valor") : (
-                                  <input
-                                    aria-label={`Valor de combinacion ${optionIndex + 1}`}
-                                    disabled={selectedVariant.isDefault}
-                                    placeholder="negro"
-                                    value={option.valueCode}
-                                    onChange={(event) => updateSelectedVariantOption(optionIndex, "valueCode", event.target.value)}
-                                  />
-                                )}
-                              </span>
-                              <span className="adminBadge">{option.variantOptionId ? "Guardado" : "Borrador"}</span>
-                              <div className="adminButtonRow">
-                                {field ? (
-                                  <button
-                                    className="adminButton adminButtonTiny"
-                                    disabled={selectedVariant.isDefault}
-                                    type="button"
-                                    onClick={() => openVariantAttributeValues(field)}
-                                  >
-                                    Cambiar
-                                  </button>
-                                ) : null}
-                                <button
-                                  className="adminButton adminButtonTiny"
-                                  disabled={selectedVariant.isDefault}
-                                  type="button"
-                                  onClick={() => removeSelectedVariantOption(optionIndex)}
-                                >
-                                  Quitar
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                  </div>
-                  <button
-                    className="adminButton adminButtonTiny productVariantAttributeManualButton"
-                    disabled={selectedVariant.isDefault}
-                    type="button"
-                    onClick={addSelectedVariantOption}
-                  >
-                    Anadir manual
-                  </button>
-                  {report?.fieldErrors[`variant:${selectedVariant.localId}:options`] ? (
-                    <small>{report.fieldErrors[`variant:${selectedVariant.localId}:options`]}</small>
-                  ) : null}
-              </section>
-            </>
-          ) : null}
-
-          {activeTab === "pricing" ? (
-            <section className="productEditorPanel">
-              <div className="productEditorSectionHeader">
-                <div>
-                  <h2>Precio</h2>
-                  <p>Define el precio base del producto y anade excepciones solo cuando las necesites.</p>
-                </div>
-              </div>
-              <div className="pricingEditorContext">
-                <span>Currency: <strong>{productPrice?.currency || currency}</strong></span>
-                <span>Country: <strong>{productPrice?.country || "ES"}</strong></span>
-                <span>Precio base: <strong>{formatMoney(productPrice?.basePriceMinor, productPrice?.currency || currency)}</strong></span>
-                <span>Reglas especificas: <strong>{visibleSpecificPrices.length}</strong></span>
-              </div>
-              {lookups.warnings.filter((warning) => warning.startsWith("Pricing")).map((warning) => (
-                <div className="adminBanner adminBannerInfo" key={warning}><p>{warning}</p></div>
-              ))}
-              <div className="adminFormGrid adminFormGridTwo">
-                <label className="adminField">
-                  <span>Precio de venta (imp. excl.)</span>
-                  <DecimalNumberInput
-                    aria-label="Precio de venta sin impuestos"
-                    min="0"
-                    value={centsToInput(netMinorFromPrice(productPrice, selectedTax))}
-                    onValueChange={(value) => updateProductPriceField((price) => ({
-                      ...price,
-                      basePriceMinor: baseMinorFromNetInput(value, price, selectedTax),
-                      currency: price.currency || currency,
-                    }))}
-                  />
-                </label>
-                <label className="adminField">
-                  <span>Precio de venta (imp. incl.)</span>
-                  <DecimalNumberInput
-                    aria-label="Precio de venta con impuestos"
-                    min="0"
-                    value={centsToInput(grossMinorFromPrice(productPrice, selectedTax))}
-                    onValueChange={(value) => updateProductPriceField((price) => ({
-                      ...price,
-                      basePriceMinor: baseMinorFromGrossInput(value, price, selectedTax),
-                      currency: price.currency || currency,
-                    }))}
-                  />
-                </label>
-                <label className="adminField">
-                  <span>Impuesto</span>
-                  <select
-                    disabled={taxOptions.length === 0}
-                    value={selectedTax?.id ?? ""}
-                    onChange={(event) => {
-                      const tax = taxOptions.find((item) => item.id === event.target.value) ?? null;
-                      updateProductPriceField((price) => ({
-                        ...price,
-                        taxCode: tax?.taxCode ?? draft.basic.taxCode ?? "standard",
-                        tax,
-                      }));
-                    }}
-                  >
-                    <option value="">{taxOptions.length ? "Sin regla fiscal" : "Sin reglas fiscales cargadas"}</option>
-                    {taxOptions.map((tax) => (
-                      <option key={tax.id} value={tax.id}>{tax.label}</option>
-                    ))}
-                  </select>
-                  {report?.fieldErrors[basePriceTaxErrorKey] ? (
-                    <small>{report.fieldErrors[basePriceTaxErrorKey]}</small>
-                  ) : null}
-                  {taxOptions.length === 0 ? (
-                    <small>{pricingTaxWarning ?? "No hay reglas fiscales disponibles para este contexto."}</small>
-                  ) : null}
-                </label>
-                <label className="adminField">
-                  <span>Precio de coste</span>
-                  <DecimalNumberInput
-                    min="0"
-                    value={centsToInput(productPrice?.costPriceMinor ?? undefined)}
-                    onValueChange={(value) => updateProductPriceField((price) => ({
-                      ...price,
-                      costPriceMinor: inputToCents(value) || null,
-                    }))}
-                  />
-                </label>
-                <label className="adminField">
-                  <span>Precio tachado</span>
-                  <DecimalNumberInput
-                    min="0"
-                    value={centsToInput(productPrice?.listPriceMinor ?? undefined)}
-                    onValueChange={(value) => updateProductPriceField((price) => ({
-                      ...price,
-                      listPriceMinor: inputToCents(value) || null,
-                    }))}
-                  />
-                </label>
-              </div>
-              <label className="adminCheckbox adminSection">
-                <input
-                  type="checkbox"
-                  checked={productPrice?.taxIncluded ?? true}
-                  onChange={(event) => updateProductPriceField((price) => ({
-                    ...price,
-                    taxIncluded: event.target.checked,
-                  }))}
-                />
-                Impuestos incluidos
-              </label>
-              <details className="productPricingAdvanced adminSection">
-                <summary>
-                  <ChevronRight aria-hidden="true" className="productCollapseIcon" size={16} />
-                  <span>Contexto avanzado de precio base</span>
-                </summary>
-                <div className="adminFormGrid adminFormGridTwo">
-                  <label className="adminField">
-                    <span>priceTableId</span>
-                    <select
-                      value={productPrice?.priceTableId ?? ""}
-                      onChange={(event) => updateProductPriceField((price) => ({
-                        ...price,
-                        priceTableId: event.target.value || null,
-                      }))}
-                    >
-                      <option value="">Precio base</option>
-                      {priceTableOptions.map((table) => (
-                        <option key={table.id} value={table.id}>{table.label}</option>
-                      ))}
-                    </select>
-                    {priceTableOptions.length === 0 ? (
-                      <small>{pricingTablesWarning ?? "No hay price tables disponibles para este contexto."}</small>
-                    ) : null}
-                  </label>
-                  <label className="adminField">
-                    <span>tradePolicy</span>
-                    <select
-                      value={productPrice?.tradePolicy ?? "default"}
-                      onChange={(event) => updateProductPriceField((price) => ({ ...price, tradePolicy: event.target.value }))}
-                    >
-                      {productTradePolicyOptions.map((option) => (
-                        <option key={option.id} value={option.id}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="adminField">
-                    <span>channel</span>
-                    <select
-                      value={productPrice?.channel ?? "web"}
-                      onChange={(event) => updateProductPriceField((price) => ({ ...price, channel: event.target.value }))}
-                    >
-                      {productChannelOptions.map((option) => (
-                        <option key={option.id} value={option.id}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="adminField">
-                    <span>country</span>
-                    <select
-                      value={productPrice?.country ?? "ES"}
-                      onChange={(event) => updateProductPriceField((price) => ({ ...price, country: event.target.value }))}
-                    >
-                      {productCountryOptions.map((option) => (
-                        <option key={option.id} value={option.id}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="adminField">
-                    <span>customerGroup</span>
-                    <select
-                      value={productPrice?.customerGroup ?? ""}
-                      onChange={(event) => updateProductPriceField((price) => ({ ...price, customerGroup: event.target.value || null }))}
-                    >
-                      <option value="">Todos</option>
-                      {productCustomerGroupOptions.map((option) => (
-                        <option key={option.id} value={option.id}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
                 </div>
               </details>
-              <div className="productPriceSummary productPriceSummaryWide adminSection">
-                <div>
-                  <strong>{formatMoney(productPrice?.basePriceMinor, productPrice?.currency || currency)}</strong>
-                  <span>Precio producto</span>
-                </div>
-                <div>
-                  <strong>{formatMoney(productPrice?.listPriceMinor ?? undefined, productPrice?.currency || currency)}</strong>
-                  <span>Precio tachado</span>
-                </div>
-                <div>
-                  <strong>{currentPricePreview ? formatMoney(currentPricePreview.net, productPrice?.currency || currency) : "-"}</strong>
-                  <span>Neto preview</span>
-                </div>
-                <div>
-                  <strong>{currentPricePreview ? formatMoney(currentPricePreview.tax, productPrice?.currency || currency) : "-"}</strong>
-                  <span>Impuesto preview</span>
-                </div>
-                <div>
-                  <strong>{currentPricePreview ? formatMoney(currentPricePreview.gross, productPrice?.currency || currency) : "-"}</strong>
-                  <span>Bruto preview</span>
-                </div>
-                {!currentPricePreview ? <p>Preview neto/impuesto/bruto pendiente de respuesta resuelta del BFF o de una tasa en el impuesto seleccionado.</p> : null}
-              </div>
-              <details className="productSpecificPrices productPricingAdvanced adminSection">
-                <summary className="productPricingPreviewSummary">
-                  <span className="productPricingSummaryLabel">
-                    <ChevronRight aria-hidden="true" className="productCollapseIcon" size={16} />
-                    <span>Precios especificos</span>
-                  </span>
-                  <span className={`adminBadge ${visibleSpecificPrices.length > 0 ? "adminBadgeOk" : "adminBadgeWarn"}`}>
-                    {visibleSpecificPrices.length > 0 ? `${visibleSpecificPrices.length} regla(s)` : "Sin reglas"}
-                  </span>
-                </summary>
-                <div className="productEditorSectionHeader">
-                  <p>{visibleSpecificPrices.length > 0 ? `${visibleSpecificPrices.length} regla(s) enlazada(s) al producto.` : "Sin reglas especificas todavia."}</p>
-                  <button className="adminButton" type="button" onClick={() => resetSpecificPriceForm()}>
-                    Anadir precio especifico
-                  </button>
-                </div>
-                <div className="productSpecificPriceForm">
-                  <div className="adminFormGrid adminFormGridTwo">
-                    <label className="adminField">
-                      <span>Aplicar a</span>
-                      <select
-                        value={specificPriceForm.targetKey}
-                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, targetKey: event.target.value }))}
-                      >
-                        {specificPriceTargetOptions.map((target) => (
-                          <option key={target.key} value={target.key}>
-                            {target.label} · {target.refId}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="adminField">
-                      <span>Precio especifico</span>
-                      <DecimalNumberInput
-                        aria-label="Precio especifico"
-                        min="0"
-                        value={specificPriceForm.fixedPrice}
-                        onValueChange={(value) => setSpecificPriceForm((current) => ({ ...current, fixedPrice: value }))}
-                      />
-                    </label>
-                    <label className="adminField">
-                      <span>Minimo de unidades</span>
-                      <input
-                        min="1"
-                        step="1"
-                        type="number"
-                        value={specificPriceForm.minQuantity}
-                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, minQuantity: event.target.value }))}
-                      />
-                    </label>
-                    <label className="adminField">
-                      <span>Fecha inicial</span>
-                      <input
-                        type="datetime-local"
-                        value={specificPriceForm.validFrom}
-                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, validFrom: event.target.value }))}
-                      />
-                    </label>
-                    <label className="adminCheckbox">
-                      <input
-                        checked={specificPriceForm.unlimited}
-                        type="checkbox"
-                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, unlimited: event.target.checked }))}
-                      />
-                      Ilimitado
-                    </label>
-                    <label className="adminField">
-                      <span>Fecha final</span>
-                      <input
-                        disabled={specificPriceForm.unlimited}
-                        type="datetime-local"
-                        value={specificPriceForm.validUntil}
-                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, validUntil: event.target.value }))}
-                      />
-                    </label>
-                  </div>
-                  <details className="productPricingAdvanced">
-                    <summary>
-                      <ChevronRight aria-hidden="true" className="productCollapseIcon" size={16} />
-                      <span>Condiciones avanzadas</span>
-                    </summary>
-                    <div className="adminFormGrid adminFormGridTwo">
-                      <label className="adminField">
-                        <span>Pais</span>
-                        <select
-                          value={specificPriceForm.country}
-                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, country: event.target.value }))}
-                        >
-                          <option value="">Todos</option>
-                          {specificCountryOptions.map((option) => (
-                            <option key={option.id} value={option.id}>{option.label}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="adminField">
-                        <span>Grupo cliente</span>
-                        <select
-                          value={specificPriceForm.customerGroup}
-                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, customerGroup: event.target.value }))}
-                        >
-                          <option value="">Todos</option>
-                          {specificCustomerGroupOptions.map((option) => (
-                            <option key={option.id} value={option.id}>{option.label}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="adminField">
-                        <span>Canal</span>
-                        <select
-                          value={specificPriceForm.channel}
-                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, channel: event.target.value }))}
-                        >
-                          {specificChannelOptions.map((option) => (
-                            <option key={option.id} value={option.id}>{option.label}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="adminField">
-                        <span>Politica comercial</span>
-                        <select
-                          value={specificPriceForm.tradePolicy}
-                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, tradePolicy: event.target.value }))}
-                        >
-                          {specificTradePolicyOptions.map((option) => (
-                            <option key={option.id} value={option.id}>{option.label}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="adminField">
-                        <span>Price table</span>
-                        <select
-                          value={specificPriceForm.priceTableId}
-                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, priceTableId: event.target.value }))}
-                        >
-                          <option value="">Sin tabla</option>
-                          {priceTableOptions.map((table) => (
-                            <option key={table.id} value={table.id}>{table.label}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="adminField">
-                        <span>Prioridad</span>
-                        <input
-                          min="1"
-                          step="1"
-                          type="number"
-                          value={specificPriceForm.priority}
-                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, priority: event.target.value }))}
-                        />
-                      </label>
-                      <label className="adminCheckbox">
-                        <input
-                          checked={specificPriceForm.taxIncluded}
-                          type="checkbox"
-                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, taxIncluded: event.target.checked }))}
-                        />
-                        Precio con impuestos
-                      </label>
-                      <label className="adminCheckbox">
-                        <input
-                          checked={specificPriceForm.active}
-                          type="checkbox"
-                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, active: event.target.checked }))}
-                        />
-                        Activo
-                      </label>
-                    </div>
-                  </details>
-                  {specificPriceEditIndex !== null ? (
-                    <p className="adminContextHint">Editando regla #{specificPriceEditIndex + 1} para {specificPriceTarget.label}.</p>
-                  ) : null}
-                  <div className="adminButtonRow">
-                    <button className="adminButton adminButtonPrimary" type="button" onClick={saveSpecificPriceForm}>
-                      {specificPriceEditIndex === null ? "Guardar precio especifico" : "Actualizar precio especifico"}
-                    </button>
-                    <button className="adminButton" type="button" onClick={() => resetSpecificPriceForm()}>
-                      Limpiar
-                    </button>
-                  </div>
-                </div>
-                {visibleSpecificPrices.length > 0 ? (
-                  <div className="adminTableScroller adminSection">
-                    <table className="adminTable productSpecificPriceTable">
-                      <thead>
-                        <tr>
-                          <th>Aplicacion</th>
-                          <th>Precio</th>
-                          <th>Unidades</th>
-                          <th>Duracion</th>
-                          <th>Contexto</th>
-                          <th>Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {specificPrices.map((price, index) => {
-                          if (price.markedForDeletion) {
-                            return null;
-                          }
-                          return (
-                            <tr key={price.pricingId ?? `${price.targetType}-${index}`}>
-                              <td>
-                                <strong>{specificPriceTargetLabel(price)}</strong>
-                                <div className="adminContextHint">{price.targetType === "VARIANT" ? "Variante/combinacion" : "Todas las combinaciones"}</div>
-                              </td>
-                              <td>
-                                <strong>{formatMoney(price.fixedPriceMinor ?? undefined, price.currency ?? productPrice?.currency ?? currency)}</strong>
-                                <div className="adminContextHint">{price.taxIncluded ? "Imp. incl." : "Imp. excl."}</div>
-                              </td>
-                              <td>{price.minQuantity || 1}</td>
-                              <td>{price.validUntil ? price.validUntil.slice(0, 10) : "Ilimitado"}</td>
-                              <td>
-                                <div>{price.country || "Todos los paises"} · {price.customerGroup || "Todos los grupos"}</div>
-                                <div className="adminContextHint">{price.channel || "web"} · {price.tradePolicy || "default"}</div>
-                              </td>
-                              <td>
-                                <div className="adminButtonRow">
-                                  <button className="adminButton" type="button" onClick={() => editSpecificPrice(index)}>Editar</button>
-                                  <button className="adminButton adminButtonDanger" type="button" onClick={() => removeSpecificPrice(index)}>Eliminar</button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : null}
-              </details>
-              <details className="productSpecificPrices productPricingAdvanced adminSection">
-                <summary className="productPricingPreviewSummary">
-                  <span className="productPricingSummaryLabel">
-                    <ChevronRight aria-hidden="true" className="productCollapseIcon" size={16} />
-                    <span>Simulador de precio aplicado</span>
-                  </span>
-                  <span className={`adminBadge ${pricingPreviewResult?.ok ? "adminBadgeOk" : "adminBadgeWarn"}`}>
-                    {pricingPreviewResult ? pricingResolutionLabel(pricingPreviewResult.resolution.source) : "Sin simular"}
-                  </span>
-                </summary>
-                <p className="adminContextHint">Confirma el precio que Pricing devuelve para producto, variante y contexto.</p>
-                <div className="adminFormGrid adminFormGridTwo">
-                  <label className="adminField">
-                    <span>Aplicar sobre</span>
-                    <select
-                      value={pricingPreviewForm.targetKey}
-                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, targetKey: event.target.value }))}
-                    >
-                      <option value="__product__">Producto completo · {draft.defaultVariant.refId || draft.basic.name}</option>
-                      {priceVariantRows.map((variant) => (
-                        <option key={variant.localId} value={variant.localId}>
-                          {variant.name || variant.refId || "Variante"} · {variant.refId || "sin referencia"}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="adminField">
-                    <span>Cantidad</span>
-                    <input
-                      min="1"
-                      step="1"
-                      type="number"
-                      value={pricingPreviewForm.quantity}
-                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, quantity: event.target.value }))}
-                    />
-                  </label>
-                  <label className="adminField">
-                    <span>Pais</span>
-                    <select
-                      value={pricingPreviewForm.country}
-                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, country: event.target.value }))}
-                    >
-                      {previewCountryOptions.map((option) => (
-                        <option key={option.id} value={option.id}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="adminField">
-                    <span>Canal</span>
-                    <select
-                      value={pricingPreviewForm.channel}
-                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, channel: event.target.value }))}
-                    >
-                      {previewChannelOptions.map((option) => (
-                        <option key={option.id} value={option.id}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="adminField">
-                    <span>Politica comercial</span>
-                    <select
-                      value={pricingPreviewForm.tradePolicy}
-                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, tradePolicy: event.target.value }))}
-                    >
-                      {previewTradePolicyOptions.map((option) => (
-                        <option key={option.id} value={option.id}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="adminField">
-                    <span>Grupo cliente</span>
-                    <select
-                      value={pricingPreviewForm.customerGroup}
-                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, customerGroup: event.target.value }))}
-                    >
-                      <option value="">Todos</option>
-                      {previewCustomerGroupOptions.map((option) => (
-                        <option key={option.id} value={option.id}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="adminField">
-                    <span>Price table</span>
-                    <select
-                      value={pricingPreviewForm.priceTableId}
-                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, priceTableId: event.target.value }))}
-                    >
-                      <option value="">Auto / base</option>
-                      {priceTableOptions.map((table) => (
-                        <option key={table.id} value={table.id}>{table.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="adminField">
-                    <span>Fecha de simulacion</span>
-                    <input
-                      type="datetime-local"
-                      value={pricingPreviewForm.at}
-                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, at: event.target.value }))}
-                    />
-                  </label>
-                </div>
-                <div className="adminButtonRow adminSection">
-                  <button
-                    className="adminButton adminButtonPrimary"
-                    disabled={pricingPreviewBusy}
-                    type="button"
-                    onClick={runPricingPreview}
-                  >
-                    {pricingPreviewBusy ? "Simulando..." : "Simular precio"}
-                  </button>
-                  <button
-                    className="adminButton"
-                    type="button"
-                    onClick={() => {
-                      setPricingPreviewForm(defaultPricingPreviewForm(productPrice, "__product__"));
-                      setPricingPreviewResult(null);
-                    }}
-                  >
-                    Reiniciar
-                  </button>
-                </div>
-                {pricingPreviewResult ? (
-                  <div className="adminSection">
-                    {pricingPreviewResult.ok && pricingPreviewResult.price ? (
-                      <div className="productPriceSummary productPriceSummaryWide">
-                        <div>
-                          <strong>{formatMoney(
-                            pricingPreviewResult.price.resolved?.grossAmountMinor ??
-                              pricingPreviewResult.price.fixedPrice?.amountMinor ??
-                              pricingPreviewResult.price.basePrice.amountMinor,
-                            pricingPreviewResult.price.resolved?.currency ?? pricingPreviewResult.price.currency,
-                          )}</strong>
-                          <span>Precio aplicado</span>
-                        </div>
-                        <div>
-                          <strong>{formatMoney(pricingPreviewResult.price.basePrice.amountMinor, pricingPreviewResult.price.currency)}</strong>
-                          <span>Precio base</span>
-                        </div>
-                        <div>
-                          <strong>{pricingPreviewResult.price.fixedPrice ? formatMoney(pricingPreviewResult.price.fixedPrice.amountMinor, pricingPreviewResult.price.fixedPrice.currency) : "-"}</strong>
-                          <span>Precio especifico</span>
-                        </div>
-                        <div>
-                          <strong>{pricingPreviewResult.price.source}</strong>
-                          <span>Fuente</span>
-                        </div>
-                        <div>
-                          <strong>{pricingPreviewResult.price.pricingId}</strong>
-                          <span>pricingId</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="adminBanner adminBannerError">
-                        <p>{pricingPreviewResult.reason ?? "No hay precio aplicable para estos parametros."}</p>
-                      </div>
-                    )}
-                    <div className="pricingEditorContext">
-                      <span>Target: <strong>{pricingPreviewTarget?.displayLabel ?? "Producto"}</strong></span>
-                      <span>Resolucion: <strong>{pricingResolutionLabel(pricingPreviewResult.resolution.source)}</strong></span>
-                      <span>Fallback: <strong>{pricingPreviewResult.resolution.usedFallback ? "Si" : "No"}</strong></span>
-                      {pricingPreviewResult.price ? (
-                        <span>Tabla: <strong>{pricingPreviewResult.price.priceTableId ?? "base"}</strong></span>
-                      ) : null}
-                    </div>
-                    {pricingPreviewResult.conditions.length > 0 ? (
-                      <div className="adminTableScroller adminSection">
-                        <table className="adminTable productSpecificPriceTable">
-                          <thead>
-                            <tr>
-                              <th>Parametro</th>
-                              <th>Solicitado</th>
-                              <th>Regla aplicada</th>
-                              <th>Estado</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {pricingPreviewResult.conditions.map((condition) => (
-                              <tr key={condition.key}>
-                                <td>{pricingConditionLabel(condition.key)}</td>
-                                <td>{condition.requested ?? "Todos"}</td>
-                                <td>{condition.matched ?? "Todos"}</td>
-                                <td>
-                                  <span className={`adminBadge ${condition.status === "MATCH" || condition.status === "ANY" ? "adminBadgeOk" : "adminBadgeWarn"}`}>
-                                    {pricingConditionStatusLabel(condition.status)}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-              </details>
-              <div className="adminBanner adminSection">
-                <p>La productVariantDefault se gestiona con el precio superior. Las variantes listadas abajo solo necesitan cambios si requieren precio, impuesto o tabla propios.</p>
-              </div>
-              {priceVariantRows.length > 0 ? (
-              <>
-              <div className="adminSection">
-                <div className="productEditorSectionHeader">
-                  <div>
-                    <h3>Override de variante adicional</h3>
-                    <p>{selectedPriceVariant?.name ?? "Selecciona una variante adicional"}</p>
-                  </div>
-                  <span className={`adminBadge ${selectedVariantUsesOwnPrice ? "adminBadgeOk" : ""}`}>
-                    {selectedVariantUsesOwnPrice ? "Precio propio" : "Fallback producto"}
-                  </span>
-                </div>
-                <div className="adminFormGrid adminFormGridTwo">
-                  <label className="adminField">
-                    <span>Variante adicional a editar</span>
-                    <select
-                      value={selectedPriceVariant?.localId ?? ""}
-                      onChange={(event) => setSelectedVariantKey(event.target.value)}
-                    >
-                      {priceVariantRows.map((variant) => (
-                        <option key={variant.localId} value={variant.localId}>
-                          {variant.name} · {variant.refId || "sin referencia"}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="adminField">
-                    <span>Precio propio</span>
-                    <DecimalNumberInput
-                      disabled={!selectedPriceVariant}
-                      min="0"
-                      value={centsToInput(selectedVariantPrice?.markedForDeletion ? undefined : selectedVariantPrice?.basePriceMinor)}
-                      onValueChange={(value) => selectedPriceVariant ? updateVariantPrice(selectedPriceVariant.localId, value) : undefined}
-                    />
-                    {selectedPriceVariant && report?.fieldErrors[`pricing.variantPrices:${selectedPriceVariant.localId}:tax`] ? (
-                      <small>{report.fieldErrors[`pricing.variantPrices:${selectedPriceVariant.localId}:tax`]}</small>
-                    ) : null}
-                  </label>
-                  <label className="adminField">
-                    <span>Impuesto de variante</span>
-                    <select
-                      disabled={!selectedPriceVariant || !selectedVariantUsesOwnPrice || variantTaxOptions.length === 0}
-                      value={selectedVariantTax?.id ?? ""}
-                      onChange={(event) => {
-                        const tax = variantTaxOptions.find((item) => item.id === event.target.value) ?? null;
-                        if (!selectedPriceVariant) {
-                          return;
-                        }
-                        updateVariantPriceField(selectedPriceVariant.localId, (price) => ({
-                          ...price,
-                          taxCode: tax?.taxCode ?? price.taxCode,
-                          tax,
-                        }));
-                      }}
-                    >
-                      <option value="">{variantTaxOptions.length ? "Heredar/sin regla" : "Sin reglas fiscales cargadas"}</option>
-                      {variantTaxOptions.map((tax) => (
-                        <option key={tax.id} value={tax.id}>{tax.label}</option>
-                      ))}
-                    </select>
-                    {!selectedVariantUsesOwnPrice && selectedPriceVariant ? (
-                      <small>Usa el impuesto del producto: {selectedTax?.label ?? "sin regla fiscal"}.</small>
-                    ) : null}
-                  </label>
-                  <label className="adminField">
-                    <span>priceTableId de variante</span>
-                    <select
-                      disabled={!selectedPriceVariant || !selectedVariantUsesOwnPrice}
-                      value={selectedVariantPrice?.priceTableId ?? ""}
-                      onChange={(event) => selectedPriceVariant
-                        ? updateVariantPriceField(selectedPriceVariant.localId, (price) => ({
-                            ...price,
-                            priceTableId: event.target.value || null,
-                          }))
-                        : undefined}
-                    >
-	                      <option value="">Precio base</option>
-                      {variantPriceTableOptions.map((table) => (
-                        <option key={table.id} value={table.id}>{table.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="adminButtonRow adminSection">
-                  <button
-                    className="adminButton"
-                    disabled={!selectedPriceVariant || !selectedVariantUsesOwnPrice}
-                    type="button"
-                    onClick={() => selectedPriceVariant ? removeVariantPrice(selectedPriceVariant.localId) : undefined}
-                  >
-                    Quitar precio propio
-                  </button>
-                </div>
-              </div>
-              <div className="adminTableScroller adminSection">
-                <table className="adminTable productCombinationTable">
-                  <thead>
-                    <tr>
-                      <th aria-label="Seleccion">Sel.</th>
-                      <th>Variante</th>
-                      <th>Modo</th>
-                      <th>Precio</th>
-                      <th>Especificos</th>
-                      <th>Fiscalidad</th>
-                      <th>Accion</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {priceVariantRows.map((variant) => {
-                      const price = draft.pricing.variantPrices[variant.localId];
-                      const usesOwnPrice = Boolean(price && !price.markedForDeletion);
-                      const variantTax = price?.tax ?? selectedTax;
-                      const variantPriceTable = price?.priceTableId ?? productPrice?.priceTableId;
-                      const specificCount = specificPriceCountForVariant(variant);
-                      return (
-                        <tr className={selectedPriceVariant?.localId === variant.localId ? "productRowSelected" : ""} key={variant.localId}>
-                          <td>
-                            <input
-                              aria-label={`Editar precio de ${variant.refId || variant.name}`}
-                              checked={selectedPriceVariant?.localId === variant.localId}
-                              type="radio"
-                              onChange={() => setSelectedVariantKey(variant.localId)}
-                            />
-                          </td>
-                          <td>
-                            <strong>{variant.name}</strong>
-                            <div className="adminContextHint">{variant.refId}</div>
-                          </td>
-	                          <td>
-	                            <span className={`adminBadge ${usesOwnPrice ? "adminBadgeOk" : ""}`}>
-	                              {usesOwnPrice ? "Precio propio de variante" : "Usa precio del producto"}
-	                            </span>
-	                            <div className="adminContextHint">
-	                              {price?.pricingId ? `Pricing ${price.pricingId}` : usesOwnPrice ? "Override nuevo" : "Fallback activo"}
-	                            </div>
-                          </td>
-                          <td>
-                            <strong>{usesOwnPrice ? formatMoney(price?.basePriceMinor, price?.currency || currency) : formatMoney(productPrice?.basePriceMinor, productPrice?.currency || currency)}</strong>
-                            <div className="adminContextHint">{usesOwnPrice ? "Override" : "Producto"}</div>
-                          </td>
-                          <td>
-                            <span className={`adminBadge ${specificCount > 0 ? "adminBadgeOk" : ""}`}>
-                              {specificCount > 0 ? `${specificCount} regla(s)` : "Sin reglas"}
-                            </span>
-                          </td>
-                          <td>
-                            <div>{variantTax?.label ?? "Sin regla fiscal"}</div>
-	                            <div className="adminContextHint">{variantPriceTable ?? "Precio base"}</div>
-                          </td>
-                          <td>
-                            <div className="adminButtonRow">
-                              <button
-                                className="adminButton"
-                                type="button"
-                                onClick={() => setSelectedVariantKey(variant.localId)}
-                              >
-                                Editar
-                              </button>
-                              <button
-                                className="adminButton"
-                                type="button"
-                                onClick={() => resetSpecificPriceForm(variant.localId)}
-                              >
-                                Anadir especifico
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              </>
-              ) : (
-                <div className="adminBanner adminSection">
-                  <p>Este producto no tiene variantes adicionales. El precio superior cubre la productVariantDefault.</p>
-                </div>
-              )}
-              {report?.blocks.pricing === "failed" ? (
-                <div className="adminBanner adminBannerError adminSection">
-                  <p>Pricing fallo sin romper Catalog/Media.</p>
-                  <button className="adminButton" type="button" onClick={saveDraft}>Reintentar precio</button>
-                </div>
-              ) : null}
-            </section>
-          ) : null}
-
-          {activeTab === "inventory" ? (
-            <section className="productEditorPanel">
-              <div className="productEditorSectionHeader">
-                <div>
-                  <h2>Inventario</h2>
-                  <p>Stock por variante y warehouse, separado del precio y la galeria.</p>
-                </div>
-              </div>
-
-              <div className="adminTableScroller adminSection">
-                <table className="adminTable productCombinationTable">
-                  <thead>
-                    <tr>
-	                      <th>Stock del producto</th>
-                      <th>Warehouse</th>
-                      <th>On hand</th>
-                      <th>Reservado</th>
-                      <th>Safety</th>
-                      <th>Disponible</th>
-                      <th>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const stock = stockForKey("default");
-                      const available = availableQuantity(stock);
-                      return (
-                        <tr>
-                          <td>
-	                            <strong>{allVariantRows[0]?.displayLabel ?? "Producto"}</strong>
-                            <div className="adminContextHint">
-                              {draft.defaultVariantId ? `variantId ${draft.defaultVariantId}` : "Se resolvera al guardar"}
-                            </div>
-                          </td>
-                          <td>
-                            <input
-                              aria-label="Warehouse default"
-                              value={stock.warehouseId}
-                              onChange={(event) => updateStockWarehouse("default", event.target.value)}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              aria-label="On hand default"
-                              min="0"
-                              type="number"
-                              value={stock.onHandQuantity}
-                              onChange={(event) => updateStockNumber("default", "onHandQuantity", event.target.value)}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              aria-label="Reservado default"
-                              min="0"
-                              type="number"
-                              value={stock.reservedQuantity}
-                              onChange={(event) => updateStockNumber("default", "reservedQuantity", event.target.value)}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              aria-label="Safety default"
-                              min="0"
-                              type="number"
-                              value={stock.safetyStockQuantity}
-                              onChange={(event) => updateStockNumber("default", "safetyStockQuantity", event.target.value)}
-                            />
-                          </td>
-                          <td>
-                            <strong>{available}</strong>
-                          </td>
-                          <td>
-                            <span className={`adminBadge ${available > 0 ? "adminBadgeOk" : "adminBadgeWarn"}`}>
-                              {available > 0 ? "Disponible" : "Sin stock"}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })()}
-                  </tbody>
-                </table>
-              </div>
-
-              {draft.mode === "variants" ? (
-                <div className="adminTableScroller adminSection">
-                  <table className="adminTable productCombinationTable">
-                    <thead>
-                      <tr>
-                        <th>Variante</th>
-                        <th>Modo</th>
-                        <th>Warehouse</th>
-                        <th>On hand</th>
-                        <th>Reservado</th>
-                        <th>Safety</th>
-                        <th>Disponible</th>
-                        <th>Estado</th>
-                        <th>Accion</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {draft.variants.length === 0 ? (
-                        <tr>
-	                          <td colSpan={9}>Sin variantes adicionales. Usa el stock del producto simple.</td>
-                        </tr>
-                      ) : draft.variants.map((variant) => {
-                        const stockState = stockForVariantRow(variant);
-                        const stock = stockState.stock;
-                        const hasOwnStock = stockState.mode === "own";
-                        const canReturnToInherited = hasOwnStock && (!variant.variantId || stockState.key !== variant.variantId);
-                        const available = availableQuantity(stock);
-                        return (
-                          <tr className={hasOwnStock ? "" : "productInventoryInherited"} key={variant.localId}>
-                            <td>
-                              <strong>{variant.name}</strong>
-                              <div className="adminContextHint">
-                                {variant.variantId ? `variantId ${variant.variantId}` : `${variant.refId} pendiente de guardar`}
-                              </div>
-                            </td>
-                            <td className="productInventoryModeCell">
-                              <span className={`productMediaStateBadge ${hasOwnStock ? "productMediaStateDirect" : "productMediaStateInherited"}`}>
-                                {hasOwnStock ? "Stock propio" : "Heredado"}
-                              </span>
-	                              {!hasOwnStock ? <small>Usa stock del producto</small> : null}
-                            </td>
-                            <td>
-                              <input
-                                aria-label={`Warehouse ${variant.refId}`}
-                                disabled={!hasOwnStock}
-                                value={stock.warehouseId}
-                                onChange={(event) => updateStockWarehouse(stockState.key, event.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                aria-label={`On hand ${variant.refId}`}
-                                disabled={!hasOwnStock}
-                                min="0"
-                                type="number"
-                                value={stock.onHandQuantity}
-                                onChange={(event) => updateStockNumber(stockState.key, "onHandQuantity", event.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                aria-label={`Reservado ${variant.refId}`}
-                                disabled={!hasOwnStock}
-                                min="0"
-                                type="number"
-                                value={stock.reservedQuantity}
-                                onChange={(event) => updateStockNumber(stockState.key, "reservedQuantity", event.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                aria-label={`Safety ${variant.refId}`}
-                                disabled={!hasOwnStock}
-                                min="0"
-                                type="number"
-                                value={stock.safetyStockQuantity}
-                                onChange={(event) => updateStockNumber(stockState.key, "safetyStockQuantity", event.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <strong>{available}</strong>
-                            </td>
-                            <td>
-                              <span className={`adminBadge ${available > 0 ? "adminBadgeOk" : "adminBadgeWarn"}`}>
-                                {available > 0 ? "Disponible" : "Sin stock"}
-                              </span>
-                            </td>
-                            <td>
-                              {hasOwnStock ? (
-                                <button
-                                  className="adminButton"
-                                  disabled={!canReturnToInherited}
-                                  title={canReturnToInherited ? undefined : "Inventory no expone borrado de stock persistido todavia."}
-                                  type="button"
-                                  onClick={() => inheritVariantStock(variant)}
-                                >
-	                                  {canReturnToInherited ? "Heredar default" : "Stock propio guardado"}
-                                </button>
-                              ) : (
-                                <button className="adminButton" type="button" onClick={() => enableVariantOwnStock(variant)}>
-                                  Usar stock propio
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : null}
-
-              {report?.blocks.inventory === "failed" ? (
-                <div className="adminBanner adminBannerError adminSection">
-                  <p>Inventory fallo sin revertir Catalog, Media ni Pricing.</p>
-                  <button className="adminButton" type="button" onClick={saveDraft}>Reintentar stock</button>
-                </div>
-              ) : null}
-
-              <div className="productPriceSummary adminSection">
-                {(() => {
-                  const variantStockRows = draft.variants.map((variant) => stockForVariantRow(variant));
-                  const ownAvailable = variantStockRows.reduce(
-                    (total, row) => total + (row.mode === "own" ? availableQuantity(row.stock) : 0),
-                    0,
-                  );
-                  const inheritedCount = variantStockRows.filter((row) => row.mode === "inherited").length;
-
-                  return (
-                    <>
-                      <strong>{availableQuantity(stockForKey("default"))}</strong>
-	                      <span>Disponible producto</span>
-                      <strong>{ownAvailable}</strong>
-                      <span>Disponible stock propio</span>
-                      <strong>{inheritedCount}/{draft.variants.length}</strong>
-                      <span>Variantes heredando</span>
-                    </>
-                  );
-                })()}
-              </div>
-            </section>
-          ) : null}
-
-          {activeTab === "shipping" ? (
-            <section className="productEditorPanel">
-              <div className="productEditorSectionHeader">
-                <div>
-                  <h2>Transporte</h2>
-	                  <p>Datos logisticos del producto; las variantes heredan salvo reglas propias futuras.</p>
-                </div>
-	                <span className="adminBadge">Producto</span>
-              </div>
-
-              <div className="pricingEditorContext">
-                <span><strong>Peso:</strong> {draft.shipping.package.weightGrams ? `${draft.shipping.package.weightGrams} g` : "Sin definir"}</span>
-                <span><strong>Dimensiones:</strong> {shippingDimensionsComplete ? `${shippingPackage.widthMm} x ${shippingPackage.heightMm} x ${shippingPackage.depthMm} mm` : "Sin definir"}</span>
-                <span><strong>Coste adicional:</strong> {formatMoney(draft.shipping.additionalShippingCostMinor ?? 0, currency)}</span>
-                <span><strong>Transportistas:</strong> {draft.shipping.allowedCarrierIds.length > 0 ? `${draft.shipping.allowedCarrierIds.length} seleccionados` : "Todos los activos"}</span>
-              </div>
-
-              <div className="adminFormGrid adminFormGridTwo">
-                <label className="adminField">
-                  <span>Peso del paquete (g)</span>
-                  <input
-                    inputMode="numeric"
-                    min="0"
-                    type="number"
-                    value={draft.shipping.package.weightGrams ?? ""}
-                    onChange={(event) => updateShippingPackage("weightGrams", event.target.value)}
-                  />
-                </label>
-                <label className="adminField">
-                  <span>Coste adicional ({currency})</span>
-                  <DecimalNumberInput
-                    inputMode="decimal"
-                    min="0"
-                    value={centsToInput(draft.shipping.additionalShippingCostMinor ?? undefined)}
-                    onValueChange={(value) => updateShipping((shipping) => ({
-                      ...shipping,
-                      additionalShippingCostMinor: inputToCents(value),
-                    }))}
-                  />
-                </label>
-                <label className="adminField">
-                  <span>Ancho (mm)</span>
-                  <input
-                    inputMode="numeric"
-                    min="0"
-                    type="number"
-                    value={draft.shipping.package.widthMm ?? ""}
-                    onChange={(event) => updateShippingPackage("widthMm", event.target.value)}
-                  />
-                </label>
-                <label className="adminField">
-                  <span>Alto (mm)</span>
-                  <input
-                    inputMode="numeric"
-                    min="0"
-                    type="number"
-                    value={draft.shipping.package.heightMm ?? ""}
-                    onChange={(event) => updateShippingPackage("heightMm", event.target.value)}
-                  />
-                </label>
-                <label className="adminField">
-                  <span>Profundidad (mm)</span>
-                  <input
-                    inputMode="numeric"
-                    min="0"
-                    type="number"
-                    value={draft.shipping.package.depthMm ?? ""}
-                    onChange={(event) => updateShippingPackage("depthMm", event.target.value)}
-                  />
-                </label>
-                <label className="adminField">
-                  <span>Plazo de entrega</span>
-                  <select
-                    value={draft.shipping.deliveryTimeMode}
-                    onChange={(event) => updateShipping((shipping) => ({
-                      ...shipping,
-                      deliveryTimeMode: event.target.value as ProductDraft["shipping"]["deliveryTimeMode"],
-                    }))}
-                  >
-                    <option value="none">Sin texto propio</option>
-                    <option value="default">Usar plazo por defecto</option>
-                    <option value="specific">Texto especifico del producto</option>
-                  </select>
-                </label>
-              </div>
-
-              {draft.shipping.deliveryTimeMode === "specific" ? (
-                <div className="adminFormGrid adminFormGridTwo adminSection">
-                  <label className="adminField">
-                    <span>Entrega con stock ({locale})</span>
-                    <textarea
-                      className="adminTextarea"
-                      value={draft.shipping.deliveryTimeNotes.inStock[locale] ?? ""}
-                      onChange={(event) => updateShippingDeliveryNote("inStock", event.target.value)}
-                    />
-                  </label>
-                  <label className="adminField">
-                    <span>Entrega sin stock ({locale})</span>
-                    <textarea
-                      className="adminTextarea"
-                      value={draft.shipping.deliveryTimeNotes.outOfStock[locale] ?? ""}
-                      onChange={(event) => updateShippingDeliveryNote("outOfStock", event.target.value)}
-                    />
-                  </label>
-                </div>
-              ) : null}
-
-              <div className="productEditorSectionHeader productEditorSectionHeaderCompact adminSection">
-                <div>
-                  <h3>Transportistas permitidos</h3>
-                  <p>Sin seleccion explicita, el producto permite todos los transportistas activos del modulo Transporte.</p>
-                </div>
-                {draft.shipping.allowedCarrierIds.length > 0 ? (
-                  <button
-                    className="adminButton"
-                    type="button"
-                    onClick={() => updateShipping((shipping) => ({ ...shipping, allowedCarrierIds: [] }))}
-                  >
-                    Permitir todos
-                  </button>
-                ) : null}
-              </div>
-
-              {carrierOptions.length > 0 ? (
-                <div className="productShippingCarrierGrid">
-                  {carrierOptions.map((carrier) => {
-                    const checked = draft.shipping.allowedCarrierIds.includes(carrier.id);
-                    return (
-                      <label className={`productShippingCarrier ${checked ? "productShippingCarrierActive" : ""}`} key={carrier.id}>
-                        <input
-                          checked={checked}
-                          type="checkbox"
-                          onChange={(event) => toggleShippingCarrier(carrier.id, event.target.checked)}
-                        />
-                        <span>
-                          <strong>{carrier.label}</strong>
-                          <small>{carrier.id}</small>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="adminBanner adminSection">
-                  <p>No hay transportistas cargados desde BFF Shipping. Puedes guardar paquete y coste; la seleccion de carriers quedara en todos los activos.</p>
-                </div>
-              )}
-            </section>
-          ) : null}
-
-          {activeTab === "seo" ? (
-            <section className="productEditorPanel">
-              <h2>SEO</h2>
-              <div className="adminSummaryGrid">
-                <div>
-                  <span>Canonical</span>
-                  <strong>{draft.routingSeo.canonicalPath || "Pendiente"}</strong>
-                </div>
-                <div>
-                  <span>Estado</span>
-                  <strong>{draft.routingSeo.status === "ACTIVE" ? "Activo" : "Inactivo"}</strong>
-                </div>
-                <div>
-                  <span>Sitemap</span>
-                  <strong>{draft.routingSeo.includeInSitemap ? "Incluido" : "Excluido"}</strong>
-                </div>
-                <div>
-                  <span>Aliases</span>
-                  <strong>{draft.routingSeo.aliases.filter((alias) => !alias.markedForDeletion).length}</strong>
-                </div>
-              </div>
+              
+                
+                
+              <details className="productEditorPanel productBasicSection" open>
+                <summary>SEO</summary>
+                <div className="productBasicSectionBody">
               <div className="adminFormGrid adminFormGridTwo">
                 <label className="adminField">
                   <span>Titulo SEO</span>
@@ -5662,352 +3291,1178 @@ function ProductEditorClientInner({
                 )}
               </div>
               {draft.routingSeo.resolvedCanonical ? (
-                <div className="adminBanner adminSection">
-                  <p>
+                <ProductSeoResolutionNotice>
                     Resolucion: {draft.routingSeo.resolvedCanonical.kind}
                     {draft.routingSeo.resolvedCanonical.canonicalPath ? ` -> ${draft.routingSeo.resolvedCanonical.canonicalPath}` : ""}
-                  </p>
-                </div>
+                </ProductSeoResolutionNotice>
               ) : null}
-            </section>
+                </div>
+              </details>
+            </div>
           ) : null}
 
-          {activeTab === "audit" ? (
-            <section className="productEditorPanel productAuditPanel">
+          {activeTab === "variants" ? (
+            <>
+            <div className="productEditorPanel">
               <div className="productEditorSectionHeader">
                 <div>
-                  <h2>Auditoria</h2>
-                  <p>Trazabilidad tecnica del borrador y del ultimo guardado ejecutado por BFF.</p>
+	                  <h2>Producto y variantes</h2>
                 </div>
-                <span className={`adminBadge ${dirty ? "adminBadgeWarn" : "adminBadgeOk"}`}>
-                  {dirty ? "Cambios locales" : "Sin cambios locales"}
-                </span>
-              </div>
-
-              <div className="adminSummaryGrid">
-                <div>
-                  <span>Producto</span>
-                  <strong>{draft.productId ?? "Pendiente de guardar"}</strong>
-                </div>
-                <div>
-                  <span>Variante default</span>
-                  <strong>{draft.defaultVariantId ?? "Pendiente de guardar"}</strong>
-                </div>
-                <div>
-                  <span>Coleccion media</span>
-                  <strong>{draft.mediaCollectionId ?? "Sin coleccion"}</strong>
-                </div>
-                <div>
-                  <span>Draft cliente</span>
-                  <strong>{draft.clientDraftId}</strong>
+                <div className="adminButtonRow">
+                  <button className="productImageAddLink" type="button" onClick={addManualVariant}>
+                    Anadir variante
+                  </button>
                 </div>
               </div>
-
-              <section className="productAuditSection">
-                <h3>Operacion de guardado</h3>
-                <dl className="productPreviewMetaGrid">
-                  <div><dt>Operation ID</dt><dd>{report?.operationId ?? "Sin guardado en esta sesion"}</dd></div>
-                  <div><dt>Estado</dt><dd>{report?.status ?? (report ? report.ok ? "ok" : "failed" : "Sin reporte")}</dd></div>
-                  <div><dt>Reintento</dt><dd>{report ? report.retryable ? "Permitido por BFF" : "No indicado" : "Sin reporte"}</dd></div>
-                  <div><dt>Mensajes</dt><dd>{report?.messages.length ?? 0}</dd></div>
-                </dl>
-              </section>
-
-              <section className="productAuditSection">
-                <h3>Bloques persistidos</h3>
-                <div className="productSaveBlocks">
-                  {Object.entries(draft.saveState).map(([block, status]) => (
-                    <span className={`adminBadge ${statusClass(status)}`} key={block}>
-                      {block}: {statusLabel(status)}
-                    </span>
-                  ))}
+              <details className="productVariantGeneratorAdvanced"><summary>Generar variantes desde atributos</summary>
+              <div className="productCombinationGenerator productRegisteredGenerator">
+                <div className="productRegisteredGeneratorTables">
+                  {variantAttributeFields.filter((field) => field.isActive && field.isStockKeepingUnit && field.categoryIds?.includes(draft.basic.categoryId ?? "")).map((field) => {
+                    const expanded = Object.prototype.hasOwnProperty.call(generatorSelections, field.fieldId);
+                    return (
+                      <table className="productBasicFeaturesGrid" key={field.fieldId} aria-label={`Generar por ${field.name}`}>
+                        <thead><tr><th colSpan={2}>
+                          <label className="adminCheckbox">
+                            <input type="checkbox" disabled={generatingVariants} checked={expanded} aria-expanded={expanded} aria-controls={`generator-values-${field.fieldId}`} onChange={(event) => {
+                              const checked = event.target.checked;
+                              setGeneratorSelections((current) => {
+                                const next = { ...current };
+                                if (checked) next[field.fieldId] = [];
+                                else delete next[field.fieldId];
+                                return next;
+                              });
+                            }} />{field.name}
+                          </label>
+                        </th></tr></thead>
+                        <tbody id={`generator-values-${field.fieldId}`} hidden={!expanded}>
+                          {field.values.filter((value) => value.isActive).map((value) => (
+                            <tr key={value.fieldValueId}><td>
+                              <input type="checkbox" aria-label={`${field.name}: ${value.name}`} disabled={generatingVariants} checked={(generatorSelections[field.fieldId] ?? []).includes(value.fieldValueId)} onChange={(event) => {
+                                const checked = event.target.checked;
+                                setGeneratorSelections((current) => ({ ...current, [field.fieldId]: checked ? [...(current[field.fieldId] ?? []), value.fieldValueId] : (current[field.fieldId] ?? []).filter((id) => id !== value.fieldValueId) }));
+                              }} />
+                            </td><td>{value.name}</td></tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    );
+                  })}
                 </div>
-              </section>
+                {!variantAttributeFields.some((field) => field.categoryIds?.includes(draft.basic.categoryId ?? "")) ? <p>No hay atributos registrados para esta categoría.</p> : null}
+                <button className="adminButton" type="button" disabled={generatingVariants || !Object.values(generatorSelections).some((ids) => ids.length)} onClick={requestCombinationGeneration}>
+                  {generatingVariants ? "Agregando…" : "Agregar"}
+                </button>
+              </div>
+              </details>
+              {variantMessage ? (
+                <div className="adminBanner adminSection" aria-live="polite">
+                  <p>{variantMessage}</p>
+                </div>
+              ) : null}
+              <div className="adminTableScroller adminSection">
+                <table className="adminTable productVariantCompactTable">
+                  <thead><tr><th aria-label="Selección">Sel.</th><th>Imagen</th><th>Nombre</th><th>SKU / referencia</th><th>Variante</th><th>Acción</th></tr></thead>
+                  <tbody>
+                    {allVariantRows.map((variant) => {
+                      const variantValues = variant.options
+                        .filter((option) => !option.markedForDeletion && option.isActive !== false)
+                        .map((option) => {
+                          const field = findVariantAttributeField(variantAttributeFields, option.attributeCode);
+                          const value = findVariantAttributeValue(field, option.valueCode);
+                          if (value) return value.name;
+                          const label = option.valueCode.replace(/-/g, " ").trim();
+                          return label ? label.charAt(0).toLocaleUpperCase(locale) + label.slice(1) : "";
+                        })
+                        .filter(Boolean);
+                      return (
+                      <tr key={variant.localId} onClick={() => setSelectedVariantKey(variant.localId)}>
+                        <td><input type="radio" name="product-selected-variant" aria-label={`Seleccionar ${variant.refId}`} checked={selectedVariant.localId === variant.localId} onChange={() => setSelectedVariantKey(variant.localId)} /></td>
+                        <td>{renderVariantImagePicker(variant.localId, variant.isDefault ? "variante 0" : variant.name)}</td>
+                        <td><span className="productVariantCellText" title={variant.name || "Sin nombre"}>{variant.name || "Sin nombre"}</span></td>
+                        <td><span className="productVariantCellText" title={variant.refId || "Sin referencia"}>{variant.refId || "Sin referencia"}</span></td>
+                        <td>
+                          <div className="productVariantValueList">
+                            {variantValues.length ? variantValues.map((value, index) => (
+                              <span className="productVariantValueBadge" title={value} key={`${value}-${index}`}>{value}</span>
+                            )) : "—"}
+                          </div>
+                        </td>
+                        <td className="productVariantActionCell" onClick={(event) => event.stopPropagation()}>
+                          {!variant.isDefault ? (
+                            variant.variantId && draft.productId && canDeleteProducts && deletionContext ? <CatalogDeletionButton iconOnly target={{ ...deletionContext, productId: draft.productId, variantId: variant.variantId }} name={variant.refId} disabled={dirty || savingActive} disabledReason={dirty ? "Guarda los cambios antes de eliminar." : undefined} onComplete={() => { window.localStorage.removeItem(storageKey); window.location.assign(`/admin/products/${encodeURIComponent(draft.productId!)}`); }} /> : !variant.variantId ? <button className="productFeatureTableAction productFeatureTableDelete" type="button" aria-label={`Quitar ${variant.refId}`} title="Quitar variante del borrador" disabled={savingActive} onClick={() => { if (window.confirm(`¿Quitar la variante ${variant.refId} del borrador?`)) removeVariantFromDraft(variant); }}><Trash2 size={14} aria-hidden="true" /></button> : null
+                          ) : null}
+                        </td>
 
-              <section className="productAuditSection">
-                <h3>Errores y recuperacion</h3>
-                {report && fieldErrorSummary(report.fieldErrors).length > 0 ? (
-                  <ul className="productAuditList">
-                    {fieldErrorSummary(report.fieldErrors).map((error) => (
-                      <li key={error.key}>
-                        <strong>{error.label}</strong>
-                        <span>{error.message}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="adminContextHint">Sin errores de campo en el ultimo reporte.</p>
-                )}
-                {report?.recoveryActions.length ? (
-                  <div className="productSaveBlocks">
-                    {report.recoveryActions.map((action) => (
-                      <span className="adminBadge" key={`${action.code}:${action.targetBlock ?? "operation"}`}>
-                        {action.label}
-                      </span>
-                    ))}
+
+                      </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+              <section className="productEditorPanel productOfferingPositionPanel adminSection">
+                <div className="productEditorSectionHeader productEditorSectionHeaderCompact">
+                  <div>
+                    <h2>Servicios adicionales</h2>
+                  </div>
+                  <button className="productImageAddLink" type="button" onClick={openOfferingPicker}>
+                    Agregar servicio
+                  </button>
+                </div>
+                {!offeringTargetVariant?.variantId && !offeringPrerequisiteNoticeDismissed ? (
+                  <div className="adminBanner adminBannerInfo adminBannerDismissible">
+                    <p>Guarda primero esta variante para asociar servicios adicionales.</p>
+                    <button
+                      aria-label="Cerrar aviso de servicios adicionales"
+                      className="adminBannerClose"
+                      type="button"
+                      onClick={() => setOfferingPrerequisiteNoticeDismissed(true)}
+                    >
+                      <X aria-hidden="true" size={14} />
+                    </button>
                   </div>
                 ) : null}
+                {offeringMessage ? (
+                  <div className={`adminBanner adminBanner${offeringMessage.tone[0].toUpperCase()}${offeringMessage.tone.slice(1)}`} aria-live="polite">
+                    <p>{offeringMessage.text}</p>
+                  </div>
+                ) : null}
+                <div className="productOfferingSummary">
+                  {offeringsForTarget.length === 0 ? (
+                    <p className="adminContextHint">No hay servicios adicionales asociados a esta variante.</p>
+                  ) : (
+                    <div className="adminTableScroller">
+                      <table className="productBasicFeaturesGrid productVariantServicesTable" aria-label="Servicios adicionales de la variante">
+                        <thead><tr><th scope="col">Servicio</th><th scope="col">Precio</th><th scope="col">Activo</th><th scope="col">Acción</th></tr></thead>
+                        <tbody>{offeringsForTarget.map((offering) => (
+                          <tr key={offering.offeringId}>
+                            <th scope="row">{offeringName(offering, locale)}</th>
+                            <td>{formatMoney(offering.priceMinor, offering.currency || currency)}</td>
+                            <td><input type="checkbox" aria-label={`Activar ${offeringName(offering, locale)}`} checked={offering.active} disabled={isPending} onChange={(event) => setOfferingActivation(offering.offeringId, event.target.checked)} /></td>
+                            <td><button className="productFeatureTableAction productFeatureTableDelete" disabled={isPending} type="button" aria-label={`Quitar servicio ${offeringName(offering, locale)}`} title="Quitar servicio de la variante" onClick={() => detachOffering(offering.offeringId)}><Trash2 size={14} aria-hidden="true" /></button></td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </section>
 
-              <section className="productAuditSection">
-                <h3>Correlacion BFF</h3>
-                {report?.correlationIds.length ? (
-                  <ul className="productAuditCodeList">
-                    {report.correlationIds.map((correlationId) => (
-                      <li key={correlationId}><code>{correlationId}</code></li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="adminContextHint">Sin correlation IDs en esta sesion.</p>
-                )}
-              </section>
+            <details className="productEditorPanel productBasicSection productVariantShippingPanel adminSection" open>
+              <summary><span>Transporte</span></summary>
+              <div className="productBasicSectionBody">
+                <div className="productVariantShippingHeader">
+                  <p className="adminContextHint">{selectedVariant.isDefault ? "Datos base del producto. Las variantes usan estos valores mientras no tengan una excepción propia." : "Cada medida hereda del producto. Al editarla, se guarda como valor propio de esta variante."}</p>
+                  {!selectedVariant.isDefault ? <button className="productImageAddLink" type="button" disabled={!Object.keys(selectedVariant.shippingPackage ?? {}).length} onClick={() => updateVariant(selectedVariant.localId, (variant) => ({ ...variant, shippingPackage: {} }))}>Heredar valores</button> : null}
+                </div>
+                <fieldset className="productVariantShippingFields">
+              <div className="adminTableScroller productVariantShippingSummary">
+                <table className="productBasicFeaturesGrid" aria-label="Resumen de transporte">
+                  <thead><tr><th scope="col">Peso</th><th scope="col">Dimensiones</th><th scope="col">Coste adicional</th><th scope="col">Transportistas</th></tr></thead>
+                  <tbody><tr>
+                    <td>{shippingPackage.weightGrams != null ? `${shippingPackage.weightGrams} g` : "Sin definir"}</td>
+                    <td>{shippingDimensionsComplete ? `${shippingPackage.widthMm} x ${shippingPackage.heightMm} x ${shippingPackage.depthMm} mm` : "Sin definir"}</td>
+                    <td>{formatMoney(draft.shipping.additionalShippingCostMinor ?? 0, currency)}</td>
+                    <td>{draft.shipping.allowedCarrierIds.length > 0 ? `${draft.shipping.allowedCarrierIds.length} seleccionados` : "Todos los activos"}</td>
+                  </tr></tbody>
+                </table>
+              </div>
 
-              <section className="productAuditSection">
-                <h3>Routing/SEO</h3>
-                <dl className="productPreviewMetaGrid">
-                  <div><dt>Canonical</dt><dd>{draft.routingSeo.canonicalPath || "Pendiente"}</dd></div>
-                  <div><dt>Estado ruta</dt><dd>{draft.routingSeo.status}</dd></div>
-                  <div><dt>Sitemap</dt><dd>{draft.routingSeo.includeInSitemap ? "Incluido" : "Excluido"}</dd></div>
-                  <div><dt>Aliases activos</dt><dd>{draft.routingSeo.aliases.filter((alias) => !alias.markedForDeletion).length}</dd></div>
-                </dl>
-              </section>
-            </section>
-          ) : null}
-        </section>
+              <div className="adminFormGrid productVariantShippingMeasurements">
+                {renderShippingMeasurement("weightGrams", "Peso (g)")} 
+                <label className="adminField">
+                  <span>Coste adicional ({currency})</span>
+                  <DecimalNumberInput
+                    disabled={!selectedVariant.isDefault}
+                    inputMode="decimal"
+                    min="0"
+                    value={centsToInput(draft.shipping.additionalShippingCostMinor ?? undefined)}
+                    onValueChange={(value) => updateShipping((shipping) => ({
+                      ...shipping,
+                      additionalShippingCostMinor: inputToCents(value),
+                    }))}
+                  />
+                </label>
+                {renderShippingMeasurement("widthMm", "Ancho (mm)")} 
+                {renderShippingMeasurement("heightMm", "Alto (mm)")} 
+                {renderShippingMeasurement("depthMm", "Profundidad (mm)")} 
+                <label className="adminField">
+                  <span>Plazo de entrega</span>
+                  <select
+                    disabled={!selectedVariant.isDefault}
+                    value={draft.shipping.deliveryTimeMode}
+                    onChange={(event) => updateShipping((shipping) => ({
+                      ...shipping,
+                      deliveryTimeMode: event.target.value as ProductDraft["shipping"]["deliveryTimeMode"],
+                    }))}
+                  >
+                    <option value="none">Sin texto propio</option>
+                    <option value="default">Usar plazo por defecto</option>
+                    <option value="specific">Texto especifico del producto</option>
+                  </select>
+                </label>
+              </div>
 
-        <aside className="productEditorSidePanel">
-          <section className="productEditorPanel">
-            <h2>Resumen</h2>
-            <div className="productCoverPreview">
-              {hasRenderableMediaPreview(assignedMediaForVariant("default")[0]) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={mediaPreviewSrc(assignedMediaForVariant("default")[0])}
-                  alt=""
-                  onError={() => markMediaPreviewBroken(assignedMediaForVariant("default")[0].localId)}
-                />
-              ) : (
-                <span>Sin portada</span>
-              )}
-            </div>
-            <dl className="productMetaList">
-              <div><dt>Tipo</dt><dd>{draft.mode === "simple" ? "Producto simple" : "Con variantes"}</dd></div>
-              <div><dt>Precio base</dt><dd>{formatMoney(productPrice?.basePriceMinor, currency)}</dd></div>
-              <div><dt>Variantes</dt><dd>{draft.variants.length}</dd></div>
-              <div><dt>Imagenes</dt><dd>{draft.media.items.length}</dd></div>
-            </dl>
-          </section>
+              {draft.shipping.deliveryTimeMode === "specific" ? (
+                <div className="adminFormGrid adminFormGridTwo adminSection">
+                  <label className="adminField">
+                    <span>Entrega con stock ({locale})</span>
+                    <textarea
+                      disabled={!selectedVariant.isDefault}
+                      className="adminTextarea"
+                      value={draft.shipping.deliveryTimeNotes.inStock[locale] ?? ""}
+                      onChange={(event) => updateShippingDeliveryNote("inStock", event.target.value)}
+                    />
+                  </label>
+                  <label className="adminField">
+                    <span>Entrega sin stock ({locale})</span>
+                    <textarea
+                      disabled={!selectedVariant.isDefault}
+                      className="adminTextarea"
+                      value={draft.shipping.deliveryTimeNotes.outOfStock[locale] ?? ""}
+                      onChange={(event) => updateShippingDeliveryNote("outOfStock", event.target.value)}
+                    />
+                  </label>
+                </div>
+              ) : null}
 
-          {activeTab === "variants" || activeTab === "images" ? (
-            <section className="productEditorPanel">
-              <h2>Imagenes de variante</h2>
-              <label className="adminField">
-                <span>Variante seleccionada</span>
-                <select value={selectedVariant.localId} onChange={(event) => setSelectedVariantKey(event.target.value)}>
-	                  {allVariantRows.map((variant) => (
-	                    <option key={variant.localId} value={variant.localId}>
-	                      {variant.selectorLabel}
-	                    </option>
-	                  ))}
-                </select>
-              </label>
-              <div className="productVariantMediaPicker">
-                {draft.media.items.length === 0 ? (
-                  <div className="adminEmptyState">Sube imagenes en la pestana Imagenes para asignarlas a una variante.</div>
-                ) : draft.media.items.map((item) => {
-                  const selectedVariantMediaId = selectedVariantMain ?? selectedVariantAssignments[0];
-                  const checked = selectedVariantMediaId === item.localId;
-                  const isMain = checked;
-                  const fieldError = report?.fieldErrors[`media:${selectedVariant.localId}`];
-                  return (
-                    <div className={`productVariantMediaItem ${checked ? "productVariantMediaItemSelected" : ""}`} key={item.localId}>
-                      <button type="button" onClick={() => setVariantMainMedia(selectedVariant.localId, item.localId)}>
-                        {hasRenderableMediaPreview(item) ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={mediaPreviewSrc(item)} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
-                        ) : (
-                          <span>{item.fileName}</span>
-                        )}
-                      </button>
-                      <label className="adminCheckbox">
+              <div className="productEditorSectionHeader productEditorSectionHeaderCompact adminSection">
+                <div>
+                  <h3>Transportistas permitidos</h3>
+                  <p>Sin seleccion explicita, el producto permite todos los transportistas activos del modulo Transporte.</p>
+                </div>
+                {draft.shipping.allowedCarrierIds.length > 0 ? (
+                  <button
+                    className="adminButton"
+                    type="button"
+                    disabled={!selectedVariant.isDefault}
+                    onClick={() => updateShipping((shipping) => ({ ...shipping, allowedCarrierIds: [] }))}
+                  >
+                    Permitir todos
+                  </button>
+                ) : null}
+              </div>
+
+              {carrierOptions.length > 0 ? (
+                <div className="productShippingCarrierGrid">
+                  {carrierOptions.map((carrier) => {
+                    const checked = draft.shipping.allowedCarrierIds.includes(carrier.id);
+                    return (
+                      <label className={`productShippingCarrier ${checked ? "productShippingCarrierActive" : ""}`} key={carrier.id}>
                         <input
                           checked={checked}
                           type="checkbox"
-                          onChange={(event) => {
-                            if (event.target.checked) {
-                              setVariantMainMedia(selectedVariant.localId, item.localId);
-                            } else {
-                              clearVariantMedia(selectedVariant.localId);
-                            }
-                          }}
+                          disabled={!selectedVariant.isDefault}
+                          onChange={(event) => toggleShippingCarrier(carrier.id, event.target.checked)}
                         />
-                        Asignada
+                        <span>
+                          <strong>{carrier.label}</strong>
+                          <small>{carrier.id}</small>
+                        </span>
                       </label>
-                      <label className="adminCheckbox">
-                        <input checked={isMain} type="radio" onChange={() => setVariantMainMedia(selectedVariant.localId, item.localId)} />
-                        Portada
-                      </label>
-                      {fieldError && checked ? <small>{fieldError}</small> : null}
-                    </div>
-                  );
-                })}
-              </div>
-              <button className="adminButton adminSection" type="button" onClick={() => clearVariantMedia(selectedVariant.localId)}>
-	                Limpiar imagenes y heredar producto
-              </button>
-            </section>
-          ) : null}
-        </aside>
-      </div>
-
-      {variantAttributePickerOpen ? (
-        <div
-          className="productVariantAttributeOverlay"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && variantAttributePickerStep === "fields") {
-              closeVariantAttributePicker();
-            }
-          }}
-        >
-          <aside
-            aria-labelledby="product-variant-attribute-picker-title"
-            aria-modal="true"
-            className="productVariantAttributeDrawer"
-            role="dialog"
-          >
-            <header className="productVariantAttributeDrawerHeader">
-              <div>
-                <span className="adminBadge">
-                  {activeSelectedVariantOptions.length} asociado{activeSelectedVariantOptions.length === 1 ? "" : "s"}
-                </span>
-                <h2 id="product-variant-attribute-picker-title">
-                  {variantAttributePickerStep === "fields"
-                    ? activeSelectedVariantOptions.length > 0 ? "Agregar otro atributo" : "Atributos de combinacion"
-                    : variantAttributePickerField?.name ?? "Valores"}
-                </h2>
-              </div>
-              {variantAttributePickerStep === "fields" ? (
-                <button className="adminButton" type="button" onClick={closeVariantAttributePicker}>
-                  Cerrar
-                </button>
+                    );
+                  })}
+                </div>
               ) : (
-                <button className="adminButton" type="button" onClick={goBackToVariantAttributeFields}>
-                  Atras
-                </button>
+                <div className="adminBanner adminSection">
+                  <p>No hay transportistas cargados desde BFF Shipping. Puedes guardar paquete y coste; la seleccion de carriers quedara en todos los activos.</p>
+                </div>
               )}
-            </header>
+                </fieldset>
+              </div>
+            </details>
+            </>
+          ) : null}
 
-            <div className="productVariantAttributeDrawerBody">
-              {variantAttributePickerStep === "fields" ? (
-                <>
-                  {activeSelectedVariantOptions.length > 0 ? (
-                    <section className="productVariantAttributeDrawerSection">
-                      <h3>Asociados</h3>
-                      <div className="productVariantAttributeSelectedList">
-                        {activeSelectedVariantOptions.map((option) => {
-                          const field = findVariantAttributeField(lookups.variantAttributeFields, option.attributeCode);
-                          const value = findVariantAttributeValue(field, option.valueCode);
-                          return (
-                            <div className="productVariantAttributeSelectedItem" key={`${option.attributeCode}:${option.valueCode}`}>
-                              <span>
-                                <small>{field?.groupName ?? "Atributo"}</small>
-                                <strong>{field?.name ?? option.attributeCode}</strong>
-                              </span>
-                              <span>{value?.name ?? option.valueCode}</span>
-                              <span className="adminBadge">{option.variantOptionId ? "Guardado" : "Borrador"}</span>
+          {activeTab === "pricing" ? (
+            <>
+            <section className="productEditorPanel productSpecificPricePanel">
+              {lookups.warnings.filter((warning) => warning.startsWith("Pricing") && (!taxReloadSucceeded || !warning.startsWith("Pricing taxes:"))).map((warning) => (
+                <div className="adminBanner adminBannerInfo" key={warning}><p>{warning}</p></div>
+              ))}
+              <section className="productSpecificPriceList productListGrid" aria-label="Precios específicos">
+                <div className="productSpecificPriceListHeader">
+                  <h2>Precio específico</h2>
+                  <button className="productImageAddLink" type="button" aria-haspopup="dialog" onClick={openSpecificPriceDrawer}>
+                    Agregar precio específico
+                  </button>
+                </div>
+                <div className="adminTableScroller productListTableScroller">
+                  <table className="adminTable productListTable productSpecificPriceTable" aria-label="Precios específicos">
+                    <thead>
+                      <tr>
+                        <th scope="col">Aplicación</th>
+                        <th scope="col">Precio</th>
+                        <th scope="col">Unidades</th>
+                        <th scope="col">Duración</th>
+                        <th scope="col">Contexto</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleSpecificPrices.length === 0 ? (
+                        <tr><td colSpan={7}>No hay precios específicos. Agrega uno para el producto o una combinación.</td></tr>
+                      ) : specificPrices.map((price, index) => price.markedForDeletion ? null : (
+                        <tr key={price.pricingId ?? `${price.targetType}-${index}`}>
+                          <td className="productListNameCell">
+                            <strong>{specificPriceTargetLabel(price)}</strong>
+                          </td>
+                          <td>
+                            <strong>{formatMoney(price.fixedPriceMinor ?? undefined, price.currency ?? productPrice?.currency ?? currency)}</strong>
+                          </td>
+                          <td>{price.minQuantity || 1}</td>
+                          <td>{price.validUntil ? price.validUntil.slice(0, 10) : "Ilimitado"}</td>
+                          <td>
+                            <div>{price.country || "Todos los países"} · {price.customerGroup || "Todos los grupos"}</div>
+                          </td>
+                          <td><span className={`adminBadge ${price.active ? "adminBadgeOk" : "adminBadgeWarn"}`}>{price.active ? "Activo" : "Inactivo"}</span></td>
+                          <td>
+                            <div className="productListActions">
+                              <button className="adminButton employeesActionInfo" type="button" title="Editar" aria-haspopup="dialog" onClick={() => editSpecificPrice(index)}>
+                                <Pencil size={16} aria-hidden="true" /><span className="adminVisuallyHidden">Editar precio específico para {specificPriceTargetLabel(price)}</span>
+                              </button>
+                              <button className="adminButton employeesActionWarning" type="button" title="Eliminar" onClick={() => removeSpecificPrice(index)}>
+                                <Trash2 size={16} aria-hidden="true" /><span className="adminVisuallyHidden">Eliminar precio específico para {specificPriceTargetLabel(price)}</span>
+                              </button>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  ) : null}
-
-                  <section className="productVariantAttributeDrawerSection">
-                    <div className="productVariantAttributeDrawerSectionHeader">
-                      <h3>Todos los atributos</h3>
-                      <Link className="adminButton adminButtonTiny" href="/admin/catalogo/atributos-caracteristicas?tab=attributes">
-                        Gestionar atributos
-                      </Link>
-                    </div>
-                    {lookups.variantAttributeFields.length === 0 ? (
-                      <div className="adminEmptyState">
-                        <h2>Sin atributos configurados</h2>
-                        <p>Crea primero atributos en Catalogo / Atributos.</p>
-                        <button
-                          className="adminButton"
-                          type="button"
-                          onClick={() => {
-                            addSelectedVariantOption();
-                            closeVariantAttributePicker();
-                          }}
-                        >
-                          Anadir manual
-                        </button>
-                      </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+              {report?.blocks.pricing === "failed" ? (
+                <div className="adminBanner adminBannerError adminSection">
+                  <p>Pricing fallo sin romper Catalog/Media.</p>
+                  <button className="adminButton" type="button" onClick={() => saveDraft()}>Reintentar precio</button>
+                </div>
+              ) : null}
+            </section>
+              <details className="productEditorPanel productPriceSimulator productSpecificPrices productPricingAdvanced adminSection">
+                <summary className="productPricingPreviewSummary">
+                  <span className="productPricingSummaryLabel">
+                    <ChevronRight aria-hidden="true" className="productCollapseIcon" size={16} />
+                    <span>Simulador de precio aplicado</span>
+                  </span>
+                  <span className={`adminBadge ${pricingPreviewResult?.ok ? "adminBadgeOk" : "adminBadgeWarn"}`}>
+                    {pricingPreviewResult?.status === "ERROR" ? "Error de simulación" : pricingPreviewResult ? pricingResolutionLabel(pricingPreviewResult.resolution.source) : "Sin simular"}
+                  </span>
+                </summary>
+                <section className="productPriceSimulatorForm" aria-label="Parámetros de simulación">
+                <p className="adminContextHint">Confirma el precio que Pricing devuelve para producto, variante y contexto.</p>
+                <div className="adminFormGrid productPriceSimulatorGrid">
+                  <label className="adminField">
+                    <span>Aplicar sobre</span>
+                    <select
+                      value={pricingPreviewForm.targetKey}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, targetKey: event.target.value }))}
+                    >
+                      <option value="__product__">Producto completo · {draft.defaultVariant.refId || draft.basic.name}</option>
+                      {priceVariantRows.map((variant) => (
+                        <option key={variant.localId} value={variant.localId}>
+                          {variant.name || variant.refId || "Variante"} · {variant.refId || "sin referencia"}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Cantidad</span>
+                    <input
+                      min="1"
+                      step="1"
+                      type="number"
+                      value={pricingPreviewForm.quantity}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, quantity: event.target.value }))}
+                    />
+                  </label>
+                  <label className="adminField">
+                    <span>Pais</span>
+                    <select
+                      value={pricingPreviewForm.country}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, country: event.target.value }))}
+                    >
+                      <option value="">País del contexto</option>
+                      {previewCountryOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Canal</span>
+                    <select
+                      value={pricingPreviewForm.channel}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, channel: event.target.value }))}
+                    >
+                      <option value="">Canal del contexto</option>
+                      {previewChannelOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Politica comercial</span>
+                    <select
+                      value={pricingPreviewForm.tradePolicy}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, tradePolicy: event.target.value }))}
+                    >
+                      <option value="">Sin política</option>
+                      {previewTradePolicyOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Grupo cliente</span>
+                    <select
+                      value={pricingPreviewForm.customerGroup}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, customerGroup: event.target.value }))}
+                    >
+                      <option value="">Todos</option>
+                      {previewCustomerGroupOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Price table</span>
+                    <select
+                      value={pricingPreviewForm.priceTableId}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, priceTableId: event.target.value }))}
+                    >
+                      <option value="">Auto / base</option>
+                      {priceTableOptions.map((table) => (
+                        <option key={table.id} value={table.id}>{table.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="adminField">
+                    <span>Fecha de simulacion</span>
+                    <input
+                      type="datetime-local"
+                      value={pricingPreviewForm.at}
+                      onChange={(event) => setPricingPreviewForm((current) => ({ ...current, at: event.target.value }))}
+                    />
+                  </label>
+                </div>
+                {pricingPreviewDateError ? <p className="adminBanner adminBannerError" role="alert">{pricingPreviewDateError}</p> : null}
+                <div className="adminButtonRow adminSection">
+                  <button
+                    className="adminButton adminButtonPrimary"
+                    disabled={pricingPreviewBusy}
+                    type="button"
+                    onClick={runPricingPreview}
+                  >
+                    {pricingPreviewBusy ? "Simulando..." : "Simular precio"}
+                  </button>
+                  <button
+                    className="adminButton"
+                    type="button"
+                    onClick={() => {
+                      setPricingPreviewForm(defaultPricingPreviewForm(productPrice, "__product__"));
+                      setPricingPreviewDateError(null);
+                      setPricingPreviewResult(null);
+                    }}
+                  >
+                    Reiniciar
+                  </button>
+                </div>
+                </section>
+                {pricingPreviewResult ? (
+                  <div className="productPriceSimulatorResults">
+                    {pricingPreviewResult.ok && pricingPreviewResult.price ? (
+                      <section className="productPriceSimulatorResult productSpecificPriceList productListGrid adminTableScroller" aria-label="Resultado de simulación">
+                        <table className="adminTable productListTable productSpecificPriceTable" aria-label="Precio simulado">
+                          <thead><tr><th scope="col">Nombre artículo</th><th scope="col">Precio base</th><th scope="col">Precio aplicado</th></tr></thead>
+                          <tbody><tr>
+                            <td>{pricingPreviewForm.targetKey === "__product__" ? draft.basic.name : pricingPreviewTarget?.name || pricingPreviewTarget?.refId || draft.basic.name}</td>
+                            <td>{formatMoney(pricingPreviewResult.price.basePrice.amountMinor, pricingPreviewResult.price.currency)}</td>
+                            <td>{formatMoney(
+                              pricingPreviewResult.price.resolved?.grossAmountMinor ??
+                                pricingPreviewResult.price.fixedPrice?.amountMinor ??
+                                pricingPreviewResult.price.basePrice.amountMinor,
+                              pricingPreviewResult.price.resolved?.currency ?? pricingPreviewResult.price.currency,
+                            )}</td>
+                          </tr></tbody>
+                        </table>
+                      </section>
                     ) : (
-                      <div className="productVariantAttributeChoiceList">
-                        {lookups.variantAttributeFields.map((field) => {
-                          const selectedValue = selectedVariantValueForAttribute(field);
-                          return (
-                            <button
-                              className="productVariantAttributeChoice"
-                              key={field.fieldId}
-                              type="button"
-                              onClick={() => openVariantAttributeValues(field)}
-                            >
-                              <span>
-                                <small>{field.groupName}</small>
-                                <strong>{field.name}</strong>
-                              </span>
-                              <span className={selectedValue ? "adminBadge adminBadgeOk" : "adminBadge"}>
-                                {selectedValue ? selectedValue.name : "Elegir valor"}
-                              </span>
-                            </button>
-                          );
-                        })}
+                      <div className="adminBanner adminBannerError">
+                        <p>{pricingPreviewResult.reason ?? "No hay precio aplicable para estos parametros."}</p>
                       </div>
                     )}
-                  </section>
-                </>
-              ) : (
-                <section className="productVariantAttributeDrawerSection">
-                  <p className="adminContextHint">
-                    Selecciona un valor para {variantAttributePickerField?.name ?? "este atributo"}.
-                  </p>
-                  {variantAttributePickerField ? (
-                    <div className="productVariantAttributeValueList">
-                      {variantAttributePickerField.values.map((value) => {
-                        const selectedValue = selectedVariantValueForAttribute(variantAttributePickerField);
-                        const selected = selectedValue?.fieldValueId === value.fieldValueId;
-                        return (
-                          <button
-                            aria-pressed={selected}
-                            className={"productVariantAttributeValueChoice " + (selected ? "productVariantAttributeValueChoiceActive" : "")}
-                            key={value.fieldValueId}
-                            type="button"
-                            onClick={() => {
-                              updateVariantAttributeSelection(variantAttributePickerField, value.fieldValueId);
-                              goBackToVariantAttributeFields();
-                            }}
-                          >
-                            {value.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="adminEmptyState">
-                      <h2>Atributo no disponible</h2>
-                      <p>Vuelve atras y elige otro atributo.</p>
-                    </div>
-                  )}
-                </section>
-              )}
+                    {pricingPreviewResult.conditions.length > 0 ? (
+                      <section className="productPriceSimulatorConditions productSpecificPriceList productListGrid adminTableScroller" aria-label="Resumen de condiciones">
+                        <table className="adminTable productListTable productSpecificPriceTable" aria-label="Condiciones del precio simulado">
+                          <thead>
+                            <tr>
+                              <th>Parametro</th>
+                              <th>Solicitado</th>
+                              <th>Regla aplicada</th>
+                              <th>Estado</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pricingPreviewResult.conditions.map((condition) => (
+                              <tr key={condition.key}>
+                                <td>{pricingConditionLabel(condition.key)}</td>
+                                <td>{condition.requested ?? "Todos"}</td>
+                                <td>{condition.matched ?? "Todos"}</td>
+                                <td>
+                                  <span className={`adminBadge ${condition.status === "MATCH" || condition.status === "ANY" ? "adminBadgeOk" : "adminBadgeWarn"}`}>
+                                    {pricingConditionStatusLabel(condition.status)}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </section>
+                    ) : null}
+                  </div>
+                ) : null}
+              </details>
+            </>
+          ) : null}
+
+          {activeTab === "audit" ? (
+            <>
+              <details className="productEditorPanel productBasicSection" open>
+                <summary><span>Resumen de inventario</span></summary>
+                <div className="productBasicSectionBody adminTableScroller">
+                  <table className="productBasicFeaturesGrid productInventoryOverview" aria-label="Resumen de inventario por variante">
+                    <thead><tr><th scope="col">Variante</th><th scope="col">Almacén</th><th scope="col">Existencias</th><th scope="col">Reservado</th><th scope="col">Seguridad</th><th scope="col">Disponible</th><th scope="col">Estado</th><th scope="col">Origen</th></tr></thead>
+                    <tbody>{allVariantRows.map((row) => {
+                      const state = row.isDefault ? { stock: stockForKey("default"), mode: "own" } : stockForVariantRow(row);
+                      const stock = state.stock;
+                      const available = availableQuantity(stock);
+                      return <tr key={row.localId} aria-selected={selectedVariant.localId === row.localId}>
+                        <th scope="row"><button className="productImageAddLink" type="button" aria-label={`Ver inventario de ${row.refId}`} onClick={() => { setSelectedVariantKey(row.localId); setActiveTab("variants"); }}>{row.isDefault ? "Producto" : row.refId}</button></th>
+                        <td>{warehouseOptions.find((warehouse) => warehouse.id === stock.warehouseId)?.label ?? (stock.warehouseId || "Contexto de tienda")}</td>
+                        <td>{stock.onHandQuantity}</td><td>{stock.reservedQuantity}</td><td>{stock.safetyStockQuantity}</td><td>{available}{stock.availabilityEstimated ? " (estimado)" : ""}</td><td>{(stock.available ?? available > 0) ? "Disponible" : "Sin disponibilidad"}</td><td>{row.isDefault ? "Producto" : state.mode === "own" ? "Propio" : "Producto"}</td>
+                      </tr>;
+                    })}</tbody>
+                  </table>
+                  <p className="adminContextHint">El stock compartido del producto no se suma una vez por cada variante.</p>
+                </div>
+              </details>
+              <details className="productEditorPanel productBasicSection productAuditPrices adminSection" open>
+                <summary><span>Precios fijados</span></summary>
+                <div className="productBasicSectionBody adminTableScroller">
+                  <table className="productBasicFeaturesGrid" aria-label="Precios fijados del producto y variantes">
+                    <thead><tr><th scope="col">Artículo</th><th scope="col">Tipo</th><th scope="col">Precio</th><th scope="col">Unidades mínimas</th><th scope="col">Contexto</th><th scope="col">Vigencia</th><th scope="col">Estado</th></tr></thead>
+                    <tbody>
+                      {auditPriceRows.length ? auditPriceRows.map(row => <tr key={row.key}>
+                        <th scope="row">{row.name}</th><td>{row.type}</td><td>{row.amount}</td><td>{row.quantity}</td><td>{row.context}</td><td>{row.validity}</td><td>{row.active ? "Activo" : "Inactivo"}</td>
+                      </tr>) : <tr><td colSpan={7}>No hay precios fijados.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+              {draft.routingSeo.canonicalPath || draft.routingSeo.canonicalRouteId || draft.routingSeo.resolvedCanonical || draft.routingSeo.aliases.some(alias => !alias.markedForDeletion) ? (
+                <details className="productEditorPanel productBasicSection productAuditSeo adminSection" open>
+                  <summary><span>Routing/SEO</span></summary>
+                  <div className="productBasicSectionBody adminTableScroller">
+                    <table className="productBasicFeaturesGrid" aria-label="Resumen de Routing y SEO">
+                      <tbody>
+                        <tr><th scope="row">Canonical</th><td>{draft.routingSeo.canonicalPath || draft.routingSeo.resolvedCanonical?.canonicalPath || "Pendiente"}</td></tr>
+                        <tr><th scope="row">Estado ruta</th><td>{draft.routingSeo.status}</td></tr>
+                        <tr><th scope="row">Sitemap</th><td>{draft.routingSeo.includeInSitemap ? "Incluido" : "Excluido"}</td></tr>
+                        <tr><th scope="row">Aliases activos</th><td>{draft.routingSeo.aliases.filter(alias => !alias.markedForDeletion && alias.status === "ACTIVE").length}</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              ) : null}
+            </>
+          ) : null}
+        </section>
+
+        {activeTab !== "audit" && activeTab !== "pricing" ? <aside className="productEditorSidePanel">
+          <section className="productEditorPanel">
+            <div className="productImagePanelHeader">
+              <h2>Imágenes</h2>
+              <button className="productImageAddLink" type="button" onClick={openMediaFilePicker} disabled={mediaPickerBusy}>
+                {mediaPickerBusy ? "Abriendo…" : "Añadir imagen"}
+              </button>
             </div>
-          </aside>
-        </div>
+            <input ref={mediaFileInputRef} className="productFileInput" type="file" accept="image/*" multiple onChange={handleMediaFileInputChange} />
+            <ProductSummaryGallery
+              images={[...draft.media.items].sort((a, b) => Number(Boolean(b.isMain)) - Number(Boolean(a.isMain)))
+                .filter((item) => hasRenderableMediaPreview(item))
+                .flatMap((item) => {
+                  const src = mediaPreviewSrc(item);
+                  return src ? [{ id: item.localId, src, alt: item.alt[locale] || item.fileName }] : [];
+                })}
+              onImageError={markMediaPreviewBroken}
+              selectedId={selectedMedia?.localId}
+              onSelect={setSelectedMediaId}
+              onRemove={removeMedia}
+            />
+            {mediaPickerMessage ? <p className="productMediaStatus" role="status">{mediaPickerMessage}</p> : null}
+            {report?.fieldErrors.media ? <p className="adminBanner adminBannerError">{report.fieldErrors.media}</p> : null}
+            {selectedMedia ? (
+              <div className="productImageMetadata" key={selectedMedia.localId}>
+                <h3>Metadata</h3>
+                <div className="productImageMetadataFields">
+                  <label className="adminField">
+                    <span>Título del asset</span>
+                    <input title="Título del asset" value={selectedMedia.title[locale] ?? ""} onChange={(event) => updateMedia(selectedMedia.localId, (item) => ({ ...item, title: { ...item.title, [locale]: event.target.value } }))} />
+                  </label>
+                  <label className="adminField">
+                    <span>Alt del asset</span>
+                    <input title="Alt del asset" value={selectedMedia.alt[locale] ?? ""} onChange={(event) => updateMedia(selectedMedia.localId, (item) => ({ ...item, alt: { ...item.alt, [locale]: event.target.value } }))} />
+                  </label>
+                </div>
+                <div className="productImageMetadataOptions">
+                  <label className="adminCheckbox">
+                    <input type="checkbox" checked={selectedMedia.isMain} onChange={(event) => updateDraft((current) => assignVariantImage(current, "default", event.target.checked ? selectedMedia.localId : undefined))} disabled={!selectedMedia.active} />
+                    Imagen de portada
+                  </label>
+                  <label className="adminCheckbox">
+                    <input type="checkbox" checked={selectedMedia.active} onChange={(event) => updateMedia(selectedMedia.localId, (item) => ({ ...item, active: event.target.checked }))} />
+                    Activa
+                  </label>
+                </div>
+              </div>
+            ) : null}
+          </section>
+
+          {activeTab === "variants" ? (<>
+              <section className="productEditorPanel productVariantAttributePanel">
+                <div className="productImagePanelHeader">
+                  <h2>Atributos de la variante</h2>
+                  <button className="productImageAddLink" type="button" aria-label="Añadir atributo a la variante" title="Añadir atributo" disabled={selectedVariant.isDefault} onClick={openVariantAttributePicker}><Plus size={16} aria-hidden="true" /></button>
+                </div>
+                {activeSelectedVariantOptions.length ? (
+                  <table className="productBasicFeaturesGrid productVariantAssignedAttributes" aria-label="Atributos asignados a la variante">
+                    <tbody>{selectedVariant.options.map((option, index) => {
+                      if (option.markedForDeletion || option.isActive === false) return null;
+                      const field = findVariantAttributeField(variantAttributeFields, option.attributeCode);
+                      const value = findVariantAttributeValue(field, option.valueCode);
+                      return <tr key={`${option.attributeCode}-${index}`}>
+                        <th scope="row">{field?.name ?? option.attributeCode}</th>
+                        <td>{value?.name ?? option.valueCode}</td>
+                        <td><button className="productFeatureTableAction productFeatureTableDelete" type="button" disabled={selectedVariant.isDefault} aria-label={`Quitar atributo ${option.attributeCode}`} onClick={() => removeSelectedVariantOption(index)}><Trash2 size={14} aria-hidden="true" /></button></td>
+                      </tr>;
+                    })}</tbody>
+                  </table>
+                ) : !selectedVariant.isDefault ? <p className="adminContextHint">Sin atributos asignados.</p> : null}
+                {variantOptionWarning(selectedVariant) || report?.fieldErrors[`variant:${selectedVariant.localId}:options`] ? <p className="adminBanner adminBannerError">{variantOptionWarning(selectedVariant) ?? report?.fieldErrors[`variant:${selectedVariant.localId}:options`]}</p> : null}
+              </section>
+              <section className="productEditorPanel productSelectedVariantIdentity">
+                <h2>Datos de la variante seleccionada</h2>
+                <p className="adminContextHint">{selectedVariant.isDefault ? "Variante 0 · comparte nombre y referencia con los datos base del producto." : selectedVariant.name}</p>
+                <div className="adminFormGrid adminFormGridTwo">
+                  <label className="adminField"><span>Nombre</span><input aria-label="Nombre de la variante seleccionada" value={selectedVariant.name} onChange={(event) => selectedVariant.isDefault ? updateBasic("name", event.target.value) : updateVariant(selectedVariant.localId, (item) => ({ ...item, name: event.target.value }))} /></label>
+                  <label className="adminField"><span>Referencia / SKU</span><input aria-label="Referencia de la variante seleccionada" value={selectedVariant.refId} onChange={(event) => selectedVariant.isDefault ? updateDraft((current) => ({ ...current, defaultVariant: { ...current.defaultVariant, refId: event.target.value } })) : updateVariant(selectedVariant.localId, (item) => ({ ...item, refId: event.target.value }))} /></label>
+                  <label className="adminField"><span>EAN</span><input value={selectedVariant.ean ?? ""} onChange={(event) => selectedVariant.isDefault ? updateDraft((current) => ({ ...current, defaultVariant: { ...current.defaultVariant, ean: event.target.value || null } })) : updateVariant(selectedVariant.localId, (item) => ({ ...item, ean: event.target.value || null }))} /></label>
+                  <div className="productSelectedVariantStates">
+                    <label className="adminCheckbox"><input type="checkbox" checked={selectedVariant.isActive} onChange={(event) => selectedVariant.isDefault ? updateBasic("isActive", event.target.checked) : updateVariant(selectedVariant.localId, (item) => ({ ...item, isActive: event.target.checked }))} />Activa</label>
+                  <label className="adminCheckbox"><input type="checkbox" checked={selectedVariant.isVisible} onChange={(event) => selectedVariant.isDefault ? updateBasic("isVisible", event.target.checked) : updateVariant(selectedVariant.localId, (item) => ({ ...item, isVisible: event.target.checked }))} />Visible</label>
+                  </div>
+                </div>
+                {report?.fieldErrors[selectedVariant.isDefault ? "refId" : `variant:${selectedVariant.localId}:refId`] ? <p className="adminBanner adminBannerError">{report.fieldErrors[selectedVariant.isDefault ? "refId" : `variant:${selectedVariant.localId}:refId`]}</p> : null}
+
+              </section>
+<details className="productEditorPanel productBasicSection productVariantPricePanel" open>
+                  <summary><span className="productPriceHeading">Precio normal: <span className="productBasicSummaryHint">{formatMoney(selectedPanelPrice?.basePriceMinor, selectedPanelPrice?.currency || currency, locale)}</span></span></summary>
+                  {!selectedVariant.isDefault ? <button className="productPriceInherit" type="button" aria-label={inheritPriceLabel} title={`${inheritPriceLabel}. Se aplicará al guardar.`} disabled={savingActive || !selectedPanelHasOwnPrice} onClick={() => {
+                    removeVariantPrice(draft.pricing.variantPrices[selectedVariant.localId] ? selectedVariant.localId : selectedVariant.variantId ?? selectedVariant.localId);
+                  }}><RotateCcw size={15} aria-hidden="true" /></button> : null}
+                  <div className="productBasicSectionBody productBasicPricing">
+                  <div className="productPriceFields">
+                    <div className="productPriceAmounts">
+                    <label className="adminField">
+                      <span>Precio sin impuestos</span>
+                      <DecimalNumberInput
+                        min="0"
+                        value={centsToInput(netMinorFromPrice(selectedPanelPrice, selectedPanelTax))}
+                        onValueChange={(value) => updateSelectedPanelPrice((price) => ({
+                          ...price,
+                          basePriceMinor: baseMinorFromNetInput(value, price, selectedPanelTax),
+                          priceKind: value.trim() ? "REGULAR" : undefined,
+                          currency: price.currency || currency,
+                        }))}
+                      />
+                    </label>
+                    <label className="adminField">
+                      <span>Precio con impuestos</span>
+                      <DecimalNumberInput
+                        min="0"
+                        value={centsToInput(grossMinorFromPrice(selectedPanelPrice, selectedPanelTax))}
+                        onValueChange={(value) => updateSelectedPanelPrice((price) => ({
+                          ...price,
+                          basePriceMinor: baseMinorFromGrossInput(value, price, selectedPanelTax),
+                          priceKind: value.trim() ? "REGULAR" : undefined,
+                          currency: price.currency || currency,
+                        }))}
+                      />
+                    </label>
+                    
+                    <label className="adminField">
+                      <span>Coste</span>
+                      <DecimalNumberInput
+                        min="0"
+                        value={centsToInput(selectedPanelPrice?.costPriceMinor ?? undefined)}
+                        onValueChange={(value) => updateSelectedPanelPrice((price) => ({
+                          ...price,
+                          costPriceMinor: inputToCents(value) || null,
+                        }))}
+                      />
+                    </label>
+                    <label className="adminField">
+                      <span>Precio tachado</span>
+                      <DecimalNumberInput
+                        min="0"
+                        value={centsToInput(selectedPanelPrice?.listPriceMinor ?? undefined)}
+                        onValueChange={(value) => updateSelectedPanelPrice((price) => ({
+                          ...price,
+                          listPriceMinor: inputToCents(value) || null,
+                        }))}
+                      />
+                    </label>
+                  
+                    </div>
+                    <div className="productPriceTaxRow">
+                    
+                    <label className="adminField productPriceTaxField">
+                      <span>Impuestos</span>
+                      <select
+                        disabled={selectedPanelTaxOptions.length === 0}
+                        value={selectedPanelTax?.id ?? ""}
+                        onChange={(event) => {
+                          const tax = selectedPanelTaxOptions.find((item) => item.id === event.target.value) ?? null;
+                          updateSelectedPanelPrice((price) => ({
+                            ...price,
+                            taxCode: tax?.taxCode ?? draft.basic.taxCode ?? "standard",
+                            tax,
+                          }));
+                        }}
+                      >
+                        <option value="">{selectedPanelTaxOptions.length ? "Sin regla fiscal" : "Sin reglas fiscales cargadas"}</option>
+                        {selectedPanelTaxOptions.map((tax) => (
+                          <option key={tax.id} value={tax.id}>{tax.label}</option>
+                        ))}
+                      </select>
+                      {report?.fieldErrors[selectedPanelTaxErrorKey] ? (
+                        <small>{report.fieldErrors[selectedPanelTaxErrorKey]}</small>
+                      ) : null}
+                    </label>
+                    <label className="adminCheckbox productPriceTaxToggle">
+                      <input type="checkbox" checked={selectedPanelPrice?.taxIncluded ?? true} onChange={event => updateSelectedPanelPrice(price => ({...price, taxIncluded: event.target.checked}))} />
+                      Impuestos incluidos
+                    </label>
+                    </div>
+                  </div>
+                </div>
+                </details>
+<ProductInventoryPanel
+                stock={selectedPanelStock.stock}
+                warehouses={warehouseOptions}
+                warehouseError={stockWarehouseMessage ?? lookups?.warehouseLoadError}
+                loading={stockWarehouseLoading}
+                canRestore={!selectedVariant.isDefault && selectedPanelStock.mode === "own" && !directStockEntryForVariant(selectedVariant)?.stock.persisted}
+                onRestore={!selectedVariant.isDefault ? () => inheritVariantStock(selectedVariant) : undefined}
+                onQuantity={updateSelectedPanelStock}
+                onWarehouse={(value) => { void selectStockWarehouse(value); }}
+                failed={report?.blocks.inventory === "failed"}
+                onRetry={() => saveDraft()}
+              />
+          </>) : null}
+
+
+          {activeTab === "basic" ? (
+            <>
+<details className="productEditorPanel productBasicSection" open>
+                <summary><span>Categoría/Marca: <span className="productBasicSummaryHint">{categoryOptions.find((item) => item.id === draft.basic.categoryId)?.label || draft.basic.categoryName || "Sin categoría"}/{brandOptions.find((item) => item.id === draft.basic.brandId)?.label || draft.basic.brandName || (draft.basic.brandId ? "Marca no disponible" : "Sin marca")}</span></span></summary>
+                <div className="productBasicSectionBody adminFormGrid adminFormGridTwo">
+                  <ProductEntitySelector
+                    canCreate={canCreateCategories}
+                    createAction={createProductCategoryInlineAction}
+                    fieldError={report?.fieldErrors.categoryId}
+                    label="Categoria principal"
+                    onSelect={(option) => {
+                      generationVersion.current += 1;
+                      setGeneratorSelections({});
+                      updateDraft((current) => ({
+                      ...current,
+                      basic: {
+                        ...current.basic,
+                        categoryId: option.id,
+                        categoryName: option.label,
+                        categorySlug: option.slug,
+                      },
+                    }));
+                    }}
+                    options={categoryOptions}
+                    kind="categories"
+                    selectedId={draft.basic.categoryId}
+                  />
+                  <ProductEntitySelector
+                    canCreate={canCreateBrands}
+                    createAction={createProductBrandInlineAction}
+                    label="Marca / proveedor"
+                    onSelect={(option) => updateDraft((current) => ({
+                      ...current,
+                      basic: {
+                        ...current.basic,
+                        brandId: option.id,
+                        brandName: option.label,
+                      },
+                    }))}
+                    options={brandOptions}
+                    kind="brands"
+                    selectedId={draft.basic.brandId}
+                  />
+                </div>
+              </details>
+              <section className="productEditorPanel productBasicFeatures">
+                <div className="productImagePanelHeader">
+                  <h2>Características</h2>
+                  <button className="productImageAddLink" type="button" onClick={openSpecificationPicker}>Agregar</button>
+                </div>
+                {featureLoadError ? (
+                  <div className="adminBanner adminBannerError" role="alert">
+                    <p>No se pudieron cargar las características. {featureLoadError}</p>
+                    <button className="adminButton" type="button" disabled={featureRefreshing} onClick={refreshFeatureCatalog}>{featureRefreshing ? "Actualizando…" : "Reintentar"}</button>
+                  </div>
+                ) : null}
+                {selectedSpecifications.length ? (
+                  <table className="productBasicFeaturesGrid" aria-label="Características añadidas">
+                    <colgroup><col className="productFeatureNameColumn" /><col /><col className="productFeatureActionColumn" /></colgroup>
+                    <tbody>
+                      {selectedSpecifications.map(({ field, value }) => (
+                        <tr key={field.fieldId}>
+                          <th scope="row">{field.name}</th>
+                          <td>{value.name}</td>
+                          <td className="productFeatureActionCell"><button className="productFeatureTableAction productFeatureTableDelete" type="button" aria-label={`Quitar ${field.name}`} title={`Quitar ${field.name}`} onClick={() => removeSpecificationSelection(field.fieldId)}><Trash2 size={15} aria-hidden="true" /></button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : <p className="adminContextHint">Sin características añadidas.</p>}
+              </section>
+<details className="productEditorPanel productBasicSection" open>
+                  <summary><span>Precio normal: <span className="productBasicSummaryHint">{formatMoney(productPrice?.basePriceMinor, productPrice?.currency || currency, locale)}</span></span></summary>
+                  <div className="productBasicSectionBody productBasicPricing">
+                  <div className="productPriceFields">
+                    <div className="productPriceAmounts">
+                    <label className="adminField">
+                      <span>Precio sin impuestos</span>
+                      <DecimalNumberInput
+                        min="0"
+                        value={centsToInput(netMinorFromPrice(productPrice, selectedTax))}
+                        onValueChange={(value) => updateProductPriceField((price) => ({
+                          ...price,
+                          basePriceMinor: baseMinorFromNetInput(value, price, selectedTax),
+                          priceKind: value.trim() ? "REGULAR" : undefined,
+                          currency: price.currency || currency,
+                        }))}
+                      />
+                    </label>
+                    <label className="adminField">
+                      <span>Precio con impuestos</span>
+                      <DecimalNumberInput
+                        min="0"
+                        value={centsToInput(grossMinorFromPrice(productPrice, selectedTax))}
+                        onValueChange={(value) => updateProductPriceField((price) => ({
+                          ...price,
+                          basePriceMinor: baseMinorFromGrossInput(value, price, selectedTax),
+                          priceKind: value.trim() ? "REGULAR" : undefined,
+                          currency: price.currency || currency,
+                        }))}
+                      />
+                    </label>
+                    
+                    <label className="adminField">
+                      <span>Coste</span>
+                      <DecimalNumberInput
+                        min="0"
+                        value={centsToInput(productPrice?.costPriceMinor ?? undefined)}
+                        onValueChange={(value) => updateProductPriceField((price) => ({
+                          ...price,
+                          costPriceMinor: inputToCents(value) || null,
+                        }))}
+                      />
+                    </label>
+                    <label className="adminField">
+                      <span>Precio tachado</span>
+                      <DecimalNumberInput
+                        min="0"
+                        value={centsToInput(productPrice?.listPriceMinor ?? undefined)}
+                        onValueChange={(value) => updateProductPriceField((price) => ({
+                          ...price,
+                          listPriceMinor: inputToCents(value) || null,
+                        }))}
+                      />
+                    </label>
+                  
+                    </div>
+                    <div className="productPriceTaxRow">
+                    
+                    <label className="adminField productPriceTaxField">
+                      <span>Impuestos</span>
+                      <select
+                        disabled={taxOptions.length === 0}
+                        value={selectedTax?.id ?? ""}
+                        onChange={(event) => {
+                          const tax = taxOptions.find((item) => item.id === event.target.value) ?? null;
+                          updateProductPriceField((price) => ({
+                            ...price,
+                            taxCode: tax?.taxCode ?? draft.basic.taxCode ?? "standard",
+                            tax,
+                          }));
+                        }}
+                      >
+                        <option value="">{taxOptions.length ? "Sin regla fiscal" : "Sin reglas fiscales cargadas"}</option>
+                        {taxOptions.map((tax) => (
+                          <option key={tax.id} value={tax.id}>{tax.label}</option>
+                        ))}
+                      </select>
+                      {report?.fieldErrors[basePriceTaxErrorKey] ? (
+                        <small>{report.fieldErrors[basePriceTaxErrorKey]}</small>
+                      ) : null}
+                    </label>
+                    <label className="adminCheckbox productPriceTaxToggle">
+                      <input type="checkbox" checked={productPrice?.taxIncluded ?? true} onChange={event => updateProductPriceField(price => ({...price, taxIncluded: event.target.checked}))} />
+                      Impuestos incluidos
+                    </label>
+                    </div>
+                  </div>
+                </div>
+                </details>
+              <ProductInventoryPanel
+                stock={stockForKey("default")}
+                warehouses={warehouseOptions}
+                warehouseError={stockWarehouseMessage ?? lookups?.warehouseLoadError}
+                loading={stockWarehouseLoading}
+                canRestore={false}
+
+                onQuantity={(field, value) => updateStockNumber("default", field, value)}
+                onWarehouse={(value) => { void selectStockWarehouse(value, true); }}
+                failed={report?.blocks.inventory === "failed"}
+                onRetry={() => saveDraft()}
+              />
+            </>
+          ) : null}
+
+        </aside> : null}
+      </div>
+
+      {specificPriceDrawerOpen ? (
+        <AdminResourceDrawer drawerId="product-specific-price"
+          title={specificPriceEditIndex === null ? "Agregar precio específico" : "Editar precio específico"}
+          description="Se añadirá al borrador. Guarda el producto para aplicar los cambios."
+          className="productSpecificPriceDrawer"
+          onClose={closeSpecificPriceDrawer}
+        >
+                <div className="productSpecificPriceForm">
+                  <div className="adminFormGrid adminFormGridTwo">
+                    <label className="adminField productSpecificPriceTarget">
+                      <span>Aplicar a</span>
+                      <select
+                        value={specificPriceForm.targetKey}
+                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, targetKey: event.target.value }))}
+                      >
+                        {specificPriceTargetOptions.map((target) => (
+                          <option key={target.key} value={target.key}>
+                            {target.label} · {target.refId}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="adminField">
+                      <span>Precio especifico</span>
+                      <DecimalNumberInput
+                        aria-label="Precio especifico"
+                        min="0"
+                        value={specificPriceForm.fixedPrice}
+                        onValueChange={(value) => setSpecificPriceForm((current) => ({ ...current, fixedPrice: value }))}
+                      />
+                    </label>
+                    <label className="adminField">
+                      <span>Minimo de unidades</span>
+                      <input
+                        min="1"
+                        step="1"
+                        type="number"
+                        value={specificPriceForm.minQuantity}
+                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, minQuantity: event.target.value }))}
+                      />
+                    </label>
+                    <label className="adminField">
+                      <span>Fecha inicial</span>
+                      <input
+                        type="datetime-local"
+                        value={specificPriceForm.validFrom}
+                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, validFrom: event.target.value }))}
+                      />
+                    </label>
+                    <label className="adminField">
+                      <span>Fecha final</span>
+                      <input
+                        type="datetime-local"
+                        value={specificPriceForm.validUntil}
+                        onChange={(event) => setSpecificPriceForm((current) => ({ ...current, validUntil: event.target.value }))}
+                      />
+                    </label>
+                  </div>
+                  <details className="productPricingAdvanced">
+                    <summary>
+                      <ChevronRight aria-hidden="true" className="productCollapseIcon" size={16} />
+                      <span>Condiciones avanzadas</span>
+                    </summary>
+                    <div className="adminFormGrid adminFormGridTwo">
+                      <label className="adminField">
+                        <span>Pais</span>
+                        <select
+                          value={specificPriceForm.country}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, country: event.target.value }))}
+                        >
+                          <option value="">Todos</option>
+                          {specificCountryOptions.map((option) => (
+                            <option key={option.id} value={option.id}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="adminField">
+                        <span>Grupo cliente</span>
+                        <select
+                          value={specificPriceForm.customerGroup}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, customerGroup: event.target.value }))}
+                        >
+                          <option value="">Todos</option>
+                          {specificCustomerGroupOptions.map((option) => (
+                            <option key={option.id} value={option.id}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="adminField">
+                        <span>Canal</span>
+                        <select
+                          value={specificPriceForm.channel}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, channel: event.target.value }))}
+                        >
+                          <option value="">Todos los canales</option>
+                      {specificChannelOptions.map((option) => (
+                            <option key={option.id} value={option.id}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="adminField">
+                        <span>Politica comercial</span>
+                        <select
+                          value={specificPriceForm.tradePolicy}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, tradePolicy: event.target.value }))}
+                        >
+                          <option value="">Todas las políticas</option>
+                      {specificTradePolicyOptions.map((option) => (
+                            <option key={option.id} value={option.id}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="adminField">
+                        <span>Price table</span>
+                        <select
+                          value={specificPriceForm.priceTableId}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, priceTableId: event.target.value }))}
+                        >
+                          <option value="">Sin tabla</option>
+                          {priceTableOptions.map((table) => (
+                            <option key={table.id} value={table.id}>{table.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="adminField">
+                        <span>Prioridad</span>
+                        <input
+                          min="1"
+                          step="1"
+                          type="number"
+                          value={specificPriceForm.priority}
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, priority: event.target.value }))}
+                        />
+                      </label>
+                      <label className="adminCheckbox">
+                        <input
+                          checked={specificPriceForm.taxIncluded}
+                          type="checkbox"
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, taxIncluded: event.target.checked }))}
+                        />
+                        Precio con impuestos
+                      </label>
+                      <label className="adminCheckbox">
+                        <input
+                          checked={specificPriceForm.active}
+                          type="checkbox"
+                          onChange={(event) => setSpecificPriceForm((current) => ({ ...current, active: event.target.checked }))}
+                        />
+                        Activo
+                      </label>
+                    </div>
+                  </details>
+                  {specificPriceEditIndex !== null ? (
+                    <p className="adminContextHint">Editando regla #{specificPriceEditIndex + 1} para {specificPriceTarget.label}.</p>
+                  ) : null}
+                  {specificPriceDateError ? <p className="adminBanner adminBannerError" role="alert">{specificPriceDateError}</p> : null}
+                  <div className="adminButtonRow productSpecificPriceActions">
+                    <button className="adminButton adminButtonPrimary" type="button" onClick={saveSpecificPriceForm}>
+                      {specificPriceEditIndex === null ? "Guardar precio especifico" : "Actualizar precio especifico"}
+                    </button>
+                    <button className="adminButton" type="button" onClick={closeSpecificPriceDrawer}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+        </AdminResourceDrawer>
       ) : null}
+
+      {variantAttributePickerOpen && !attributeManagerOpen ? (
+        <AdminResourceDrawer drawerId="product-variant-attribute" title={variantAttributePickerStep === "fields" ? "Asignar atributo" : variantAttributePickerField?.name ?? "Valores"} description="Selecciona un atributo y uno de sus valores para la variante actual." onClose={closeVariantAttributePicker}>
+          <div className="adminFeatureDrawerBody">
+            {attributeLoadError ? <p role="alert" className="adminBanner adminBannerError">{attributeLoadError}</p> : null}
+            {variantAttributePickerStep === "fields" ? (
+              <>
+                {canManageFeatures ? <button className="adminButton" type="button" onClick={manageVariantAttributes}>Administrar atributos</button> : null}
+                {variantAttributeFields.length ? (
+                  <table className="productBasicFeaturesGrid" aria-label="Atributos disponibles para asignar">
+                    <tbody>{variantAttributeFields.filter((field) => field.categoryIds?.includes(draft.basic.categoryId ?? "")).map((field) => {
+                      const selectedValue = selectedVariantValueForAttribute(field);
+                      return <tr key={field.fieldId}><th scope="row">{field.name}</th><td><button className="productVariantAttributeValueLink" type="button" onClick={() => openVariantAttributeValues(field)}>{selectedValue?.name ?? "Elegir valor"}</button></td></tr>;
+                    })}</tbody>
+                  </table>
+                ) : null}
+                {!variantAttributeFields.some((field) => field.categoryIds?.includes(draft.basic.categoryId ?? "")) ? <p>No hay atributos disponibles para esta categoría.</p> : null}
+              </>
+            ) : (
+              <>
+                <button className="adminButton" type="button" onClick={goBackToVariantAttributeFields}>Atrás</button>
+                {variantAttributePickerField ? <>
+                  <div className="productVariantAttributeValueList">
+                    {variantAttributePickerField.values.map((value) => <button className="productVariantAttributeValueChoice" type="button" aria-pressed={selectedVariantValueForAttribute(variantAttributePickerField)?.fieldValueId === value.fieldValueId} key={value.fieldValueId} onClick={() => { updateVariantAttributeSelection(variantAttributePickerField, value.fieldValueId); closeVariantAttributePicker(); }}>{value.name}</button>)}
+                  </div>
+                  {canManageFeatures ? <AdminMutationForm key={variantAttributePickerField.fieldId} label={`Añadir opción a ${variantAttributePickerField.name}`} action={async (_state, form) => {
+                    const result = await addProductFeatureValueAction(form);
+                    if (result.catalog) mergeAttributeCatalog(result.catalog);
+                    return result.state;
+                  }}>
+                    <input type="hidden" name="tab" value="attributes" />
+                    <input type="hidden" name="groupId" value={variantAttributePickerField.groupId} />
+                    <input type="hidden" name="fieldId" value={variantAttributePickerField.fieldId} />
+                    <label className="adminField"><span>Nueva opción para {variantAttributePickerField.name}</span><input name="value" required maxLength={200} /></label>
+                    <button className="adminButton" type="submit">Añadir opción</button>
+                  </AdminMutationForm> : null}
+                </> : <p>Atributo no disponible. Vuelve atrás.</p>}
+              </>
+            )}
+          </div>
+        </AdminResourceDrawer>
+      ) : null}
+      {attributeManagerOpen && canManageFeatures ? <ProductFeatureManager mode="attributes" categoryId={draft.basic.categoryId ?? ""} categories={categoryOptions} fields={variantAttributeFields} groups={attributeGroups} onChange={mergeAttributeCatalog} onClose={() => setAttributeManagerOpen(false)} /> : null}
 
       {offeringPickerOpen ? (
         <div
@@ -6019,7 +4474,7 @@ function ProductEditorClientInner({
             }
           }}
         >
-          <aside
+          <AdminResizableDrawer drawerId="product-editor-client-product-offering-picker-title-1"
             aria-labelledby="product-offering-picker-title"
             aria-modal="true"
             className="productOfferingDrawer"
@@ -6172,10 +4627,11 @@ function ProductEditorClientInner({
                 </section>
               )}
             </div>
-          </aside>
+          </AdminResizableDrawer>
         </div>
       ) : null}
 
+      {featureManagerOpen && canManageFeatures ? <ProductFeatureManager categoryId={draft.basic.categoryId ?? ""} categories={categoryOptions} fields={featureFields} groups={featureGroups} onChange={mergeFeatureCatalog} onClose={() => setFeatureManagerOpen(false)} /> : null}
       {specificationPickerOpen ? (
         <div
           className="productSpecificationOverlay"
@@ -6186,17 +4642,14 @@ function ProductEditorClientInner({
             }
           }}
         >
-          <aside
+          <AdminResizableDrawer drawerId="product-editor-client-product-specification-picker-title-2"
             aria-labelledby="product-specification-picker-title"
             aria-modal="true"
-            className="productSpecificationDrawer"
+            className={`productSpecificationDrawer ${specificationPickerStep === "values" ? "productSpecificationValueDrawer" : ""}`}
             role="dialog"
           >
             <header className="productSpecificationDrawerHeader">
               <div>
-                <span className="adminBadge">
-                  {selectedSpecifications.length} seleccionada{selectedSpecifications.length === 1 ? "" : "s"}
-                </span>
                 <h2 id="product-specification-picker-title">
                   {specificationPickerStep === "fields"
                     ? selectedSpecifications.length > 0 ? "Agregar otra caracteristica" : "Caracteristicas"
@@ -6218,66 +4671,62 @@ function ProductEditorClientInner({
               {specificationPickerStep === "fields" ? (
                 <>
                   {selectedSpecifications.length > 0 ? (
-                    <section className="productSpecificationDrawerSection">
-                      <h3>Seleccionadas</h3>
-                      <div className="productSpecificationSelectedList">
-                        {selectedSpecifications.map(({ field, value }) => (
-                          <div className="productSpecificationSelectedItem" key={field.fieldId}>
-                            <span>
-                              <small>{field.groupName}</small>
-                              <strong>{field.name}</strong>
-                            </span>
-                            <span>{value?.name}</span>
-                            <div className="adminButtonRow">
-                              <button className="adminButton adminButtonTiny" type="button" onClick={() => openSpecificationValues(field)}>
-                                Cambiar
-                              </button>
-                              <button className="adminButton adminButtonTiny" type="button" onClick={() => removeSpecificationSelection(field.fieldId)}>
-                                Quitar
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
+                    <div className="productFeatureSelectedTables">
+                      {Array.from(new Set(selectedSpecifications.map(({ field }) => field.groupId))).map((groupId) => {
+                        const items = selectedSpecifications.filter(({ field }) => field.groupId === groupId);
+                        return (
+                          <table className="productFeaturePickerTable" key={groupId} aria-label={`Características añadidas: ${items[0].field.groupName}`}>
+                            <colgroup><col className="productFeatureNameColumn" /><col /><col className="productFeatureActionColumn" /></colgroup>
+                            <thead><tr><th colSpan={3}>{items[0].field.groupName}</th></tr></thead>
+                            <tbody>
+                              {items.map(({ field, value }) => (
+                                <tr key={field.fieldId}>
+                                  <th scope="row">{field.name}</th>
+                                  <td>{value.name}</td>
+                                  <td className="productFeatureActionCell"><button className="productFeatureTableAction productFeatureTableDelete" type="button" aria-label={`Quitar ${field.name}`} title={`Quitar ${field.name}`} onClick={() => removeSpecificationSelection(field.fieldId)}><Trash2 size={15} aria-hidden="true" /></button></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        );
+                      })}
+                    </div>
                   ) : null}
 
                   <section className="productSpecificationDrawerSection">
                     <div className="productSpecificationDrawerSectionHeader">
-                      <h3>Todas las caracteristicas</h3>
-                      <Link className="adminButton adminButtonTiny" href="/admin/catalogo/atributos-caracteristicas?tab=features">
-                        Administrar valores
-                      </Link>
+                      <h3>Buscar características</h3>
+                      {canManageFeatures ? <button className="adminButton adminButtonTiny" type="button" onClick={() => { closeSpecificationPicker(); setFeatureManagerOpen(true); }}>Administrar características</button> : null}
                     </div>
-                    {lookups.specificationFields.length === 0 ? (
+                    <label className="adminField"><span>Buscar por nombre o grupo</span><input value={featureSearch} onChange={event => setFeatureSearch(event.target.value)} placeholder="Material, geometría…" /></label>
+                    {featureFields.length === 0 ? (
                       <div className="adminEmptyState">
                         <h2>Sin caracteristicas configuradas</h2>
                         <p>Crea primero caracteristicas en Catalogo / Caracteristicas.</p>
                       </div>
                     ) : (
-                      <div className="productSpecificationChoiceList">
-                        {lookups.specificationFields.map((field) => {
-                          const selected = draft.specifications.selections.find((selection) => selection.fieldId === field.fieldId);
-                          const selectedValue = selected
-                            ? field.values.find((value) => value.fieldValueId === selected.fieldValueId)
-                            : undefined;
+                      <div className="productFeatureSearchResults">
+                        {Array.from(new Set(featureFields.map((field) => field.groupId))).map((groupId) => {
+                          const fields = featureFields.filter((field) => field.groupId === groupId && `${field.name} ${field.groupName} ${(field.categoryIds ?? []).map((id) => categoryOptions.find((category) => category.id === id)?.label ?? "").join(" ")}`.toLocaleLowerCase().includes(featureSearch.trim().toLocaleLowerCase()));
+                          if (!fields.length) return null;
                           return (
-                            <button
-                              className="productSpecificationChoice"
-                              key={field.fieldId}
-                              type="button"
-                              onClick={() => openSpecificationValues(field)}
-                            >
-                              <span>
-                                <small>{field.groupName}</small>
-                                <strong>{field.name}</strong>
-                              </span>
-                              <span className={selectedValue ? "adminBadge adminBadgeOk" : "adminBadge"}>
-                                {selectedValue ? selectedValue.name : "Elegir valor"}
-                              </span>
-                            </button>
+                            <table className="productFeaturePickerTable" key={groupId} aria-label={fields[0].groupName}>
+                              <colgroup><col className="productFeatureNameColumn" /><col /><col className="productFeatureActionColumn" /></colgroup>
+                              <thead><tr><th colSpan={3}>{fields[0].groupName}</th></tr></thead>
+                              <tbody>
+                                {fields.map((field) => {
+                                  const selected = selectedSpecifications.find((item) => item.field.fieldId === field.fieldId);
+                                  return <tr key={field.fieldId}>
+                                    <th scope="row">{field.name}</th>
+                                    <td>{selected?.value.name ?? "—"}</td>
+                                    <td className="productFeatureActionCell"><button className="productFeatureTableAction" type="button" aria-label={`Elegir valor para ${field.name}`} title={`Elegir valor para ${field.name}`} onClick={() => openSpecificationValues(field)}><Plus size={16} aria-hidden="true" /></button></td>
+                                  </tr>;
+                                })}
+                              </tbody>
+                            </table>
                           );
                         })}
+                        {!featureFields.some((field) => `${field.name} ${field.groupName} ${(field.categoryIds ?? []).map((id) => categoryOptions.find((category) => category.id === id)?.label ?? "").join(" ")}`.toLocaleLowerCase().includes(featureSearch.trim().toLocaleLowerCase())) ? <p className="adminContextHint">Sin resultados para esta búsqueda.</p> : null}
                       </div>
                     )}
                   </section>
@@ -6292,7 +4741,7 @@ function ProductEditorClientInner({
                       {specificationPickerField.values.map((value) => {
                         const selected = draft.specifications.selections.some(
                           (selection) =>
-                            selection.fieldId === specificationPickerField.fieldId &&
+                            !selection.markedForDeletion && selection.fieldId === specificationPickerField.fieldId &&
                             selection.fieldValueId === value.fieldValueId,
                         );
                         return (
@@ -6320,339 +4769,47 @@ function ProductEditorClientInner({
                 </section>
               )}
             </div>
-          </aside>
+          </AdminResizableDrawer>
         </div>
       ) : null}
 
-      {previewOpen ? (
-        <div
-          className="productPreviewOverlay"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              setPreviewOpen(false);
-            }
-          }}
-        >
-          <aside aria-labelledby="product-preview-title" aria-modal="true" className="productPreviewDrawer" role="dialog">
-            <header className="productPreviewHeader">
-              <div>
-                <span className={"adminBadge " + (draft.basic.isActive && draft.basic.isVisible ? "adminBadgeOk" : "adminBadgeWarn")}>
-                  {draft.basic.isActive && draft.basic.isVisible ? "Publicado" : "Borrador"}
-                </span>
-                <h2 id="product-preview-title">Vista previa PDP</h2>
-              </div>
-              <button aria-label="Cerrar vista previa" className="adminIconButton" type="button" onClick={() => setPreviewOpen(false)}>
-                <X aria-hidden="true" size={18} />
-              </button>
-            </header>
+      {previewOpen ? <ProductPdpPreviewModal initialVariantId={selectedVariant.localId} data={pdpPreviewData()} onClose={() => setPreviewOpen(false)} /> : null}
 
-            <div className="productPreviewBody">
-              <section className="productPreviewMediaPane" aria-label="Imagenes del producto">
-                <div className="productPreviewMediaStage">
-                  {hasRenderableMediaPreview(previewHeroMedia) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={mediaPreviewSrc(previewHeroMedia)}
-                      alt={previewHeroMedia.alt[locale] ?? previewHeroMedia.fileName}
-                      onError={() => markMediaPreviewBroken(previewHeroMedia.localId)}
-                    />
-                  ) : (
-                    <span>Sin imagen</span>
-                  )}
-                </div>
-                {previewMediaItems.length > 1 ? (
-                  <div className="productPreviewThumbs">
-                    {previewMediaItems.slice(0, 6).map((item) => (
-                      <span
-                        className={"productPreviewThumb " + (item.localId === previewHeroMedia?.localId ? "productPreviewThumbActive" : "")}
-                        key={item.localId}
-                      >
-                        {hasRenderableMediaPreview(item) ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={mediaPreviewSrc(item)} alt={item.alt[locale] ?? item.fileName} onError={() => markMediaPreviewBroken(item.localId)} />
-                        ) : (
-                          <span>{item.fileName.slice(0, 2).toUpperCase()}</span>
-                        )}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-
-                {previewVariantChoices.length > 1 ? (
-                  <section className="productPreviewVariantTiles" aria-label="Variantes activas">
-                    <span>Variantes activas</span>
-                    <div>
-                      {previewVariantChoices.map((variant) => {
-                        const variantMedia = assignedMediaForVariant(variant.localId)[0];
-                        const variantSelected = variant.localId === previewVariantKeyResolved;
-                        return (
-                          <button
-                            aria-label={variant.selectorLabel}
-                            aria-pressed={variantSelected}
-                            className={"productPreviewVariantTile " + (variantSelected ? "productPreviewVariantTileActive" : "")}
-                            key={variant.localId}
-                            title={variant.selectorLabel}
-                            type="button"
-                            onClick={() => setPreviewVariantKey(variant.localId)}
-                          >
-                            <span>
-                              {hasRenderableMediaPreview(variantMedia) ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={mediaPreviewSrc(variantMedia)}
-                                  alt={variantMedia.alt[locale] ?? variantMedia.fileName}
-                                  onError={() => markMediaPreviewBroken(variantMedia.localId)}
-                                />
-                              ) : (
-                                <span>{variant.name.slice(0, 2).toUpperCase() || variant.refId.slice(0, 2).toUpperCase() || "VA"}</span>
-                              )}
-                            </span>
-                            <small>{variant.name || variant.refId || variant.displayLabel}</small>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ) : null}
-              </section>
-
-              <section className="productPreviewInfoPane">
-                <div className="productPreviewBrandRow">
-                  <span>{draft.basic.brandName || "Sin marca"}</span>
-                  <span className={"adminBadge " + (previewIsAvailable ? "adminBadgeOk" : "adminBadgeWarn")}>
-                    {previewIsAvailable ? "Disponible" : "Sin stock"}
-                  </span>
-                </div>
-                <h3>{draft.basic.name || "Producto sin nombre"}</h3>
-                <RichTextPreview
-                  className="productPreviewSummary"
-                  emptyLabel="Sin descripcion corta"
-                  html={draft.basic.shortDescription}
-                />
-
-                {previewAttributeGroups.length ? (
-                  <section className="productPreviewAttributeSelector" aria-label="Seleccion de atributos">
-                    {previewAttributeGroups.map((group) => (
-                      <div className="productPreviewAttributeGroup" key={group.attributeCode}>
-                        <span>{group.attributeCode}</span>
-                        <div>
-                          {group.values.map((choice) => (
-                            <button
-                              aria-label={`${group.attributeCode} ${choice.valueCode}${choice.available ? "" : " sin stock"}`}
-                              aria-pressed={choice.selected}
-                              className={"productPreviewAttributeChoice " + (choice.selected ? "productPreviewAttributeChoiceActive" : "")}
-                              disabled={choice.disabled}
-                              key={choice.valueCode}
-                              title={choice.variantLabel}
-                              type="button"
-                              onClick={() => {
-                                if (choice.variantLocalId) {
-                                  setPreviewVariantKey(choice.variantLocalId);
-                                }
-                              }}
-                            >
-                              <span>{choice.valueCode}</span>
-                              {!choice.available ? <small>Sin stock</small> : null}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </section>
-                ) : null}
-
-                <label className="adminField productPreviewVariantSelect">
-                  <span>Variante vendible</span>
-                  <select value={previewVariantKeyResolved} onChange={(event) => setPreviewVariantKey(event.target.value)}>
-                    {previewVariantChoices.map((variant) => (
-                      <option key={variant.localId} value={variant.localId}>
-                        {variant.selectorLabel}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="productPreviewPriceBlock">
-                  <strong>{formatMoney(previewEffectivePrice?.basePriceMinor, previewEffectivePrice?.currency || currency)}</strong>
-                  {previewEffectivePrice?.listPriceMinor ? (
-                    <span>{formatMoney(previewEffectivePrice.listPriceMinor, previewEffectivePrice.currency || currency)}</span>
-                  ) : null}
-                </div>
-
-                <dl className="productPreviewMetaGrid">
-                  <div><dt>Referencia</dt><dd>{previewVariant?.refId || draft.defaultVariant.refId || "-"}</dd></div>
-                  <div><dt>EAN</dt><dd>{previewVariant?.ean || "-"}</dd></div>
-                  <div><dt>Stock</dt><dd>{previewAvailableQuantity}</dd></div>
-                  <div><dt>Impuesto</dt><dd>{previewTax?.label ?? previewTax?.name ?? previewEffectivePrice?.taxCode ?? draft.basic.taxCode}</dd></div>
-                </dl>
-
-                {previewOptions.length ? (
-                  <section className="productPreviewSection">
-                    <h4>Combinacion</h4>
-                    <div className="productPreviewOptionList">
-                      {previewOptions.map((option) => (
-                        <span key={option.attributeCode + ":" + option.valueCode}>
-                          <strong>{option.attributeCode}</strong>
-                          {option.valueCode}
-                        </span>
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-
-                {selectedSpecifications.length ? (
-                  <section className="productPreviewSection">
-                    <h4>Caracteristicas tecnicas</h4>
-                    <dl className="productPreviewMetaGrid">
-                      {selectedSpecifications.map(({ field, value }) => (
-                        <div key={field.fieldId}>
-                          <dt>{field.name}</dt>
-                          <dd>{value?.name}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </section>
-                ) : null}
-
-                {previewPriceBreakdown ? (
-                  <section className="productPreviewSection">
-                    <h4>Precio calculado</h4>
-                    <dl className="productPreviewMetaGrid">
-                      <div><dt>Neto</dt><dd>{formatMoney(previewPriceBreakdown.net, previewEffectivePrice?.currency || currency)}</dd></div>
-                      <div><dt>Impuesto</dt><dd>{formatMoney(previewPriceBreakdown.tax, previewEffectivePrice?.currency || currency)}</dd></div>
-                      <div><dt>Total</dt><dd>{formatMoney(previewPriceBreakdown.gross, previewEffectivePrice?.currency || currency)}</dd></div>
-                    </dl>
-                  </section>
-                ) : null}
-
-                <section className="productPreviewSection">
-                  <h4>Servicios y disponibilidad</h4>
-                  {previewOfferings.length ? (
-                    <div className="productPreviewOfferingList">
-                      {previewOfferings.map((offering) => (
-                        <span className={offering.active ? "" : "productPreviewMuted"} key={offering.offeringId}>
-                          {offering.name}
-                          <small>{formatMoney(offering.priceMinor, offering.currency)}</small>
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="productPreviewEmpty">Sin servicios adicionales para esta variante.</p>
-                  )}
-                </section>
-
-                <section className="productPreviewSection">
-                  <h4>Detalles</h4>
-                  <RichTextPreview
-                    className="productPreviewDescription"
-                    emptyLabel="Sin descripcion extendida."
-                    html={draft.basic.description}
-                  />
-                </section>
-
-                <section className="productPreviewSection">
-                  <h4>Envio</h4>
-                  <dl className="productPreviewShippingGrid">
-                    <div><dt>Peso</dt><dd>{draft.shipping.package.weightGrams ? String(draft.shipping.package.weightGrams) + " g" : "-"}</dd></div>
-                    <div><dt>Ancho</dt><dd>{draft.shipping.package.widthMm ? String(draft.shipping.package.widthMm) + " mm" : "-"}</dd></div>
-                    <div><dt>Alto</dt><dd>{draft.shipping.package.heightMm ? String(draft.shipping.package.heightMm) + " mm" : "-"}</dd></div>
-                    <div><dt>Fondo</dt><dd>{draft.shipping.package.depthMm ? String(draft.shipping.package.depthMm) + " mm" : "-"}</dd></div>
-                  </dl>
-                </section>
-              </section>
-            </div>
-          </aside>
-        </div>
-      ) : null}
+      {saveDecisionOpen ? <ProductSaveDecision preservingActive={persistedPublication.isActive} missing={publicationChecklist.filter(item => !item.ok)} onClose={() => setSaveDecisionOpen(false)} onSave={saveDraft} /> : null}
 
       {savingActive ? (
         <div className="productSavingOverlay" role="status" aria-live="assertive">
           <div className="productSavingDialog">
             <span className="adminSpinner productSavingRing" aria-hidden="true" />
             <strong>Guardando producto</strong>
-              <span>Catalog, variantes, imagenes, caracteristicas, pricing, inventario y transporte se procesan por bloques.</span>
-            <div className="productSavingSteps">
-              <span>Catalog</span>
-              <span>Variantes</span>
-              <span>Media</span>
-              <span>Caracteristicas</span>
-              <span>Pricing</span>
-              <span>Inventario</span>
-              <span>Transporte</span>
-              <span>Publicacion</span>
-            </div>
+            <span>Espera un momento.</span>
           </div>
         </div>
       ) : null}
 
-      <footer className="productEditorFooter">
-        <div className="productSaveBlocks">
-          {Object.entries(draft.saveState).map(([block, status]) => (
-            <span className={`adminBadge ${statusClass(status)}`} key={block}>
-              {block}: {statusLabel(status)}
-            </span>
-          ))}
+      <footer className="productEditorFooter" role="group" aria-label="Acciones del producto">
+        <div className="productEditorSaveStatus" role="status" aria-live="polite">
+          <span className={`adminBadge ${persistedPublication.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>{productStatus}</span>
+          <span>{savingActive ? "Guardando…" : report && !report.ok ? "No se pudo completar el guardado" : dirty ? "Cambios sin guardar" : report?.ok ? "Guardado" : "Sin cambios"}</span>
         </div>
-        <div className="adminButtonRow">
-          <button className="adminButton" type="button" onClick={openProductPreview}>
-            <Eye aria-hidden="true" size={16} />
-            Vista previa
+        <div className="productEditorFooterActions">
+          <button className="adminButton" type="button" onClick={openProductPreview} disabled={savingActive}>
+            <Eye aria-hidden="true" size={16} />Vista previa
           </button>
-          {draft.productId ? (
-            <Link className="adminButton" href={`/admin/products/${encodeURIComponent(draft.productId)}/storefront-preview`}>
-              <ExternalLink aria-hidden="true" size={16} />
-              Preview Storefront
-            </Link>
-          ) : (
-            <button className="adminButton" disabled title="Guarda el producto antes de consultar Storefront" type="button">
-              <ExternalLink aria-hidden="true" size={16} />
-              Preview Storefront
-            </button>
-          )}
-          <span className={`adminBadge ${draft.basic.isActive ? "adminBadgeOk" : "adminBadgeWarn"}`}>{productStatus}</span>
-          <button className="adminButton adminButtonPrimary" type="button" disabled={savingActive} onClick={saveDraft}>
-            {savingActive ? <span className="adminSpinner adminSpinnerInline" aria-hidden="true" /> : null}
-            {savingActive ? "Guardando producto" : "Guardar producto"}
+          <button className="adminButton adminButtonPrimary" type="button" disabled={savingActive} onClick={() => saveDraft()}>
+            <span className="adminSpinner adminSpinnerInline" aria-hidden="true" style={{ display: savingActive ? undefined : "none" }} />
+            <span>{savingActive ? "Guardando…" : persistedPublication.isActive ? "Guardar cambios" : "Guardar"}</span>
           </button>
-          {draft.productId ? (
-            <Link className="adminButton" href={`/admin/products/new?duplicateFrom=${encodeURIComponent(draft.productId)}`}>
-              <Copy aria-hidden="true" size={16} />
-              Duplicar
-            </Link>
-          ) : (
-            <button className="adminButton" disabled title="Guarda el producto antes de duplicarlo" type="button">
-              <Copy aria-hidden="true" size={16} />
-              Duplicar
-            </button>
-          )}
-          {draft.productId ? (
-            <details className="productDangerMenu productEditorDangerMenu">
-              <summary className="adminButton adminButtonDanger">
-                <Trash2 aria-hidden="true" size={16} />
-                Desactivar
-              </summary>
-              <div className="productDangerPanel">
-                <strong>Desactivar producto</strong>
-                <p>Lo ocultara, lo dejara fuera de linea e intentara sacar sus rutas SEO del sitemap.</p>
-                <label>
-                  <input form="product-editor-deactivate-form" name="confirmDeactivate" type="checkbox" value="yes" />
-                  Confirmo la desactivacion
-                </label>
-                <button className="adminButton adminButtonDanger" form="product-editor-deactivate-form" type="submit">
-                  Desactivar
-                </button>
-              </div>
-            </details>
+          {draft.productId && canDeleteProducts && deletionContext ? (
+            <CatalogDeletionButton
+              target={{ ...deletionContext, productId: draft.productId }}
+              name={draft.basic.name}
+              disabled={dirty || savingActive}
+              disabledReason={dirty ? "Guarda los cambios antes de eliminar." : undefined}
+              onComplete={() => { window.localStorage.removeItem(storageKey); router.replace("/admin/products"); router.refresh(); }}
+            />
           ) : null}
-          {draft.productId ? (
-            <form action={deactivateProductAction} id="product-editor-deactivate-form">
-              <input name="productId" type="hidden" value={draft.productId} />
-              <input name="returnTo" type="hidden" value="/admin/products" />
-            </form>
-          ) : null}
-          <Link className="adminButton" href="/admin/products">Ir al catalogo</Link>
-          <Link className="adminButton" href="/admin/products/new">Anadir nuevo producto</Link>
+          <ProductEditorActions productId={draft.productId} disabled={savingActive} />
         </div>
       </footer>
     </main>

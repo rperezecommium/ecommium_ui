@@ -7,16 +7,20 @@ import Link from "next/link";
 import { Check, Copy, Mail, Minus, Plus, RotateCcw, Search, Share2, ShieldCheck, Truck, X } from "lucide-react";
 import { StorefrontAddToCartButton } from "./cart-client";
 import type { StorefrontPdpData } from "./pdp";
+import { pdpVariantForOption, pdpVariantOptionGroups } from "./pdp-variant-options";
 import { useStorefrontAnalytics } from "./search-events-client";
 import { sanitizeRichTextHtml } from "../../shared/security/rich-text";
 
 type Props = {
   data: StorefrontPdpData;
+  preview?: boolean;
+  initialVariantId?: string;
 };
 
-export function StorefrontPdpContentClient({ data }: Props) {
-  const recordAnalyticsEvent = useStorefrontAnalytics();
+export function StorefrontPdpContentClient({ data, preview = false, initialVariantId: requestedVariantId }: Props) {
+  const recordAnalyticsEvent = useStorefrontAnalytics(!preview);
   const initialVariantId =
+    data.variants.find(variant => variant.variantId === requestedVariantId)?.variantId ??
     data.variants.find((variant) => variant.isDefault)?.variantId ??
     data.variants[0]?.variantId ??
     null;
@@ -55,6 +59,7 @@ export function StorefrontPdpContentClient({ data }: Props) {
   const availableQuantity = selectedVariant?.availableQuantity ?? data.availableQuantity;
   const selectedVariantImage = selectedVariant?.images[0] ?? mainImage;
   const selectedVariantDetails = selectedVariant?.options.map((option) => `${option.attributeCode}: ${option.valueCode}`).join(", ");
+  const variantOptionGroups = useMemo(() => pdpVariantOptionGroups(data.variants), [data.variants]);
   const availableOfferings = useMemo(
     () => selectedVariant?.offerings.filter((offering) => offering.active !== false) ?? [],
     [selectedVariant],
@@ -66,9 +71,9 @@ export function StorefrontPdpContentClient({ data }: Props) {
   const selectedOfferingsTotalMinor = selectedOfferings.reduce((total, offering) => total + (offering.priceMinor ?? 0) * quantity, 0);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setShareUrl(window.location.href));
+    const frame = window.requestAnimationFrame(() => setShareUrl(preview ? `${window.location.origin}/pdp/${data.slug}` : window.location.href));
     return () => window.cancelAnimationFrame(frame);
-  }, []);
+  }, [preview, data.slug]);
 
   useEffect(() => {
     if (!zoomModalOpen) {
@@ -77,6 +82,8 @@ export function StorefrontPdpContentClient({ data }: Props) {
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
         setZoomModalOpen(false);
       }
     }
@@ -250,6 +257,41 @@ export function StorefrontPdpContentClient({ data }: Props) {
               </span>
             </section>
           ) : null}
+          {variantOptionGroups.length > 0 ? (
+            <section className="storefrontPdpOptionGroups" aria-label="Opciones de variante">
+              <table className="storefrontPdpOptionTable" aria-label="Variantes por atributo">
+                <tbody>
+              {variantOptionGroups.map(({ attribute, values }) => (
+                <tr className="storefrontPdpOptionGroup" key={attribute}>
+                  <th scope="row">{attribute}</th>
+                  <td>
+                  <div className="storefrontPdpOptionValues" role="group" aria-label={attribute}>
+                    {values.map((value) => {
+                      const target = pdpVariantForOption(data.variants, selectedVariant, attribute, value);
+                      const selected = selectedVariant?.options.some(option =>
+                        option.attributeCode.trim() === attribute && option.valueCode.trim() === value,
+                      ) ?? false;
+                      return (
+                        <button
+                          aria-pressed={selected}
+                          className="storefrontPdpOptionButton"
+                          disabled={!target}
+                          key={value}
+                          onClick={() => { if (target) selectVariant(target.variantId); }}
+                          type="button"
+                        >
+                          {value}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  </td>
+                </tr>
+              ))}
+                </tbody>
+              </table>
+            </section>
+          ) : null}
           {availableOfferings.length > 0 ? (
             <section className="storefrontPdpOfferings" aria-labelledby="storefront-pdp-offerings-title">
               <div className="storefrontPdpOfferingsHeader">
@@ -291,7 +333,7 @@ export function StorefrontPdpContentClient({ data }: Props) {
             </div>
             <StorefrontAddToCartButton
               className="storefrontPdpAddToCartButton"
-              disabled={!available || (!selectedVariant?.variantId && !reference)}
+              disabled={preview || !available || (!selectedVariant?.variantId && !reference)}
               onAdded={recordAddToCartEvent}
               offerings={selectedOfferings}
               quantity={quantity}

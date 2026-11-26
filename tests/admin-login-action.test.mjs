@@ -571,3 +571,12 @@ test("admin login handles 429 with a generic retry message", async () => {
   assert.equal(events.some((event) => event.path === "/auth/me"), false);
   assert.equal(events.some((event) => event.path === "/admin/context/available"), false);
 });
+
+test('validates auth/me even while cookie token is fresh so live restrictions replace stale privileges',async()=>{
+ resetScenario({currentSession:{accessToken:'old-access',refreshToken:'refresh-token',expiresAt:new Date(Date.now()+3600000).toISOString(),employeeId:'employee-1',name:'Admin',email:'employee@example.com',principalType:'EMPLOYEE',scope:'admin',roles:['admin'],permissions:['*']}});
+ const session=await refreshAdminEmployeeSession();assert.deepEqual(session.permissions,['catalog.products.read']);assert.equal(events.filter(e=>e.path==='/auth/me').length,1);assert.equal(events.some(e=>e.type==='refresh'),false);
+});
+test('read-only RSC validation hands refresh to a cookie-writing route before rotating tokens',async()=>{
+ resetScenario({currentSession:{accessToken:'old-access',refreshToken:'old-refresh',employeeId:'employee-1',principalType:'EMPLOYEE',scope:'admin',permissions:['*'],roles:['admin']},meStatus:403});
+ await assert.rejects(refreshAdminEmployeeSession({cookieWrite:false,returnTo:'/admin/pagos'}),e=>e.url==='/auth/admin/session-renew?next=%2Fadmin%2Fpagos');assert.equal(events.some(e=>e.type==='refresh'),false);
+});

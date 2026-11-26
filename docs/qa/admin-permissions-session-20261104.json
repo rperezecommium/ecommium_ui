@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-04",
+  "scope": "UI local; no cambios backend",
+  "unitTests": 533,
+  "focusedAuthTests": 30,
+  "e2e": {
+    "permissionAndRenewal": 6,
+    "credentials": 4
+  },
+  "lint": "0 errores; 3 avisos previos",
+  "build": "PASS",
+  "liveBffReadOnly": [
+    {
+      "path": "/admin/configuracion/equipo",
+      "authenticated": true,
+      "allowedActionVisible": true,
+      "warmDevelopmentTtfbMs": 1611
+    },
+    {
+      "path": "/admin/catalogo/categorias",
+      "authenticated": true,
+      "allowedActionVisible": true,
+      "warmDevelopmentTtfbMs": 528
+    },
+    {
+      "path": "/admin/pagos?tab=metodos",
+      "authenticated": true,
+      "allowedActionVisible": true,
+      "warmDevelopmentTtfbMs": 524
+    },
+    {
+      "normalCredentialNotBlocked": true,
+      "passwordChanged": false
+    }
+  ],
+  "businessArtifactsCreated": 0,
+  "realPasswordsChanged": 0,
+  "realInvitationsSent": 0,
+  "limitations": [
+    "Permisos/cambio de contraseña comprobados con perfiles y credenciales de BFF aislado; cuenta real usada solo en lectura/login/logout.",
+    "Cobertura explícita de acciones de Equipo, categorías/marcas y configuración de pagos; no se certifican todas las acciones de todos los módulos.",
+    "TTFB medido en desarrollo; Equipo 1611ms supera objetivo 900ms y no se certifica performance productiva."
+  ]
+}

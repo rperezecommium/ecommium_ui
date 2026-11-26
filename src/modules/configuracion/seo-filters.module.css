@@ -1,0 +1,32 @@
+.filters {
+  --admin-control-height: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.filters > :global(.adminField) { flex: 1 1 180px; min-width: 0; }
+.filters > :global(.adminField) > span { display: block; margin-bottom: 6px; }
+.filters > :global(.adminField) > input,
+.filters > :global(.adminField) > select {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font: inherit;
+}
+.filters > :global(.adminField) > :is(input, select):focus-visible {
+  outline: 2px solid var(--admin-focus-ring);
+  outline-offset: 1px;
+}
+.filters > :global(.adminButton) { min-height: 40px; flex: 0 0 auto; }
+@media (max-width: 540px) {
+  .filters > :global(.adminField) { flex-basis: 100%; }
+}

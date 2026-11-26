@@ -1,3 +1,4 @@
+import {getCurrentAdminSession as getAdminSession} from "../../../../../src/modules/auth/current-admin-session";
 import { getAdminContext } from "../../../../../src/shared/config/admin-context";
 import {
   createCategoryAction,
@@ -12,6 +13,7 @@ type CategoriasPageProps = {
   searchParams: Promise<{
     q?: string;
     status?: string;
+    drawer?: string;
   }>;
 };
 
@@ -28,6 +30,8 @@ function statusToIsActive(status: string) {
 
 export default async function CategoriasPage({ searchParams }: CategoriasPageProps) {
   const context = await getAdminContext();
+  const session=await getAdminSession();
+  const canCreate=!!session?.permissions.some(permission=>["*","admin:*","system.admin","catalog.categories.write"].includes(permission));
   const params = await searchParams;
   const q = params.q ?? "";
   const status = params.status ?? "active";
@@ -40,7 +44,10 @@ export default async function CategoriasPage({ searchParams }: CategoriasPagePro
 
   return (
     <CatalogEntityAdminPage
+      kind="categories"
+      createDrawerOpen={params.drawer === "create"}
       breadcrumb="Categorias"
+      canCreate={canCreate}
       createAction={createCategoryAction}
       description="Organiza el arbol comercial, breadcrumbs, categorias padre e hijas y visibilidad por tienda."
       hardDeleteAction={hardDeleteCategoryAction}

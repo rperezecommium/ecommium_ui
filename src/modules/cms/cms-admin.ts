@@ -1,3 +1,5 @@
+import {validatePageContract} from "./cms-page-composition-validation";
+import { type CmsPageComposition, type CmsPageCompositionReceipt } from "./cms-page-composition";
 import { requestAdminBff } from "../../shared/bff/admin-client";
 import type { BffResult } from "../../shared/bff/types";
 import type { AdminContext } from "../../shared/config/admin-context";
@@ -54,8 +56,15 @@ export {
 } from "./cms-blocks";
 
 export type CmsPageStatus = "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
+export type CmsSitePartKind = "HEADER" | "FOOTER";
+export type CmsSitePartStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+export type CmsBreadcrumbMode = "AUTO" | "HIDDEN";
+export type CmsShellScope = "DEFAULT" | "SURFACE" | "PAGE";
+export type CmsStorefrontSurface = "HOME" | "CMS" | "PLP" | "PDP" | "SEARCH" | "CART" | "CHECKOUT" | "ACCOUNT" | "ERROR";
 export type CmsPageType = "LANDING" | "CONTENT" | "HOME";
 export type CmsPage = {
+  contractVersion?:1;
+  revisionToken?:string;
   pageId: string;
   organizationId: string;
   shopId: string;
@@ -71,6 +80,7 @@ export type CmsPage = {
 };
 
 export type CmsPageVersion = {
+  composition?:CmsPageComposition;
   versionId: string;
   pageId: string;
   version: number;
@@ -87,8 +97,44 @@ export type CmsPageVersion = {
 };
 
 export type CmsPageDetail = CmsPage & {
+  pendingOperation?: {state:'PREPARED'|'RUNNING'|'APPLIED';command:{contractVersion:1;operation:'PUBLISH'|'CHANGE_PATH'|'UNPUBLISH'|'DELETE';operationId:string;expectedRevision:string;versionId?:string;nextPath?:string}}|null;
+  composition?:CmsPageCompositionReceipt;
   latestVersion: CmsPageVersion | null;
   publishedVersion: CmsPageVersion | null;
+};
+
+export type CmsSitePartRevision = {
+  revisionId: string;
+  sitePartId: string;
+  revision: number;
+  status: CmsSitePartStatus;
+  layout: CmsLayout;
+  blocks: CmsBlock[];
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+};
+
+export type CmsSitePart = {
+  sitePartId: string;
+  organizationId: string;
+  shopId: string;
+  locale: string;
+  kind: CmsSitePartKind;
+  name: string;
+  status: CmsSitePartStatus;
+  activeRevisionId: string | null;
+  usageCount: number;
+  latestRevision: CmsSitePartRevision | null;
+};
+
+export type CmsSitePartDetail = CmsSitePart & { revisions: CmsSitePartRevision[] };
+
+export type CmsSitePartList = { items: CmsSitePart[]; total: number; limit: number; offset: number };
+
+export type CmsPageDeleteResponse = {
+  pageId: string;
+  deleted: boolean;
 };
 
 export type CmsPagesList = {
@@ -116,7 +162,7 @@ export type CmsAdminFilters = {
   pageId?: string;
   mode?: "list" | "editor";
   tab?: "page" | "settings" | "blocks" | "plp" | "seo" | "preview";
-  drawer?: "create" | "path";
+  drawer?: "create" | "path" | "delete";
   cmsMessage?: string;
 };
 
@@ -125,7 +171,6 @@ export type CmsAdminData = {
   selectedPage: CmsAdminResult<CmsPageDetail | null>;
   pageSettings: CmsAdminResult<CmsPageSettingsResponse | null>;
   resolvedPageSettings: CmsAdminResult<CmsResolvedPageSettings | null>;
-  templates: CmsAdminResult<CmsTemplateSettingsList>;
   visualModules: CmsAdminResult<CmsVisualModuleDefinitionsList>;
 };
 
@@ -136,7 +181,6 @@ export type CmsPlacementContainerMode = "inherit" | "full-width" | "container";
 export type CmsAlignment = "start" | "center" | "end" | "stretch";
 export type CmsLayoutSource = "global" | "template" | "page" | "module";
 export type CmsResolvedSettingsLayer = "global" | "template" | "page" | "module";
-export type CmsTemplateStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 export type CmsFontProvider = "google";
 
 export type CmsTypographyToken = {
@@ -193,6 +237,7 @@ export type CmsModuleSlot = CmsColumnSlot & {
 };
 
 export type CmsArea = {
+  presentation?: import("./cms-blocks").CmsPresentation;
   areaId: string;
   name: string | null;
   containerMode: CmsContainerMode;
@@ -211,6 +256,8 @@ export type CmsRegionLayout = {
 };
 
 export type CmsLayout = {
+  designSettings?: import('../../../packages/cms-blocks/src/design-settings').CmsDesignSettings;
+  styleSheet?: import("../../../packages/cms-blocks/src").CmsScopedStyleSheet;
   regions: Partial<Record<CmsRegionCode, CmsRegionLayout>>;
 };
 
@@ -279,46 +326,6 @@ export type CmsResolvedPageSettings = {
   layout: CmsLayout;
   moduleSlots: CmsModuleSlot[];
   modules: CmsResolvedModule[];
-};
-
-export type CmsTemplateSettings = {
-  templateId: string;
-  organizationId: string;
-  shopId: string;
-  locale: string;
-  pageType: CmsPageType | string;
-  name: string;
-  status: CmsTemplateStatus;
-  settings: {
-    inheritGlobalSettings: boolean;
-    templateId: string | null;
-    overrides: Record<string, unknown>;
-  };
-};
-
-export type CmsTemplateSettingsList = {
-  total: number;
-  limit: number;
-  offset: number;
-  items: CmsTemplateSettings[];
-};
-
-export type CmsTemplateSettingsPayload = {
-  pageType?: CmsPageType | string;
-  name?: string;
-  status?: CmsTemplateStatus;
-  settings?: {
-    inheritGlobalSettings: boolean;
-    templateId: string | null;
-    overrides: Record<string, unknown>;
-  };
-};
-
-export type CmsTemplateSettingsFilters = {
-  pageType?: CmsPageType | "all";
-  status?: CmsTemplateStatus | "all";
-  limit?: number;
-  offset?: number;
 };
 
 export type CmsVisualModuleDefinitionsList = {
@@ -455,11 +462,6 @@ function layoutSourceValue(value: unknown): CmsLayoutSource | undefined {
   return undefined;
 }
 
-function templateStatusValue(value: unknown): CmsTemplateStatus {
-  if (value === "ACTIVE" || value === "ARCHIVED") return value;
-  return "DRAFT";
-}
-
 function visualModuleDefinitionStatusValue(value: unknown): CmsVisualModuleDefinitionStatus {
   if (value === "ACTIVE" || value === "ARCHIVED") return value;
   return "DRAFT";
@@ -593,6 +595,7 @@ function normalizeArea(value: unknown): CmsArea {
 
   return {
     areaId: stringValue(record.areaId),
+    ...(record.presentation && typeof record.presentation === "object" ? { presentation: record.presentation as import("./cms-blocks").CmsPresentation } : {}),
     name: nullableString(record.name),
     containerMode: containerModeValue(record.containerMode),
     maxWidth: nullableString(record.maxWidth),
@@ -619,7 +622,7 @@ function normalizeLayout(value: unknown): CmsLayout {
     };
   }
 
-  return { regions };
+  return { regions, ...(record.designSettings ? {designSettings:record.designSettings as CmsLayout['designSettings']} : {}), ...(record.styleSheet ? { styleSheet: record.styleSheet as import("./cms-blocks").CmsScopedStyleSheet } : {}) };
 }
 
 function resolveSpacingRecord(value: CmsSpacing, spacing: Record<string, string>): CmsSpacing {
@@ -693,6 +696,7 @@ function normalizePage(value: unknown): CmsPage {
   const record = asRecord(value);
   return {
     pageId: stringValue(record.pageId),
+    ...(record.contractVersion===1?{contractVersion:1 as const,revisionToken:stringValue(record.revisionToken)}:{}),
     organizationId: stringValue(record.organizationId),
     shopId: stringValue(record.shopId),
     locale: stringValue(record.locale),
@@ -715,6 +719,7 @@ function normalizeVersion(value: unknown): CmsPageVersion | null {
   const seo = asRecord(record.seo);
   return {
     versionId: stringValue(record.versionId),
+    ...(record.composition?{composition:record.composition as CmsPageComposition}:{}),
     pageId: stringValue(record.pageId),
     version: numberValue(record.version),
     status: record.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
@@ -733,10 +738,76 @@ function normalizeVersion(value: unknown): CmsPageVersion | null {
 function normalizePageDetail(value: unknown): CmsPageDetail {
   const page = normalizePage(value);
   const record = asRecord(value);
+  if(page.contractVersion===1)validatePageContract('receipt',record.composition);
+  if(record.pendingOperation){
+    const pending=asRecord(record.pendingOperation);
+    const command=asRecord(pending.command);
+    const kinds:Record<string,string>={PUBLISH:'publishRequest',CHANGE_PATH:'pageChangePath',UNPUBLISH:'pageUnpublish',DELETE:'pageDelete'};
+    validatePageContract(kinds[String(command.operation)]??'',command);
+    if(!['PREPARED','RUNNING','APPLIED'].includes(String(pending.state)))throw Error('Invalid page operation state');
+  }
   return {
     ...page,
+    ...(page.contractVersion===1?{pendingOperation:record.pendingOperation as CmsPageDetail["pendingOperation"]}:{}),
+    ...(page.contractVersion===1?{composition:record.composition as CmsPageCompositionReceipt}:{}),
     latestVersion: normalizeVersion(record.latestVersion),
     publishedVersion: normalizeVersion(record.publishedVersion),
+  };
+}
+
+function normalizeSitePartRevision(value: unknown): CmsSitePartRevision | null {
+  const record = asRecord(value);
+  if (!record.revisionId) return null;
+  return {
+    revisionId: stringValue(record.revisionId),
+    sitePartId: stringValue(record.sitePartId),
+    revision: numberValue(record.revision, 1),
+    status: record.status === "ACTIVE" ? "ACTIVE" : record.status === "ARCHIVED" ? "ARCHIVED" : "DRAFT",
+    layout: normalizeLayout(record.layout),
+    blocks: Array.isArray(record.blocks) ? record.blocks.map(normalizeCmsBlock) : [],
+    createdAt: stringValue(record.createdAt),
+    updatedAt: stringValue(record.updatedAt),
+    publishedAt: nullableString(record.publishedAt),
+  };
+}
+
+function normalizeSitePart(value: unknown): CmsSitePart {
+  const record = asRecord(value);
+  return {
+    sitePartId: stringValue(record.sitePartId),
+    organizationId: stringValue(record.organizationId),
+    shopId: stringValue(record.shopId),
+    locale: stringValue(record.locale),
+    kind: record.kind === "FOOTER" ? "FOOTER" : "HEADER",
+    name: stringValue(record.name),
+    status: record.status === "ACTIVE" ? "ACTIVE" : record.status === "ARCHIVED" ? "ARCHIVED" : "DRAFT",
+    activeRevisionId: nullableString(record.activeRevisionId),
+    usageCount: numberValue(record.usageCount, 0),
+    latestRevision: normalizeSitePartRevision(record.latestRevision),
+  };
+}
+
+function normalizeSitePartDetail(value: unknown): CmsSitePartDetail {
+  const record = asRecord(value);
+  return {
+    ...normalizeSitePart(record),
+    revisions: Array.isArray(record.revisions)
+      ? record.revisions.map(normalizeSitePartRevision).filter((revision): revision is CmsSitePartRevision => revision !== null)
+      : [],
+  };
+}
+
+function normalizeSitePartList(value: unknown): CmsSitePartList {
+  const record = asRecord(value);
+  const items = Array.isArray(record.items) ? record.items.map(normalizeSitePart) : [];
+  return { items, total: numberValue(record.total, items.length), limit: numberValue(record.limit, 50), offset: numberValue(record.offset, 0) };
+}
+
+function normalizePageDelete(value: unknown): CmsPageDeleteResponse {
+  const record = asRecord(value);
+  return {
+    pageId: stringValue(record.pageId),
+    deleted: booleanValue(record.deleted, false),
   };
 }
 
@@ -791,37 +862,6 @@ function normalizeResolvedPageSettings(value: unknown): CmsResolvedPageSettings 
           placement: resolveModulePlacementSpacing(module.placement, tokens.spacing),
         }))
       : [],
-  };
-}
-
-function normalizeTemplateSettings(value: unknown): CmsTemplateSettings {
-  const record = asRecord(value);
-  const settings = asRecord(record.settings);
-  return {
-    templateId: stringValue(record.templateId),
-    organizationId: stringValue(record.organizationId),
-    shopId: stringValue(record.shopId),
-    locale: stringValue(record.locale),
-    pageType: stringValue(record.pageType, "LANDING"),
-    name: stringValue(record.name),
-    status: templateStatusValue(record.status),
-    settings: {
-      inheritGlobalSettings: booleanValue(settings.inheritGlobalSettings, true),
-      templateId: nullableString(settings.templateId),
-      overrides: overridesValue(settings.overrides),
-    },
-  };
-}
-
-function normalizeTemplateSettingsList(value: unknown): CmsTemplateSettingsList {
-  const record = asRecord(value);
-  const rawItems = Array.isArray(record.items) ? record.items : [];
-  const items = rawItems.map(normalizeTemplateSettings);
-  return {
-    total: numberValue(record.total, items.length),
-    limit: numberValue(record.limit, 50),
-    offset: numberValue(record.offset, 0),
-    items,
   };
 }
 
@@ -982,10 +1022,6 @@ export async function getCmsAdminData(
 
   const emptySettings: CmsAdminResult<CmsPageSettingsResponse | null> = { source: "bff", data: null };
   const emptyResolved: CmsAdminResult<CmsResolvedPageSettings | null> = { source: "bff", data: null };
-  const emptyTemplates: CmsAdminResult<CmsTemplateSettingsList> = {
-    source: "bff",
-    data: { total: 0, limit: 50, offset: 0, items: [] },
-  };
   const visualModules: CmsAdminResult<CmsVisualModuleDefinitionsList> = visualModulesResult.ok
     ? { source: "bff", data: visualModulesResult.data, correlationId: visualModulesResult.correlationId }
     : unavailable(visualModulesEndpoint, { total: 0, limit: 50, offset: 0, items: [] }, visualModulesResult, "cms.pages.read");
@@ -996,7 +1032,6 @@ export async function getCmsAdminData(
       selectedPage: { source: "bff", data: null },
       pageSettings: emptySettings,
       resolvedPageSettings: emptyResolved,
-      templates: emptyTemplates,
       visualModules,
     };
   }
@@ -1015,7 +1050,6 @@ export async function getCmsAdminData(
       selectedPage: unavailable(detailEndpoint, null, detailResult, "cms.pages.read"),
       pageSettings: emptySettings,
       resolvedPageSettings: emptyResolved,
-      templates: emptyTemplates,
       visualModules,
     };
   }
@@ -1026,14 +1060,7 @@ export async function getCmsAdminData(
   const resolvedEndpoint = `/admin/cms/pages/${encodeURIComponent(filters.pageId)}/resolved-settings?${makeScopedParams(context, {
     locale,
   }).toString()}`;
-  const templatesEndpoint = `/admin/cms/templates?${makeScopedParams(context, {
-    locale,
-    pageType: detailResult.data.pageType,
-    limit: "50",
-    offset: "0",
-  }).toString()}`;
-
-  const [pageSettingsResult, resolvedResult, templatesResult] = await Promise.all([
+  const [pageSettingsResult, resolvedResult] = await Promise.all([
     requestAdminBff(pageSettingsEndpoint, {
       context: { ...context, locale },
       parse: normalizePageSettings,
@@ -1041,10 +1068,6 @@ export async function getCmsAdminData(
     requestAdminBff(resolvedEndpoint, {
       context: { ...context, locale },
       parse: normalizeResolvedPageSettings,
-    }),
-    requestAdminBff(templatesEndpoint, {
-      context: { ...context, locale },
-      parse: normalizeTemplateSettingsList,
     }),
   ]);
 
@@ -1057,9 +1080,6 @@ export async function getCmsAdminData(
     resolvedPageSettings: resolvedResult.ok
       ? { source: "bff", data: resolvedResult.data, correlationId: resolvedResult.correlationId }
       : unavailable(resolvedEndpoint, null, resolvedResult, "cms.settings.read"),
-    templates: templatesResult.ok
-      ? { source: "bff", data: templatesResult.data, correlationId: templatesResult.correlationId }
-      : unavailable(templatesEndpoint, { total: 0, limit: 50, offset: 0, items: [] }, templatesResult, "cms.settings.read"),
     visualModules,
   };
 }
@@ -1213,14 +1233,28 @@ export async function publishCmsPage(context: AdminContext, pageId: string, loca
   });
 }
 
-export async function unpublishCmsPage(context: AdminContext, pageId: string, locale?: string) {
+export async function unpublishCmsPage(context: AdminContext, pageId: string, locale?: string, command?: object) {
+  if(command)validatePageContract("pageUnpublish",command);
   const endpoint = `/admin/cms/pages/${encodeURIComponent(pageId)}/unpublish?${makeScopedParams(context, {
     locale: locale ?? context.locale,
   }).toString()}`;
   return requestAdminBff(endpoint, {
     context: { ...context, locale: locale ?? context.locale },
-    init: { method: "POST" },
+    init: { method: "POST", ...(command?{headers:{"content-type":"application/json"},body:JSON.stringify(command)}:{}) },
     parse: normalizePageDetail,
+  });
+}
+
+export async function deleteCmsPage(context: AdminContext, pageId: string, locale?: string, command?: object) {
+  if(command)validatePageContract("pageDelete",command);
+  const effectiveLocale = locale ?? context.locale;
+  const endpoint = `/admin/cms/pages/${encodeURIComponent(pageId)}?${makeScopedParams(context, {
+    locale: effectiveLocale,
+  }).toString()}`;
+  return requestAdminBff(endpoint, {
+    context: { ...context, locale: effectiveLocale },
+    init: { method: "DELETE", ...(command?{headers:{"content-type":"application/json"},body:JSON.stringify(command)}:{}) },
+    parse: normalizePageDelete,
   });
 }
 
@@ -1229,7 +1263,9 @@ export async function changeCmsPublishedPath(
   pageId: string,
   nextPath: string,
   locale?: string,
+  command?: object,
 ) {
+  if(command)validatePageContract("pageChangePath",command);
   const endpoint = `/admin/cms/pages/${encodeURIComponent(pageId)}/path?${makeScopedParams(context, {
     locale: locale ?? context.locale,
   }).toString()}`;
@@ -1238,7 +1274,7 @@ export async function changeCmsPublishedPath(
     init: {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ nextPath }),
+      body: JSON.stringify(command??{ nextPath }),
     },
     parse: normalizePageDetail,
   });
@@ -1331,60 +1367,71 @@ export async function getCmsResolvedPageSettings(
   });
 }
 
-export async function listCmsTemplates(
-  context: AdminContext,
-  filters: CmsTemplateSettingsFilters = {},
-  locale?: string,
-) {
+export async function listCmsSiteParts(context: AdminContext, kind: CmsSitePartKind, locale?: string) {
   const effectiveLocale = locale ?? context.locale;
-  const endpoint = `/admin/cms/templates?${makeScopedParams(context, {
-    locale: effectiveLocale,
-    pageType: filters.pageType && filters.pageType !== "all" ? filters.pageType : undefined,
-    status: filters.status && filters.status !== "all" ? filters.status : undefined,
-    limit: String(filters.limit ?? 50),
-    offset: String(filters.offset ?? 0),
-  }).toString()}`;
-  return requestAdminBff(endpoint, {
-    context: { ...context, locale: effectiveLocale },
-    parse: normalizeTemplateSettingsList,
-  });
+  const endpoint = `/admin/cms/site-parts?${makeScopedParams(context, { locale: effectiveLocale, kind, limit: "100", offset: "0" }).toString()}`;
+  return requestAdminBff(endpoint, { context: { ...context, locale: effectiveLocale }, parse: normalizeSitePartList });
 }
 
-export async function createCmsTemplate(
-  context: AdminContext,
-  payload: Required<Pick<CmsTemplateSettingsPayload, "pageType" | "name">> & CmsTemplateSettingsPayload,
-  locale?: string,
-) {
+export async function createCmsSitePart(context: AdminContext, payload: { kind: CmsSitePartKind; name: string; layout?: CmsLayout; blocks?: CmsBlock[]; creationId?: string }, locale?: string) {
   const effectiveLocale = locale ?? context.locale;
-  const endpoint = `/admin/cms/templates?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
-  return requestAdminBff(endpoint, {
-    context: { ...context, locale: effectiveLocale },
-    init: {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    },
-    parse: normalizeTemplateSettings,
-  });
+  const endpoint = `/admin/cms/site-parts?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
+  return requestAdminBff(endpoint, { context: { ...context, locale: effectiveLocale }, init: { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }, parse: normalizeSitePart });
 }
 
-export async function patchCmsTemplate(
-  context: AdminContext,
-  templateId: string,
-  payload: CmsTemplateSettingsPayload,
-  locale?: string,
-) {
+export async function getCmsSitePart(context: AdminContext, sitePartId: string, locale?: string) {
   const effectiveLocale = locale ?? context.locale;
-  const endpoint = `/admin/cms/templates/${encodeURIComponent(templateId)}?${makeScopedParams(context, {
-    locale: effectiveLocale,
-  }).toString()}`;
-  return requestAdminBff(endpoint, {
-    context: { ...context, locale: effectiveLocale },
-    init: {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    },
-    parse: normalizeTemplateSettings,
-  });
+  const endpoint = `/admin/cms/site-parts/${encodeURIComponent(sitePartId)}?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
+  return requestAdminBff(endpoint, { context: { ...context, locale: effectiveLocale }, parse: normalizeSitePartDetail });
+}
+
+export async function listCmsShellAssignmentPages(context:AdminContext,offset=0) {
+ return requestAdminBff(`/admin/cms/pages?${makeScopedParams(context,{locale:context.locale,limit:'50',offset:String(offset)})}`,{context,parse:normalizePagesList});
+}
+export async function updateCmsSitePartDraft(context: AdminContext, sitePartId: string, payload: { name?: string; layout?: CmsLayout; blocks?: CmsBlock[]; expectedRevision?: {revisionId:string;updatedAt:string} }, locale?: string) {
+  const effectiveLocale = locale ?? context.locale;
+  const endpoint = `/admin/cms/site-parts/${encodeURIComponent(sitePartId)}/draft?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
+  return requestAdminBff(endpoint, { context: { ...context, locale: effectiveLocale }, init: { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }, parse: normalizeSitePart });
+}
+
+export async function publishCmsSitePart(context: AdminContext, sitePartId: string, locale?: string, expectedRevision?:{revisionId:string;updatedAt:string}) {
+  const effectiveLocale = locale ?? context.locale;
+  const endpoint = `/admin/cms/site-parts/${encodeURIComponent(sitePartId)}/publish?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
+  return requestAdminBff(endpoint, { context: { ...context, locale: effectiveLocale }, init: { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(expectedRevision?{expectedRevision}:{}) }, parse: normalizeSitePart });
+}
+
+export async function duplicateCmsSitePart(context: AdminContext, sitePartId: string, name?: string, locale?: string) {
+  const effectiveLocale = locale ?? context.locale;
+  const endpoint = `/admin/cms/site-parts/${encodeURIComponent(sitePartId)}/duplicate?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
+  return requestAdminBff(endpoint, { context: { ...context, locale: effectiveLocale }, init: { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }) }, parse: normalizeSitePart });
+}
+
+export async function archiveCmsSitePart(context: AdminContext, sitePartId: string, locale?: string) {
+  const effectiveLocale = locale ?? context.locale;
+  const endpoint = `/admin/cms/site-parts/${encodeURIComponent(sitePartId)}/archive?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
+  return requestAdminBff(endpoint, { context: { ...context, locale: effectiveLocale }, init: { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }, parse: normalizeSitePart });
+}
+
+export async function getCmsSitePartUsage(context: AdminContext, sitePartId: string, locale: string) {
+  const endpoint = `/admin/cms/site-parts/${encodeURIComponent(sitePartId)}/usage?${makeScopedParams(context, { locale }).toString()}`;
+  return requestAdminBff(endpoint, { context: { ...context, locale }, parse: (value: unknown) => {
+    const record = asRecord(value);
+    if (record.sitePartId !== sitePartId || !Number.isSafeInteger(record.count) || Number(record.count) < 0) throw new Error("Invalid CMS usage receipt");
+    return { sitePartId, count: Number(record.count) };
+  } });
+}
+
+export async function deleteCmsSitePart(context: AdminContext, sitePartId: string, locale: string) {
+  const endpoint = `/admin/cms/site-parts/${encodeURIComponent(sitePartId)}?${makeScopedParams(context, { locale }).toString()}`;
+  return requestAdminBff(endpoint, { context: { ...context, locale }, init: { method: "DELETE" }, parse: (value: unknown) => {
+    const record = asRecord(value);
+    if (record.sitePartId !== sitePartId || record.deleted !== true) throw new Error("Invalid CMS deletion receipt");
+    return { sitePartId, deleted: true as const };
+  } });
+}
+
+export async function saveCmsShellAssignment(context: AdminContext, payload: { scope: CmsShellScope; scopeKey?: string | null; headerId?: string | null; footerId?: string | null; breadcrumbMode: CmsBreadcrumbMode }, locale?: string) {
+  const effectiveLocale = locale ?? context.locale;
+  const endpoint = `/admin/cms/shell-assignments?${makeScopedParams(context, { locale: effectiveLocale }).toString()}`;
+  return requestAdminBff(endpoint, { context: { ...context, locale: effectiveLocale }, init: { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }, parse: (value) => asRecord(value) });
 }

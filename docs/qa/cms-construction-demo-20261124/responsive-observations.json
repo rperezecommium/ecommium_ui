@@ -1,0 +1,126 @@
+[
+  {
+    "device": "desktop-1440",
+    "documentWidth": 1440,
+    "viewport": 1440,
+    "helpGrids": [
+      {
+        "columns": "328px 328px 328px 328px",
+        "width": 1312
+      },
+      {
+        "columns": "48px 196px",
+        "width": 328
+      },
+      {
+        "columns": "48px 196px",
+        "width": 328
+      },
+      {
+        "columns": "48px 196px",
+        "width": 328
+      },
+      {
+        "columns": "48px 196px",
+        "width": 328
+      }
+    ],
+    "promotions": {
+      "scrollWidth": 1400,
+      "width": 1400
+    }
+  },
+  {
+    "device": "tablet-1024",
+    "documentWidth": 1260,
+    "viewport": 1009,
+    "helpGrids": [
+      {
+        "columns": "220.25px 220.25px 220.25px 220.25px",
+        "width": 881
+      },
+      {
+        "columns": "48px 88.25px",
+        "width": 220
+      },
+      {
+        "columns": "48px 88.25px",
+        "width": 220
+      },
+      {
+        "columns": "48px 88.25px",
+        "width": 220
+      },
+      {
+        "columns": "48px 88.25px",
+        "width": 220
+      }
+    ],
+    "promotions": {
+      "scrollWidth": 969,
+      "width": 969
+    }
+  },
+  {
+    "device": "mobile-390",
+    "documentWidth": 502,
+    "viewport": 375,
+    "helpGrids": [
+      {
+        "columns": "311px",
+        "width": 311
+      },
+      {
+        "columns": "48px 179px",
+        "width": 311
+      },
+      {
+        "columns": "48px 179px",
+        "width": 311
+      },
+      {
+        "columns": "48px 179px",
+        "width": 311
+      },
+      {
+        "columns": "48px 179px",
+        "width": 311
+      }
+    ],
+    "promotions": {
+      "scrollWidth": 490,
+      "width": 351
+    }
+  },
+  {
+    "device": "tablet-820",
+    "documentWidth": 1260,
+    "viewport": 805,
+    "helpGrids": [
+      {
+        "columns": "338.5px 338.5px",
+        "width": 677
+      },
+      {
+        "columns": "49.25px 205.234px",
+        "width": 339
+      },
+      {
+        "columns": "49.25px 205.234px",
+        "width": 339
+      },
+      {
+        "columns": "49.25px 205.234px",
+        "width": 339
+      },
+      {
+        "columns": "49.25px 205.234px",
+        "width": 339
+      }
+    ],
+    "promotions": {
+      "scrollWidth": 765,
+      "width": 765
+    }
+  }
+]

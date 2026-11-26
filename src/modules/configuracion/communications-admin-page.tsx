@@ -1,4 +1,6 @@
+ import { AdminResizableDrawer } from "../../shared/ui/admin-resizable-drawer";
 import Link from "next/link";
+import { CommunicationsDeliveryStatusFilter } from "./communications-delivery-status-filter";
 import type { AdminContext } from "../../shared/config/admin-context";
 import { CommunicationsTemplateEditor } from "./communications-template-editor-client";
 import type {
@@ -17,6 +19,7 @@ import {
 } from "./communications-admin-actions";
 
 type Props = {
+  canManage: boolean;
   context: AdminContext;
   data: CommunicationsAdminData;
   filters: CommunicationsAdminFilters;
@@ -29,7 +32,6 @@ const providerLabels: Record<string, string> = {
   resend: "Resend",
 };
 
-const deliveryStatuses: EmailDeliveryStatus[] = ["PENDING", "SENT", "FAILED", "SKIPPED", "RETRYING"];
 const deliveryPageSizeOptions = ["10", "20", "50"];
 const templatePageSizeOptions = ["20", "50", "100"];
 
@@ -116,6 +118,7 @@ function communicationsHref(filters: CommunicationsAdminFilters, overrides: Part
   const params = new URLSearchParams();
   const next = { ...filters, ...overrides };
 
+  if (next.tab) params.set("tab", next.tab);
   if (next.drawer) {
     params.set("drawer", next.drawer);
   }
@@ -173,37 +176,13 @@ function DeliveryFilters({ data, filters }: Pick<Props, "data" | "filters">) {
   const templateKeys = data.authTemplates.ok
     ? Array.from(new Set(data.authTemplates.data.items.map((template) => template.templateKey))).sort()
     : [];
-  const clearHref = communicationsHref(filters, {
-    drawer: undefined,
-    notice: undefined,
-    deliveryStatus: undefined,
-    deliveryTemplateKey: undefined,
-    deliverySourceEventId: undefined,
-    deliveryCustomerId: undefined,
-    deliveriesLimit: undefined,
-    deliveriesOffset: undefined,
-  });
-
   return (
-    <section className="adminCard">
-      <div className="adminCardHeader">
-        <div>
-          <h2>Filtros de entregas</h2>
-          <p>Consulta emails por estado, plantilla, evento o cliente dentro de la tienda activa.</p>
-        </div>
-        <Link className="adminButton adminButtonTiny" href={clearHref}>Limpiar</Link>
-      </div>
-      <form className="pricingDenseForm" method="get">
+    <section className="adminCard communicationsDeliveryFilters">
+      <form className="communicationsDeliveryFilterForm" method="get" aria-label="Filtros de entregas">
+        <input name="tab" type="hidden" value="deliveries" />
         <input name="status" type="hidden" value={filters.status ?? ""} />
         <input name="deliveriesLimit" type="hidden" value={filters.deliveriesLimit ?? ""} />
-        <div className="adminFormGrid">
-          <label className="adminField">
-            <span>Estado</span>
-            <select name="deliveryStatus" defaultValue={filters.deliveryStatus ?? ""}>
-              <option value="">Todos</option>
-              {deliveryStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
-            </select>
-          </label>
+        <CommunicationsDeliveryStatusFilter key={filters.deliveryStatus ?? "all"} initialStatus={filters.deliveryStatus} />
           <label className="adminField">
             <span>Plantilla</span>
             <select name="deliveryTemplateKey" defaultValue={filters.deliveryTemplateKey ?? ""}>
@@ -219,7 +198,6 @@ function DeliveryFilters({ data, filters }: Pick<Props, "data" | "filters">) {
             <span>Cliente</span>
             <input name="deliveryCustomerId" placeholder="customerId" defaultValue={filters.deliveryCustomerId ?? ""} />
           </label>
-        </div>
         <button className="adminButton adminButtonPrimary" type="submit">Aplicar filtros</button>
       </form>
     </section>
@@ -283,7 +261,6 @@ function DeliveryAuditTable({ data, filters }: Pick<Props, "data" | "filters">) 
           <h2>Auditoría de entregas</h2>
           <p>{deliveries.total} emails registrados para la tienda activa.</p>
         </div>
-        <Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { deliveryStatus: "FAILED", deliveriesOffset: "0", notice: undefined })}>Ver fallidas</Link>
       </div>
       {deliveries.items.length ? (
         <div className="adminTableScroller">
@@ -328,7 +305,7 @@ function ProviderDrawer({
 }) {
   return (
     <div className="adminDrawerBackdrop">
-      <aside className="adminSideDrawer communicationsProviderDrawer" aria-label="Configurar proveedor email" aria-modal="true" role="dialog">
+      <AdminResizableDrawer drawerId="communications-admin-page-configurar-proveedor-email-1" className="adminSideDrawer communicationsProviderDrawer" aria-label="Configurar proveedor email" aria-modal="true" role="dialog">
         <div className="adminSideDrawerHeader">
           <div>
             <h2>Proveedor email</h2>
@@ -389,13 +366,13 @@ function ProviderDrawer({
             Guardar email
           </button>
         </form>
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }
 
-function DeliveryRetryForm({ delivery, filters }: { delivery: EmailDeliveryRecord; filters: CommunicationsAdminFilters }) {
-  if (delivery.status !== "FAILED") {
+function DeliveryRetryForm({ delivery, filters, canManage }: { delivery: EmailDeliveryRecord; filters: CommunicationsAdminFilters; canManage: boolean }) {
+  if (!canManage || delivery.status !== "FAILED") {
     return null;
   }
 
@@ -418,12 +395,12 @@ function DeliveryRetryForm({ delivery, filters }: { delivery: EmailDeliveryRecor
   );
 }
 
-function DeliveryDrawer({ data, filters, closeHref }: { data: CommunicationsAdminData; filters: CommunicationsAdminFilters; closeHref: string }) {
+function DeliveryDrawer({ data, filters, closeHref, canManage }: { data: CommunicationsAdminData; filters: CommunicationsAdminFilters; closeHref: string; canManage: boolean }) {
   const deliveryResult = data.selectedDelivery;
 
   return (
     <div className="adminDrawerBackdrop">
-      <aside className="adminSideDrawer communicationsProviderDrawer" aria-label="Detalle de entrega email" aria-modal="true" role="dialog">
+      <AdminResizableDrawer drawerId="communications-admin-page-detalle-de-entrega-email-2" className="adminSideDrawer communicationsProviderDrawer" aria-label="Detalle de entrega email" aria-modal="true" role="dialog">
         <div className="adminSideDrawerHeader">
           <div>
             <h2>Detalle de entrega</h2>
@@ -450,7 +427,7 @@ function DeliveryDrawer({ data, filters, closeHref }: { data: CommunicationsAdmi
               </dl>
             </div>
             {delivery.errorMessage ? <div className="adminBanner adminBannerError">{delivery.errorMessage}</div> : null}
-            <DeliveryRetryForm delivery={delivery} filters={filters} />
+            <DeliveryRetryForm canManage={canManage} delivery={delivery} filters={filters} />
             <section className="adminSection">
               <h3>Intentos del proveedor</h3>
               {delivery.attempts.length ? (
@@ -476,23 +453,18 @@ function DeliveryDrawer({ data, filters, closeHref }: { data: CommunicationsAdmi
             </section>
           </>;
         })() : null}
-      </aside>
+      </AdminResizableDrawer>
     </div>
   );
 }
 
-function TemplateTable({ data, filters }: Pick<Props, "data" | "filters">) {
+function TemplateTable({ data, filters, canManage }: Pick<Props, "data" | "filters" | "canManage">) {
   if (!data.authTemplates.ok) {
     return <div className="adminBanner adminBannerError">No se pudieron cargar las plantillas: {data.authTemplates.error}</div>;
   }
 
   const templates = data.authTemplates.data;
-  const emailTemplates = templates.items.filter((template) => !isCustomerTemplate(template.templateKey));
-  const createHref = communicationsHref(filters, {
-    drawer: "template",
-    templateId: undefined,
-    notice: undefined,
-  });
+  const emailTemplates = templates.items;
   const clearHref = communicationsHref(filters, {
     drawer: undefined,
     status: undefined,
@@ -507,19 +479,16 @@ function TemplateTable({ data, filters }: Pick<Props, "data" | "filters">) {
   const hasNext = currentOffset + currentLimit < templates.total;
 
   return (
-    <details className="adminCard communicationsCollapsible">
-      <summary className="communicationsCollapsibleSummary">
+    <section className="adminCard communicationsTemplateList">
+      <div className="adminCardHeader">
         <div>
-          <h2>Plantillas de fulfillment</h2>
-          <p>{emailTemplates.length} plantillas operativas cargadas para el locale activo. Edita contenido y lifecycle sin salir de Comunicaciones.</p>
+          <h2>Plantillas email</h2>
+          <p>Customer y fulfillment · {templates.total} plantillas para el locale activo.</p>
         </div>
-        <span className="communicationsCollapsibleHint">Mostrar / ocultar</span>
-      </summary>
-      <div className="communicationsCollapsibleContent">
-        <div className="adminButtonRow communicationsTemplateActions">
-          <Link className="adminButton adminButtonPrimary" href={createHref}>Crear plantilla</Link>
-        </div>
+      </div>
+      <div>
         <form className="pricingDenseForm adminSection" method="get">
+          <input name="tab" type="hidden" value="templates" />
           <div className="adminFormGrid">
             <label className="adminField">
               <span>Estado</span>
@@ -546,20 +515,21 @@ function TemplateTable({ data, filters }: Pick<Props, "data" | "filters">) {
         {emailTemplates.length ? (
           <div className="adminTableScroller">
             <table className="adminTable">
-              <thead><tr><th>Plantilla</th><th>Locale</th><th>Estado</th><th>Versión</th><th>Actualizada</th><th>Acción</th></tr></thead>
+              <thead><tr><th>Plantilla</th><th>Categoría</th><th>Locale</th><th>Estado</th><th>Versión</th><th>Actualizada</th><th>Acción</th></tr></thead>
               <tbody>{emailTemplates.map((template) => (
                 <tr key={template.templateId}>
                   <td><strong>{template.templateKey}</strong><div className="adminMuted">{truncateText(template.subjectTemplate, 88)}</div></td>
+                  <td>{isCustomerTemplate(template.templateKey) ? "Customer" : "Fulfillment"}</td>
                   <td>{template.locale}</td>
                   <td><span className={statusBadge(template.status)}>{template.status}</span></td>
                   <td>{template.version}</td>
                   <td>{dateText(template.updatedAt)}</td>
-                  <td><Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { drawer: "template", templateId: template.templateId, notice: undefined })}>Editar</Link></td>
+                  <td>{canManage ? <Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { drawer: "template", templateId: template.templateId, notice: undefined })}>Editar</Link> : "Solo lectura"}</td>
                 </tr>
               ))}</tbody>
             </table>
           </div>
-        ) : <div className="adminEmptyState">No hay plantillas de fulfillment para los filtros seleccionados.</div>}
+        ) : <div className="adminEmptyState">No hay plantillas para los filtros seleccionados.</div>}
         {templates.total > currentLimit ? (
           <div className="adminPagination">
             <span className="adminMuted">Mostrando {Math.min(currentOffset + 1, templates.total)}–{Math.min(currentOffset + currentLimit, templates.total)} de {templates.total}</span>
@@ -570,11 +540,12 @@ function TemplateTable({ data, filters }: Pick<Props, "data" | "filters">) {
           </div>
         ) : null}
       </div>
-    </details>
+    </section>
   );
 }
 
-function TechnicalStatus({ context, health, settings }: Pick<Props, "context"> & {
+function TechnicalStatus({ health, settings, customerTemplateCount }: {
+  customerTemplateCount?: number;
   health?: CommunicationsHealth;
   settings: EmailProviderSettings;
 }) {
@@ -588,11 +559,14 @@ function TechnicalStatus({ context, health, settings }: Pick<Props, "context"> &
       </div>
       <table className="adminTable adminTableCompact">
         <tbody>
-          <tr><th>Organization</th><td>{context.organizationId || "Pendiente"}</td></tr>
-          <tr><th>Shop</th><td>{context.shopId || "Pendiente"}</td></tr>
           <tr><th>Servicio</th><td>{health ? "Disponible" : "No disponible"}</td></tr>
           <tr><th>Canal email</th><td>{health?.channels.email.status === "enabled" ? "Disponible" : "No disponible"}</td></tr>
+          <tr><th>Proveedor</th><td>{providerLabels[settings.provider] ?? settings.provider} · {settings.active ? "Activo" : "Inactivo"}</td></tr>
           <tr><th>Proveedor del servicio</th><td>{health?.channels.email.provider ?? "-"}</td></tr>
+          <tr><th>Email remitente</th><td>{valueText(settings.fromEmail)}</td></tr>
+          <tr><th>Credencial</th><td>{settings.secretConfigured ? "Configurado" : "Pendiente"}</td></tr>
+          <tr><th>Actualización de credencial</th><td>{valueText(settings.secretUpdatedAt)}</td></tr>
+          <tr><th>Plantillas Customer cargadas</th><td>{valueText(customerTemplateCount)}</td></tr>
           <tr><th>Host SMTP</th><td>{valueText(settings.smtpHost)}</td></tr>
           <tr><th>Usuario SMTP</th><td>{valueText(settings.smtpUser)}</td></tr>
           <tr><th>Última actualización</th><td>{valueText(settings.updatedAt)}</td></tr>
@@ -602,7 +576,18 @@ function TechnicalStatus({ context, health, settings }: Pick<Props, "context"> &
   );
 }
 
-export function CommunicationsAdminPage({ context, data, filters }: Props) {
+export function CommunicationsAdminPage({ context, data, filters: inputFilters, canManage }: Props) {
+  const tab = inputFilters.drawer === "provider" ? "provider"
+    : inputFilters.drawer === "template" ? "templates"
+    : inputFilters.drawer === "delivery" ? "deliveries"
+    : inputFilters.tab ?? (Object.entries(inputFilters).some(([key, value]) => key.startsWith("deliver") && value) ? "deliveries"
+      : Object.entries(inputFilters).some(([key, value]) => (key.startsWith("template") || key === "status") && value) ? "templates" : "provider");
+  const filters = { ...inputFilters, tab };
+  const tabs = [
+    { id: "provider", label: "Proveedor email" },
+    { id: "templates", label: "Plantillas" },
+    { id: "deliveries", label: "Auditoría de entregas" },
+  ] as const;
   const settings = data.settings.ok ? data.settings.data : defaultSettings(context);
   const providerDrawerHref = communicationsHref(filters, {
     drawer: "provider",
@@ -640,11 +625,6 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
             Configura el proveedor de confianza para emails transaccionales, activacion de cuenta y recuperacion de password.
           </p>
         </div>
-        <div className="adminButtonRow">
-          <Link className="adminButton" href="/admin/configuracion">
-            Volver
-          </Link>
-        </div>
       </div>
 
       {filters.notice ? <div className="adminBanner">{filters.notice}</div> : null}
@@ -655,47 +635,36 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
       ) : null}
       {!data.settings.ok ? <div className="adminBanner adminBannerError">{data.settings.error}</div> : null}
 
-      <section className="adminKpiGrid" aria-label="Resumen comunicaciones">
-        <article className="adminKpi">
-          <span>Proveedor</span>
-          <strong>{providerLabels[settings.provider] ?? settings.provider}</strong>
-          <div className="adminMuted">{settings.active ? "Activo" : "Inactivo"}</div>
-        </article>
-        <article className="adminKpi">
-          <span>Email remitente</span>
-          <strong>{settings.fromEmail || "Pendiente"}</strong>
-          <div className="adminMuted">fromEmail</div>
-        </article>
-        <article className="adminKpi">
-          <span>Secret</span>
-          <strong>{settings.secretConfigured ? "Configurado" : "Pendiente"}</strong>
-          <div className="adminMuted">{settings.secretUpdatedAt || "No expuesto en UI"}</div>
-        </article>
-        <article className="adminKpi">
-          <span>Plantillas Customer</span>
-          <strong>{templates.length}</strong>
-          <div className="adminMuted">Activación y recuperación</div>
-        </article>
-      </section>
-
-      <section className="communicationsTopGrid">
-        <article className="adminCard">
-          <div className="adminCardHeader">
-            <div>
-              <h2>Proveedor email</h2>
-              <p>Gestiona SMTP, remitente y credenciales desde el panel lateral.</p>
-            </div>
-            <span className={settings.active ? "adminBadge adminBadgeOk" : "adminBadge"}>
-              {settings.active ? "Activo" : "Inactivo"}
-            </span>
-          </div>
-
-          <div className="adminButtonRow">
-            <Link className="adminButton adminButtonPrimary" href={providerDrawerHref}>
-              Configurar proveedor
+      <div className="employeesToolbar">
+        <nav className="adminTabs" aria-label="Comunicaciones">
+          {tabs.map(item => (
+            <Link key={item.id} aria-current={tab === item.id ? "page" : undefined}
+              className={tab === item.id ? "adminTab adminTabActive" : "adminTab"}
+              href={communicationsHref(filters, {tab:item.id,drawer:undefined,templateId:undefined,deliveryId:undefined,notice:undefined})}>
+              {item.label}
             </Link>
-          </div>
+          ))}
+        </nav>
+        <div className="employeesToolbarAction">
+          {tab === "provider" && canManage ? <Link className="employeesTextAction" href={providerDrawerHref}>Configurar proveedor</Link> : null}
+          {tab === "templates" && canManage ? <Link className="employeesTextAction" href={communicationsHref(filters, {drawer:"template",templateId:undefined,notice:undefined})}>Crear plantilla</Link> : null}
+          {tab === "deliveries" ? <form method="get">
+            <input type="hidden" name="tab" value="deliveries" />
+            {Object.entries(filters).filter(([key, value]) => key.startsWith("deliver") && value).map(([key, value]) => <input key={key} type="hidden" name={key} value={value} />)}
+            <button className="employeesTextAction" type="submit">Actualizar</button>
+          </form> : null}
+        </div>
+      </div>
 
+      <div className="communicationsWorkspace employeesWorkspace" aria-label={tabs.find(item => item.id === tab)?.label}>
+      {tab === "provider" ? <>
+      <section className="communicationsTopGrid">
+        <TechnicalStatus
+          customerTemplateCount={data.authTemplates.ok ? templates.length : undefined}
+          health={data.health.ok ? data.health.data : undefined}
+          settings={settings}
+        />
+        <article className="adminCard">
           <div className="adminSection">
             <div className="adminCardHeader">
               <div>
@@ -703,7 +672,7 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
                 <p>Valida la configuracion guardada contra BFF y Communications con un destinatario real.</p>
               </div>
             </div>
-            <form action={sendCommunicationsTestEmailAction} className="communicationsTestForm">
+            {canManage ? <form action={sendCommunicationsTestEmailAction} className="communicationsTestForm">
               <label className="adminField">
                 <span>Destinatario de prueba</span>
                 <input name="recipientEmail" type="email" placeholder="tu-email@empresa.com" required />
@@ -723,88 +692,38 @@ export function CommunicationsAdminPage({ context, data, filters }: Props) {
               <button className="adminButton" type="submit">
                 Enviar prueba
               </button>
-            </form>
+            </form> : <p className="adminMuted">Necesitas permiso de gestión para enviar una prueba.</p>}
             <p className="adminMuted">
               Con proveedor Stub se registra el delivery pero no sale a una bandeja externa.
             </p>
           </div>
         </article>
 
-        <TechnicalStatus
-          context={context}
-          health={data.health.ok ? data.health.data : undefined}
-          settings={settings}
-        />
       </section>
 
-      <details className="adminCard communicationsCollapsible">
-        <summary className="communicationsCollapsibleSummary">
-          <div>
-            <h2>Plantillas de Customer</h2>
-            <p>Activación, recordatorios y recuperación de contraseña.</p>
-          </div>
-          <span className="communicationsCollapsibleHint">Mostrar / ocultar</span>
-        </summary>
-        <div className="communicationsCollapsibleContent">
-          <form action={bootstrapAuthEmailTemplatesAction} className="pricingDenseForm">
-            <label className="adminField">
-              <span>Locale</span>
-              <input name="locale" defaultValue={context.locale} />
-            </label>
-            <label className="adminCheckbox">
-              <input name="overwrite" type="checkbox" />
-              Sobrescribir defaults existentes
-            </label>
-            <button className="adminButton" type="submit">
-              Crear defaults auth
-            </button>
+      </> : null}
+      {tab === "templates" ? <>
+        <TemplateTable data={data} filters={filters} canManage={canManage} />
+        {canManage ? <details className="adminCard communicationsCollapsible">
+          <summary className="communicationsCollapsibleSummary"><h2>Plantillas de Customer</h2><span>Crear valores predeterminados</span></summary>
+          <form action={bootstrapAuthEmailTemplatesAction} className="pricingDenseForm communicationsCollapsibleContent">
+            <label className="adminField"><span>Locale</span><input name="locale" defaultValue={context.locale} /></label>
+            <label className="adminCheckbox"><input name="overwrite" type="checkbox" />Sobrescribir defaults existentes</label>
+            <button className="adminButton" type="submit">Crear defaults auth</button>
           </form>
+        </details> : null}
+      </> : null}
+      {tab === "deliveries" ? <>
+        <DeliveryFilters data={data} filters={filters} />
+        <DeliveryAuditTable data={data} filters={filters} />
+      </> : null}
+      </div>
 
-          {data.authTemplates.ok ? (
-            <table className="adminTable adminTableCompact">
-              <thead>
-                <tr>
-                  <th>Template</th>
-                  <th>Estado</th>
-                  <th>Version</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {templates.length ? templates.map((template) => (
-                  <tr key={template.templateId}>
-                    <td>
-                      <Link href={communicationsHref(filters, { drawer: "template", templateId: template.templateId, notice: undefined })}>
-                        <strong>{template.templateKey}</strong>
-                      </Link>
-                      <div className="adminMuted">{template.subjectTemplate ?? "Sin asunto"}</div>
-                    </td>
-                    <td><span className={statusBadge(template.status)}>{template.status}</span></td>
-                    <td>{template.version}</td>
-                    <td><Link className="adminButton adminButtonTiny" href={communicationsHref(filters, { drawer: "template", templateId: template.templateId, notice: undefined })}>Editar</Link></td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={4}>No hay plantillas Customer para {context.locale}.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          ) : (
-            <div className="adminEmptyState">{data.authTemplates.error}</div>
-          )}
-        </div>
-      </details>
-
-      <TemplateTable data={data} filters={filters} />
-      <DeliveryFilters data={data} filters={filters} />
-      <DeliveryAuditTable data={data} filters={filters} />
-
-      {filters.drawer === "provider" ? (
+      {filters.drawer === "provider" && canManage ? (
         <ProviderDrawer settings={settings} closeHref={closeDrawerHref} />
       ) : null}
-      {filters.drawer === "delivery" ? <DeliveryDrawer data={data} filters={filters} closeHref={closeDrawerHref} /> : null}
-      {filters.drawer === "template" ? (
+      {filters.drawer === "delivery" ? <DeliveryDrawer canManage={canManage} data={data} filters={filters} closeHref={closeDrawerHref} /> : null}
+      {filters.drawer === "template" && canManage ? (
         <CommunicationsTemplateEditor contextLocale={context.locale} filters={filters} template={selectedTemplate} closeHref={closeDrawerHref} />
       ) : null}
     </main>

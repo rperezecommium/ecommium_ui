@@ -1,3 +1,4 @@
+import { parseShippingPackageOverride } from "./product-variant-shipping";
 import type {
   ProductCatalogCreatePayload,
   ProductCatalogUpdatePayload,
@@ -34,12 +35,14 @@ function hasPublishableMainMedia(draft: ProductDraft) {
 function hasPublishableBasePrice(draft: ProductDraft) {
   const price = editorBasePrice(draft);
   return Boolean(
-    price && price.basePriceMinor > 0 && !price.markedForDeletion,
+    price && (price.source ?? "BASE") === "BASE"
+      && [price.priceTableId, price.tradePolicy, price.channel, price.customerGroup, price.country, price.validFrom, price.validUntil].every((condition) => !condition)
+      && (price.basePriceMinor > 0 || (price.basePriceMinor === 0 && (price.priceKind === "REGULAR" || Boolean(price.pricingId)))) && !price.markedForDeletion,
   );
 }
 
 function priceHasPositiveAmount(price: ProductDraft["pricing"]["productPrice"]) {
-  return Boolean(price && price.basePriceMinor > 0 && !price.markedForDeletion);
+  return Boolean(price && (price.basePriceMinor > 0 || (price.basePriceMinor === 0 && (price.priceKind === "REGULAR" || Boolean(price.pricingId)))) && !price.markedForDeletion);
 }
 
 function priceHasCompleteTax(price: ProductDraft["pricing"]["productPrice"]) {
@@ -96,12 +99,12 @@ function normalizeSpecificPriceDraft(
     targetType,
     variantKey: targetType === "VARIANT" ? cleanOptional(price.variantKey ?? price.variantId ?? undefined) : undefined,
     variantId: targetType === "VARIANT" ? price.variantId ?? null : null,
-    currency: price.currency || productPrice?.currency || "EUR",
+    currency: price.currency || productPrice?.currency || "",
     country: price.country?.trim() || null,
     customerGroup: price.customerGroup?.trim() || null,
-    channel: price.channel?.trim() || productPrice?.channel || "web",
-    tradePolicy: price.tradePolicy?.trim() || productPrice?.tradePolicy || "default",
-    priceTableId: price.priceTableId?.trim() || productPrice?.priceTableId || null,
+    channel: price.channel?.trim() || null,
+    tradePolicy: price.tradePolicy?.trim() || null,
+    priceTableId: price.priceTableId?.trim() || null,
     minQuantity: normalizeOptionalPositiveInteger(price.minQuantity) ?? 1,
     validFrom: price.validFrom?.trim() || null,
     validUntil: price.unlimited ? null : price.validUntil?.trim() || null,
@@ -251,15 +254,17 @@ export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
       variantKey,
       {
         ...price,
-        currency: price.currency || productPrice?.currency || "EUR",
+        currency: price.currency || productPrice?.currency || "",
         taxIncluded: price.taxIncluded ?? productPrice?.taxIncluded ?? true,
         taxCode: price.tax?.taxCode ?? price.taxCode ?? productPrice?.tax?.taxCode ?? productPrice?.taxCode ?? baseTaxCode,
         tax: price.tax ?? productPrice?.tax ?? null,
-        priceTableId: price.priceTableId ?? productPrice?.priceTableId ?? null,
-        tradePolicy: price.tradePolicy ?? productPrice?.tradePolicy,
-        channel: price.channel ?? productPrice?.channel,
-        customerGroup: price.customerGroup ?? productPrice?.customerGroup ?? null,
-        country: price.country ?? productPrice?.country,
+        // Existing identities keep their own commercial scope. Inheritance of
+        // defaults belongs to new prices, never to an unrelated product save.
+        priceTableId: price.pricingId ? price.priceTableId : price.priceTableId ?? productPrice?.priceTableId ?? null,
+        tradePolicy: price.pricingId ? price.tradePolicy : price.tradePolicy ?? productPrice?.tradePolicy,
+        channel: price.pricingId ? price.channel : price.channel ?? productPrice?.channel,
+        customerGroup: price.pricingId ? price.customerGroup : price.customerGroup ?? productPrice?.customerGroup ?? null,
+        country: price.pricingId ? price.country : price.country ?? productPrice?.country,
       },
     ]),
   );
@@ -293,6 +298,7 @@ export function normalizeProductDraft(draft: ProductDraft): ProductDraft {
     variants: draft.variants.map((variant) => ({
       ...variant,
       name: plainProductText(variant.name),
+      ...(variant.shippingPackage !== undefined ? { shippingPackage: parseShippingPackageOverride(variant.shippingPackage) } : {}),
       refId: variant.refId.trim(),
       ean: cleanOptional(variant.ean ?? undefined) ?? null,
       options: variant.options.map((option) => ({
@@ -386,11 +392,18 @@ export function validateProductDraft(draft: ProductDraft): ProductDraftValidatio
     }
   }
 
+  if (priceHasPositiveAmount(normalized.pricing.productPrice) && !/^[A-Z]{3}$/.test(normalized.pricing.productPrice?.currency ?? "")) {
+    fieldErrors["pricing.productPrice.currency"] = "Selecciona una moneda para el precio normal.";
+  }
+
   if (priceHasPositiveAmount(normalized.pricing.productPrice) && !priceHasCompleteTax(normalized.pricing.productPrice)) {
     fieldErrors["pricing.productPrice.tax"] = taxValidationMessage(normalized.pricing.productPrice);
   }
 
   for (const [variantKey, price] of Object.entries(normalized.pricing.variantPrices)) {
+    if (priceHasPositiveAmount(price) && !/^[A-Z]{3}$/.test(price.currency)) {
+      fieldErrors[`pricing.variantPrices:${variantKey}:currency`] = "Selecciona una moneda para el precio normal.";
+    }
     if (priceHasPositiveAmount(price) && !priceHasCompleteTax(price)) {
       fieldErrors[`pricing.variantPrices:${variantKey}:tax`] = taxValidationMessage(price);
     }
@@ -399,6 +412,9 @@ export function validateProductDraft(draft: ProductDraft): ProductDraftValidatio
   normalized.pricing.specificPrices.forEach((price, index) => {
     if (price.markedForDeletion) {
       return;
+    }
+    if (!/^[A-Z]{3}$/.test(price.currency ?? "")) {
+      fieldErrors[`pricing.specificPrices:${index}:currency`] = "Selecciona una moneda para el precio especifico.";
     }
     if (price.impactType !== "FIXED_PRICE") {
       fieldErrors[`pricing.specificPrices:${index}:impactType`] = "Las reducciones requieren ADR/migracion; usa precio fijo especifico.";

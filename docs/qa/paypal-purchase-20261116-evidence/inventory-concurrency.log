@@ -1,0 +1,2 @@
+PASS: real PostgreSQL concurrent duplicate sale, one reservation, one decrement, insufficient stock contention, changed intent rejection, atomic rollback
+Owned Inventory QA database removed

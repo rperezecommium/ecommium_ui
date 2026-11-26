@@ -1,0 +1,20 @@
+{
+  "copyMedia": [
+    {
+      "background": "url(\"https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/cms-builder-assets-5511a864/9d235f09-17b0-4a8a-8436-d110b6f54594/small_default.jpg\")",
+      "label": "Profesional de Sol High · imagen editable de esta copia",
+      "src": null
+    }
+  ],
+  "originalMedia": [
+    {
+      "background": "url(\"https://storage.googleapis.com/ecommium_media/22222222-2222-4222-8222-222222222222/cms-builder-assets-5511a864/8695ac0f-697e-42de-b59f-b5ca318074f8/small_default.jpg\")",
+      "label": "Profesional de Sol High con elementos gráficos de presentación",
+      "src": null
+    }
+  ],
+  "previousLinkRoundtrip": {
+    "href": "/demostracion-cms-modulos",
+    "note": "Editado, guardado y reabierto durante implementación 2; destino original restaurado después de la prueba."
+  }
+}

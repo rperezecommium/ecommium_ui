@@ -112,7 +112,7 @@ function asNumber(value: unknown) {
 function firstStringArray(...values: unknown[]) {
   for (const value of values) {
     const items = asStringArray(value);
-    if (items.length > 0) {
+    if (Array.isArray(value)) {
       return items;
     }
   }
@@ -199,7 +199,7 @@ export function parseAuthSessionPayload(
       session.credentialState ?? principal.credentialState ?? root.credentialState ?? tokenClaims.credentialState,
     ),
     roles,
-    permissions: permissions.length > 0 ? permissions : ["admin:view"],
+    permissions,
     organizationId:
       asString(session.organizationId) ||
       asString(principal.organizationId) ||
@@ -228,7 +228,7 @@ export function mergeAuthSessions(loginSession: AdminSession, meSession: AdminSe
     organizationId: meSession.organizationId ?? loginSession.organizationId,
     shopId: meSession.shopId ?? loginSession.shopId,
     credentialState: meSession.credentialState ?? loginSession.credentialState,
-    roles: meSession.roles.length > 0 ? meSession.roles : loginSession.roles,
-    permissions: meSession.permissions.length > 0 ? meSession.permissions : loginSession.permissions,
+    roles: meSession.roles,
+    permissions: meSession.permissions,
   };
 }

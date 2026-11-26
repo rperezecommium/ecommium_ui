@@ -1,3 +1,4 @@
+import { getCurrentAdminSession } from "../../../../../src/modules/auth/current-admin-session";
 import {
   createCatalogOfferingAction,
   deactivateCatalogOfferingAction,
@@ -14,13 +15,19 @@ type OfferingsPageProps = {
     status?: string;
     panel?: string;
     offeringId?: string;
+    offeringMessage?: string;
+    createdOfferingId?: string;
   }>;
 };
 
 export default async function OfferingsPage({ searchParams }: OfferingsPageProps) {
   const params = await searchParams;
   const context = await getAdminContext();
+  const session = await getCurrentAdminSession();
+  const canManage = Boolean(session?.permissions.some(permission=>["*","admin:*","system.admin","catalog.products.write"].includes(permission)));
   const filters = {
+    offeringMessage: params?.offeringMessage,
+    createdOfferingId: params?.createdOfferingId,
     q: params?.q ?? "",
     type: params?.type ?? "",
     status: params?.status ?? "active",
@@ -35,6 +42,9 @@ export default async function OfferingsPage({ searchParams }: OfferingsPageProps
 
   return (
     <CatalogOfferingsPage
+      canManage={canManage}
+      defaultCurrency={context.currency}
+      error={!result.ok ? result.error : undefined}
       createAction={createCatalogOfferingAction}
       deactivateAction={deactivateCatalogOfferingAction}
       filters={filters}

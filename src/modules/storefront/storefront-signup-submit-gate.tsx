@@ -1,5 +1,6 @@
 "use client";
 
+import { usePublicRuntime } from "../../shared/config/public-runtime";
 import { useCallback, useState } from "react";
 import { getStorefrontSignupHumanVerificationConfig } from "./storefront-human-verification";
 import { StorefrontTurnstileWidget } from "./storefront-turnstile-widget";
@@ -11,7 +12,7 @@ type StorefrontSignupSubmitGateProps = {
 export function StorefrontSignupSubmitGate({
   pending,
 }: StorefrontSignupSubmitGateProps) {
-  const humanVerification = getStorefrontSignupHumanVerificationConfig();
+  const humanVerification = getStorefrontSignupHumanVerificationConfig(usePublicRuntime());
   const requiresTurnstile = humanVerification.mode === "turnstile";
   const [turnstileVerified, setTurnstileVerified] = useState(
     !requiresTurnstile,

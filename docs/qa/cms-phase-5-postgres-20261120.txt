@@ -1,0 +1,13 @@
+PASS migration preserves existing independent module
+PASS template and copied module identities persist and reopen
+PASS concurrent replay returns original receipt without duplicate
+PASS operation reuse with different input conflicts
+PASS one CAS writer succeeds and stale writer is rejected
+PASS replay after edit returns creation receipt without overwriting document
+PASS locale and tenant isolation
+PASS editing template preserves library module
+PASS template writes emit existing scope events
+PASS page stylesheet references follow materialized section identities
+PASS archive excludes available templates and replay cannot revive it
+PASS section template application is independent of archived origin
+Owned database and generated client removed

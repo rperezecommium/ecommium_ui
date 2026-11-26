@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: page copy comparison permits only remapped identities and CSS targets
+ok 1 - page copy comparison permits only remapped identities and CSS targets
+  ---
+  duration_ms: 1.073167
+  type: 'test'
+  ...
+# Subtest: page budgets apply across all inserted sections
+ok 2 - page budgets apply across all inserted sections
+  ---
+  duration_ms: 1.948166
+  type: 'test'
+  ...
+# Subtest: public validation strips only transient commerce hydration without modifying response
+ok 3 - public validation strips only transient commerce hydration without modifying response
+  ---
+  duration_ms: 0.343917
+  type: 'test'
+  ...
+# Subtest: migration command accepts only identity and source revision, never client composition
+ok 4 - migration command accepts only identity and source revision, never client composition
+  ---
+  duration_ms: 0.676542
+  type: 'test'
+  ...
+# Subtest: preview requires consistent convertibility and diagnostics
+ok 5 - preview requires consistent convertibility and diagnostics
+  ---
+  duration_ms: 0.234583
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 250.102417

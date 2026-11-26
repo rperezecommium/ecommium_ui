@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: preview navigation requires Employee CMS permissions and uses the selected shop/locale
+ok 1 - preview navigation requires Employee CMS permissions and uses the selected shop/locale
+  ---
+  duration_ms: 22.871125
+  type: 'test'
+  ...
+# Subtest: preview and storefront share navigation parsing and explicitly identify fallback data
+ok 2 - preview and storefront share navigation parsing and explicitly identify fallback data
+  ---
+  duration_ms: 24.788916
+  type: 'test'
+  ...
+# Subtest: HEADER: publishes only after saving the current local composition
+ok 3 - HEADER: publishes only after saving the current local composition
+  ---
+  duration_ms: 47.701917
+  type: 'test'
+  ...
+# Subtest: FOOTER: publishes only after saving the current local composition
+ok 4 - FOOTER: publishes only after saving the current local composition
+  ---
+  duration_ms: 12.207042
+  type: 'test'
+  ...
+# Subtest: failed draft save prevents publication and returns an inline error
+ok 5 - failed draft save prevents publication and returns an inline error
+  ---
+  duration_ms: 9.034166
+  type: 'test'
+  ...
+# Subtest: publication failure preserves the successfully saved draft and reports partial success
+ok 6 - publication failure preserves the successfully saved draft and reports partial success
+  ---
+  duration_ms: 9.70675
+  type: 'test'
+  ...
+# Subtest: missing or invalid composition never publishes the previously persisted revision
+ok 7 - missing or invalid composition never publishes the previously persisted revision
+  ---
+  duration_ms: 29.046416
+  type: 'test'
+  ...
+# Subtest: a receipt for another resource prevents publication
+ok 8 - a receipt for another resource prevents publication
+  ---
+  duration_ms: 7.491459
+  type: 'test'
+  ...
+# Subtest: a successful BFF response with discarded style/content values does not publish
+ok 9 - a successful BFF response with discarded style/content values does not publish
+  ---
+  duration_ms: 3.821708
+  type: 'test'
+  ...
+# Subtest: a different published revision never produces a success redirect
+ok 10 - a different published revision never produces a success redirect
+  ---
+  duration_ms: 4.328125
+  type: 'test'
+  ...
+# Subtest: Footer preserves five gap-aware columns, editable titles and safe navigation
+ok 11 - Footer preserves five gap-aware columns, editable titles and safe navigation
+  ---
+  duration_ms: 5.505209
+  type: 'test'
+  ...
+# Subtest: Social strip exposes four named SVG icons and safe external links
+ok 12 - Social strip exposes four named SVG icons and safe external links
+  ---
+  duration_ms: 0.899875
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 318.533583

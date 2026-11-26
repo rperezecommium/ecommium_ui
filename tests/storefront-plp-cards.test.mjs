@@ -6,12 +6,12 @@ import vm from 'node:vm';
 import ts from 'typescript';
 
 const root = path.resolve(new URL('..', import.meta.url).pathname);
-function load(file, imports = () => ({}), env = {}) {
+function load(file, imports = () => ({}), env = {}, commercialOptions = {withAuth:false}) {
   const { outputText } = ts.transpileModule(readFileSync(path.join(root, file), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
   });
   const exports = {};
-  const context = { exports, module: { exports }, require: imports, process: { env }, Intl, URLSearchParams, encodeURIComponent };
+  const context = { exports, module: { exports }, require: specifier => specifier.endsWith("/storefront-commercial-policy") ? load("src/shared/config/storefront-commercial-policy.ts", undefined, env) : specifier.endsWith("/storefront-commercial-context") ? { getStorefrontCommercialReadOptions: async () => commercialOptions } : imports(specifier), process: { env }, Intl, URL, URLSearchParams, encodeURIComponent };
   vm.runInNewContext(outputText, context);
   return context.module.exports;
 }
@@ -68,4 +68,41 @@ for (const [name, env, enabled] of [
   assert.equal(result.data.products[0].productUrlPath, '/pdp/linen');
   assert.equal(result.data.cmsBlocks.beforeList[0].blockId, 'intro');
   assert.match(result.data.products[0].priceDisplay, /0,00/);
+});
+
+test('authenticated PLP uses the canonical segmented endpoint instead of guest-only cards', async () => {
+  const calls = [];
+  const context = { organizationId: 'oa', shopId: 'sa', locale: 'es-ES', currency: 'EUR', country: 'ES', channel: 'web' };
+  const plpModule = load('src/modules/storefront/plp.ts', specifier => {
+    if (specifier === './plp-cards-contract') return contract;
+    if (specifier === './storefront-context') return { getStorefrontContext: async () => context };
+    if (specifier.endsWith('/shared/bff/storefront-client')) return { requestStorefrontBff: async (url, options) => { calls.push({url,options}); return {ok:true,status:200,data:url.startsWith('/storefront/plp/')?payload():{categories:[]}}; } };
+    return {};
+  }, { ECOMMIUM_STOREFRONT_PLP_CARDS_ENABLED:'true' }, {withAuth:false,init:{cache:'no-store',headers:{authorization:'Bearer customer','x-commercial-context-required':'true'}}});
+  assert.equal((await plpModule.getStorefrontPlp('clothes')).ok,true);
+  const read=calls.find(c=>c.url.startsWith('/storefront/plp/'));
+  assert.equal(read.url.includes('view=cards'),false);
+  assert.equal(read.options.init.headers.authorization,'Bearer customer');
+  assert.equal(read.options.init.cache,'no-store');
+});
+
+for (const shopId of ['sa', 'another-shop']) test('deployment policy selects compatible PLP contract for ' + shopId, async () => {
+  const calls=[];
+  const context={organizationId:'oa',shopId,locale:'es-ES',currency:'EUR',country:'ES',channel:'web'};
+  const env={ECOMMIUM_STOREFRONT_PLP_CARDS_ENABLED:'true',ECOMMIUM_STOREFRONT_ORGANIZATION_ID:'oa',ECOMMIUM_STOREFRONT_SHOP_ID:'sa',ECOMMIUM_STOREFRONT_TRADE_POLICY:'default'};
+  const plp=load('src/modules/storefront/plp.ts', specifier=>{
+    if(specifier==='./plp-cards-contract')return contract;
+    if(specifier==='./storefront-context')return {getStorefrontContext:async()=>context};
+    if(specifier.endsWith('/shared/bff/storefront-client'))return {requestStorefrontBff:async(url,options)=>{
+      calls.push({url,options});const query=new URL(url,'http://test').searchParams;
+      if(query.has('view')&&query.has('tradePolicy'))return {ok:false,status:403};
+      const p=url.startsWith('/storefront/plp/')?payload():{categories:[]};
+      return {ok:true,status:200,data:options.parse?options.parse(p):p};
+    }};return {};
+  },env);
+  const result=await plp.getStorefrontPlp('clothes');assert.equal(result.ok,true);assert.equal(result.data.products.length,1);
+  const read=calls.find(c=>c.url.startsWith('/storefront/plp/'));const q=new URL(read.url,'http://test').searchParams;
+  assert.equal(q.get('tradePolicy'),shopId==='sa'?'default':null);
+  assert.equal(q.get('view'),shopId==='sa'?null:'cards');
+  assert.equal(typeof read.options.parse==='function',shopId!=='sa');
 });
